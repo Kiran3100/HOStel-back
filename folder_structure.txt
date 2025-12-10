@@ -1,0 +1,280 @@
+app/
+services/
+__init__.py
+
+# -------------------- Core infrastructure --------------------
+common/
+__init__.py
+unit_of_work.py          # coordinates multiple repositories in a transaction
+security.py              # password hashing, JWT helpers, scopes
+permissions.py           # generic RBAC helpers, permission checks
+pagination.py            # common listing helpers
+mapping.py               # model <-> schema mapping utilities
+
+auth/
+__init__.py
+auth_service.py          # login/logout, token issuance, refresh
+registration_service.py  # RegisterRequest -> User + Visitor/Student/Admin
+otp_service.py           # generate/verify OTP (login, reset, verification)
+password_service.py      # change/reset password flows
+social_auth_service.py   # Google/Facebook OAuth handling
+session_service.py       # user sessions, active sessions listing, revoke
+rbac_service.py          # role-based access control, permission matrix
+context_service.py       # active hostel context per admin (hostel switching)
+
+users/
+__init__.py
+user_service.py          # CRUD, profile updates, contact info
+user_profile_service.py  # address/emergency contact, preferences
+user_activity_service.py # write to audit.user_activity
+
+# -------------------- Admin / Super-admin --------------------
+admin/
+__init__.py
+super_admin_dashboard_service.py  # platform-wide metrics, KPIs
+admin_hostel_assignment_service.py # assign admins to hostels, bulk ops
+multi_hostel_dashboard_service.py  # multi-hostel aggregated stats
+permission_matrix_service.py       # role -> allowed actions view
+admin_override_service.py          # override supervisor decisions
+
+hostel/
+__init__.py
+hostel_service.py         # Hostel CRUD, visibility, status updates
+hostel_admin_view_service.py  # stats for HostelAdmin dashboards
+hostel_comparison_service.py  # up-to-4 hostel comparison data
+hostel_analytics_service.py   # hostel-level analytics aggregation
+
+# -------------------- Rooms & Beds --------------------
+room/
+__init__.py
+room_service.py           # Room CRUD, pricing, status updates
+room_availability_service.py  # availability queries, per date range
+bed_service.py            # bed CRUD, occupancy flags, assignments
+bed_assignment_service.py # assign/release beds, transfer logic
+
+# -------------------- Students --------------------
+student/
+__init__.py
+student_service.py           # Student CRUD, status changes
+student_profile_service.py   # profile docs, guardian, institutional info
+student_dashboard_service.py # StudentDashboard aggregation
+student_search_service.py    # filters + export/import
+student_room_history_service.py  # history and transfers
+student_finance_service.py   # per-student financial summary, ledger view
+
+# -------------------- Supervisors --------------------
+supervisor/
+__init__.py
+supervisor_service.py           # create/update supervisor entities
+supervisor_assignment_service.py# assignment to hostels, revoke/transfer
+supervisor_permissions_service.py # granular permission engine
+supervisor_dashboard_service.py # SupervisorDashboard aggregation
+supervisor_performance_service.py # metrics & periodic performance reports
+supervisor_activity_service.py  # write/read supervisor_activity logs
+
+# -------------------- Attendance & Leaves --------------------
+attendance/
+__init__.py
+attendance_service.py        # CRUD & bulk attendance operations
+attendance_policy_service.py # policy config + validation
+attendance_report_service.py # AttendanceReport, MonthlyReport
+attendance_alert_service.py  # low attendance alerts & notifications
+
+leave/
+__init__.py
+leave_service.py             # LeaveCreate/Update, status changes
+leave_approval_service.py    # supervisor/admin approvals
+leave_balance_service.py     # LeaveBalanceSummary computation
+
+# -------------------- Booking & Calendar --------------------
+booking/
+__init__.py
+booking_service.py           # core booking CRUD + status transitions
+booking_workflow_service.py  # pending/approved/rejected/checked_in/out
+booking_calendar_service.py  # calendar/availability views
+booking_modification_service.py # modifications, approvals
+booking_cancellation_service.py # cancellations + refunds trigger
+booking_waitlist_service.py  # waitlist management & notifications
+booking_conversion_service.py# convert booking -> Student profile
+booking_analytics_service.py # BookingAnalyticsSummary, funnel, trends
+
+# -------------------- Payments, Fees, Ledger --------------------
+fee_structure/
+__init__.py
+fee_structure_service.py     # fee CRUD + get_effective_fee wrapper
+fee_config_service.py        # FeeConfiguration + ChargesBreakdown
+
+payment/
+__init__.py
+payment_service.py           # internal Payment CRUD, status mgmt
+payment_gateway_service.py   # Razorpay/Stripe/Paytm integration
+payment_request_service.py   # online/ManualPaymentRequest orchestration
+payment_schedule_service.py  # recurring schedule generation
+payment_reminder_service.py  # reminders, batches, stats
+payment_ledger_service.py    # ledger entries, account statements
+refund_service.py            # RefundRequest/Response workflows
+payment_reporting_service.py # financial analytics/report integration
+
+commission/
+__init__.py
+commission_service.py        # commission calc & BookingCommission records
+
+# -------------------- Notifications --------------------
+notification/
+__init__.py
+notification_service.py      # unified trigger entrypoint (email/sms/push)
+email_service.py             # uses EmailConfig + EmailRequest/Template
+sms_service.py               # uses SMSConfig + SMSRequest/Template
+push_service.py              # FCM + DeviceToken handling
+template_service.py          # Notification/Email/SMS/Push templates
+preference_service.py        # UserPreferences management
+routing_service.py           # routing + escalation logic
+queue_service.py             # queue processing, batch jobs
+
+# -------------------- Content: Announcements, Mess, Notices, Reviews --------------------
+announcement/
+__init__.py
+announcement_service.py      # CRUD, targeting, scheduling, publishing
+announcement_delivery_service.py # DeliveryConfig, DeliveryStatus, retries
+announcement_tracking_service.py # read receipts, acknowledgments, analytics
+
+mess/
+__init__.py
+mess_menu_service.py         # MessMenu CRUD, today/weekly/monthly views
+mess_menu_planning_service.py# plans/templates/duplication
+mess_feedback_service.py     # Ratings & feedback analytics
+
+notice/
+__init__.py
+notice_service.py            # simpler system-wide/hostel notices
+
+review/
+__init__.py
+review_service.py            # internal Review (students)
+public_review_service.py     # visitor HostelReview (public)
+review_moderation_service.py # moderation, flags, workflows
+review_analytics_service.py  # ReviewAnalytics & trends
+review_voting_service.py     # helpful/not_helpful votes
+hostel_response_service.py   # hostel replies to reviews
+
+# -------------------- Complaints & Maintenance --------------------
+complaint/
+__init__.py
+complaint_service.py         # main CRUD & state transitions
+complaint_assignment_service.py  # assign/reassign/unassign
+complaint_escalation_service.py  # auto/manual escalation, rules
+complaint_feedback_service.py    # post-resolution feedback
+complaint_workflow_service.py    # wf_complaint table integration
+complaint_analytics_service.py   # dashboards, heatmaps
+
+maintenance/
+__init__.py
+maintenance_service.py       # main Maintenance CRUD + state
+maintenance_assignment_service.py # staff/vendor assignment
+maintenance_approval_service.py  # high-value approvals
+maintenance_completion_service.py# completion + quality checks
+maintenance_schedule_service.py  # preventive schedules
+maintenance_cost_service.py      # budget & expense tracking
+maintenance_workflow_service.py  # wf_maintenance integration
+maintenance_analytics_service.py # MaintenanceAnalytics + cost trends
+
+# -------------------- Inquiry & Visitor flows --------------------
+inquiry/
+__init__.py
+inquiry_service.py           # visitor inquiries, status updates
+inquiry_assignment_service.py# assignment to admins, timeline
+
+visitor/
+__init__.py
+visitor_service.py           # Visitor profile CRUD
+visitor_dashboard_service.py # VisitorDashboard aggregate
+favorites_service.py         # favorites/wishlist handling
+visitor_preferences_service.py # VisitorPreferences, saved searches
+visitor_hostel_search_service.py # search using VisitorHostel + filters
+
+# -------------------- Hostels: public & search --------------------
+hostel_public/
+__init__.py
+public_hostel_service.py     # PublicHostelCard/Profile building
+hostel_search_service.py     # public search (HostelSearchRequest)
+hostel_index_service.py      # builds visitor_hostel records from core_hostel
+
+search/
+__init__.py
+search_service.py            # orchestrates full-text search
+autocomplete_service.py      # suggestions for hostels/cities/areas
+search_analytics_service.py  # SearchAnalytics logging, stats
+search_indexer_service.py    # sync to Elasticsearch / search backend
+
+# -------------------- Analytics & Reporting --------------------
+analytics/
+__init__.py
+dashboard_analytics_service.py   # DashboardMetrics aggregation
+financial_analytics_service.py   # FinancialReport from payments/ledger
+occupancy_analytics_service.py   # OccupancyReport
+complaint_analytics_service.py   # complaint-level analytics APIs
+supervisor_analytics_service.py  # SupervisorDashboardAnalytics
+platform_analytics_service.py    # PlatformMetrics/Growth/Usage
+custom_report_service.py         # CustomReportRequest/Definition/Result
+attendance_analytics_service.py  # advanced attendance trends/reports
+
+reporting/
+__init__.py
+financial_reporting_service.py   # basic/bulk financial reporting APIs
+occupancy_reporting_service.py   # hostel occupancy reports
+audit_reporting_service.py       # AuditReport, summaries
+export_service.py                # CSV/Excel/PDF export helpers
+
+# -------------------- Subscriptions & Referrals --------------------
+subscription/
+__init__.py
+subscription_plan_service.py     # plan CRUD, public listing
+subscription_service.py          # manage hostel subscriptions
+subscription_billing_service.py  # invoices, cycles, history
+subscription_upgrade_service.py  # upgrades/downgrades preview & apply
+commission_service.py            # (optionally here instead of /commission)
+
+referral/
+__init__.py
+referral_program_service.py      # program CRUD, validity checks
+referral_service.py              # create/use referral codes
+referral_reward_service.py       # reward accrual & payouts
+
+# -------------------- Audit & Workflows --------------------
+audit/
+__init__.py
+audit_log_service.py             # create/query general AuditLog
+admin_override_service.py        # wraps AdminOverrideRepository
+supervisor_activity_service.py   # log + summary for supervisors
+entity_history_service.py        # EntityChangeHistory-style responses
+
+workflows/
+__init__.py
+approval_workflow_service.py     # generic approval wf for entities
+booking_workflow_service.py      # BookingWorkflow operations
+complaint_workflow_service.py    # ComplaintWorkflow operations
+maintenance_workflow_service.py  # MaintenanceWorkflow operations
+
+# -------------------- System / Platform config --------------------
+system/
+__init__.py
+feature_flag_service.py          # feature toggles
+platform_config_service.py       # branding, theme, support info
+system_settings_service.py       # arbitrary key/value settings
+notification_config_service.py   # channel configs (SMTP, SMS, FCM)
+
+# -------------------- File / Media --------------------
+file/
+__init__.py
+file_service.py                  # generic file uploads via presigned URLs
+image_service.py                 # image-specific validations & variants
+document_service.py              # document uploads, validation, metadata
+
+# -------------------- Performance / Infra --------------------
+cache/
+__init__.py
+cache_service.py                 # Redis-based caching helpers
+
+rate_limiting/
+__init__.py
+rate_limit_service.py            # generic rate-limiting (per-IP, per-user)

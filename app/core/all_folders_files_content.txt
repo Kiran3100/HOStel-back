@@ -1,0 +1,4206 @@
+### Combined Content from Folder: D:\hostel-management-saas\app\core ###
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core =====
+
+# --- File: D:\hostel-management-saas\app\core\config.py ---
+"""
+Application configuration management.
+
+This module handles all application settings including:
+- Database configuration
+- Security settings
+- Third-party service credentials
+- Feature flags
+- Environment-specific settings
+"""
+
+from typing import Any, Dict, List, Optional, Union
+from pydantic import BaseSettings, Field, validator, PostgresDsn, RedisDsn, AnyHttpUrl
+from functools import lru_cache
+import os
+from pathlib import Path
+import secrets
+
+
+class Settings(BaseSettings):
+    """
+    Application settings with validation.
+    
+    All settings can be overridden via environment variables.
+    Settings are loaded from .env file in development.
+    """
+
+    # ==================== API Configuration ====================
+    API_V1_PREFIX: str = "/api/v1"
+    PROJECT_NAME: str = "Hostel Management System"
+    VERSION: str = "1.0.0"
+    DESCRIPTION: str = "Comprehensive hostel management platform with multi-tenant support"
+    DEBUG: bool = Field(default=False, env="DEBUG")
+    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
+    
+    # API Documentation
+    DOCS_URL: str = "/docs"
+    REDOC_URL: str = "/redoc"
+    OPENAPI_URL: str = "/openapi.json"
+    SWAGGER_UI_OAUTH2_REDIRECT_URL: str = "/docs/oauth2-redirect"
+
+    # ==================== Server Configuration ====================
+    HOST: str = Field(default="0.0.0.0", env="HOST")
+    PORT: int = Field(default=8000, env="PORT")
+    WORKERS: int = Field(default=4, env="WORKERS")
+    RELOAD: bool = Field(default=True, env="RELOAD")
+    LOG_LEVEL: str = Field(default="info", env="LOG_LEVEL")
+
+    # ==================== CORS Settings ====================
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+        ],
+        env="BACKEND_CORS_ORIGINS"
+    )
+
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+        """Parse CORS origins from string or list."""
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
+
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: List[str] = ["*"]
+    CORS_ALLOW_HEADERS: List[str] = ["*"]
+    CORS_MAX_AGE: int = 600
+
+    # ==================== Database Configuration ====================
+    # PostgreSQL
+    POSTGRES_HOST: str = Field(default="localhost", env="POSTGRES_HOST")
+    POSTGRES_PORT: int = Field(default=5432, env="POSTGRES_PORT")
+    POSTGRES_USER: str = Field(default="postgres", env="POSTGRES_USER")
+    POSTGRES_PASSWORD: str = Field(default="postgres", env="POSTGRES_PASSWORD")
+    POSTGRES_DB: str = Field(default="hostel_management", env="POSTGRES_DB")
+    POSTGRES_SCHEMA: str = Field(default="public", env="POSTGRES_SCHEMA")
+    DATABASE_URL: Optional[PostgresDsn] = None
+
+    @validator("DATABASE_URL", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+        """Construct database URL from components."""
+        if isinstance(v, str):
+            return v
+        return PostgresDsn.build(
+            scheme="postgresql+asyncpg",
+            user=values.get("POSTGRES_USER"),
+            password=values.get("POSTGRES_PASSWORD"),
+            host=values.get("POSTGRES_HOST"),
+            port=str(values.get("POSTGRES_PORT")),
+            path=f"/{values.get('POSTGRES_DB') or ''}",
+        )
+
+    # Database Pool Settings
+    DATABASE_ECHO: bool = Field(default=False, env="DATABASE_ECHO")
+    DATABASE_POOL_SIZE: int = Field(default=20, env="DATABASE_POOL_SIZE")
+    DATABASE_MAX_OVERFLOW: int = Field(default=10, env="DATABASE_MAX_OVERFLOW")
+    DATABASE_POOL_RECYCLE: int = Field(default=3600, env="DATABASE_POOL_RECYCLE")
+    DATABASE_POOL_PRE_PING: bool = Field(default=True, env="DATABASE_POOL_PRE_PING")
+    DATABASE_POOL_TIMEOUT: int = Field(default=30, env="DATABASE_POOL_TIMEOUT")
+
+    # ==================== Redis Configuration ====================
+    REDIS_HOST: str = Field(default="localhost", env="REDIS_HOST")
+    REDIS_PORT: int = Field(default=6379, env="REDIS_PORT")
+    REDIS_DB: int = Field(default=0, env="REDIS_DB")
+    REDIS_PASSWORD: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    REDIS_URL: Optional[str] = None
+    
+    # Redis Pool Settings
+    REDIS_MAX_CONNECTIONS: int = Field(default=50, env="REDIS_MAX_CONNECTIONS")
+    REDIS_SOCKET_TIMEOUT: int = Field(default=5, env="REDIS_SOCKET_TIMEOUT")
+    REDIS_SOCKET_CONNECT_TIMEOUT: int = Field(default=5, env="REDIS_SOCKET_CONNECT_TIMEOUT")
+
+    @validator("REDIS_URL", pre=True)
+    def assemble_redis_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+        """Construct Redis URL from components."""
+        if isinstance(v, str):
+            return v
+        
+        password = values.get("REDIS_PASSWORD")
+        auth = f":{password}@" if password else ""
+        
+        return f"redis://{auth}{values.get('REDIS_HOST')}:{values.get('REDIS_PORT')}/{values.get('REDIS_DB')}"
+
+    # Cache Settings
+    REDIS_CACHE_TTL: int = Field(default=300, env="REDIS_CACHE_TTL")
+    REDIS_CACHE_PREFIX: str = Field(default="hms:", env="REDIS_CACHE_PREFIX")
+
+    # ==================== JWT & Security Settings ====================
+    SECRET_KEY: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32),
+        env="SECRET_KEY"
+    )
+    ALGORITHM: str = Field(default="HS256", env="ALGORITHM")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, env="REFRESH_TOKEN_EXPIRE_DAYS")
+    
+    # Token Settings
+    TOKEN_TYPE: str = "Bearer"
+    TOKEN_URL: str = f"{API_V1_PREFIX}/auth/login"
+
+    # Password Policy
+    PASSWORD_MIN_LENGTH: int = Field(default=8, env="PASSWORD_MIN_LENGTH")
+    PASSWORD_MAX_LENGTH: int = Field(default=128, env="PASSWORD_MAX_LENGTH")
+    PASSWORD_REQUIRE_UPPERCASE: bool = Field(default=True, env="PASSWORD_REQUIRE_UPPERCASE")
+    PASSWORD_REQUIRE_LOWERCASE: bool = Field(default=True, env="PASSWORD_REQUIRE_LOWERCASE")
+    PASSWORD_REQUIRE_DIGIT: bool = Field(default=True, env="PASSWORD_REQUIRE_DIGIT")
+    PASSWORD_REQUIRE_SPECIAL: bool = Field(default=True, env="PASSWORD_REQUIRE_SPECIAL")
+    PASSWORD_EXPIRY_DAYS: int = Field(default=90, env="PASSWORD_EXPIRY_DAYS")
+    PASSWORD_HISTORY_LIMIT: int = Field(default=5, env="PASSWORD_HISTORY_LIMIT")
+    
+    # Hashing
+    BCRYPT_ROUNDS: int = Field(default=12, env="BCRYPT_ROUNDS")
+
+    # ==================== Email Configuration ====================
+    # SMTP Settings
+    SMTP_HOST: str = Field(default="smtp.gmail.com", env="SMTP_HOST")
+    SMTP_PORT: int = Field(default=587, env="SMTP_PORT")
+    SMTP_USER: str = Field(default="", env="SMTP_USER")
+    SMTP_PASSWORD: str = Field(default="", env="SMTP_PASSWORD")
+    SMTP_FROM_EMAIL: str = Field(default="noreply@hostel.com", env="SMTP_FROM_EMAIL")
+    SMTP_FROM_NAME: str = Field(default="Hostel Management System", env="SMTP_FROM_NAME")
+    SMTP_TLS: bool = Field(default=True, env="SMTP_TLS")
+    SMTP_SSL: bool = Field(default=False, env="SMTP_SSL")
+    
+    # Email Settings
+    EMAIL_ENABLED: bool = Field(default=True, env="EMAIL_ENABLED")
+    EMAIL_TEST_MODE: bool = Field(default=False, env="EMAIL_TEST_MODE")
+    EMAIL_TEMPLATES_DIR: str = Field(default="app/templates/emails", env="EMAIL_TEMPLATES_DIR")
+    EMAIL_MAX_RETRIES: int = Field(default=3, env="EMAIL_MAX_RETRIES")
+
+    # ==================== SMS Configuration (Twilio) ====================
+    SMS_ENABLED: bool = Field(default=False, env="SMS_ENABLED")
+    TWILIO_ACCOUNT_SID: Optional[str] = Field(default=None, env="TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN: Optional[str] = Field(default=None, env="TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER: Optional[str] = Field(default=None, env="TWILIO_PHONE_NUMBER")
+    SMS_MAX_RETRIES: int = Field(default=3, env="SMS_MAX_RETRIES")
+
+    # ==================== File Upload Configuration ====================
+    UPLOAD_DIR: Path = Field(default=Path("storage/uploads"), env="UPLOAD_DIR")
+    MAX_UPLOAD_SIZE: int = Field(default=10 * 1024 * 1024, env="MAX_UPLOAD_SIZE")  # 10MB
+    MAX_IMAGE_SIZE: int = Field(default=5 * 1024 * 1024, env="MAX_IMAGE_SIZE")  # 5MB
+    MAX_DOCUMENT_SIZE: int = Field(default=10 * 1024 * 1024, env="MAX_DOCUMENT_SIZE")  # 10MB
+    
+    ALLOWED_IMAGE_EXTENSIONS: List[str] = Field(
+        default=[".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"],
+        env="ALLOWED_IMAGE_EXTENSIONS"
+    )
+    ALLOWED_DOCUMENT_EXTENSIONS: List[str] = Field(
+        default=[".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt"],
+        env="ALLOWED_DOCUMENT_EXTENSIONS"
+    )
+    
+    # Image Processing
+    IMAGE_THUMBNAIL_SIZE: tuple = (150, 150)
+    IMAGE_MEDIUM_SIZE: tuple = (500, 500)
+    IMAGE_LARGE_SIZE: tuple = (1200, 1200)
+    IMAGE_QUALITY: int = Field(default=85, env="IMAGE_QUALITY")
+
+    # ==================== AWS S3 Configuration ====================
+    USE_S3: bool = Field(default=False, env="USE_S3")
+    AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, env="AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
+    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
+    AWS_S3_BUCKET: Optional[str] = Field(default=None, env="AWS_S3_BUCKET")
+    AWS_S3_CUSTOM_DOMAIN: Optional[str] = Field(default=None, env="AWS_S3_CUSTOM_DOMAIN")
+    AWS_S3_ENDPOINT_URL: Optional[str] = Field(default=None, env="AWS_S3_ENDPOINT_URL")
+
+    # ==================== Payment Gateway Configuration ====================
+    # Razorpay
+    RAZORPAY_ENABLED: bool = Field(default=False, env="RAZORPAY_ENABLED")
+    RAZORPAY_KEY_ID: Optional[str] = Field(default=None, env="RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: Optional[str] = Field(default=None, env="RAZORPAY_KEY_SECRET")
+    RAZORPAY_WEBHOOK_SECRET: Optional[str] = Field(default=None, env="RAZORPAY_WEBHOOK_SECRET")
+
+    # Stripe
+    STRIPE_ENABLED: bool = Field(default=False, env="STRIPE_ENABLED")
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = Field(default=None, env="STRIPE_PUBLISHABLE_KEY")
+    STRIPE_SECRET_KEY: Optional[str] = Field(default=None, env="STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET: Optional[str] = Field(default=None, env="STRIPE_WEBHOOK_SECRET")
+
+    # PayTM
+    PAYTM_ENABLED: bool = Field(default=False, env="PAYTM_ENABLED")
+    PAYTM_MERCHANT_ID: Optional[str] = Field(default=None, env="PAYTM_MERCHANT_ID")
+    PAYTM_MERCHANT_KEY: Optional[str] = Field(default=None, env="PAYTM_MERCHANT_KEY")
+    PAYTM_WEBSITE: str = Field(default="WEBSTAGING", env="PAYTM_WEBSITE")
+    PAYTM_INDUSTRY_TYPE: str = Field(default="Retail", env="PAYTM_INDUSTRY_TYPE")
+
+    # ==================== Elasticsearch Configuration ====================
+    ELASTICSEARCH_ENABLED: bool = Field(default=False, env="ELASTICSEARCH_ENABLED")
+    ELASTICSEARCH_HOST: str = Field(default="localhost", env="ELASTICSEARCH_HOST")
+    ELASTICSEARCH_PORT: int = Field(default=9200, env="ELASTICSEARCH_PORT")
+    ELASTICSEARCH_INDEX_PREFIX: str = Field(default="hms", env="ELASTICSEARCH_INDEX_PREFIX")
+    ELASTICSEARCH_USER: Optional[str] = Field(default=None, env="ELASTICSEARCH_USER")
+    ELASTICSEARCH_PASSWORD: Optional[str] = Field(default=None, env="ELASTICSEARCH_PASSWORD")
+
+    # ==================== Celery Configuration ====================
+    CELERY_BROKER_URL: str = Field(
+        default="redis://localhost:6379/1",
+        env="CELERY_BROKER_URL"
+    )
+    CELERY_RESULT_BACKEND: str = Field(
+        default="redis://localhost:6379/2",
+        env="CELERY_RESULT_BACKEND"
+    )
+    CELERY_TASK_TRACK_STARTED: bool = True
+    CELERY_TASK_TIME_LIMIT: int = Field(default=30 * 60, env="CELERY_TASK_TIME_LIMIT")  # 30 minutes
+    CELERY_TASK_SOFT_TIME_LIMIT: int = Field(default=25 * 60, env="CELERY_TASK_SOFT_TIME_LIMIT")  # 25 minutes
+
+    # ==================== Rate Limiting Configuration ====================
+    RATE_LIMIT_ENABLED: bool = Field(default=True, env="RATE_LIMIT_ENABLED")
+    RATE_LIMIT_PER_MINUTE: int = Field(default=60, env="RATE_LIMIT_PER_MINUTE")
+    RATE_LIMIT_PER_HOUR: int = Field(default=1000, env="RATE_LIMIT_PER_HOUR")
+    RATE_LIMIT_PER_DAY: int = Field(default=10000, env="RATE_LIMIT_PER_DAY")
+    
+    # Specific rate limits
+    RATE_LIMIT_LOGIN: int = Field(default=5, env="RATE_LIMIT_LOGIN")  # per minute
+    RATE_LIMIT_UPLOAD: int = Field(default=10, env="RATE_LIMIT_UPLOAD")  # per minute
+    RATE_LIMIT_API: int = Field(default=100, env="RATE_LIMIT_API")  # per minute
+
+    # ==================== Logging Configuration ====================
+    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+    LOG_FORMAT: str = Field(
+        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        env="LOG_FORMAT"
+    )
+    LOG_FILE: Optional[Path] = Field(default=Path("logs/app.log"), env="LOG_FILE")
+    LOG_ROTATION: str = Field(default="1 day", env="LOG_ROTATION")
+    LOG_RETENTION: str = Field(default="30 days", env="LOG_RETENTION")
+    LOG_COMPRESSION: str = Field(default="zip", env="LOG_COMPRESSION")
+    
+    # Structured Logging
+    LOG_JSON_FORMAT: bool = Field(default=False, env="LOG_JSON_FORMAT")
+    LOG_INCLUDE_TRACE: bool = Field(default=True, env="LOG_INCLUDE_TRACE")
+
+    # ==================== Monitoring & Observability ====================
+    # Sentry
+    SENTRY_ENABLED: bool = Field(default=False, env="SENTRY_ENABLED")
+    SENTRY_DSN: Optional[str] = Field(default=None, env="SENTRY_DSN")
+    SENTRY_ENVIRONMENT: Optional[str] = Field(default=None, env="SENTRY_ENVIRONMENT")
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=1.0, env="SENTRY_TRACES_SAMPLE_RATE")
+    
+    # Metrics
+    ENABLE_METRICS: bool = Field(default=True, env="ENABLE_METRICS")
+    METRICS_PORT: int = Field(default=9090, env="METRICS_PORT")
+
+    # ==================== Business Logic Configuration ====================
+    # Currency
+    DEFAULT_CURRENCY: str = Field(default="INR", env="DEFAULT_CURRENCY")
+    SUPPORTED_CURRENCIES: List[str] = Field(default=["INR", "USD"], env="SUPPORTED_CURRENCIES")
+    
+    # Booking
+    BOOKING_ADVANCE_PERCENTAGE: float = Field(default=20.0, env="BOOKING_ADVANCE_PERCENTAGE")
+    BOOKING_EXPIRY_HOURS: int = Field(default=24, env="BOOKING_EXPIRY_HOURS")
+    MIN_BOOKING_DURATION_DAYS: int = Field(default=30, env="MIN_BOOKING_DURATION_DAYS")
+    MAX_BOOKING_DURATION_DAYS: int = Field(default=365, env="MAX_BOOKING_DURATION_DAYS")
+    BOOKING_CANCELLATION_DEADLINE_HOURS: int = Field(default=48, env="BOOKING_CANCELLATION_DEADLINE_HOURS")
+    
+    # Payment
+    PAYMENT_REMINDER_DAYS_BEFORE: int = Field(default=3, env="PAYMENT_REMINDER_DAYS_BEFORE")
+    LATE_FEE_PERCENTAGE: float = Field(default=5.0, env="LATE_FEE_PERCENTAGE")
+    REFUND_PROCESSING_DAYS: int = Field(default=7, env="REFUND_PROCESSING_DAYS")
+    
+    # Supervisor Approval Thresholds
+    SUPERVISOR_COMPLAINT_APPROVAL_THRESHOLD: float = Field(
+        default=5000.0,
+        env="SUPERVISOR_COMPLAINT_APPROVAL_THRESHOLD"
+    )
+    SUPERVISOR_MAINTENANCE_APPROVAL_THRESHOLD: float = Field(
+        default=10000.0,
+        env="SUPERVISOR_MAINTENANCE_APPROVAL_THRESHOLD"
+    )
+    AUTO_APPROVE_THRESHOLD: float = Field(default=1000.0, env="AUTO_APPROVE_THRESHOLD")
+
+    # ==================== Pagination Configuration ====================
+    DEFAULT_PAGE: int = Field(default=1, env="DEFAULT_PAGE")
+    DEFAULT_PAGE_SIZE: int = Field(default=20, env="DEFAULT_PAGE_SIZE")
+    MAX_PAGE_SIZE: int = Field(default=100, env="MAX_PAGE_SIZE")
+
+    # ==================== Session Configuration ====================
+    SESSION_EXPIRE_MINUTES: int = Field(default=60, env="SESSION_EXPIRE_MINUTES")
+    SESSION_COOKIE_NAME: str = Field(default="session_id", env="SESSION_COOKIE_NAME")
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SECURE: bool = Field(default=False, env="SESSION_COOKIE_SECURE")  # Set to True in production
+    SESSION_COOKIE_SAMESITE: str = Field(default="lax", env="SESSION_COOKIE_SAMESITE")
+
+    # ==================== OTP Configuration ====================
+    OTP_LENGTH: int = Field(default=6, env="OTP_LENGTH")
+    OTP_EXPIRE_MINUTES: int = Field(default=10, env="OTP_EXPIRE_MINUTES")
+    OTP_MAX_ATTEMPTS: int = Field(default=3, env="OTP_MAX_ATTEMPTS")
+    OTP_RESEND_DELAY_SECONDS: int = Field(default=60, env="OTP_RESEND_DELAY_SECONDS")
+
+    # ==================== External Services ====================
+    # Google Maps
+    GOOGLE_MAPS_API_KEY: Optional[str] = Field(default=None, env="GOOGLE_MAPS_API_KEY")
+    GOOGLE_MAPS_ENABLED: bool = Field(default=False, env="GOOGLE_MAPS_ENABLED")
+    
+    # Firebase (Push Notifications)
+    FIREBASE_ENABLED: bool = Field(default=False, env="FIREBASE_ENABLED")
+    FIREBASE_CREDENTIALS_PATH: Optional[Path] = Field(
+        default=None,
+        env="FIREBASE_CREDENTIALS_PATH"
+    )
+    
+    # OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = Field(default=None, env="GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: Optional[str] = Field(default=None, env="GOOGLE_CLIENT_SECRET")
+    FACEBOOK_APP_ID: Optional[str] = Field(default=None, env="FACEBOOK_APP_ID")
+    FACEBOOK_APP_SECRET: Optional[str] = Field(default=None, env="FACEBOOK_APP_SECRET")
+
+    # ==================== Feature Flags ====================
+    FEATURE_ONLINE_BOOKING: bool = Field(default=True, env="FEATURE_ONLINE_BOOKING")
+    FEATURE_PAYMENT_GATEWAY: bool = Field(default=True, env="FEATURE_PAYMENT_GATEWAY")
+    FEATURE_SMS_NOTIFICATIONS: bool = Field(default=False, env="FEATURE_SMS_NOTIFICATIONS")
+    FEATURE_PUSH_NOTIFICATIONS: bool = Field(default=False, env="FEATURE_PUSH_NOTIFICATIONS")
+    FEATURE_ANALYTICS: bool = Field(default=True, env="FEATURE_ANALYTICS")
+    FEATURE_REVIEWS: bool = Field(default=True, env="FEATURE_REVIEWS")
+    FEATURE_REFERRALS: bool = Field(default=True, env="FEATURE_REFERRALS")
+
+    # ==================== Search Configuration ====================
+    SEARCH_MIN_QUERY_LENGTH: int = Field(default=2, env="SEARCH_MIN_QUERY_LENGTH")
+    SEARCH_MAX_RESULTS: int = Field(default=100, env="SEARCH_MAX_RESULTS")
+    SEARCH_FUZZY_DISTANCE: int = Field(default=2, env="SEARCH_FUZZY_DISTANCE")
+    DEFAULT_SEARCH_RADIUS_KM: int = Field(default=10, env="DEFAULT_SEARCH_RADIUS_KM")
+    MAX_SEARCH_RADIUS_KM: int = Field(default=50, env="MAX_SEARCH_RADIUS_KM")
+
+    # ==================== Review Configuration ====================
+    MIN_REVIEW_LENGTH: int = Field(default=10, env="MIN_REVIEW_LENGTH")
+    MAX_REVIEW_LENGTH: int = Field(default=1000, env="MAX_REVIEW_LENGTH")
+    MIN_RATING: int = Field(default=1, env="MIN_RATING")
+    MAX_RATING: int = Field(default=5, env="MAX_RATING")
+    REVIEW_MODERATION_ENABLED: bool = Field(default=True, env="REVIEW_MODERATION_ENABLED")
+
+    # ==================== Complaint Configuration ====================
+    COMPLAINT_AUTO_ESCALATE_DAYS: int = Field(default=3, env="COMPLAINT_AUTO_ESCALATE_DAYS")
+    COMPLAINT_AUTO_CLOSE_DAYS: int = Field(default=30, env="COMPLAINT_AUTO_CLOSE_DAYS")
+
+    # ==================== Maintenance Configuration ====================
+    PREVENTIVE_MAINTENANCE_ADVANCE_DAYS: int = Field(
+        default=7,
+        env="PREVENTIVE_MAINTENANCE_ADVANCE_DAYS"
+    )
+
+    # ==================== Attendance Configuration ====================
+    LATE_ARRIVAL_THRESHOLD_MINUTES: int = Field(default=30, env="LATE_ARRIVAL_THRESHOLD_MINUTES")
+    ABSENCE_NOTIFICATION_DELAY_HOURS: int = Field(default=2, env="ABSENCE_NOTIFICATION_DELAY_HOURS")
+
+    # ==================== Data Retention ====================
+    REPORT_RETENTION_DAYS: int = Field(default=90, env="REPORT_RETENTION_DAYS")
+    AUDIT_LOG_RETENTION_DAYS: int = Field(default=365, env="AUDIT_LOG_RETENTION_DAYS")
+    SESSION_CLEANUP_DAYS: int = Field(default=30, env="SESSION_CLEANUP_DAYS")
+    NOTIFICATION_RETENTION_DAYS: int = Field(default=90, env="NOTIFICATION_RETENTION_DAYS")
+
+    # ==================== Testing Configuration ====================
+    TESTING: bool = Field(default=False, env="TESTING")
+    TEST_DATABASE_URL: Optional[str] = Field(default=None, env="TEST_DATABASE_URL")
+
+    class Config:
+        """Pydantic configuration."""
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+        
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production."""
+        return self.ENVIRONMENT.lower() == "production"
+    
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development."""
+        return self.ENVIRONMENT.lower() == "development"
+    
+    @property
+    def is_testing(self) -> bool:
+        """Check if running in testing."""
+        return self.ENVIRONMENT.lower() == "testing" or self.TESTING
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """
+    Get cached settings instance.
+    
+    Returns:
+        Cached Settings instance
+    """
+    return Settings()
+
+
+# Global settings instance
+settings = get_settings()
+
+
+# Validate critical settings on import
+def validate_settings():
+    """Validate critical settings."""
+    if settings.is_production:
+        # Check critical production settings
+        if settings.SECRET_KEY == secrets.token_urlsafe(32):
+            raise ValueError("SECRET_KEY must be set in production")
+        
+        if not settings.DATABASE_URL:
+            raise ValueError("DATABASE_URL must be set in production")
+        
+        if settings.DEBUG:
+            raise ValueError("DEBUG must be False in production")
+
+
+# Run validation
+if settings.is_production:
+    validate_settings()
+
+# --- File: D:\hostel-management-saas\app\core\constants.py ---
+"""
+Application-wide constants.
+
+This module contains all constant values used throughout the application.
+Organized by category for easy reference and maintenance.
+"""
+
+from enum import Enum
+
+
+# ==================== Application Constants ====================
+APP_NAME = "Hostel Management System"
+APP_VERSION = "1.0.0"
+API_PREFIX = "/api/v1"
+APP_DESCRIPTION = "Comprehensive hostel management platform"
+
+# ==================== Date/Time Formats ====================
+DATE_FORMAT = "%Y-%m-%d"
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+DATETIME_ISO_FORMAT = "%Y-%m-%dT%H:%M:%S"
+TIME_FORMAT = "%H:%M:%S"
+MONTH_FORMAT = "%Y-%m"
+YEAR_FORMAT = "%Y"
+
+# Display formats
+DISPLAY_DATE_FORMAT = "%d %b, %Y"  # 01 Jan, 2024
+DISPLAY_DATETIME_FORMAT = "%d %b, %Y %I:%M %p"  # 01 Jan, 2024 02:30 PM
+DISPLAY_TIME_FORMAT = "%I:%M %p"  # 02:30 PM
+
+# ==================== Pagination Constants ====================
+DEFAULT_PAGE = 1
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+MIN_PAGE_SIZE = 1
+
+# ==================== File Upload Constants ====================
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_DOCUMENT_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB
+
+# File type categories
+FILE_CATEGORY_IMAGE = "image"
+FILE_CATEGORY_DOCUMENT = "document"
+FILE_CATEGORY_VIDEO = "video"
+FILE_CATEGORY_AUDIO = "audio"
+FILE_CATEGORY_OTHER = "other"
+
+# Image dimensions
+THUMBNAIL_SIZE = (150, 150)
+SMALL_SIZE = (300, 300)
+MEDIUM_SIZE = (500, 500)
+LARGE_SIZE = (1200, 1200)
+MAX_IMAGE_DIMENSION = 4000
+
+# Supported formats
+IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]
+DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt"]
+VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".wmv", ".flv"]
+AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".m4a"]
+
+# MIME types
+IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+DOCUMENT_MIME_TYPES = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/csv",
+    "text/plain"
+]
+
+# ==================== Cache TTL (in seconds) ====================
+CACHE_TTL_SHORT = 300  # 5 minutes
+CACHE_TTL_MEDIUM = 1800  # 30 minutes
+CACHE_TTL_LONG = 3600  # 1 hour
+CACHE_TTL_VERY_LONG = 86400  # 24 hours
+CACHE_TTL_WEEK = 604800  # 7 days
+
+# Cache keys
+CACHE_KEY_USER = "user:{user_id}"
+CACHE_KEY_HOSTEL = "hostel:{hostel_id}"
+CACHE_KEY_BOOKING = "booking:{booking_id}"
+CACHE_KEY_SEARCH = "search:{query}:{filters}"
+CACHE_KEY_STATS = "stats:{entity}:{period}"
+
+# ==================== Rate Limiting ====================
+RATE_LIMIT_LOGIN = "5/minute"
+RATE_LIMIT_REGISTER = "3/minute"
+RATE_LIMIT_PASSWORD_RESET = "3/hour"
+RATE_LIMIT_API = "60/minute"
+RATE_LIMIT_UPLOAD = "10/minute"
+RATE_LIMIT_EMAIL = "10/hour"
+RATE_LIMIT_SMS = "5/hour"
+RATE_LIMIT_SEARCH = "30/minute"
+
+# ==================== Session Constants ====================
+SESSION_COOKIE_NAME = "session_id"
+SESSION_EXPIRE_SECONDS = 3600  # 1 hour
+SESSION_ABSOLUTE_TIMEOUT = 86400  # 24 hours
+SESSION_RENEWAL_THRESHOLD = 300  # 5 minutes
+
+# ==================== OTP Constants ====================
+OTP_LENGTH = 6
+OTP_EXPIRE_MINUTES = 10
+OTP_MAX_ATTEMPTS = 3
+OTP_RESEND_DELAY_SECONDS = 60
+OTP_NUMERIC_ONLY = True
+
+# ==================== Password Constants ====================
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
+PASSWORD_RESET_TOKEN_EXPIRE_HOURS = 24
+PASSWORD_RESET_TOKEN_LENGTH = 32
+
+# ==================== Booking Constants ====================
+BOOKING_ADVANCE_PERCENTAGE = 20.0
+BOOKING_EXPIRY_HOURS = 24
+MIN_BOOKING_DURATION_DAYS = 30
+MAX_BOOKING_DURATION_DAYS = 365
+BOOKING_CONFIRMATION_GRACE_PERIOD_HOURS = 2
+BOOKING_CANCELLATION_DEADLINE_HOURS = 48
+BOOKING_MODIFICATION_DEADLINE_HOURS = 24
+
+# ==================== Payment Constants ====================
+PAYMENT_REMINDER_DAYS_BEFORE = [7, 3, 1]  # Days before due date
+PAYMENT_OVERDUE_GRACE_PERIOD_DAYS = 3
+LATE_FEE_PERCENTAGE = 5.0
+LATE_FEE_MAX_AMOUNT = 1000.0
+REFUND_PROCESSING_DAYS = 7
+REFUND_CANCELLATION_FEE_PERCENTAGE = 10.0
+
+# Transaction limits
+MIN_TRANSACTION_AMOUNT = 1.0
+MAX_TRANSACTION_AMOUNT = 1000000.0
+
+# ==================== Approval Thresholds ====================
+SUPERVISOR_COMPLAINT_THRESHOLD = 5000.0
+SUPERVISOR_MAINTENANCE_THRESHOLD = 10000.0
+AUTO_APPROVE_THRESHOLD = 1000.0
+ESCALATION_THRESHOLD = 50000.0
+
+# ==================== Email Templates ====================
+EMAIL_TEMPLATES_DIR = "app/templates/emails"
+
+# Template names
+EMAIL_TEMPLATE_VERIFICATION = "email_verification"
+EMAIL_TEMPLATE_PASSWORD_RESET = "password_reset"
+EMAIL_TEMPLATE_WELCOME = "welcome"
+EMAIL_TEMPLATE_BOOKING_CONFIRMATION = "booking_confirmation"
+EMAIL_TEMPLATE_BOOKING_CANCELLATION = "booking_cancellation"
+EMAIL_TEMPLATE_PAYMENT_RECEIPT = "payment_receipt"
+EMAIL_TEMPLATE_PAYMENT_REMINDER = "payment_reminder"
+EMAIL_TEMPLATE_COMPLAINT_UPDATE = "complaint_update"
+EMAIL_TEMPLATE_MAINTENANCE_UPDATE = "maintenance_update"
+EMAIL_TEMPLATE_NOTICE = "notice"
+EMAIL_TEMPLATE_INVOICE = "invoice"
+
+# ==================== Notification Types ====================
+NOTIFICATION_EMAIL = "email"
+NOTIFICATION_SMS = "sms"
+NOTIFICATION_PUSH = "push"
+NOTIFICATION_IN_APP = "in_app"
+NOTIFICATION_WEBHOOK = "webhook"
+
+# Notification priorities
+NOTIFICATION_PRIORITY_LOW = "low"
+NOTIFICATION_PRIORITY_MEDIUM = "medium"
+NOTIFICATION_PRIORITY_HIGH = "high"
+NOTIFICATION_PRIORITY_URGENT = "urgent"
+
+# ==================== Queue Names ====================
+QUEUE_DEFAULT = "default"
+QUEUE_EMAIL = "email"
+QUEUE_SMS = "sms"
+QUEUE_NOTIFICATION = "notification"
+QUEUE_REPORT = "report"
+QUEUE_EXPORT = "export"
+QUEUE_IMPORT = "import"
+QUEUE_ANALYTICS = "analytics"
+
+# ==================== Task Priorities ====================
+PRIORITY_CRITICAL = 0
+PRIORITY_HIGH = 1
+PRIORITY_MEDIUM = 5
+PRIORITY_LOW = 10
+
+# ==================== Search Constants ====================
+SEARCH_MIN_QUERY_LENGTH = 2
+SEARCH_MAX_QUERY_LENGTH = 100
+SEARCH_MAX_RESULTS = 100
+SEARCH_FUZZY_DISTANCE = 2
+SEARCH_BOOST_EXACT_MATCH = 2.0
+SEARCH_BOOST_PARTIAL_MATCH = 1.5
+
+# ==================== Geocoding Constants ====================
+DEFAULT_SEARCH_RADIUS_KM = 10
+MAX_SEARCH_RADIUS_KM = 50
+DEFAULT_LATITUDE = 0.0
+DEFAULT_LONGITUDE = 0.0
+
+# ==================== Review Constants ====================
+MIN_REVIEW_LENGTH = 10
+MAX_REVIEW_LENGTH = 1000
+MIN_RATING = 1
+MAX_RATING = 5
+REVIEW_VERIFICATION_DAYS = 7  # Days after checkout to submit review
+
+# ==================== Complaint Constants ====================
+COMPLAINT_AUTO_ESCALATE_DAYS = 3
+COMPLAINT_AUTO_CLOSE_DAYS = 30
+COMPLAINT_RESOLUTION_TARGET_DAYS = 7
+MAX_COMPLAINT_ATTACHMENTS = 5
+
+# ==================== Maintenance Constants ====================
+PREVENTIVE_MAINTENANCE_ADVANCE_DAYS = 7
+MAINTENANCE_WARRANTY_PERIOD_DAYS = 90
+MAX_MAINTENANCE_COST = 100000.0
+
+# ==================== Attendance Constants ====================
+LATE_ARRIVAL_THRESHOLD_MINUTES = 30
+ABSENCE_NOTIFICATION_DELAY_HOURS = 2
+MIN_ATTENDANCE_PERCENTAGE = 75.0
+ATTENDANCE_MARKING_WINDOW_HOURS = 24
+
+# ==================== Leave Constants ====================
+MAX_LEAVE_DAYS_PER_REQUEST = 30
+LEAVE_APPLICATION_ADVANCE_DAYS = 2
+ANNUAL_LEAVE_QUOTA_DAYS = 15
+
+# ==================== Report Retention ====================
+REPORT_RETENTION_DAYS = 90
+AUDIT_LOG_RETENTION_DAYS = 365
+SESSION_CLEANUP_DAYS = 30
+NOTIFICATION_RETENTION_DAYS = 90
+TEMP_FILE_RETENTION_HOURS = 24
+
+# ==================== HTTP Status Codes ====================
+HTTP_200_OK = 200
+HTTP_201_CREATED = 201
+HTTP_202_ACCEPTED = 202
+HTTP_204_NO_CONTENT = 204
+HTTP_400_BAD_REQUEST = 400
+HTTP_401_UNAUTHORIZED = 401
+HTTP_403_FORBIDDEN = 403
+HTTP_404_NOT_FOUND = 404
+HTTP_405_METHOD_NOT_ALLOWED = 405
+HTTP_409_CONFLICT = 409
+HTTP_422_UNPROCESSABLE_ENTITY = 422
+HTTP_429_TOO_MANY_REQUESTS = 429
+HTTP_500_INTERNAL_SERVER_ERROR = 500
+HTTP_502_BAD_GATEWAY = 502
+HTTP_503_SERVICE_UNAVAILABLE = 503
+
+# ==================== Error Codes ====================
+# Authentication errors
+ERROR_AUTHENTICATION_FAILED = "AUTH_001"
+ERROR_INVALID_TOKEN = "AUTH_002"
+ERROR_TOKEN_EXPIRED = "AUTH_003"
+ERROR_PERMISSION_DENIED = "AUTH_004"
+ERROR_INVALID_CREDENTIALS = "AUTH_005"
+ERROR_EMAIL_NOT_VERIFIED = "AUTH_006"
+ERROR_ACCOUNT_INACTIVE = "AUTH_007"
+ERROR_ACCOUNT_SUSPENDED = "AUTH_008"
+
+# Validation errors
+ERROR_VALIDATION_FAILED = "VAL_001"
+ERROR_INVALID_INPUT = "VAL_002"
+ERROR_DUPLICATE_ENTRY = "VAL_003"
+ERROR_INVALID_DATE_RANGE = "VAL_004"
+ERROR_REQUIRED_FIELD = "VAL_005"
+ERROR_INVALID_FORMAT = "VAL_006"
+
+# Resource errors
+ERROR_RESOURCE_NOT_FOUND = "RES_001"
+ERROR_HOSTEL_NOT_FOUND = "RES_002"
+ERROR_BOOKING_NOT_FOUND = "RES_003"
+ERROR_STUDENT_NOT_FOUND = "RES_004"
+ERROR_PAYMENT_NOT_FOUND = "RES_005"
+
+# Business logic errors
+ERROR_BOOKING_UNAVAILABLE = "BIZ_001"
+ERROR_PAYMENT_FAILED = "BIZ_002"
+ERROR_INSUFFICIENT_BALANCE = "BIZ_003"
+ERROR_BOOKING_EXPIRED = "BIZ_004"
+ERROR_ALREADY_BOOKED = "BIZ_005"
+ERROR_CAPACITY_EXCEEDED = "BIZ_006"
+
+# ==================== Success Messages ====================
+MSG_SUCCESS = "Operation completed successfully"
+MSG_CREATED = "Resource created successfully"
+MSG_UPDATED = "Resource updated successfully"
+MSG_DELETED = "Resource deleted successfully"
+MSG_UPLOADED = "File uploaded successfully"
+
+# User messages
+MSG_LOGIN_SUCCESS = "Login successful"
+MSG_LOGOUT_SUCCESS = "Logout successful"
+MSG_REGISTRATION_SUCCESS = "Registration successful. Please verify your email."
+MSG_PASSWORD_RESET = "Password reset link sent to your email"
+MSG_PASSWORD_CHANGED = "Password changed successfully"
+MSG_EMAIL_VERIFIED = "Email verified successfully"
+MSG_PROFILE_UPDATED = "Profile updated successfully"
+
+# Booking messages
+MSG_BOOKING_CREATED = "Booking created successfully"
+MSG_BOOKING_CONFIRMED = "Booking confirmed successfully"
+MSG_BOOKING_CANCELLED = "Booking cancelled successfully"
+MSG_BOOKING_CHECKED_IN = "Check-in completed successfully"
+MSG_BOOKING_CHECKED_OUT = "Check-out completed successfully"
+
+# Payment messages
+MSG_PAYMENT_SUCCESS = "Payment completed successfully"
+MSG_PAYMENT_INITIATED = "Payment initiated"
+MSG_PAYMENT_FAILED = "Payment failed. Please try again."
+MSG_REFUND_INITIATED = "Refund request initiated"
+MSG_REFUND_COMPLETED = "Refund completed successfully"
+
+# Complaint messages
+MSG_COMPLAINT_FILED = "Complaint filed successfully"
+MSG_COMPLAINT_UPDATED = "Complaint status updated"
+MSG_COMPLAINT_RESOLVED = "Complaint resolved"
+
+# Maintenance messages
+MSG_MAINTENANCE_REQUESTED = "Maintenance request created"
+MSG_MAINTENANCE_ASSIGNED = "Maintenance request assigned"
+MSG_MAINTENANCE_COMPLETED = "Maintenance completed"
+
+# ==================== Regex Patterns ====================
+REGEX_EMAIL = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+REGEX_PHONE = r"^\+?[1-9]\d{1,14}$"
+REGEX_PHONE_INDIA = r"^[6-9]\d{9}$"
+REGEX_UUID = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+REGEX_ALPHANUMERIC = r"^[a-zA-Z0-9]+$"
+REGEX_SLUG = r"^[a-z0-9-]+$"
+REGEX_URL = r"^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$"
+REGEX_IPV4 = r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+REGEX_PINCODE_INDIA = r"^[1-9][0-9]{5}$"
+
+# ==================== Currency Formats ====================
+CURRENCY_SYMBOLS = {
+    "INR": "₹",
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+}
+
+CURRENCY_NAMES = {
+    "INR": "Indian Rupee",
+    "USD": "US Dollar",
+    "EUR": "Euro",
+    "GBP": "British Pound",
+}
+
+# ==================== Time Zones ====================
+DEFAULT_TIMEZONE = "Asia/Kolkata"
+SUPPORTED_TIMEZONES = [
+    "Asia/Kolkata",
+    "UTC",
+    "America/New_York",
+    "Europe/London",
+]
+
+# ==================== Export Formats ====================
+EXPORT_FORMAT_CSV = "csv"
+EXPORT_FORMAT_EXCEL = "excel"
+EXPORT_FORMAT_PDF = "pdf"
+EXPORT_FORMAT_JSON = "json"
+
+# ==================== Hostel Amenities ====================
+AMENITIES_BASIC = [
+    "wifi",
+    "hot_water",
+    "laundry",
+    "power_backup",
+]
+
+AMENITIES_PREMIUM = [
+    "ac",
+    "tv",
+    "refrigerator",
+    "microwave",
+    "gym",
+    "swimming_pool",
+]
+
+AMENITIES_SECURITY = [
+    "cctv",
+    "security_guard",
+    "biometric",
+    "fire_safety",
+]
+
+# ==================== Room Amenities ====================
+ROOM_AMENITIES_BASIC = [
+    "bed",
+    "mattress",
+    "wardrobe",
+    "study_table",
+    "chair",
+]
+
+ROOM_AMENITIES_ADDITIONAL = [
+    "ac",
+    "fan",
+    "window",
+    "attached_bathroom",
+    "balcony",
+]
+
+# ==================== Default Values ====================
+DEFAULT_PAGE_SIZE = 20
+DEFAULT_LANGUAGE = "en"
+DEFAULT_COUNTRY_CODE = "+91"
+DEFAULT_CURRENCY = "INR"
+
+# ==================== Limits ====================
+MAX_PROFILE_PICTURE_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_HOSTEL_PHOTOS = 20
+MAX_COMPLAINT_PHOTOS = 5
+MAX_REVIEW_PHOTOS = 10
+MAX_CONCURRENT_BOOKINGS_PER_USER = 5
+MAX_COMPLAINTS_PER_DAY = 10
+
+# ==================== Scoring ====================
+HOSTEL_RANKING_WEIGHTS = {
+    "rating": 0.4,
+    "occupancy": 0.2,
+    "reviews_count": 0.2,
+    "price": 0.1,
+    "location": 0.1,
+}
+
+# ==================== Feature Flags ====================
+FEATURE_ONLINE_PAYMENT = True
+FEATURE_SMS_NOTIFICATIONS = False
+FEATURE_PUSH_NOTIFICATIONS = False
+FEATURE_ANALYTICS_DASHBOARD = True
+FEATURE_MULTI_LANGUAGE = False
+FEATURE_DARK_MODE = True
+
+# --- File: D:\hostel-management-saas\app\core\enums.py ---
+"""
+Core application enumerations.
+
+This module contains all enumeration classes used throughout the application.
+Enums provide type safety and ensure consistent values across the system.
+"""
+
+from enum import Enum
+
+
+# ==================== User Enumerations ====================
+
+class UserType(str, Enum):
+    """User type enumeration."""
+    SUPER_ADMIN = "super_admin"
+    HOSTEL_ADMIN = "hostel_admin"
+    SUPERVISOR = "supervisor"
+    STUDENT = "student"
+    VISITOR = "visitor"
+    GUEST = "guest"
+    STAFF = "staff"
+
+
+class UserStatus(str, Enum):
+    """User account status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+    PENDING = "pending"
+    DELETED = "deleted"
+    LOCKED = "locked"
+    VERIFICATION_PENDING = "verification_pending"
+
+
+class GenderType(str, Enum):
+    """Gender type enumeration."""
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
+
+
+# ==================== Payment Enumerations ====================
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+    PENDING = "pending"
+    INITIATED = "initiated"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class PaymentMethod(str, Enum):
+    """Payment method enumeration."""
+    CASH = "cash"
+    CARD = "card"
+    CREDIT_CARD = "credit_card"
+    DEBIT_CARD = "debit_card"
+    UPI = "upi"
+    NET_BANKING = "net_banking"
+    WALLET = "wallet"
+    CHEQUE = "cheque"
+    BANK_TRANSFER = "bank_transfer"
+    EMI = "emi"
+
+
+class FeeType(str, Enum):
+    """Fee type enumeration."""
+    ROOM_RENT = "room_rent"
+    MESS_FEE = "mess_fee"
+    SECURITY_DEPOSIT = "security_deposit"
+    MAINTENANCE = "maintenance"
+    UTILITY_BILLS = "utility_bills"
+    ELECTRICITY = "electricity"
+    WATER = "water"
+    LATE_FEE = "late_fee"
+    REGISTRATION_FEE = "registration_fee"
+    ADMISSION_FEE = "admission_fee"
+    PARKING_FEE = "parking_fee"
+    INTERNET_FEE = "internet_fee"
+    OTHER = "other"
+
+
+class TransactionType(str, Enum):
+    """Transaction type enumeration."""
+    CREDIT = "credit"
+    DEBIT = "debit"
+
+
+class RefundStatus(str, Enum):
+    """Refund status enumeration."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    REJECTED = "rejected"
+
+
+# ==================== Booking Enumerations ====================
+
+class BookingStatus(str, Enum):
+    """Booking status enumeration."""
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
+    CHECKED_IN = "checked_in"
+    CHECKED_OUT = "checked_out"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    REJECTED = "rejected"
+    ON_HOLD = "on_hold"
+    AWAITING_PAYMENT = "awaiting_payment"
+
+
+class BookingType(str, Enum):
+    """Booking type enumeration."""
+    REGULAR = "regular"
+    PREMIUM = "premium"
+    EMERGENCY = "emergency"
+    TEMPORARY = "temporary"
+    LONG_TERM = "long_term"
+
+
+# ==================== Complaint Enumerations ====================
+
+class ComplaintCategory(str, Enum):
+    """Complaint category enumeration."""
+    MAINTENANCE = "maintenance"
+    CLEANLINESS = "cleanliness"
+    SECURITY = "security"
+    FOOD = "food"
+    FACILITIES = "facilities"
+    STAFF_BEHAVIOR = "staff_behavior"
+    NOISE = "noise"
+    ELECTRICITY = "electricity"
+    WATER_SUPPLY = "water_supply"
+    INTERNET = "internet"
+    SAFETY = "safety"
+    HARASSMENT = "harassment"
+    OTHER = "other"
+
+
+class ComplaintStatus(str, Enum):
+    """Complaint status enumeration."""
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
+    IN_PROGRESS = "in_progress"
+    PENDING_APPROVAL = "pending_approval"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+    REJECTED = "rejected"
+    ESCALATED = "escalated"
+    REOPENED = "reopened"
+
+
+class Priority(str, Enum):
+    """Priority level enumeration."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    URGENT = "urgent"
+
+
+# ==================== Room & Bed Enumerations ====================
+
+class RoomType(str, Enum):
+    """Room type enumeration."""
+    SINGLE = "single"
+    DOUBLE = "double"
+    TRIPLE = "triple"
+    QUAD = "quad"
+    DORMITORY = "dormitory"
+    SUITE = "suite"
+    STUDIO = "studio"
+    DELUXE = "deluxe"
+    PREMIUM = "premium"
+
+
+class BedStatus(str, Enum):
+    """Bed status enumeration."""
+    AVAILABLE = "available"
+    OCCUPIED = "occupied"
+    RESERVED = "reserved"
+    UNDER_MAINTENANCE = "under_maintenance"
+    BLOCKED = "blocked"
+    OUT_OF_SERVICE = "out_of_service"
+
+
+class RoomStatus(str, Enum):
+    """Room status enumeration."""
+    AVAILABLE = "available"
+    OCCUPIED = "occupied"
+    PARTIALLY_OCCUPIED = "partially_occupied"
+    UNDER_MAINTENANCE = "under_maintenance"
+    RESERVED = "reserved"
+    OUT_OF_SERVICE = "out_of_service"
+
+
+# ==================== Maintenance Enumerations ====================
+
+class MaintenanceStatus(str, Enum):
+    """Maintenance status enumeration."""
+    PENDING = "pending"
+    SCHEDULED = "scheduled"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ON_HOLD = "on_hold"
+    AWAITING_PARTS = "awaiting_parts"
+
+
+class MaintenanceCategory(str, Enum):
+    """Maintenance category enumeration."""
+    PLUMBING = "plumbing"
+    ELECTRICAL = "electrical"
+    FURNITURE = "furniture"
+    CLEANING = "cleaning"
+    HVAC = "hvac"
+    PEST_CONTROL = "pest_control"
+    PAINTING = "painting"
+    CARPENTRY = "carpentry"
+    APPLIANCE_REPAIR = "appliance_repair"
+    STRUCTURAL = "structural"
+    RENOVATION = "renovation"
+    LANDSCAPING = "landscaping"
+    OTHER = "other"
+
+
+class MaintenanceType(str, Enum):
+    """Maintenance type enumeration."""
+    PREVENTIVE = "preventive"
+    CORRECTIVE = "corrective"
+    EMERGENCY = "emergency"
+    ROUTINE = "routine"
+
+
+# ==================== Notice Enumerations ====================
+
+class NoticeType(str, Enum):
+    """Notice type enumeration."""
+    GENERAL = "general"
+    EMERGENCY = "emergency"
+    EVENT = "event"
+    MAINTENANCE = "maintenance"
+    RULE_CHANGE = "rule_change"
+    HOLIDAY = "holiday"
+    ANNOUNCEMENT = "announcement"
+    WARNING = "warning"
+    CELEBRATION = "celebration"
+    MEETING = "meeting"
+
+
+class TargetAudience(str, Enum):
+    """Target audience enumeration."""
+    ALL = "all"
+    STUDENTS = "students"
+    STAFF = "staff"
+    ADMINS = "admins"
+    SUPERVISORS = "supervisors"
+    VISITORS = "visitors"
+    SPECIFIC_HOSTEL = "specific_hostel"
+    SPECIFIC_ROOM = "specific_room"
+    SPECIFIC_FLOOR = "specific_floor"
+
+
+class NoticeStatus(str, Enum):
+    """Notice status enumeration."""
+    DRAFT = "draft"
+    SCHEDULED = "scheduled"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+    EXPIRED = "expired"
+
+
+# ==================== Subscription Enumerations ====================
+
+class SubscriptionPlan(str, Enum):
+    """Subscription plan enumeration."""
+    FREE = "free"
+    BASIC = "basic"
+    STANDARD = "standard"
+    PREMIUM = "premium"
+    ENTERPRISE = "enterprise"
+    TRIAL = "trial"
+
+
+class SubscriptionStatus(str, Enum):
+    """Subscription status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    SUSPENDED = "suspended"
+    TRIAL = "trial"
+    PENDING = "pending"
+
+
+class BillingCycle(str, Enum):
+    """Billing cycle enumeration."""
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    HALF_YEARLY = "half_yearly"
+    YEARLY = "yearly"
+    BIENNIAL = "biennial"
+
+
+# ==================== Attendance Enumerations ====================
+
+class AttendanceStatus(str, Enum):
+    """Attendance status enumeration."""
+    PRESENT = "present"
+    ABSENT = "absent"
+    ON_LEAVE = "on_leave"
+    LATE = "late"
+    HALF_DAY = "half_day"
+    EXCUSED = "excused"
+    UNEXCUSED = "unexcused"
+
+
+class AttendanceMode(str, Enum):
+    """Attendance mode enumeration."""
+    CHECK_IN = "check_in"
+    CHECK_OUT = "check_out"
+    BOTH = "both"
+    MANUAL = "manual"
+    AUTOMATIC = "automatic"
+
+
+class LeaveStatus(str, Enum):
+    """Leave status enumeration."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class LeaveType(str, Enum):
+    """Leave type enumeration."""
+    CASUAL = "casual"
+    SICK = "sick"
+    EMERGENCY = "emergency"
+    VACATION = "vacation"
+    MEDICAL = "medical"
+    FAMILY = "family"
+    OTHER = "other"
+
+
+# ==================== Menu Enumerations ====================
+
+class MealType(str, Enum):
+    """Meal type enumeration."""
+    BREAKFAST = "breakfast"
+    LUNCH = "lunch"
+    DINNER = "dinner"
+    SNACKS = "snacks"
+    BRUNCH = "brunch"
+    SUPPER = "supper"
+
+
+class DietType(str, Enum):
+    """Diet type enumeration."""
+    VEGETARIAN = "vegetarian"
+    NON_VEGETARIAN = "non_vegetarian"
+    VEGAN = "vegan"
+    GLUTEN_FREE = "gluten_free"
+    JAIN = "jain"
+    HALAL = "halal"
+    KOSHER = "kosher"
+    KETO = "keto"
+    PALEO = "paleo"
+
+
+class MenuStatus(str, Enum):
+    """Menu status enumeration."""
+    DRAFT = "draft"
+    APPROVED = "approved"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+# ==================== Hostel Enumerations ====================
+
+class HostelType(str, Enum):
+    """Hostel type enumeration."""
+    BOYS = "boys"
+    GIRLS = "girls"
+    CO_ED = "co_ed"
+    WORKING_PROFESSIONALS = "working_professionals"
+    STUDENTS = "students"
+    PG = "pg"
+
+
+class HostelStatus(str, Enum):
+    """Hostel status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    UNDER_CONSTRUCTION = "under_construction"
+    MAINTENANCE = "maintenance"
+    CLOSED = "closed"
+    COMING_SOON = "coming_soon"
+
+
+class VisibilityStatus(str, Enum):
+    """Visibility status enumeration."""
+    PUBLIC = "public"
+    PRIVATE = "private"
+    HIDDEN = "hidden"
+    UNLISTED = "unlisted"
+
+
+# ==================== Approval Enumerations ====================
+
+class ApprovalStatus(str, Enum):
+    """Approval status enumeration."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ESCALATED = "escalated"
+    WITHDRAWN = "withdrawn"
+    EXPIRED = "expired"
+
+
+class ApprovalType(str, Enum):
+    """Approval type enumeration."""
+    BOOKING = "booking"
+    PAYMENT = "payment"
+    MAINTENANCE = "maintenance"
+    COMPLAINT = "complaint"
+    LEAVE = "leave"
+    EXPENSE = "expense"
+    REFUND = "refund"
+    STUDENT_ADMISSION = "student_admission"
+
+
+# ==================== Notification Enumerations ====================
+
+class NotificationStatus(str, Enum):
+    """Notification status enumeration."""
+    PENDING = "pending"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    READ = "read"
+    FAILED = "failed"
+    BOUNCED = "bounced"
+
+
+class NotificationPriority(str, Enum):
+    """Notification priority enumeration."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class NotificationType(str, Enum):
+    """Notification type enumeration."""
+    EMAIL = "email"
+    SMS = "sms"
+    PUSH = "push"
+    IN_APP = "in_app"
+    WEBHOOK = "webhook"
+    SLACK = "slack"
+
+
+class NotificationChannel(str, Enum):
+    """Notification channel enumeration."""
+    EMAIL = "email"
+    SMS = "sms"
+    PUSH = "push"
+    IN_APP = "in_app"
+    ALL = "all"
+
+
+# ==================== File Enumerations ====================
+
+class FileType(str, Enum):
+    """File type enumeration."""
+    IMAGE = "image"
+    DOCUMENT = "document"
+    PDF = "pdf"
+    VIDEO = "video"
+    AUDIO = "audio"
+    SPREADSHEET = "spreadsheet"
+    PRESENTATION = "presentation"
+    ARCHIVE = "archive"
+    OTHER = "other"
+
+
+class FileStatus(str, Enum):
+    """File status enumeration."""
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+    DELETED = "deleted"
+
+
+# ==================== Review Enumerations ====================
+
+class ReviewStatus(str, Enum):
+    """Review status enumeration."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    FLAGGED = "flagged"
+    REMOVED = "removed"
+
+
+class ReviewCategory(str, Enum):
+    """Review category enumeration."""
+    HOSTEL_FACILITIES = "hostel_facilities"
+    FOOD_QUALITY = "food_quality"
+    SECURITY = "security"
+    CLEANLINESS = "cleanliness"
+    MANAGEMENT = "management"
+    STAFF_BEHAVIOR = "staff_behavior"
+    VALUE_FOR_MONEY = "value_for_money"
+    LOCATION = "location"
+    OVERALL_EXPERIENCE = "overall_experience"
+
+
+# ==================== Supervisor Enumerations ====================
+
+class SupervisorRole(str, Enum):
+    """Supervisor role enumeration."""
+    MANAGER = "manager"
+    WARDEN = "warden"
+    ASSISTANT_WARDEN = "assistant_warden"
+    SECURITY = "security"
+    MAINTENANCE_STAFF = "maintenance_staff"
+    KITCHEN_STAFF = "kitchen_staff"
+    HOUSEKEEPING = "housekeeping"
+    RECEPTIONIST = "receptionist"
+
+
+class Department(str, Enum):
+    """Department enumeration."""
+    ADMINISTRATION = "administration"
+    MAINTENANCE = "maintenance"
+    SECURITY = "security"
+    FOOD_SERVICE = "food_service"
+    HOUSEKEEPING = "housekeeping"
+    IT = "it"
+    ACCOUNTS = "accounts"
+    HR = "hr"
+
+
+class AccessLevel(str, Enum):
+    """Access level enumeration."""
+    READ = "read"
+    WRITE = "write"
+    UPDATE = "update"
+    DELETE = "delete"
+    ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
+    FULL_ACCESS = "full_access"
+
+
+# ==================== Invitation Enumerations ====================
+
+class InvitationStatus(str, Enum):
+    """Invitation status enumeration."""
+    PENDING = "pending"
+    SENT = "sent"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+# ==================== Log Enumerations ====================
+
+class LogLevel(str, Enum):
+    """Log level enumeration."""
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class AuditAction(str, Enum):
+    """Audit action enumeration."""
+    CREATE = "create"
+    READ = "read"
+    UPDATE = "update"
+    DELETE = "delete"
+    LOGIN = "login"
+    LOGOUT = "logout"
+    APPROVE = "approve"
+    REJECT = "reject"
+    EXPORT = "export"
+    IMPORT = "import"
+    DOWNLOAD = "download"
+    UPLOAD = "upload"
+    SEND = "send"
+    RECEIVE = "receive"
+
+
+# ==================== Currency Enumerations ====================
+
+class Currency(str, Enum):
+    """Currency enumeration."""
+    INR = "INR"
+    USD = "USD"
+    EUR = "EUR"
+    GBP = "GBP"
+    AUD = "AUD"
+    CAD = "CAD"
+    SGD = "SGD"
+    AED = "AED"
+
+
+# ==================== Day & Time Enumerations ====================
+
+class DayOfWeek(str, Enum):
+    """Day of week enumeration."""
+    MONDAY = "monday"
+    TUESDAY = "tuesday"
+    WEDNESDAY = "wednesday"
+    THURSDAY = "thursday"
+    FRIDAY = "friday"
+    SATURDAY = "saturday"
+    SUNDAY = "sunday"
+
+
+class Month(str, Enum):
+    """Month enumeration."""
+    JANUARY = "january"
+    FEBRUARY = "february"
+    MARCH = "march"
+    APRIL = "april"
+    MAY = "may"
+    JUNE = "june"
+    JULY = "july"
+    AUGUST = "august"
+    SEPTEMBER = "september"
+    OCTOBER = "october"
+    NOVEMBER = "november"
+    DECEMBER = "december"
+
+
+# ==================== Sort & Filter Enumerations ====================
+
+class SortOrder(str, Enum):
+    """Sort order enumeration."""
+    ASC = "asc"
+    DESC = "desc"
+    ASCENDING = "ascending"
+    DESCENDING = "descending"
+
+
+class FilterOperator(str, Enum):
+    """Filter operator enumeration."""
+    EQUALS = "eq"
+    NOT_EQUALS = "ne"
+    GREATER_THAN = "gt"
+    GREATER_THAN_OR_EQUAL = "gte"
+    LESS_THAN = "lt"
+    LESS_THAN_OR_EQUAL = "lte"
+    CONTAINS = "contains"
+    STARTS_WITH = "startswith"
+    ENDS_WITH = "endswith"
+    IN = "in"
+    NOT_IN = "notin"
+    BETWEEN = "between"
+    IS_NULL = "isnull"
+    IS_NOT_NULL = "isnotnull"
+
+
+# ==================== Export Enumerations ====================
+
+class ExportFormat(str, Enum):
+    """Export format enumeration."""
+    CSV = "csv"
+    EXCEL = "excel"
+    XLSX = "xlsx"
+    PDF = "pdf"
+    JSON = "json"
+    XML = "xml"
+
+
+class ReportType(str, Enum):
+    """Report type enumeration."""
+    FINANCIAL = "financial"
+    OCCUPANCY = "occupancy"
+    ATTENDANCE = "attendance"
+    COMPLAINT = "complaint"
+    MAINTENANCE = "maintenance"
+    PAYMENT = "payment"
+    BOOKING = "booking"
+    CUSTOM = "custom"
+
+
+# ==================== Student Enumerations ====================
+
+class StudentStatus(str, Enum):
+    """Student status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    CHECKED_OUT = "checked_out"
+    SUSPENDED = "suspended"
+    GRADUATED = "graduated"
+    TRANSFERRED = "transferred"
+    EXPELLED = "expelled"
+
+
+class BloodGroup(str, Enum):
+    """Blood group enumeration."""
+    A_POSITIVE = "A+"
+    A_NEGATIVE = "A-"
+    B_POSITIVE = "B+"
+    B_NEGATIVE = "B-"
+    O_POSITIVE = "O+"
+    O_NEGATIVE = "O-"
+    AB_POSITIVE = "AB+"
+    AB_NEGATIVE = "AB-"
+
+
+# ==================== Analytics Enumerations ====================
+
+class AnalyticsPeriod(str, Enum):
+    """Analytics period enumeration."""
+    TODAY = "today"
+    YESTERDAY = "yesterday"
+    THIS_WEEK = "this_week"
+    LAST_WEEK = "last_week"
+    THIS_MONTH = "this_month"
+    LAST_MONTH = "last_month"
+    THIS_QUARTER = "this_quarter"
+    LAST_QUARTER = "last_quarter"
+    THIS_YEAR = "this_year"
+    LAST_YEAR = "last_year"
+    CUSTOM = "custom"
+
+
+class MetricType(str, Enum):
+    """Metric type enumeration."""
+    COUNT = "count"
+    SUM = "sum"
+    AVERAGE = "average"
+    MIN = "min"
+    MAX = "max"
+    PERCENTAGE = "percentage"
+    RATE = "rate"
+
+
+# ==================== Communication Enumerations ====================
+
+class CommunicationChannel(str, Enum):
+    """Communication channel enumeration."""
+    EMAIL = "email"
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    PUSH_NOTIFICATION = "push_notification"
+    IN_APP = "in_app"
+    PHONE_CALL = "phone_call"
+
+
+class MessageStatus(str, Enum):
+    """Message status enumeration."""
+    DRAFT = "draft"
+    QUEUED = "queued"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    READ = "read"
+    FAILED = "failed"
+    BOUNCED = "bounced"
+
+
+# ==================== Task Enumerations ====================
+
+class TaskStatus(str, Enum):
+    """Task status enumeration."""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    RETRYING = "retrying"
+
+
+class TaskPriority(str, Enum):
+    """Task priority enumeration."""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+# ==================== Vendor Enumerations ====================
+
+class VendorCategory(str, Enum):
+    """Vendor category enumeration."""
+    PLUMBING = "plumbing"
+    ELECTRICAL = "electrical"
+    FURNITURE = "furniture"
+    CLEANING = "cleaning"
+    PEST_CONTROL = "pest_control"
+    CATERING = "catering"
+    SECURITY = "security"
+    INTERNET = "internet"
+    LAUNDRY = "laundry"
+    GENERAL = "general"
+
+
+class VendorStatus(str, Enum):
+    """Vendor status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    BLACKLISTED = "blacklisted"
+    PENDING_VERIFICATION = "pending_verification"
+
+
+# ==================== Referral Enumerations ====================
+
+class ReferralStatus(str, Enum):
+    """Referral status enumeration."""
+    PENDING = "pending"
+    REGISTERED = "registered"
+    VERIFIED = "verified"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+# ==================== Occupancy Enumerations ====================
+
+class OccupancyStatus(str, Enum):
+    """Occupancy status enumeration."""
+    VACANT = "vacant"
+    OCCUPIED = "occupied"
+    PARTIALLY_OCCUPIED = "partially_occupied"
+    RESERVED = "reserved"
+    MAINTENANCE = "maintenance"
+
+
+# ==================== Environment Enumerations ====================
+
+class Environment(str, Enum):
+    """Environment enumeration."""
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
+    TESTING = "testing"
+    LOCAL = "local"
+
+# --- File: D:\hostel-management-saas\app\core\settings.py ---
+"""
+Settings management for different environments.
+
+This module provides environment-specific settings configurations:
+- Development: Full debugging, verbose logging
+- Production: Optimized, secure settings
+- Testing: Isolated test database, disabled external services
+- Staging: Production-like with some debugging enabled
+"""
+
+from typing import Dict, Any, Type
+from app.core.config import Settings
+
+
+class DevelopmentSettings(Settings):
+    """Development environment settings."""
+    
+    DEBUG: bool = True
+    ENVIRONMENT: str = "development"
+    DATABASE_ECHO: bool = True
+    RELOAD: bool = True
+    LOG_LEVEL: str = "DEBUG"
+    LOG_JSON_FORMAT: bool = False
+    
+    # Relaxed CORS for development
+    BACKEND_CORS_ORIGINS: list = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:8000",
+    ]
+    
+    # Disable rate limiting in development
+    RATE_LIMIT_ENABLED: bool = False
+    
+    # Fast password hashing for development
+    BCRYPT_ROUNDS: int = 4
+    
+    # Email testing
+    EMAIL_TEST_MODE: bool = True
+    
+    # Disable external services by default
+    SMS_ENABLED: bool = False
+    ELASTICSEARCH_ENABLED: bool = False
+    SENTRY_ENABLED: bool = False
+
+
+class ProductionSettings(Settings):
+    """Production environment settings."""
+    
+    DEBUG: bool = False
+    ENVIRONMENT: str = "production"
+    DATABASE_ECHO: bool = False
+    RELOAD: bool = False
+    LOG_LEVEL: str = "INFO"
+    LOG_JSON_FORMAT: bool = True
+    
+    # Strict CORS
+    CORS_ALLOW_CREDENTIALS: bool = True
+    
+    # Enable rate limiting
+    RATE_LIMIT_ENABLED: bool = True
+    
+    # Secure cookies
+    SESSION_COOKIE_SECURE: bool = True
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SAMESITE: str = "strict"
+    
+    # Strong password hashing
+    BCRYPT_ROUNDS: int = 12
+    
+    # Enable monitoring
+    SENTRY_ENABLED: bool = True
+    ENABLE_METRICS: bool = True
+    
+    # Production should use environment variables for sensitive data
+    # Never commit production secrets to version control
+
+
+class TestingSettings(Settings):
+    """Testing environment settings."""
+    
+    DEBUG: bool = True
+    ENVIRONMENT: str = "testing"
+    TESTING: bool = True
+    DATABASE_ECHO: bool = False
+    LOG_LEVEL: str = "WARNING"
+    
+    # Use test database
+    POSTGRES_DB: str = "hostel_management_test"
+    
+    # Disable rate limiting for tests
+    RATE_LIMIT_ENABLED: bool = False
+    
+    # Fast hashing for tests
+    BCRYPT_ROUNDS: int = 4
+    
+    # Disable external services
+    EMAIL_ENABLED: bool = False
+    SMS_ENABLED: bool = False
+    ELASTICSEARCH_ENABLED: bool = False
+    SENTRY_ENABLED: bool = False
+    
+    # Disable async tasks
+    CELERY_TASK_ALWAYS_EAGER: bool = True
+    CELERY_TASK_EAGER_PROPAGATES: bool = True
+    
+    # Short token expiry for tests
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 1
+
+
+class StagingSettings(Settings):
+    """Staging environment settings."""
+    
+    DEBUG: bool = False
+    ENVIRONMENT: str = "staging"
+    DATABASE_ECHO: bool = False
+    RELOAD: bool = False
+    LOG_LEVEL: str = "INFO"
+    LOG_JSON_FORMAT: bool = True
+    
+    # Enable monitoring
+    SENTRY_ENABLED: bool = True
+    ENABLE_METRICS: bool = True
+    
+    # Similar to production but less strict
+    RATE_LIMIT_ENABLED: bool = True
+    SESSION_COOKIE_SECURE: bool = True
+
+
+def get_settings_by_environment(env: str = "development") -> Settings:
+    """
+    Get settings based on environment.
+    
+    Args:
+        env: Environment name (development, production, testing, staging)
+        
+    Returns:
+        Settings instance for the specified environment
+    """
+    settings_map: Dict[str, Type[Settings]] = {
+        "development": DevelopmentSettings,
+        "production": ProductionSettings,
+        "testing": TestingSettings,
+        "staging": StagingSettings,
+    }
+    
+    settings_class = settings_map.get(env.lower(), DevelopmentSettings)
+    return settings_class()
+
+
+def get_database_url(env: str = "development", test: bool = False) -> str:
+    """
+    Get database URL for specific environment.
+    
+    Args:
+        env: Environment name
+        test: Whether to use test database
+        
+    Returns:
+        Database URL string
+    """
+    settings = get_settings_by_environment(env)
+    
+    if test:
+        return settings.TEST_DATABASE_URL or settings.DATABASE_URL.replace(
+            settings.POSTGRES_DB,
+            f"{settings.POSTGRES_DB}_test"
+        )
+    
+    return str(settings.DATABASE_URL)
+
+# --- File: D:\hostel-management-saas\app\core\__init__.py ---
+"""
+Core application components package.
+
+This package contains fundamental application components including:
+- Configuration management
+- Security utilities
+- Permission and authorization
+- Middleware components
+- Exception handling
+- Utilities and helpers
+"""
+
+from app.core.config import settings, get_settings
+from app.core.constants import *
+from app.core.enums import *
+
+__version__ = "1.0.0"
+
+__all__ = [
+    "settings",
+    "get_settings",
+]
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\cache =====
+
+# --- File: D:\hostel-management-saas\app\core\cache\cache_keys.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\cache\cache_manager.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\cache\decorators.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\cache\strategies.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\cache\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\context =====
+
+# --- File: D:\hostel-management-saas\app\core\context\hostel_context.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\context\request_context.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\context\tenant_context.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\context\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\dependencies =====
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\auth.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\cache.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\database.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\filters.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\hostel_context.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\pagination.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\permissions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\dependencies\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\events =====
+
+# --- File: D:\hostel-management-saas\app\core\events\event_dispatcher.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\event_types.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\events\handlers =====
+
+# --- File: D:\hostel-management-saas\app\core\events\handlers\email_handler.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\handlers\sms_handler.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\handlers\webhook_handler.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\handlers\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\events\listeners =====
+
+# --- File: D:\hostel-management-saas\app\core\events\listeners\analytics_listeners.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\listeners\booking_listeners.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\listeners\notification_listeners.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\listeners\payment_listeners.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\events\listeners\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\exceptions =====
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\auth_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\base.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\business_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\http_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\permission_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\resource_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\validation_exceptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\exceptions\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\helpers =====
+
+# --- File: D:\hostel-management-saas\app\core\helpers\conversion_helper.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\helpers\query_helper.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\helpers\response_helper.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\helpers\validation_helper.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\helpers\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\logging =====
+
+# --- File: D:\hostel-management-saas\app\core\logging\filters.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\logging\formatters.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\logging\handlers.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\logging\logger.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\logging\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\middleware =====
+
+# --- File: D:\hostel-management-saas\app\core\middleware\audit.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\authentication.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\authorization.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\compression.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\cors.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\error_handler.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\hostel_context.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\logging.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\rate_limiter.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\request_id.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\middleware\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\monitoring =====
+
+# --- File: D:\hostel-management-saas\app\core\monitoring\health.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\monitoring\metrics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\monitoring\performance.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\monitoring\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\permissions =====
+
+# --- File: D:\hostel-management-saas\app\core\permissions\approval_authority.py ---
+"""
+Approval Authority & Threshold Management.
+
+This module enforces financial and operational limits on roles.
+"""
+
+from typing import Any
+from app.core.config import settings
+from app.core.enums import UserType
+
+
+class ApprovalAuthority:
+    """
+    Determines if a user has sufficient authority to approve specific requests
+    based on cost or impact thresholds.
+    """
+
+    def can_approve_complaint_cost(self, user: Any, estimated_cost: float) -> bool:
+        """
+        Check if user can approve a complaint resolution based on cost.
+        """
+        # Admins have no limits (or very high limits)
+        if user.user_type in [UserType.SUPER_ADMIN, UserType.HOSTEL_ADMIN]:
+            return True
+            
+        # Supervisors have limits defined in settings
+        if user.user_type == UserType.SUPERVISOR:
+            limit = settings.SUPERVISOR_COMPLAINT_APPROVAL_THRESHOLD
+            return estimated_cost <= limit
+            
+        return False
+
+    def can_approve_maintenance_cost(self, user: Any, estimated_cost: float) -> bool:
+        """
+        Check if user can approve a maintenance request based on cost.
+        """
+        if user.user_type in [UserType.SUPER_ADMIN, UserType.HOSTEL_ADMIN]:
+            return True
+            
+        if user.user_type == UserType.SUPERVISOR:
+            limit = settings.SUPERVISOR_MAINTENANCE_APPROVAL_THRESHOLD
+            return estimated_cost <= limit
+            
+        return False
+
+    def requires_escalation(self, user: Any, cost: float, context: str) -> bool:
+        """
+        Helper to determine if a request needs to go up the chain.
+        
+        Args:
+            user: The user attempting to approve
+            cost: The monetary value
+            context: 'complaint' or 'maintenance'
+        """
+        if context == "complaint":
+            return not self.can_approve_complaint_cost(user, cost)
+        elif context == "maintenance":
+            return not self.can_approve_maintenance_cost(user, cost)
+        return True
+
+
+# Global instance
+approval_authority = ApprovalAuthority()
+
+# --- File: D:\hostel-management-saas\app\core\permissions\permissions.py ---
+"""
+Permission Checker Logic.
+
+This module evaluates whether a specific user request matches 
+the allowed permissions defined in the matrix.
+"""
+
+from typing import Any, Set
+from app.core.permissions.permission_matrix import PermissionMatrix
+from app.core.enums import UserType
+
+
+class PermissionChecker:
+    """
+    Evaluates permissions by checking static role definitions
+    and dynamic user-specific overrides.
+    """
+    
+    def check_permission(self, user: Any, required_permission: str) -> bool:
+        """
+        Primary entry point to check if a user has a specific permission.
+        
+        Args:
+            user: The user object (must have .user_type)
+            required_permission: The permission string (e.g., "hostel:create")
+            
+        Returns:
+            True if allowed, False otherwise.
+        """
+        if not user or not getattr(user, "is_active", False):
+            return False
+
+        # 1. Super Admin Bypass
+        if user.user_type == UserType.SUPER_ADMIN:
+            return True
+
+        # 2. Get Base Role Permissions
+        permissions = PermissionMatrix.get_permissions_for_role(user.user_type)
+
+        # 3. Add Custom/Dynamic Permissions (if user has them stored in DB)
+        if hasattr(user, "custom_permissions") and user.custom_permissions:
+            permissions.update(user.custom_permissions)
+
+        # 4. Check logic
+        resource, action = required_permission.split(":")
+        return self._evaluate_permission_set(permissions, resource, action)
+
+    def _evaluate_permission_set(self, permissions: Set[str], resource: str, action: str) -> bool:
+        """
+        Matches requested resource:action against the permission set 
+        handling wildcards.
+        """
+        # Exact match (e.g., "room:create")
+        if f"{resource}:{action}" in permissions:
+            return True
+        
+        # Resource wildcard (e.g., "room:*")
+        if f"{resource}:*" in permissions:
+            return True
+            
+        # Manage wildcard (e.g., "room:manage") - specific semantic alias for *
+        if f"{resource}:manage" in permissions:
+            return True
+            
+        # Global wildcard (e.g., "*:*")
+        if "*:*" in permissions:
+            return True
+            
+        return False
+
+    def validate_action(self, user: Any, resource: str, action: str) -> bool:
+        """Helper wrapper for clean syntax."""
+        return self.check_permission(user, f"{resource}:{action}")
+
+
+# Global instance
+permission_checker = PermissionChecker()
+
+# --- File: D:\hostel-management-saas\app\core\permissions\permission_matrix.py ---
+"""
+Permission Matrix Definition.
+
+This module acts as the Single Source of Truth for static role capabilities.
+It uses a 'Resource:Action' string format (e.g., 'booking:create').
+"""
+
+from typing import Set, Dict
+from app.core.enums import UserType
+
+# ==================== Action Constants ====================
+ACTION_CREATE = "create"
+ACTION_READ = "read"
+ACTION_UPDATE = "update"
+ACTION_DELETE = "delete"
+ACTION_LIST = "list"
+ACTION_APPROVE = "approve"
+ACTION_REJECT = "reject"
+ACTION_EXPORT = "export"
+ACTION_IMPORT = "import"
+ACTION_MANAGE = "manage"  # Grants all actions for a resource
+
+# ==================== Resource Constants ====================
+RESOURCE_SYSTEM = "system"
+RESOURCE_HOSTEL = "hostel"
+RESOURCE_ROOM = "room"
+RESOURCE_BED = "bed"
+RESOURCE_STUDENT = "student"
+RESOURCE_STAFF = "staff"
+RESOURCE_VISITOR = "visitor"
+RESOURCE_BOOKING = "booking"
+RESOURCE_PAYMENT = "payment"
+RESOURCE_COMPLAINT = "complaint"
+RESOURCE_MAINTENANCE = "maintenance"
+RESOURCE_ATTENDANCE = "attendance"
+RESOURCE_NOTICE = "notice"
+RESOURCE_MENU = "menu"
+RESOURCE_REVIEW = "review"
+RESOURCE_REPORT = "report"
+RESOURCE_AUDIT = "audit"
+RESOURCE_SETTINGS = "settings"
+
+
+class PermissionMatrix:
+    """
+    Defines the default permission sets for each UserType.
+    """
+
+    # Super Admin has access to everything via wildcards
+    SUPER_ADMIN_PERMISSIONS: Set[str] = {"*:*"}
+
+    # Hostel Admin: Full control over their specific hostel operations
+    HOSTEL_ADMIN_PERMISSIONS: Set[str] = {
+        # Hostel Info
+        f"{RESOURCE_HOSTEL}:{ACTION_READ}",
+        f"{RESOURCE_HOSTEL}:{ACTION_UPDATE}",
+        
+        # Infrastructure
+        f"{RESOURCE_ROOM}:{ACTION_MANAGE}",
+        f"{RESOURCE_BED}:{ACTION_MANAGE}",
+        
+        # User Management (within their hostel)
+        f"{RESOURCE_STUDENT}:{ACTION_MANAGE}",
+        f"{RESOURCE_STAFF}:{ACTION_MANAGE}",
+        
+        # Operations
+        f"{RESOURCE_BOOKING}:{ACTION_MANAGE}",
+        f"{RESOURCE_PAYMENT}:{ACTION_MANAGE}",
+        f"{RESOURCE_COMPLAINT}:{ACTION_MANAGE}",
+        f"{RESOURCE_MAINTENANCE}:{ACTION_MANAGE}",
+        f"{RESOURCE_ATTENDANCE}:{ACTION_MANAGE}",
+        f"{RESOURCE_NOTICE}:{ACTION_MANAGE}",
+        f"{RESOURCE_MENU}:{ACTION_MANAGE}",
+        
+        # Analytics & Reports
+        f"{RESOURCE_REPORT}:{ACTION_MANAGE}",
+        f"{RESOURCE_AUDIT}:{ACTION_READ}",
+        f"{RESOURCE_REVIEW}:{ACTION_READ}",
+        f"{RESOURCE_REVIEW}:{ACTION_UPDATE}",  # Reply to reviews
+    }
+
+    # Supervisor: Operational management, but limited administrative power
+    SUPERVISOR_PERMISSIONS: Set[str] = {
+        # Read Infrastructure
+        f"{RESOURCE_HOSTEL}:{ACTION_READ}",
+        f"{RESOURCE_ROOM}:{ACTION_READ}",
+        f"{RESOURCE_BED}:{ACTION_READ}",
+        
+        # Student Operations
+        f"{RESOURCE_STUDENT}:{ACTION_READ}",
+        f"{RESOURCE_STUDENT}:{ACTION_LIST}",
+        
+        # Complaints & Maintenance (Core duties)
+        f"{RESOURCE_COMPLAINT}:{ACTION_MANAGE}",
+        f"{RESOURCE_MAINTENANCE}:{ACTION_CREATE}",
+        f"{RESOURCE_MAINTENANCE}:{ACTION_READ}",
+        f"{RESOURCE_MAINTENANCE}:{ACTION_UPDATE}",
+        f"{RESOURCE_MAINTENANCE}:{ACTION_APPROVE}",  # Subject to cost thresholds
+        
+        # Attendance
+        f"{RESOURCE_ATTENDANCE}:{ACTION_MANAGE}",
+        
+        # Notices
+        f"{RESOURCE_NOTICE}:{ACTION_CREATE}",
+        f"{RESOURCE_NOTICE}:{ACTION_READ}",
+        
+        # Menu
+        f"{RESOURCE_MENU}:{ACTION_READ}",
+    }
+
+    # Student: Self-service portal access
+    STUDENT_PERMISSIONS: Set[str] = {
+        # Self Profile
+        f"{RESOURCE_STUDENT}:{ACTION_READ}",
+        
+        # Payments
+        f"{RESOURCE_PAYMENT}:{ACTION_READ}",
+        f"{RESOURCE_PAYMENT}:{ACTION_CREATE}",
+        
+        # Complaints
+        f"{RESOURCE_COMPLAINT}:{ACTION_CREATE}",
+        f"{RESOURCE_COMPLAINT}:{ACTION_READ}",
+        
+        # Services
+        f"{RESOURCE_ATTENDANCE}:{ACTION_READ}",
+        f"{RESOURCE_MENU}:{ACTION_READ}",
+        f"{RESOURCE_NOTICE}:{ACTION_READ}",
+        f"{RESOURCE_ROOM}:{ACTION_READ}",  # View own room details
+        
+        # Reviews
+        f"{RESOURCE_REVIEW}:{ACTION_CREATE}",
+        f"{RESOURCE_REVIEW}:{ACTION_READ}",
+    }
+
+    # Visitor: Public access and booking creation
+    VISITOR_PERMISSIONS: Set[str] = {
+        f"{RESOURCE_HOSTEL}:{ACTION_LIST}",
+        f"{RESOURCE_HOSTEL}:{ACTION_READ}",
+        f"{RESOURCE_BOOKING}:{ACTION_CREATE}",
+        f"{RESOURCE_BOOKING}:{ACTION_READ}",
+        f"{RESOURCE_REVIEW}:{ACTION_READ}",
+    }
+
+    @classmethod
+    def get_permissions_for_role(cls, role: UserType) -> Set[str]:
+        """
+        Retrieve the set of static permissions for a given role.
+        """
+        mapping = {
+            UserType.SUPER_ADMIN: cls.SUPER_ADMIN_PERMISSIONS,
+            UserType.HOSTEL_ADMIN: cls.HOSTEL_ADMIN_PERMISSIONS,
+            UserType.SUPERVISOR: cls.SUPERVISOR_PERMISSIONS,
+            UserType.STUDENT: cls.STUDENT_PERMISSIONS,
+            UserType.VISITOR: cls.VISITOR_PERMISSIONS,
+        }
+        return mapping.get(role, set())
+
+# --- File: D:\hostel-management-saas\app\core\permissions\rbac.py ---
+"""
+RBAC (Role-Based Access Control) Manager.
+
+This module acts as the facade for the permissions system,
+combining Role checks, Permission checks, and Exception handling.
+"""
+
+from typing import Any, List, Optional, Union
+from app.core.permissions.roles import role_manager
+from app.core.permissions.permissions import permission_checker
+from app.core.exceptions.permission_exceptions import (
+    PermissionDeniedException,
+    InsufficientPermissionsException
+)
+
+
+class RBACManager:
+    """
+    Main entry point for enforcing access control in the application.
+    """
+    
+    # --- Check Methods (Return Boolean) ---
+
+    def check_access(self, user: Any, permission: str) -> bool:
+        """
+        Non-blocking check if user has permission.
+        """
+        return permission_checker.check_permission(user, permission)
+
+    def has_role(self, user: Any, roles: Union[str, List[str]]) -> bool:
+        """
+        Check if user has one of the specified roles.
+        """
+        if isinstance(roles, str):
+            roles = [roles]
+        return user.user_type in roles
+
+    # --- Enforce Methods (Raise Exceptions) ---
+
+    def require_access(self, user: Any, permission: str):
+        """
+        Enforce permission. Raises PermissionDeniedException if failed.
+        
+        Usage:
+            rbac_manager.require_access(current_user, "hostel:create")
+        """
+        if not self.check_access(user, permission):
+            raise PermissionDeniedException(
+                f"User does not have required permission: {permission}"
+            )
+
+    def require_role(self, user: Any, allowed_roles: List[str]):
+        """
+        Enforce role membership.
+        """
+        if user.user_type not in allowed_roles:
+            raise PermissionDeniedException(
+                f"User role '{user.user_type}' is not allowed to perform this action"
+            )
+
+    def require_hierarchy(self, actor: Any, target_role: str):
+        """
+        Enforce that actor outranks the target role.
+        """
+        if not role_manager.can_manage_role(actor.user_type, target_role):
+            raise InsufficientPermissionsException(
+                "You cannot manage users with equal or higher privilege"
+            )
+
+    # --- Utility ---
+
+    def get_effective_permissions(self, user: Any) -> list:
+        """
+        Return a list of all permissions (static + dynamic) for the UI to use.
+        """
+        from app.core.permissions.permission_matrix import PermissionMatrix
+        
+        # Get static permissions
+        perms = set(PermissionMatrix.get_permissions_for_role(user.user_type))
+        
+        # Add dynamic/custom permissions if they exist
+        if hasattr(user, "custom_permissions") and user.custom_permissions:
+            perms.update(user.custom_permissions)
+            
+        return list(perms)
+
+
+# Global instance
+rbac_manager = RBACManager()
+
+# --- File: D:\hostel-management-saas\app\core\permissions\resource_permissions.py ---
+"""
+Resource-Level Permission Checks.
+
+This module handles "Horizontal Privilege Escalation" protection.
+It ensures users can only access data instances they own or manage.
+"""
+
+from typing import Any, Optional, Union
+from app.core.enums import UserType
+from app.core.exceptions.permission_exceptions import (
+    HostelAccessDeniedException,
+    UnauthorizedAccessException
+)
+
+
+class ResourcePermission:
+    """
+    Validates access to specific instances of resources.
+    """
+
+    def check_hostel_access(self, user: Any, target_hostel_id: str) -> bool:
+        """
+        Verify if the user is allowed to access/manage the specific hostel.
+        """
+        # Super Admins can access any hostel
+        if user.user_type == UserType.SUPER_ADMIN:
+            return True
+
+        # Hostel Admins: Check if mapped to this hostel
+        if user.user_type == UserType.HOSTEL_ADMIN:
+            # Check direct assignment or many-to-many mapping
+            if hasattr(user, "admin_hostel_mappings"):
+                return any(str(m.hostel_id) == str(target_hostel_id) for m in user.admin_hostel_mappings)
+            # Fallback for simple schema
+            return str(getattr(user, "hostel_id", "")) == str(target_hostel_id)
+
+        # Supervisors/Students: Must belong to the hostel
+        user_hostel_id = getattr(user, "hostel_id", None)
+        return str(user_hostel_id) == str(target_hostel_id)
+
+    def check_user_access(self, requesting_user: Any, target_user_id: str, target_user_hostel_id: Optional[str] = None) -> bool:
+        """
+        Verify if requesting_user can access target_user's data.
+        """
+        # Accessing own data
+        if str(requesting_user.id) == str(target_user_id):
+            return True
+
+        if requesting_user.user_type == UserType.SUPER_ADMIN:
+            return True
+
+        # If accessing another user, requester must have admin privileges over that user's hostel
+        if target_user_hostel_id:
+            return self.check_hostel_access(requesting_user, target_user_hostel_id)
+            
+        return False
+
+    def check_booking_access(self, user: Any, booking: Any) -> bool:
+        """
+        Verify access to a booking.
+        """
+        # Owner of the booking
+        if getattr(booking, "user_id", None) and str(booking.user_id) == str(user.id):
+            return True
+            
+        # Visitor who made the booking
+        if getattr(booking, "visitor_id", None) and str(booking.visitor_id) == str(user.id):
+            return True
+
+        # Admin of the hostel involved in the booking
+        if hasattr(booking, "hostel_id"):
+            return self.check_hostel_access(user, str(booking.hostel_id))
+            
+        return False
+
+    def check_complaint_access(self, user: Any, complaint: Any) -> bool:
+        """
+        Verify access to a complaint.
+        """
+        # Student who filed it
+        if str(complaint.student_id) == str(user.id):
+            return True
+            
+        # Admin/Supervisor of the hostel
+        return self.check_hostel_access(user, str(complaint.hostel_id))
+
+    def validate_supervisor_scope(self, supervisor: Any, target_hostel_id: str):
+        """
+        Strict check to ensure supervisors don't act outside their hostel.
+        Raises exception if invalid.
+        """
+        if supervisor.user_type != UserType.SUPERVISOR:
+            return 
+            
+        if str(supervisor.hostel_id) != str(target_hostel_id):
+            raise HostelAccessDeniedException(
+                "Supervisor cannot perform actions outside their assigned hostel"
+            )
+
+
+# Global instance
+resource_permission = ResourcePermission()
+
+# --- File: D:\hostel-management-saas\app\core\permissions\roles.py ---
+"""
+Role Management Utilities.
+
+This module defines the hierarchy of roles and helper methods
+to check user role types.
+"""
+
+from typing import Any, List
+from app.core.enums import UserType
+
+
+class RoleManager:
+    """
+    Manages user roles, hierarchy, and capability checking.
+    """
+
+    def get_role_hierarchy(self) -> List[UserType]:
+        """
+        Returns roles ordered by privilege (Highest -> Lowest).
+        """
+        return [
+            UserType.SUPER_ADMIN,
+            UserType.HOSTEL_ADMIN,
+            UserType.SUPERVISOR,
+            UserType.STUDENT,
+            UserType.VISITOR
+        ]
+
+    def can_manage_role(self, actor_role: UserType, target_role: UserType) -> bool:
+        """
+        Determines if the actor can manage/edit the target user based on rank.
+        
+        Example: 
+        - Super Admin can manage Hostel Admin (True).
+        - Hostel Admin cannot manage Super Admin (False).
+        """
+        hierarchy = self.get_role_hierarchy()
+        try:
+            actor_index = hierarchy.index(actor_role)
+            target_index = hierarchy.index(target_role)
+            # Lower index in the list means higher privilege
+            return actor_index < target_index
+        except ValueError:
+            return False
+
+    # --- Role Check Helpers ---
+
+    def is_super_admin(self, user: Any) -> bool:
+        return user.user_type == UserType.SUPER_ADMIN
+
+    def is_hostel_admin(self, user: Any) -> bool:
+        return user.user_type == UserType.HOSTEL_ADMIN
+
+    def is_supervisor(self, user: Any) -> bool:
+        return user.user_type == UserType.SUPERVISOR
+
+    def is_staff(self, user: Any) -> bool:
+        """Checks if user is any staff role (Admin or Supervisor)."""
+        return user.user_type in [UserType.SUPER_ADMIN, UserType.HOSTEL_ADMIN, UserType.SUPERVISOR]
+
+    def is_student(self, user: Any) -> bool:
+        return user.user_type == UserType.STUDENT
+
+    def is_visitor(self, user: Any) -> bool:
+        return user.user_type == UserType.VISITOR
+
+
+# Global instance
+role_manager = RoleManager()
+
+# --- File: D:\hostel-management-saas\app\core\permissions\__init__.py ---
+"""
+Permission Management Package.
+
+This package handles the security layer responsible for:
+1. Role-Based Access Control (RBAC) - What a role can generally do.
+2. Resource-Level Permissions - Accessing specific data instances.
+3. Approval Authority - Financial and operational thresholds.
+"""
+
+from app.core.permissions.roles import RoleManager, role_manager
+from app.core.permissions.permissions import PermissionChecker, permission_checker
+from app.core.permissions.rbac import RBACManager, rbac_manager
+from app.core.permissions.permission_matrix import PermissionMatrix
+from app.core.permissions.resource_permissions import ResourcePermission, resource_permission
+from app.core.permissions.approval_authority import ApprovalAuthority, approval_authority
+
+__all__ = [
+    "RoleManager",
+    "role_manager",
+    "PermissionChecker",
+    "permission_checker",
+    "RBACManager",
+    "rbac_manager",
+    "PermissionMatrix",
+    "ResourcePermission",
+    "resource_permission",
+    "ApprovalAuthority",
+    "approval_authority",
+]
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\rate_limiting =====
+
+# --- File: D:\hostel-management-saas\app\core\rate_limiting\decorators.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\rate_limiting\rate_limiter.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\rate_limiting\strategies.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\rate_limiting\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\security =====
+
+# --- File: D:\hostel-management-saas\app\core\security\csrf.py ---
+"""
+CSRF (Cross-Site Request Forgery) protection utilities.
+
+This module provides:
+- CSRF token generation
+- CSRF token validation
+- Token lifecycle management
+"""
+
+import secrets
+import hmac
+import hashlib
+from datetime import datetime, timedelta
+from typing import Optional
+from app.core.config import settings
+
+
+class CSRFManager:
+    """
+    CSRF token manager for protecting against cross-site request forgery attacks.
+    
+    Implements double-submit cookie pattern with HMAC signing.
+    """
+    
+    def __init__(self):
+        """Initialize CSRF manager with settings."""
+        self.secret_key = settings.SECRET_KEY
+        self.token_expiry_hours = 24
+        self.token_length = 32
+    
+    def generate_csrf_token(
+        self,
+        session_id: Optional[str] = None
+    ) -> str:
+        """
+        Generate a CSRF token.
+        
+        Args:
+            session_id: User session ID (optional, for additional binding)
+            
+        Returns:
+            CSRF token string
+            
+        Example:
+            >>> csrf = CSRFManager()
+            >>> token = csrf.generate_csrf_token(session_id="abc123")
+            >>> # Store token in user's session
+        """
+        # Generate random token
+        random_token = secrets.token_urlsafe(self.token_length)
+        
+        # Create timestamp
+        timestamp = datetime.utcnow().isoformat()
+        
+        # Create signature
+        message = f"{session_id or 'anonymous'}:{random_token}:{timestamp}"
+        signature = self._create_signature(message)
+        
+        # Combine all parts
+        csrf_token = f"{random_token}:{timestamp}:{signature}"
+        
+        return csrf_token
+    
+    def validate_csrf_token(
+        self,
+        csrf_token: str,
+        session_id: Optional[str] = None
+    ) -> bool:
+        """
+        Validate a CSRF token.
+        
+        Args:
+            csrf_token: CSRF token to validate
+            session_id: User session ID (must match generation)
+            
+        Returns:
+            True if token is valid, False otherwise
+            
+        Example:
+            >>> csrf = CSRFManager()
+            >>> is_valid = csrf.validate_csrf_token(token, session_id="abc123")
+            >>> if not is_valid:
+            >>>     raise SecurityException("Invalid CSRF token")
+        """
+        try:
+            # Parse token
+            parts = csrf_token.split(':')
+            if len(parts) != 3:
+                return False
+            
+            random_token, timestamp, signature = parts
+            
+            # Verify timestamp
+            try:
+                token_time = datetime.fromisoformat(timestamp)
+            except ValueError:
+                return False
+            
+            expiry_time = token_time + timedelta(hours=self.token_expiry_hours)
+            
+            if datetime.utcnow() > expiry_time:
+                return False
+            
+            # Verify signature
+            message = f"{session_id or 'anonymous'}:{random_token}:{timestamp}"
+            expected_signature = self._create_signature(message)
+            
+            return self._constant_time_compare(signature, expected_signature)
+            
+        except Exception:
+            return False
+    
+    def _create_signature(self, message: str) -> str:
+        """
+        Create HMAC signature for message.
+        
+        Args:
+            message: Message to sign
+            
+        Returns:
+            Hexadecimal signature
+        """
+        return hmac.new(
+            self.secret_key.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+    
+    def _constant_time_compare(self, a: str, b: str) -> bool:
+        """
+        Compare two strings in constant time.
+        
+        Args:
+            a: First string
+            b: Second string
+            
+        Returns:
+            True if strings match
+        """
+        return hmac.compare_digest(a, b)
+    
+    def generate_token_pair(
+        self,
+        session_id: Optional[str] = None
+    ) -> tuple[str, str]:
+        """
+        Generate a pair of CSRF tokens (for cookie and form).
+        
+        Args:
+            session_id: User session ID
+            
+        Returns:
+            Tuple of (cookie_token, form_token)
+            
+        Example:
+            >>> csrf = CSRFManager()
+            >>> cookie_token, form_token = csrf.generate_token_pair(session_id)
+            >>> # Set cookie_token in HTTP-only cookie
+            >>> # Include form_token in forms
+        """
+        token = self.generate_csrf_token(session_id)
+        return token, token
+    
+    def is_token_expired(self, csrf_token: str) -> bool:
+        """
+        Check if CSRF token is expired.
+        
+        Args:
+            csrf_token: CSRF token to check
+            
+        Returns:
+            True if expired, False otherwise
+            
+        Example:
+            >>> csrf = CSRFManager()
+            >>> if csrf.is_token_expired(token):
+            >>>     print("Token has expired")
+        """
+        try:
+            parts = csrf_token.split(':')
+            if len(parts) != 3:
+                return True
+            
+            _, timestamp, _ = parts
+            token_time = datetime.fromisoformat(timestamp)
+            expiry_time = token_time + timedelta(hours=self.token_expiry_hours)
+            
+            return datetime.utcnow() > expiry_time
+            
+        except Exception:
+            return True
+    
+    def get_token_age(self, csrf_token: str) -> Optional[timedelta]:
+        """
+        Get age of CSRF token.
+        
+        Args:
+            csrf_token: CSRF token
+            
+        Returns:
+            Token age as timedelta or None if invalid
+            
+        Example:
+            >>> csrf = CSRFManager()
+            >>> age = csrf.get_token_age(token)
+            >>> if age and age.total_seconds() > 3600:
+            >>>     print("Token is more than 1 hour old")
+        """
+        try:
+            parts = csrf_token.split(':')
+            if len(parts) != 3:
+                return None
+            
+            _, timestamp, _ = parts
+            token_time = datetime.fromisoformat(timestamp)
+            
+            return datetime.utcnow() - token_time
+            
+        except Exception:
+            return None
+
+
+# Global CSRF manager instance
+csrf_manager = CSRFManager()
+
+# --- File: D:\hostel-management-saas\app\core\security\password.py ---
+"""
+Password management and validation utilities.
+
+This module provides:
+- Password hashing and verification
+- Password strength validation
+- Temporary password generation
+- Password history checking
+- Password expiration management
+"""
+
+import re
+import secrets
+import string
+from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
+from passlib.context import CryptContext
+from app.core.config import settings
+from app.core.exceptions.validation_exceptions import ValidationException
+
+
+class PasswordManager:
+    """
+    Password management utilities for secure password operations.
+    
+    This class handles:
+    - Password hashing using bcrypt
+    - Password verification
+    - Password strength validation
+    - Temporary password generation
+    - Password policy enforcement
+    """
+    
+    def __init__(self):
+        """Initialize password manager with settings."""
+        self.pwd_context = CryptContext(
+            schemes=["bcrypt"],
+            deprecated="auto",
+            bcrypt__rounds=settings.BCRYPT_ROUNDS
+        )
+        self.min_length = settings.PASSWORD_MIN_LENGTH
+        self.max_length = settings.PASSWORD_MAX_LENGTH
+        self.require_uppercase = settings.PASSWORD_REQUIRE_UPPERCASE
+        self.require_lowercase = settings.PASSWORD_REQUIRE_LOWERCASE
+        self.require_digit = settings.PASSWORD_REQUIRE_DIGIT
+        self.require_special = settings.PASSWORD_REQUIRE_SPECIAL
+    
+    def hash_password(self, password: str) -> str:
+        """
+        Hash a password using bcrypt.
+        
+        Args:
+            password: Plain text password
+            
+        Returns:
+            Hashed password string
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> hashed = pm.hash_password("MySecurePassword123!")
+        """
+        return self.pwd_context.hash(password)
+    
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """
+        Verify a password against its hash.
+        
+        Args:
+            plain_password: Plain text password to verify
+            hashed_password: Stored hashed password
+            
+        Returns:
+            True if password matches, False otherwise
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> is_valid = pm.verify_password("password123", hashed)
+        """
+        try:
+            return self.pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
+    
+    def needs_rehash(self, hashed_password: str) -> bool:
+        """
+        Check if password hash needs to be updated.
+        
+        Args:
+            hashed_password: Current password hash
+            
+        Returns:
+            True if hash should be updated
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> if pm.needs_rehash(old_hash):
+            >>>     new_hash = pm.hash_password(password)
+        """
+        return self.pwd_context.needs_update(hashed_password)
+    
+    def generate_temporary_password(
+        self,
+        length: int = 12,
+        pronounceable: bool = False
+    ) -> str:
+        """
+        Generate a secure temporary password.
+        
+        Args:
+            length: Password length (default: 12)
+            pronounceable: Generate pronounceable password
+            
+        Returns:
+            Temporary password string
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> temp_pass = pm.generate_temporary_password(16)
+        """
+        if pronounceable:
+            return self._generate_pronounceable_password(length)
+        
+        # Ensure password meets all requirements
+        while True:
+            characters = string.ascii_letters + string.digits + string.punctuation
+            password = ''.join(secrets.choice(characters) for _ in range(length))
+            
+            is_valid, _ = self.validate_password_strength(password)
+            if is_valid:
+                return password
+    
+    def _generate_pronounceable_password(self, length: int = 12) -> str:
+        """
+        Generate a pronounceable password.
+        
+        Args:
+            length: Password length
+            
+        Returns:
+            Pronounceable password
+        """
+        consonants = "bcdfghjklmnprstvwxyz"
+        vowels = "aeiou"
+        digits = "23456789"
+        special = "!@#$%"
+        
+        password = []
+        
+        # Alternate consonants and vowels
+        for i in range(length - 2):
+            if i % 2 == 0:
+                password.append(secrets.choice(consonants))
+            else:
+                password.append(secrets.choice(vowels))
+        
+        # Add digit and special character
+        password.append(secrets.choice(digits))
+        password.append(secrets.choice(special))
+        
+        # Shuffle and capitalize first letter
+        password_str = ''.join(password)
+        password_list = list(password_str)
+        secrets.SystemRandom().shuffle(password_list)
+        password_list[0] = password_list[0].upper()
+        
+        return ''.join(password_list)
+    
+    def validate_password_strength(
+        self,
+        password: str
+    ) -> Tuple[bool, List[str]]:
+        """
+        Validate password against strength requirements.
+        
+        Args:
+            password: Password to validate
+            
+        Returns:
+            Tuple of (is_valid, list of error messages)
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> is_valid, errors = pm.validate_password_strength("weak")
+            >>> if not is_valid:
+            >>>     print(f"Password errors: {errors}")
+        """
+        errors = []
+        
+        # Check minimum length
+        if len(password) < self.min_length:
+            errors.append(
+                f"Password must be at least {self.min_length} characters long"
+            )
+        
+        # Check maximum length
+        if len(password) > self.max_length:
+            errors.append(
+                f"Password must not exceed {self.max_length} characters"
+            )
+        
+        # Check for uppercase letter
+        if self.require_uppercase and not re.search(r'[A-Z]', password):
+            errors.append("Password must contain at least one uppercase letter")
+        
+        # Check for lowercase letter
+        if self.require_lowercase and not re.search(r'[a-z]', password):
+            errors.append("Password must contain at least one lowercase letter")
+        
+        # Check for digit
+        if self.require_digit and not re.search(r'\d', password):
+            errors.append("Password must contain at least one digit")
+        
+        # Check for special character
+        if self.require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            errors.append(
+                "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)"
+            )
+        
+        # Check for common passwords
+        if self._is_common_password(password):
+            errors.append(
+                "Password is too common. Please choose a stronger password"
+            )
+        
+        # Check for sequential characters
+        if self._has_sequential_chars(password):
+            errors.append(
+                "Password should not contain sequential characters (e.g., abc, 123)"
+            )
+        
+        # Check for repeated characters
+        if self._has_repeated_chars(password):
+            errors.append(
+                "Password should not contain many repeated characters"
+            )
+        
+        return len(errors) == 0, errors
+    
+    def _is_common_password(self, password: str) -> bool:
+        """
+        Check if password is in common passwords list.
+        
+        Args:
+            password: Password to check
+            
+        Returns:
+            True if password is common
+        """
+        common_passwords = [
+            "password", "123456", "12345678", "qwerty", "abc123",
+            "monkey", "1234567", "letmein", "trustno1", "dragon",
+            "baseball", "iloveyou", "master", "sunshine", "ashley",
+            "bailey", "passw0rd", "shadow", "123123", "654321",
+            "superman", "qazwsx", "michael", "football", "welcome",
+            "jesus", "ninja", "mustang", "password1", "123456789",
+            "admin", "root", "toor", "pass", "test", "guest",
+            "oracle", "postgres", "mysql", "administrator"
+        ]
+        
+        return password.lower() in common_passwords
+    
+    def _has_sequential_chars(self, password: str, max_sequential: int = 3) -> bool:
+        """
+        Check for sequential characters in password.
+        
+        Args:
+            password: Password to check
+            max_sequential: Maximum allowed sequential characters
+            
+        Returns:
+            True if sequential characters found
+        """
+        # Check for sequential numbers
+        for i in range(len(password) - max_sequential + 1):
+            substr = password[i:i + max_sequential]
+            if substr.isdigit():
+                digits = [int(d) for d in substr]
+                if all(digits[j] + 1 == digits[j + 1] for j in range(len(digits) - 1)):
+                    return True
+                if all(digits[j] - 1 == digits[j + 1] for j in range(len(digits) - 1)):
+                    return True
+        
+        # Check for sequential letters
+        for i in range(len(password) - max_sequential + 1):
+            substr = password[i:i + max_sequential].lower()
+            if substr.isalpha():
+                if all(ord(substr[j]) + 1 == ord(substr[j + 1]) for j in range(len(substr) - 1)):
+                    return True
+                if all(ord(substr[j]) - 1 == ord(substr[j + 1]) for j in range(len(substr) - 1)):
+                    return True
+        
+        return False
+    
+    def _has_repeated_chars(self, password: str, max_repeated: int = 3) -> bool:
+        """
+        Check for repeated characters in password.
+        
+        Args:
+            password: Password to check
+            max_repeated: Maximum allowed repeated characters
+            
+        Returns:
+            True if too many repeated characters found
+        """
+        pattern = rf'(.)\1{{{max_repeated},}}'
+        return bool(re.search(pattern, password))
+    
+    def check_password_history(
+        self,
+        new_password: str,
+        password_history: List[str],
+        history_limit: int = 5
+    ) -> bool:
+        """
+        Check if password was used recently.
+        
+        Args:
+            new_password: New password to check
+            password_history: List of previous password hashes
+            history_limit: Number of previous passwords to check
+            
+        Returns:
+            True if password is not in history, False otherwise
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> old_hashes = ["hash1", "hash2", "hash3"]
+            >>> can_use = pm.check_password_history(new_pass, old_hashes)
+        """
+        recent_passwords = password_history[-history_limit:] if password_history else []
+        
+        for old_password_hash in recent_passwords:
+            if self.verify_password(new_password, old_password_hash):
+                return False
+        
+        return True
+    
+    def is_password_expired(
+        self,
+        last_changed: Optional[datetime],
+        expiry_days: int = 90
+    ) -> bool:
+        """
+        Check if password has expired.
+        
+        Args:
+            last_changed: When password was last changed
+            expiry_days: Number of days until expiry
+            
+        Returns:
+            True if password is expired
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> last_change = datetime(2023, 1, 1)
+            >>> if pm.is_password_expired(last_change, 90):
+            >>>     print("Password has expired")
+        """
+        if not last_changed:
+            return True
+        
+        expiry_date = last_changed + timedelta(days=expiry_days)
+        return datetime.utcnow() > expiry_date
+    
+    def days_until_expiry(
+        self,
+        last_changed: Optional[datetime],
+        expiry_days: int = 90
+    ) -> Optional[int]:
+        """
+        Calculate days until password expires.
+        
+        Args:
+            last_changed: When password was last changed
+            expiry_days: Number of days until expiry
+            
+        Returns:
+            Days until expiry or None if already expired
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> days_left = pm.days_until_expiry(last_change, 90)
+            >>> print(f"Password expires in {days_left} days")
+        """
+        if not last_changed:
+            return None
+        
+        expiry_date = last_changed + timedelta(days=expiry_days)
+        remaining = expiry_date - datetime.utcnow()
+        
+        days = remaining.days
+        return days if days > 0 else None
+    
+    def calculate_password_strength_score(self, password: str) -> int:
+        """
+        Calculate password strength score (0-100).
+        
+        Args:
+            password: Password to evaluate
+            
+        Returns:
+            Strength score from 0 (weak) to 100 (very strong)
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> score = pm.calculate_password_strength_score("MyPass123!")
+            >>> print(f"Password strength: {score}/100")
+        """
+        score = 0
+        
+        # Length score (max 30 points)
+        length = len(password)
+        if length >= 8:
+            score += 10
+        if length >= 12:
+            score += 10
+        if length >= 16:
+            score += 10
+        
+        # Character variety (max 40 points)
+        if re.search(r'[a-z]', password):
+            score += 10
+        if re.search(r'[A-Z]', password):
+            score += 10
+        if re.search(r'\d', password):
+            score += 10
+        if re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            score += 10
+        
+        # Character uniqueness (max 15 points)
+        unique_chars = len(set(password))
+        uniqueness_ratio = unique_chars / length if length > 0 else 0
+        if uniqueness_ratio >= 0.5:
+            score += 7
+        if uniqueness_ratio >= 0.75:
+            score += 8
+        
+        # No common patterns (max 15 points)
+        if not self._has_common_patterns(password):
+            score += 15
+        
+        return min(score, 100)
+    
+    def get_password_strength_label(self, score: int) -> str:
+        """
+        Get password strength label based on score.
+        
+        Args:
+            score: Password strength score (0-100)
+            
+        Returns:
+            Strength label
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> score = pm.calculate_password_strength_score(password)
+            >>> label = pm.get_password_strength_label(score)
+            >>> print(f"Password is {label}")
+        """
+        if score < 30:
+            return "Very Weak"
+        elif score < 50:
+            return "Weak"
+        elif score < 70:
+            return "Fair"
+        elif score < 85:
+            return "Strong"
+        else:
+            return "Very Strong"
+    
+    def _has_common_patterns(self, password: str) -> bool:
+        """
+        Check for common password patterns.
+        
+        Args:
+            password: Password to check
+            
+        Returns:
+            True if common patterns found
+        """
+        patterns = [
+            r'(.)\1{2,}',  # Repeated characters (aaa, 111)
+            r'(012|123|234|345|456|567|678|789)',  # Sequential numbers
+            r'(abc|bcd|cde|def|efg|fgh)',  # Sequential letters
+            r'(qwer|asdf|zxcv)',  # Keyboard patterns
+            r'(password|admin|user|root)',  # Common words
+        ]
+        
+        password_lower = password.lower()
+        for pattern in patterns:
+            if re.search(pattern, password_lower):
+                return True
+        
+        return False
+    
+    def generate_password_reset_token(self) -> str:
+        """
+        Generate a password reset token.
+        
+        Returns:
+            Password reset token
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> reset_token = pm.generate_password_reset_token()
+        """
+        return secrets.token_urlsafe(32)
+    
+    def validate_password(self, password: str) -> None:
+        """
+        Validate password and raise exception if invalid.
+        
+        Args:
+            password: Password to validate
+            
+        Raises:
+            ValidationException: If password is invalid
+            
+        Example:
+            >>> pm = PasswordManager()
+            >>> try:
+            >>>     pm.validate_password("weakpass")
+            >>> except ValidationException as e:
+            >>>     print(f"Invalid password: {e}")
+        """
+        is_valid, errors = self.validate_password_strength(password)
+        
+        if not is_valid:
+            raise ValidationException(
+                message="Password does not meet requirements",
+                details={"errors": errors}
+            )
+
+
+# Global password manager instance
+password_manager = PasswordManager()
+
+# --- File: D:\hostel-management-saas\app\core\security\security.py ---
+"""
+Core security utilities and helpers.
+
+This module provides fundamental security operations including:
+- Password hashing
+- Input sanitization
+- Token generation
+- Data hashing
+- Email and phone validation
+- Security-related string operations
+"""
+
+import secrets
+import string
+import re
+import hashlib
+import html
+from typing import Optional, Tuple
+from passlib.context import CryptContext
+from app.core.config import settings
+from app.core.constants import REGEX_EMAIL, REGEX_PHONE
+
+
+class SecurityManager:
+    """
+    Core security manager for common security operations.
+    
+    This class provides methods for:
+    - Password operations
+    - Token generation
+    - Input sanitization
+    - Data validation
+    - Hashing operations
+    """
+    
+    def __init__(self):
+        """Initialize security manager with password context."""
+        self.pwd_context = CryptContext(
+            schemes=["bcrypt"],
+            deprecated="auto",
+            bcrypt__rounds=settings.BCRYPT_ROUNDS
+        )
+    
+    def hash_password(self, password: str) -> str:
+        """
+        Hash a password using bcrypt.
+        
+        Args:
+            password: Plain text password
+            
+        Returns:
+            Hashed password string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> hashed = manager.hash_password("mypassword123")
+        """
+        return self.pwd_context.hash(password)
+    
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """
+        Verify a password against a hash.
+        
+        Args:
+            plain_password: Plain text password to verify
+            hashed_password: Stored hashed password
+            
+        Returns:
+            True if password matches, False otherwise
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> is_valid = manager.verify_password("mypassword123", hashed)
+        """
+        try:
+            return self.pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
+    
+    def generate_salt(self, length: int = 32) -> str:
+        """
+        Generate a cryptographically secure random salt.
+        
+        Args:
+            length: Length of the salt in bytes
+            
+        Returns:
+            Hexadecimal salt string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> salt = manager.generate_salt(32)
+        """
+        return secrets.token_hex(length)
+    
+    def generate_random_string(
+        self,
+        length: int = 32,
+        include_uppercase: bool = True,
+        include_lowercase: bool = True,
+        include_digits: bool = True,
+        include_special: bool = False,
+        special_chars: str = "!@#$%^&*"
+    ) -> str:
+        """
+        Generate a cryptographically secure random string.
+        
+        Args:
+            length: Length of the string
+            include_uppercase: Include uppercase letters (A-Z)
+            include_lowercase: Include lowercase letters (a-z)
+            include_digits: Include digits (0-9)
+            include_special: Include special characters
+            special_chars: Custom special characters to use
+            
+        Returns:
+            Random string
+            
+        Raises:
+            ValueError: If no character types are selected
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> random_str = manager.generate_random_string(16, include_special=True)
+        """
+        characters = ""
+        
+        if include_lowercase:
+            characters += string.ascii_lowercase
+        if include_uppercase:
+            characters += string.ascii_uppercase
+        if include_digits:
+            characters += string.digits
+        if include_special:
+            characters += special_chars
+        
+        if not characters:
+            raise ValueError("At least one character type must be included")
+        
+        return ''.join(secrets.choice(characters) for _ in range(length))
+    
+    def generate_token(self, length: int = 32) -> str:
+        """
+        Generate a secure URL-safe random token.
+        
+        Args:
+            length: Length of the token in bytes
+            
+        Returns:
+            URL-safe token string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> token = manager.generate_token(32)
+        """
+        return secrets.token_urlsafe(length)
+    
+    def generate_hex_token(self, length: int = 32) -> str:
+        """
+        Generate a secure hexadecimal random token.
+        
+        Args:
+            length: Length of the token in bytes
+            
+        Returns:
+            Hexadecimal token string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> token = manager.generate_hex_token(32)
+        """
+        return secrets.token_hex(length)
+    
+    def hash_data(self, data: str, algorithm: str = "sha256") -> str:
+        """
+        Hash data using specified algorithm.
+        
+        Args:
+            data: Data to hash
+            algorithm: Hashing algorithm (sha256, sha512, md5)
+            
+        Returns:
+            Hexadecimal hash string
+            
+        Raises:
+            ValueError: If algorithm is not supported
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> hash_value = manager.hash_data("sensitive_data", "sha256")
+        """
+        algorithms = {
+            "sha256": hashlib.sha256,
+            "sha512": hashlib.sha512,
+            "md5": hashlib.md5,
+            "sha1": hashlib.sha1,
+        }
+        
+        if algorithm not in algorithms:
+            raise ValueError(f"Unsupported algorithm: {algorithm}")
+        
+        hash_func = algorithms[algorithm]
+        return hash_func(data.encode()).hexdigest()
+    
+    def sanitize_input(self, text: str, allow_html: bool = False) -> str:
+        """
+        Sanitize user input to prevent XSS and injection attacks.
+        
+        Args:
+            text: Input text to sanitize
+            allow_html: Whether to allow HTML tags
+            
+        Returns:
+            Sanitized text
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> safe_text = manager.sanitize_input("<script>alert('xss')</script>")
+        """
+        if not text:
+            return text
+        
+        # Escape HTML if not allowed
+        if not allow_html:
+            text = html.escape(text)
+        
+        # Remove script tags
+        text = re.sub(
+            r'<script[^>]*>.*?</script>',
+            '',
+            text,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        
+        # Remove javascript: protocols
+        text = re.sub(r'javascript:', '', text, flags=re.IGNORECASE)
+        
+        # Remove on* event handlers
+        text = re.sub(r'\son\w+\s*=', '', text, flags=re.IGNORECASE)
+        
+        # Remove style tags
+        text = re.sub(
+            r'<style[^>]*>.*?</style>',
+            '',
+            text,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        
+        return text.strip()
+    
+    def sanitize_filename(self, filename: str) -> str:
+        """
+        Sanitize filename to prevent directory traversal attacks.
+        
+        Args:
+            filename: Original filename
+            
+        Returns:
+            Sanitized filename
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> safe_name = manager.sanitize_filename("../../etc/passwd")
+        """
+        # Remove directory separators
+        filename = filename.replace('/', '_').replace('\\', '_')
+        
+        # Remove potentially dangerous characters
+        filename = re.sub(r'[^\w\s\-\.]', '', filename)
+        
+        # Remove leading/trailing periods and spaces
+        filename = filename.strip('. ')
+        
+        # Limit length
+        if len(filename) > 255:
+            name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
+            filename = name[:250] + ('.' + ext if ext else '')
+        
+        return filename or "unnamed"
+    
+    def validate_email(self, email: str) -> bool:
+        """
+        Validate email format using regex.
+        
+        Args:
+            email: Email address to validate
+            
+        Returns:
+            True if valid email format, False otherwise
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> is_valid = manager.validate_email("user@example.com")
+        """
+        if not email:
+            return False
+        
+        # Basic length check
+        if len(email) > 254:
+            return False
+        
+        pattern = re.compile(REGEX_EMAIL)
+        return bool(pattern.match(email.lower()))
+    
+    def validate_phone(self, phone: str) -> bool:
+        """
+        Validate phone number format.
+        
+        Args:
+            phone: Phone number to validate
+            
+        Returns:
+            True if valid phone format, False otherwise
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> is_valid = manager.validate_phone("+919876543210")
+        """
+        if not phone:
+            return False
+        
+        # Remove common separators
+        cleaned = re.sub(r'[\s\-\(\)]', '', phone)
+        
+        pattern = re.compile(REGEX_PHONE)
+        return bool(pattern.match(cleaned))
+    
+    def mask_email(self, email: str) -> str:
+        """
+        Mask email address for privacy.
+        
+        Args:
+            email: Email address to mask
+            
+        Returns:
+            Masked email (e.g., u***r@example.com)
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> masked = manager.mask_email("user@example.com")
+            >>> # Returns: "u***r@example.com"
+        """
+        if not email or '@' not in email:
+            return email
+        
+        local, domain = email.split('@', 1)
+        
+        if len(local) <= 2:
+            masked_local = local[0] + '*'
+        elif len(local) <= 4:
+            masked_local = local[0] + '*' * (len(local) - 2) + local[-1]
+        else:
+            masked_local = local[0] + '*' * 3 + local[-1]
+        
+        return f"{masked_local}@{domain}"
+    
+    def mask_phone(self, phone: str, visible_digits: int = 4) -> str:
+        """
+        Mask phone number for privacy.
+        
+        Args:
+            phone: Phone number to mask
+            visible_digits: Number of digits to keep visible at the end
+            
+        Returns:
+            Masked phone number
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> masked = manager.mask_phone("+919876543210")
+            >>> # Returns: "+91******3210"
+        """
+        if not phone or len(phone) < visible_digits:
+            return phone
+        
+        # Preserve country code if present
+        if phone.startswith('+'):
+            # Find where the country code ends (typically 1-3 digits after +)
+            match = re.match(r'(\+\d{1,3})', phone)
+            if match:
+                country_code = match.group(1)
+                remaining = phone[len(country_code):]
+                if len(remaining) > visible_digits:
+                    return country_code + '*' * (len(remaining) - visible_digits) + remaining[-visible_digits:]
+        
+        # Standard masking
+        return '*' * (len(phone) - visible_digits) + phone[-visible_digits:]
+    
+    def generate_otp(self, length: int = 6, numeric_only: bool = True) -> str:
+        """
+        Generate a One-Time Password (OTP).
+        
+        Args:
+            length: Length of OTP
+            numeric_only: If True, generate only numeric OTP
+            
+        Returns:
+            OTP string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> otp = manager.generate_otp(6)
+            >>> # Returns: "123456"
+        """
+        if numeric_only:
+            return ''.join(secrets.choice(string.digits) for _ in range(length))
+        else:
+            return self.generate_random_string(
+                length,
+                include_uppercase=True,
+                include_lowercase=False,
+                include_digits=True,
+                include_special=False
+            )
+    
+    def constant_time_compare(self, a: str, b: str) -> bool:
+        """
+        Compare two strings in constant time to prevent timing attacks.
+        
+        Args:
+            a: First string
+            b: Second string
+            
+        Returns:
+            True if strings match, False otherwise
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> is_equal = manager.constant_time_compare("secret1", "secret2")
+        """
+        return secrets.compare_digest(a.encode(), b.encode())
+    
+    def generate_csrf_token(self) -> str:
+        """
+        Generate a CSRF token.
+        
+        Returns:
+            CSRF token string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> token = manager.generate_csrf_token()
+        """
+        return self.generate_token(32)
+    
+    def generate_api_key(self, prefix: str = "hms") -> str:
+        """
+        Generate an API key with optional prefix.
+        
+        Args:
+            prefix: Prefix for the API key
+            
+        Returns:
+            API key string
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> api_key = manager.generate_api_key("hms")
+            >>> # Returns: "hms_xxxxxxxxxxxxxx"
+        """
+        token = self.generate_token(32)
+        return f"{prefix}_{token}" if prefix else token
+    
+    def hash_api_key(self, api_key: str) -> str:
+        """
+        Hash an API key for storage.
+        
+        Args:
+            api_key: API key to hash
+            
+        Returns:
+            Hashed API key
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> hashed = manager.hash_api_key("hms_xxxxx")
+        """
+        return self.hash_data(api_key, "sha256")
+    
+    def generate_verification_code(self, length: int = 32) -> str:
+        """
+        Generate an email/phone verification code.
+        
+        Args:
+            length: Length of verification code
+            
+        Returns:
+            Verification code
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> code = manager.generate_verification_code()
+        """
+        return self.generate_hex_token(length)
+    
+    def generate_password_reset_token(self) -> str:
+        """
+        Generate a password reset token.
+        
+        Returns:
+            Password reset token
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> token = manager.generate_password_reset_token()
+        """
+        return self.generate_token(32)
+    
+    def is_strong_password(self, password: str) -> Tuple[bool, list]:
+        """
+        Check if password meets strength requirements.
+        
+        Args:
+            password: Password to check
+            
+        Returns:
+            Tuple of (is_strong, list of issues)
+            
+        Example:
+            >>> manager = SecurityManager()
+            >>> is_strong, issues = manager.is_strong_password("weak")
+        """
+        issues = []
+        
+        if len(password) < settings.PASSWORD_MIN_LENGTH:
+            issues.append(f"Password must be at least {settings.PASSWORD_MIN_LENGTH} characters")
+        
+        if settings.PASSWORD_REQUIRE_UPPERCASE and not re.search(r'[A-Z]', password):
+            issues.append("Password must contain at least one uppercase letter")
+        
+        if settings.PASSWORD_REQUIRE_LOWERCASE and not re.search(r'[a-z]', password):
+            issues.append("Password must contain at least one lowercase letter")
+        
+        if settings.PASSWORD_REQUIRE_DIGIT and not re.search(r'\d', password):
+            issues.append("Password must contain at least one digit")
+        
+        if settings.PASSWORD_REQUIRE_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            issues.append("Password must contain at least one special character")
+        
+        return len(issues) == 0, issues
+
+
+# Global security manager instance
+security_manager = SecurityManager()
+
+# --- File: D:\hostel-management-saas\app\core\security\__init__.py ---
+"""
+Security module for authentication, authorization, and cryptographic operations.
+
+This module provides:
+- Password hashing and verification
+- JWT token management
+- Encryption/decryption utilities
+- OAuth integration
+- CSRF protection
+- Security utilities
+"""
+
+from app.core.security.security import SecurityManager, security_manager
+from app.core.security.jwt import JWTManager, jwt_manager
+from app.core.security.password import PasswordManager, password_manager
+from app.core.security.encryption import EncryptionManager, encryption_manager
+from app.core.security.oauth import OAuthManager, oauth_manager
+from app.core.security.csrf import CSRFManager, csrf_manager
+
+__all__ = [
+    "SecurityManager",
+    "security_manager",
+    "JWTManager",
+    "jwt_manager",
+    "PasswordManager",
+    "password_manager",
+    "EncryptionManager",
+    "encryption_manager",
+    "OAuthManager",
+    "oauth_manager",
+    "CSRFManager",
+    "csrf_manager",
+]
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\utils =====
+
+# --- File: D:\hostel-management-saas\app\core\utils\currency_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\datetime_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\email_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\file_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\geo_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\id_generator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\pagination_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\phone_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\string_utils.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\utils\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\core\validators =====
+
+# --- File: D:\hostel-management-saas\app\core\validators\base_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\booking_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\file_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\hostel_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\payment_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\user_validator.py ---
+
+
+# --- File: D:\hostel-management-saas\app\core\validators\__init__.py ---
+
