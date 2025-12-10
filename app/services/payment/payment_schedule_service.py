@@ -1,182 +1,203 @@
 # app/services/payment/payment_schedule_service.py
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
-from typing import Protocol, List
-from uuid import UUID
+from typing import Callable, Dict, List, Optional, Protocol
+from uuid import UUID, uuid4
 
-from app.schemas.payment import (
+from sqlalchemy.orm import Session
+
+from app.repositories.transactions import PaymentRepository
+from app.repositories.core import HostelRepository, StudentRepository
+from app.schemas.common.enums import FeeType, PaymentType, PaymentMethod, PaymentStatus
+from app.schemas.payment.payment_schedule import (
     PaymentSchedule,
     ScheduleCreate,
     ScheduleUpdate,
     ScheduleGeneration,
     ScheduledPaymentGenerated,
-    BulkScheduleCreate,
-    ScheduleSuspension,
 )
-from app.schemas.common.enums import FeeType
-from app.services.common import errors
+from app.services.common import UnitOfWork, errors
 
 
 class ScheduleStore(Protocol):
     """
-    Store for recurring payment schedules (student-level).
-
-    Implementations can use a DB table or Redis.
+    Storage for payment schedules (PaymentSchedule-like dicts).
     """
 
-    def create(self, data: dict) -> dict: ...
-    def update(self, schedule_id: UUID, data: dict) -> dict: ...
-    def get(self, schedule_id: UUID) -> dict | None: ...
-    def list_for_student(self, student_id: UUID) -> List[dict]: ...
+    def get_schedule(self, schedule_id: UUID) -> Optional[dict]: ...
+    def save_schedule(self, schedule_id: UUID, data: dict) -> None: ...
+    def list_schedules_for_student(self, student_id: UUID) -> List[dict]: ...
 
 
 class PaymentScheduleService:
     """
-    Manage recurring payment schedules for students (rent/mess, etc.).
+    Payment schedules:
 
     - Create/update schedules
-    - Generate scheduled payments (via PaymentRequestService)
+    - Fetch schedule
+    - Generate scheduled payments via PaymentRepository
     """
 
-    def __init__(self, store: ScheduleStore) -> None:
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        store: ScheduleStore,
+    ) -> None:
+        self._session_factory = session_factory
         self._store = store
 
-    def create_schedule(self, data: ScheduleCreate, *, hostel_name: str, student_name: str) -> PaymentSchedule:
-        record = {
-            "id": None,
-            "student_id": str(data.student_id),
-            "student_name": student_name,
-            "hostel_id": str(data.hostel_id),
-            "hostel_name": hostel_name,
-            "fee_type": data.fee_type.value if hasattr(data.fee_type, "value") else str(data.fee_type),
-            "amount": str(data.amount),
-            "start_date": data.start_date.isoformat(),
-            "end_date": data.end_date.isoformat() if data.end_date else None,
-            "next_due_date": data.first_due_date.isoformat(),
-            "auto_generate_invoice": data.auto_generate_invoice,
-            "is_active": True,
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_payment_repo(self, uow: UnitOfWork) -> PaymentRepository:
+        return uow.get_repo(PaymentRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _period_months(self, fee_type: FeeType) -> int:
+        mapping = {
+            FeeType.MONTHLY: 1,
+            FeeType.QUARTERLY: 3,
+            FeeType.HALF_YEARLY: 6,
+            FeeType.YEARLY: 12,
         }
-        created = self._store.create(record)
-        return PaymentSchedule(
-            id=UUID(created["id"]),
-            created_at=None,
-            updated_at=None,
-            student_id=data.student_id,
-            student_name=student_name,
-            hostel_id=data.hostel_id,
-            hostel_name=hostel_name,
-            fee_type=data.fee_type,
-            amount=data.amount,
-            start_date=data.start_date,
-            end_date=data.end_date,
-            next_due_date=data.first_due_date,
-            auto_generate_invoice=data.auto_generate_invoice,
-            is_active=True,
+        return mapping.get(fee_type, 1)
+
+    def _add_months(self, d: date, months: int) -> date:
+        month = d.month - 1 + months
+        year = d.year + month // 12
+        month = month % 12 + 1
+        day = min(
+            d.day,
+            [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+             31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1],
         )
+        return date(year, month, day)
+
+    # ------------------------------------------------------------------ #
+    # CRUD
+    # ------------------------------------------------------------------ #
+    def create_schedule(self, data: ScheduleCreate) -> PaymentSchedule:
+        with UnitOfWork(self._session_factory) as uow:
+            hostel_repo = self._get_hostel_repo(uow)
+            student_repo = self._get_student_repo(uow)
+
+            hostel = hostel_repo.get(data.hostel_id)
+            if hostel is None:
+                raise errors.NotFoundError(f"Hostel {data.hostel_id} not found")
+
+            student = student_repo.get(data.student_id)
+            if student is None or not getattr(student, "user", None):
+                raise errors.NotFoundError(f"Student {data.student_id} not found")
+
+            schedule_id = uuid4()
+            record = {
+                "id": schedule_id,
+                "created_at": None,
+                "updated_at": None,
+                "student_id": data.student_id,
+                "student_name": student.user.full_name,
+                "hostel_id": data.hostel_id,
+                "hostel_name": hostel.name,
+                "fee_type": data.fee_type,
+                "amount": data.amount,
+                "start_date": data.start_date,
+                "end_date": data.end_date,
+                "next_due_date": data.first_due_date,
+                "auto_generate_invoice": data.auto_generate_invoice,
+                "is_active": True,
+            }
+            self._store.save_schedule(schedule_id, record)
+            return PaymentSchedule.model_validate(record)
+
+    def get_schedule(self, schedule_id: UUID) -> PaymentSchedule:
+        record = self._store.get_schedule(schedule_id)
+        if not record:
+            raise errors.NotFoundError(f"PaymentSchedule {schedule_id} not found")
+        return PaymentSchedule.model_validate(record)
 
     def update_schedule(self, schedule_id: UUID, data: ScheduleUpdate) -> PaymentSchedule:
-        existing = self._store.get(schedule_id)
-        if not existing:
-            raise errors.NotFoundError(f"Schedule {schedule_id} not found")
+        record = self._store.get_schedule(schedule_id)
+        if not record:
+            raise errors.NotFoundError(f"PaymentSchedule {schedule_id} not found")
 
         mapping = data.model_dump(exclude_unset=True)
         for field, value in mapping.items():
-            if field == "amount" and value is not None:
-                existing["amount"] = str(value)
-            elif field in ("next_due_date", "end_date") and value is not None:
-                existing[field] = value.isoformat()
-            else:
-                existing[field] = value
+            record[field] = value
+        self._store.save_schedule(schedule_id, record)
+        return PaymentSchedule.model_validate(record)
 
-        updated = self._store.update(schedule_id, existing)
+    # ------------------------------------------------------------------ #
+    # Generation
+    # ------------------------------------------------------------------ #
+    def generate_scheduled_payments(self, data: ScheduleGeneration) -> ScheduledPaymentGenerated:
+        record = self._store.get_schedule(data.schedule_id)
+        if not record:
+            raise errors.NotFoundError(f"PaymentSchedule {data.schedule_id} not found")
 
-        return PaymentSchedule(
-            id=schedule_id,
-            created_at=None,
-            updated_at=None,
-            student_id=UUID(updated["student_id"]),
-            student_name=updated.get("student_name", ""),
-            hostel_id=UUID(updated["hostel_id"]),
-            hostel_name=updated.get("hostel_name", ""),
-            fee_type=FeeType(updated["fee_type"]),
-            amount=Decimal(updated["amount"]),
-            start_date=date.fromisoformat(updated["start_date"]),
-            end_date=date.fromisoformat(updated["end_date"]) if updated.get("end_date") else None,
-            next_due_date=date.fromisoformat(updated["next_due_date"]),
-            auto_generate_invoice=updated.get("auto_generate_invoice", True),
-            is_active=updated.get("is_active", True),
-        )
+        schedule = PaymentSchedule.model_validate(record)
+        months = self._period_months(schedule.fee_type)
 
-    def generate_payments(self, data: ScheduleGeneration) -> ScheduledPaymentGenerated:
-        """
-        This only computes which dates a bill should be generated; actual Payment
-        objects should be created by PaymentRequestService, using the returned dates.
-        """
-        schedule = self._store.get(data.schedule_id)
-        if not schedule:
-            raise errors.NotFoundError(f"Schedule {data.schedule_id} not found")
+        with UnitOfWork(self._session_factory) as uow:
+            pay_repo = self._get_payment_repo(uow)
 
-        fee_type = FeeType(schedule["fee_type"])
-        step_days = {
-            FeeType.MONTHLY: 30,
-            FeeType.QUARTERLY: 90,
-            FeeType.HALF_YEARLY: 180,
-            FeeType.YEARLY: 365,
-        }.get(fee_type, 30)
+            payments_generated: List[UUID] = []
+            payments_skipped = 0
 
-        current = date.fromisoformat(schedule["next_due_date"])
-        payments_generated = 0
-        payments_skipped = 0
-        generated_ids: List[UUID] = []
+            current_due = schedule.next_due_date
+            while current_due <= data.generate_to_date:
+                if current_due < data.generate_from_date:
+                    current_due = self._add_months(current_due, months)
+                    continue
 
-        while current <= data.generate_to_date:
-            if current >= data.generate_from_date:
-                if data.skip_if_already_paid:
-                    # In a real implementation you'd check existing payments
-                    payments_skipped += 0
-                payments_generated += 1
-            current = current + timedelta(days=step_days)
+                # Check if a payment already exists for this student & due_date
+                existing = pay_repo.get_multi(
+                    skip=0,
+                    limit=1,
+                    filters={
+                        "student_id": schedule.student_id,
+                        "hostel_id": schedule.hostel_id,
+                        "due_date": current_due,
+                    },
+                )
+                if existing and data.skip_if_already_paid:
+                    payments_skipped += 1
+                else:
+                    payload = {
+                        "payer_id": None,
+                        "hostel_id": schedule.hostel_id,
+                        "student_id": schedule.student_id,
+                        "booking_id": None,
+                        "payment_type": PaymentType.RENT,
+                        "amount": schedule.amount,
+                        "currency": "INR",
+                        "payment_period_start": current_due,
+                        "payment_period_end": None,
+                        "payment_method": PaymentMethod.PAYMENT_GATEWAY,
+                        "payment_gateway": "razorpay",
+                        "payment_status": PaymentStatus.PENDING,
+                        "due_date": current_due,
+                    }
+                    p = pay_repo.create(payload)  # type: ignore[arg-type]
+                    payments_generated.append(p.id)
 
-        next_generation_date = current
+                current_due = self._add_months(current_due, months)
+
+            # Update next_due_date on schedule
+            record["next_due_date"] = current_due
+            self._store.save_schedule(data.schedule_id, record)
+            uow.commit()
 
         return ScheduledPaymentGenerated(
             schedule_id=data.schedule_id,
-            payments_generated=payments_generated,
+            payments_generated=len(payments_generated),
             payments_skipped=payments_skipped,
-            generated_payment_ids=generated_ids,
-            next_generation_date=next_generation_date,
+            generated_payment_ids=payments_generated,
+            next_generation_date=record["next_due_date"],
         )
-
-    def suspend_schedule(self, data: ScheduleSuspension) -> None:
-        schedule = self._store.get(data.schedule_id)
-        if not schedule:
-            raise errors.NotFoundError(f"Schedule {data.schedule_id} not found")
-        schedule["suspended"] = True
-        schedule["suspend_from_date"] = data.suspend_from_date.isoformat()
-        schedule["suspend_to_date"] = data.suspend_to_date.isoformat()
-        schedule["skip_dues_during_suspension"] = data.skip_dues_during_suspension
-        self._store.update(data.schedule_id, schedule)
-
-    def bulk_create(self, data: BulkScheduleCreate, *, hostel_name: str, student_names: dict[UUID, str]) -> List[UUID]:
-        ids: List[UUID] = []
-        for sid in data.student_ids:
-            sched = ScheduleCreate(
-                student_id=sid,
-                hostel_id=data.hostel_id,
-                fee_type=data.fee_type,
-                amount=data.amount,
-                start_date=data.start_date,
-                end_date=None,
-                first_due_date=data.first_due_date,
-                auto_generate_invoice=True,
-                send_reminders=True,
-            )
-            created = self.create_schedule(
-                sched,
-                hostel_name=hostel_name,
-                student_name=student_names.get(sid, ""),
-            )
-            ids.append(created.id)
-        return ids

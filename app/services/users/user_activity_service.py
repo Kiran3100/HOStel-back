@@ -2,63 +2,41 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.repositories.audit import UserActivityRepository
-from app.services.common import UnitOfWork
+from app.schemas.audit import UserActivityLog  # if you have such a schema; otherwise adjust
+from app.services.common import UnitOfWork, errors
 
 
 class UserActivityService:
     """
-    Simple wrapper around audit.user_activity for recording user actions.
+    Lightweight user activity logger:
 
-    This service is intentionally write-focused; most read/reporting use-cases
-    can go via dedicated audit/reporting services.
+    - log_login
+    - log_logout
+    - log_password_change
+    - log_custom_activity
+
+    Backed by audit_user_activity via UserActivityRepository.
     """
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self._session_factory = session_factory
 
+    # Helpers
+    def _get_repo(self, uow: UnitOfWork) -> UserActivityRepository:
+        return uow.get_repo(UserActivityRepository)
+
     def _now(self) -> datetime:
         return datetime.now(timezone.utc)
 
     # ------------------------------------------------------------------ #
-    # Public logging APIs
+    # Logging helpers
     # ------------------------------------------------------------------ #
-    def log(
-        self,
-        *,
-        user_id: UUID,
-        activity_type: str,
-        description: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-    ) -> None:
-        """
-        Record an arbitrary user activity event.
-
-        :param user_id: ID of the user performing the action
-        :param activity_type: logical type (e.g. 'login', 'logout', 'booking_created')
-        :param description: human-readable description
-        :param ip_address: optional IP
-        :param user_agent: optional User-Agent string
-        """
-        with UnitOfWork(self._session_factory) as uow:
-            repo = uow.get_repo(UserActivityRepository)
-            payload = {
-                "user_id": user_id,
-                "activity_type": activity_type,
-                "description": description,
-                "ip_address": ip_address,
-                "user_agent": user_agent,
-                "created_at": self._now(),
-            }
-            repo.create(payload)  # type: ignore[arg-type]
-            uow.commit()
-
     def log_login(
         self,
         *,
@@ -66,8 +44,7 @@ class UserActivityService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
     ) -> None:
-        """Convenience helper for login events."""
-        self.log(
+        self._log(
             user_id=user_id,
             activity_type="login",
             description="User logged in",
@@ -82,8 +59,7 @@ class UserActivityService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
     ) -> None:
-        """Convenience helper for logout events."""
-        self.log(
+        self._log(
             user_id=user_id,
             activity_type="logout",
             description="User logged out",
@@ -98,11 +74,49 @@ class UserActivityService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
     ) -> None:
-        """Convenience helper for password change events."""
-        self.log(
+        self._log(
             user_id=user_id,
             activity_type="password_change",
             description="User changed password",
             ip_address=ip_address,
             user_agent=user_agent,
         )
+
+    def log_custom(
+        self,
+        *,
+        user_id: UUID,
+        activity_type: str,
+        description: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> None:
+        self._log(
+            user_id=user_id,
+            activity_type=activity_type,
+            description=description or activity_type,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+    # Internal
+    def _log(
+        self,
+        *,
+        user_id: UUID,
+        activity_type: str,
+        description: Optional[str],
+        ip_address: Optional[str],
+        user_agent: Optional[str],
+    ) -> None:
+        with UnitOfWork(self._session_factory) as uow:
+            repo = self._get_repo(uow)
+            record = {
+                "user_id": user_id,
+                "activity_type": activity_type,
+                "description": description,
+                "ip_address": ip_address,
+                "user_agent": user_agent,
+            }
+            repo.create(record)  # type: ignore[arg-type]
+            uow.commit()

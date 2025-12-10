@@ -1,82 +1,138 @@
 # app/services/payment/payment_reporting_service.py
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-from typing import Callable, List, Dict, Optional
+from typing import Callable, Dict, List
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.repositories.transactions import PaymentRepository
-from app.schemas.payment import (
-    PaymentReportRequest,
-)
-from app.schemas.common.enums import PaymentStatus, PaymentType, PaymentMethod
-from app.services.common import UnitOfWork
+from app.schemas.common.enums import PaymentStatus
+from app.schemas.payment.payment_filters import PaymentReportRequest
+from app.services.common import UnitOfWork, errors
 
 
 class PaymentReportingService:
     """
-    Generate aggregated payment reports.
+    Payment reporting and aggregation:
 
-    - Totals by day/week/month, type, method
-    - Raw export can reuse PaymentService.list_payments
+    - Build grouped aggregates for PaymentReportRequest
+      (by day/week/month/payment_type/payment_method).
     """
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self._session_factory = session_factory
 
-    def _get_repo(self, uow: UnitOfWork) -> PaymentRepository:
+    def _get_payment_repo(self, uow: UnitOfWork) -> PaymentRepository:
         return uow.get_repo(PaymentRepository)
 
-    def generate_report(self, req: PaymentReportRequest) -> Dict[str, any]:
-        with UnitOfWork(self._session_factory) as uow:
-            repo = self._get_repo(uow)
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def build_report(self, req: PaymentReportRequest) -> Dict[str, object]:
+        """
+        Return a simple dict-based report structure for the given request.
 
-            filters: dict = {}
+        Structure example:
+        {
+            "hostel_id": ...,
+            "period": {"from": ..., "to": ...},
+            "group_by": "day",
+            "totals": {...},
+            "groups": [
+                {"key": "...", "total_amount": ..., "count": ..., "completed": ...},
+                ...
+            ],
+        }
+        """
+        if req.date_from > req.date_to:
+            raise errors.ValidationError("date_from must be <= date_to")
+
+        with UnitOfWork(self._session_factory) as uow:
+            repo = self._get_payment_repo(uow)
+
+            filters: Dict[str, object] = {}
             if req.hostel_id:
                 filters["hostel_id"] = req.hostel_id
+            if req.payment_types:
+                filters["payment_type"] = req.payment_types
+            if req.payment_methods:
+                filters["payment_method"] = req.payment_methods
 
-            payments = repo.get_multi(filters=filters or None)
+            payments = repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters=filters or None,
+            )
 
-        start = req.date_from
-        end = req.date_to
-
-        filtered = []
+        # Time filter on paid_at or created_at
+        in_period = []
         for p in payments:
-            d = p.created_at.date()
-            if d < start or d > end:
-                continue
-            if req.payment_types and p.payment_type not in req.payment_types:
-                continue
-            if req.payment_methods and p.payment_method not in req.payment_methods:
-                continue
-            filtered.append(p)
+            d = p.paid_at.date() if p.paid_at else p.created_at.date()
+            if req.date_from <= d <= req.date_to:
+                in_period.append(p)
 
-        total_amount = sum((p.amount for p in filtered), Decimal("0"))
-        total_completed = sum(
-            (p.amount for p in filtered if p.payment_status == PaymentStatus.COMPLETED),
-            Decimal("0"),
-        )
+        total_amount = Decimal("0")
+        total_count = 0
+        total_completed = 0
 
-        by_type: Dict[PaymentType, Decimal] = {}
-        by_method: Dict[PaymentMethod, Decimal] = {}
+        for p in in_period:
+            total_amount += p.amount
+            total_count += 1
+            if p.payment_status == PaymentStatus.COMPLETED:
+                total_completed += 1
 
-        for p in filtered:
-            by_type[p.payment_type] = by_type.get(p.payment_type, Decimal("0")) + p.amount
-            by_method[p.payment_method] = by_method.get(p.payment_method, Decimal("0")) + p.amount
-
-        group_by = req.group_by
-        # For brevity, we skip heavy grouping; you can add per-group buckets as needed.
+        groups = self._group_payments(in_period, req.group_by)
 
         return {
             "hostel_id": req.hostel_id,
-            "date_from": str(start),
-            "date_to": str(end),
-            "total_amount": str(total_amount),
-            "total_completed": str(total_completed),
-            "by_type": {k.value: str(v) for k, v in by_type.items()},
-            "by_method": {k.value: str(v) for k, v in by_method.items()},
-            "group_by": group_by,
+            "period": {"from": req.date_from, "to": req.date_to},
+            "group_by": req.group_by,
+            "totals": {
+                "total_amount": total_amount,
+                "total_count": total_count,
+                "completed_count": total_completed,
+            },
+            "groups": groups,
         }
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _group_payments(self, payments: List, group_by: str) -> List[Dict[str, object]]:
+        buckets: Dict[str, Dict[str, object]] = {}
+
+        for p in payments:
+            d = p.paid_at.date() if p.paid_at else p.created_at.date()
+            if group_by == "day":
+                key = d.isoformat()
+            elif group_by == "week":
+                iso_year, iso_week, _ = d.isocalendar()
+                key = f"{iso_year}-W{iso_week:02d}"
+            elif group_by == "month":
+                key = d.strftime("%Y-%m")
+            elif group_by == "payment_type":
+                key = p.payment_type.value if hasattr(p.payment_type, "value") else str(p.payment_type)
+            elif group_by == "payment_method":
+                key = p.payment_method.value if hasattr(p.payment_method, "value") else str(p.payment_method)
+            else:
+                key = "other"
+
+            bucket = buckets.setdefault(
+                key,
+                {
+                    "key": key,
+                    "total_amount": Decimal("0"),
+                    "count": 0,
+                    "completed": 0,
+                },
+            )
+            bucket["total_amount"] += p.amount
+            bucket["count"] += 1
+            if p.payment_status == PaymentStatus.COMPLETED:
+                bucket["completed"] += 1
+
+        return list(buckets.values())

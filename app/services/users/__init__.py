@@ -1,10 +1,15 @@
 # app/services/users/__init__.py
 """
-User-related services.
+User-facing services.
 
-- UserService: core user CRUD and listing
-- UserProfileService: profile/contact updates
-- UserActivityService: writes to audit.user_activity
+- UserService:
+    Core CRUD, listing, and detail for users (core_user).
+
+- UserProfileService:
+    Profile/contact/image updates and simple document-like extensions.
+
+- UserActivityService:
+    Lightweight activity logging (logins, password changes, etc.).
 """
 
 from .user_service import UserService

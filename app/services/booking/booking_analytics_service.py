@@ -151,7 +151,6 @@ class BookingAnalyticsService:
         conversion_rate_by_source: Dict[BookingSource, Decimal] = {}
         for src, count in bookings_by_source.items():
             if count > 0:
-                # naive: all confirmed / by source
                 src_confirmed = sum(
                     1 for b in filtered if b.source == src and b.booking_status == BookingStatus.CONFIRMED
                 )

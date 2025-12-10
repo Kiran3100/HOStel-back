@@ -1,65 +1,70 @@
 # app/services/users/user_profile_service.py
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Callable
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.repositories.core import UserRepository
-from app.schemas.user import (
+from app.schemas.user.user_profile import (
     ProfileUpdate,
     ProfileImageUpdate,
     ContactInfoUpdate,
-    UserDetail,
 )
-from app.services.common import UnitOfWork, mapping, errors
+from app.schemas.user import UserDetail
+from app.services.common import UnitOfWork, errors
+from .user_service import UserService
 
 
 class UserProfileService:
     """
-    User profile-related operations.
+    User profile management:
 
-    This service focuses on fields that are logically part of the User entity
-    (name, contact, profile image, basic profile info).
+    - Update basic profile fields (name, gender, DOB, address).
+    - Update contact info & emergency details.
+    - Update profile image.
 
-    Note: Some fields in ProfileUpdate (e.g., address_line1, pincode) do not
-    exist on the current User model; those will be silently ignored by the
-    generic mapping helper. To persist them, the data model would need to be
-    extended.
+    Note:
+    - Underlying core_user model currently has only base fields; address/
+      emergency fields are applied only if/when they exist on the model.
     """
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self._session_factory = session_factory
+        self._user_service = UserService(session_factory)
 
-    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+    # Helpers
+    def _get_repo(self, uow: UnitOfWork) -> UserRepository:
         return uow.get_repo(UserRepository)
 
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
     # ------------------------------------------------------------------ #
-    # Profile update
+    # Profile
     # ------------------------------------------------------------------ #
     def update_profile(self, user_id: UUID, data: ProfileUpdate) -> UserDetail:
-        """
-        Update basic profile fields (name, gender, DOB, and any supported
-        contact/address fields that exist on the User model).
-        """
         with UnitOfWork(self._session_factory) as uow:
-            repo = self._get_user_repo(uow)
+            repo = self._get_repo(uow)
             user = repo.get(user_id)
             if user is None:
                 raise errors.NotFoundError(f"User {user_id} not found")
 
-            mapping.update_model_from_schema(user, data, exclude_fields=["id"])
+            mapping = data.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(user, field) and field != "id":
+                    setattr(user, field, value)
+
             uow.session.flush()  # type: ignore[union-attr]
             uow.commit()
-            return mapping.to_schema(user, UserDetail)
+
+        return self._user_service.get_user(user_id)
 
     def update_profile_image(self, user_id: UUID, data: ProfileImageUpdate) -> UserDetail:
-        """
-        Update the user's profile image URL.
-        """
         with UnitOfWork(self._session_factory) as uow:
-            repo = self._get_user_repo(uow)
+            repo = self._get_repo(uow)
             user = repo.get(user_id)
             if user is None:
                 raise errors.NotFoundError(f"User {user_id} not found")
@@ -67,23 +72,22 @@ class UserProfileService:
             user.profile_image_url = str(data.profile_image_url)  # type: ignore[attr-defined]
             uow.session.flush()  # type: ignore[union-attr]
             uow.commit()
-            return mapping.to_schema(user, UserDetail)
+
+        return self._user_service.get_user(user_id)
 
     def update_contact_info(self, user_id: UUID, data: ContactInfoUpdate) -> UserDetail:
-        """
-        Update phone/email and emergency contact information.
-
-        For phone/email, uniqueness checks should be done at a higher level
-        (e.g., via UserService.update_user). This method assumes those have
-        already been validated if necessary.
-        """
         with UnitOfWork(self._session_factory) as uow:
-            repo = self._get_user_repo(uow)
+            repo = self._get_repo(uow)
             user = repo.get(user_id)
             if user is None:
                 raise errors.NotFoundError(f"User {user_id} not found")
 
-            mapping.update_model_from_schema(user, data, exclude_fields=["id"])
+            mapping = data.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(user, field) and field != "id":
+                    setattr(user, field, value)
+
             uow.session.flush()  # type: ignore[union-attr]
             uow.commit()
-            return mapping.to_schema(user, UserDetail)
+
+        return self._user_service.get_user(user_id)

@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app.repositories.core import HostelRepository
 from app.schemas.common.pagination import PaginationParams, PaginatedResponse
-from app.schemas.common.enums import HostelStatus
 from app.schemas.hostel import (
     HostelCreate,
     HostelUpdate,
