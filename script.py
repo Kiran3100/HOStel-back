@@ -70,7 +70,7 @@ def combine_all_files(root_folder, output_file):
 
 if __name__ == "__main__":
     # 🔧 Change this path to your main root folder
-    root_folder = r"D:\hostel-management-saas\app\services"
+    root_folder = r"D:\hostel-management-saas\app\api"
 
     # 📄 Output file path (saved inside the same root folder)
     output_file = os.path.join(root_folder, "all_folders_files_content.txt")

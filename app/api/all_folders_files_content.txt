@@ -1,0 +1,3292 @@
+### Combined Content from Folder: D:\hostel-management-saas\app\api ###
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api =====
+
+# --- File: D:\hostel-management-saas\app\api\deps.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\__init__.py ---
+Below is a structured, file-by-file summary. Paths are shown relative to app/schemas.
+
+app/schemas/__init__.py
+Empty package initializer; exists to mark app.schemas as a Python package.
+Admin Schemas (app/schemas/admin)
+admin/admin_hostel_assignment.py
+Schemas for linking admins to hostels and managing their assignment:
+AdminHostelAssignment: response model for a single admin–hostel assignment (permissions, primary hostel, revoke info).
+AssignmentCreate, AssignmentUpdate: create/update payloads for one assignment.
+BulkAssignment: assign an admin to multiple hostels at once.
+RevokeAssignment: payload to revoke an assignment with reason.
+AssignmentList: aggregate assignments for a given admin.
+HostelAdminList, HostelAdminItem: list admins associated with a given hostel.
+admin/admin_override.py
+Schemas for admins overriding supervisor decisions:
+AdminOverrideRequest: payload describing the override (who, what entity, original vs override action, reason).
+OverrideLog: response/log entry for one override.
+OverrideReason: predefined override reasons.
+OverrideSummary, SupervisorOverrideStats: summarized override metrics by period, type, supervisor, hostel.
+admin/admin_permissions.py
+Fine-grained permission model for admins:
+AdminPermissions: boolean flags for many admin capabilities (rooms, students, fees, supervisors, financials, etc.).
+PermissionMatrix, RolePermissions: role-based permission mapping for the system.
+PermissionCheck: result of checking whether a user has a specific permission in a hostel.
+admin/hostel_context.py
+Multi-hostel “active context” management for admins:
+HostelContext: current active hostel and quick stats for that session.
+HostelSwitchRequest: request to switch active hostel.
+ActiveHostelResponse: response after switching context.
+ContextHistory, ContextSwitch: history of hostel context switches.
+admin/hostel_selector.py
+Data models backing a hostel selector UI:
+HostelSelectorResponse, HostelSelectorItem: list and per-hostel cards for selection (occupancy, tasks, favorites, permissions).
+RecentHostels, RecentHostelItem: recently accessed hostels.
+FavoriteHostels, FavoriteHostelItem: favorite hostels list.
+UpdateFavoriteRequest: add/remove favorite.
+admin/multi_hostel_dashboard.py
+Unified multi-hostel dashboard models:
+MultiHostelDashboard: top-level dashboard for an admin managing several hostels.
+AggregatedStats: cross-hostel metrics (occupancy, revenue, complaints, maintenance).
+HostelQuickStats: per-hostel key stats and health status.
+CrossHostelComparison, TopPerformer, BottomPerformer, HostelMetricComparison: cross-hostel comparisons and rankings.
+HostelTaskSummary: per-hostel task counts by priority.
+admin/__init__.py
+Re-exports core admin-related schemas for convenient import:
+Assignments, context switching, selector, dashboard, overrides, permissions.
+Analytics Schemas (app/schemas/analytics)
+analytics/booking_analytics.py
+Analytics around bookings:
+BookingKPI: aggregate counts & rates (conversion, cancellation, lead time).
+BookingTrendPoint: time-series point with booking & revenue per day.
+BookingFunnel: funnel metrics from page views to confirmations.
+CancellationAnalytics: cancellation-specific stats and reasons.
+BookingAnalyticsSummary: top-level booking analytics for a hostel/period.
+analytics/complaint_analytics.py (dashboard-level)
+Summary models for complaint analytics:
+ComplaintKPI: high-level metrics (open/resolved, SLA compliance, escalation).
+ComplaintTrend, ComplaintTrendPoint: trend over time.
+CategoryBreakdown: per-category stats.
+ComplaintDashboard: consolidated complaint dashboard payload.
+analytics/custom_reports.py
+Custom report builder schemas:
+CustomReportField, CustomReportFilter: define fields/filters.
+CustomReportRequest: specify module, fields, filters, grouping, sorting, output format.
+CustomReportDefinition: saved report configuration.
+CustomReportResult: generic tabular report output with summary/charts.
+analytics/dashboard_analytics.py
+General KPI and dashboard metrics:
+KPIResponse: flexible KPI card representation.
+QuickStats: high-level quick stats.
+DashboardMetrics: combined KPIs, timeseries (revenue, occupancy, bookings, complaints).
+TimeseriesPoint: generic timeseries value.
+RoleSpecificDashboard: sections per role with cards and KPIs.
+analytics/financial_analytics.py
+Financial analytics for hostels/platform:
+RevenueBreakdown, ExpenseBreakdown.
+ProfitAndLossReport: P&L for given scope and period.
+CashflowSummary, CashflowPoint.
+FinancialReport: aggregate financial report with ratios and per-student/bed metrics.
+analytics/occupancy_analytics.py
+Occupancy-focused analytics:
+OccupancyKPI, OccupancyTrendPoint: summary and daily occupancy.
+ForecastData, ForecastPoint: future occupancy forecasts.
+OccupancyByRoomType, OccupancyReport: full occupancy report including breakdowns and optional forecast.
+analytics/platform_analytics.py
+Platform-wide (multi-tenant) analytics:
+PlatformMetrics: counts of hostels, users, DAU, sessions, etc.
+GrowthMetrics, MonthlyMetric: hostels, revenue, users growth over time.
+PlatformUsageAnalytics: API traffic, error rates, latency, resource usage.
+analytics/supervisor_analytics.py
+Supervisor performance analytics:
+SupervisorKPI: workload & performance per supervisor.
+SupervisorTrendPoint: performance over time.
+SupervisorDashboardAnalytics: dashboard payload for one supervisor.
+SupervisorComparison: compare multiple supervisors.
+analytics/visitor_analytics.py
+Visitor behavior and funnel:
+VisitorFunnel: visits → registrations → bookings with conversion rates.
+TrafficSourceAnalytics: per-source visits and conversion.
+VisitorBehaviorAnalytics: search & engagement patterns.
+analytics/__init__.py
+Re-exports core analytics models by category (dashboard, financial, occupancy, complaints, visitor, booking, supervisor, platform, custom reports).
+Announcement Schemas (app/schemas/announcement)
+announcement/announcement_base.py
+Core models for announcements:
+AnnouncementBase: shared attributes (title, content, category, priority, targeting, attachments, expiry).
+AnnouncementCreate: adds creator and delivery channel flags.
+AnnouncementUpdate: partial update including publish state.
+announcement/announcement_response.py
+Read models for announcements:
+AnnouncementResponse: basic list item with counts.
+AnnouncementDetail: detailed view including targeting, approvals, delivery times, engagement.
+AnnouncementList, AnnouncementListItem: list + summary metrics.
+announcement/announcement_filters.py
+Filtering, searching, exporting announcements:
+AnnouncementFilterParams, SearchRequest: query & search parameters.
+ArchiveRequest: bulk archival criteria.
+AnnouncementExportRequest: export options (format, included info).
+announcement/announcement_targeting.py
+Audience targeting configurations:
+TargetingConfig, AudienceSelection: describe who should receive an announcement.
+TargetRooms, TargetFloors, IndividualTargeting: specialized targeting.
+TargetingSummary: counts and breakdown for recipients.
+BulkTargeting: multiple targeting rules and combine mode.
+announcement/announcement_scheduling.py
+Scheduling and recurrence:
+ScheduleRequest, ScheduleConfig: schedule single announcement with optional expiry.
+RecurringAnnouncement: recurring series (daily/weekly/monthly).
+ScheduleUpdate, ScheduleCancel, PublishNow.
+ScheduledAnnouncementsList, ScheduledAnnouncementItem: list future schedules.
+announcement/announcement_approval.py
+Approval workflow for announcements:
+ApprovalRequest, ApprovalResponse, RejectionRequest.
+ApprovalWorkflow: current approval status and timeline.
+SupervisorApprovalQueue, PendingApprovalItem: queue of pending approvals.
+BulkApproval: approve/reject multiple at once.
+announcement/announcement_delivery.py
+Delivery configuration and status:
+DeliveryConfig, DeliveryChannels: channels and batch strategies.
+DeliveryStatus, DeliveryReport, ChannelDeliveryStats, FailedDelivery.
+BatchDelivery: batch processing progress.
+RetryDelivery: retry failed deliveries.
+announcement/announcement_tracking.py
+Engagement tracking:
+ReadReceipt (+ response).
+AcknowledgmentTracking, PendingAcknowledgment, AcknowledgmentRequest.
+EngagementMetrics, ReadingTime.
+AnnouncementAnalytics: comprehensive analytics combining delivery & engagement.
+announcement/__init__.py
+Re-exports key announcement schemas: base, response, targeting, scheduling, approval, delivery, tracking, filters.
+Attendance Schemas (app/schemas/attendance)
+attendance/attendance_base.py
+Core attendance record model:
+AttendanceBase: single-day attendance for a student.
+AttendanceCreate, AttendanceUpdate: create/update payloads with optional geo/device info on create.
+BulkAttendanceCreate, SingleAttendanceRecord: bulk marking structure.
+attendance/attendance_response.py
+Response models:
+AttendanceResponse: list item with names, status, times.
+AttendanceDetail: full attendance record with student info, mode, location, timestamps.
+AttendanceListItem: minimal list row.
+DailyAttendanceSummary: summarized statistics per day.
+attendance/attendance_record.py
+Higher-level commands:
+AttendanceRecordRequest: simple per-student mark.
+BulkAttendanceRequest: bulk mark with per-student overrides.
+AttendanceCorrection: correction payload for existing record.
+QuickAttendanceMarkAll: mark all present with exceptions.
+attendance/attendance_filters.py
+Filtering and export:
+AttendanceFilterParams: hostels, students, dates, statuses, modes.
+DateRangeRequest: simple validated date range.
+AttendanceExportRequest: export options by format and grouping.
+attendance/attendance_policy.py
+Policy configuration and violations:
+AttendancePolicy: hostel-specific thresholds and notifications.
+PolicyConfig: calculation and leave-handling rules.
+PolicyUpdate: partial changes to policy.
+PolicyViolation: record of a violation instance.
+attendance/attendance_alert.py
+Alerts on attendance anomalies:
+AttendanceAlert: alert log (low attendance, late, patterns).
+AlertConfig: hostel-level alert settings.
+AlertTrigger: manual trigger payload.
+AlertAcknowledgment, AlertList, AlertSummary: acknowledging & summarizing alerts.
+attendance/attendance_report.py
+Reporting and trend analysis:
+AttendanceReport: full report for a student/hostel over a period with summary, daily records, trends.
+AttendanceSummary: overall stats and streaks.
+DailyAttendanceRecord: per-day detail.
+TrendAnalysis, WeeklyAttendance, MonthlyComparison: trends and comparisons.
+MonthlyReport, StudentMonthlySummary.
+AttendanceComparison, ComparisonItem: comparative attendance across entities.
+attendance/__init__.py
+Re-exports core attendance models (base, response, record, report, policy, alert, filters).
+Audit Schemas (app/schemas/audit)
+audit/admin_override_log.py
+Audit logs specifically for admin overrides:
+AdminOverrideBase, AdminOverrideCreate: base and create payload mirroring DB.
+AdminOverrideLogResponse, AdminOverrideDetail: summarized and detailed views.
+AdminOverrideSummary, AdminOverrideTimelinePoint: stats and timeline aggregation.
+audit/audit_log_base.py
+Generic audit log entry:
+AuditLogBase, AuditLogCreate: base audit schema for all modules (action, category, entity, old/new values, request context).
+audit/audit_log_response.py
+Response views for generic audit logs:
+AuditLogResponse: list item.
+AuditLogDetail: includes old/new value snapshots.
+audit/audit_filters.py
+Filter criteria for querying audit logs:
+AuditFilterParams: filter by user, role, hostel, entity, action, time range, paging.
+audit/audit_reports.py
+Reporting over audit logs:
+AuditSummary, UserActivitySummary.
+EntityChangeSummary, EntityChangeRecord, EntityChangeHistory.
+AuditReport: top-level report with summaries by entity type.
+audit/supervisor_activity_log.py
+Supervisor-specific activity logging:
+SupervisorActivityBase, SupervisorActivityCreate: create entries for actions by supervisors.
+SupervisorActivityLogResponse, SupervisorActivityDetail.
+SupervisorActivityFilter: filtering/paging.
+SupervisorActivitySummary, SupervisorActivityTimelinePoint: aggregated stats.
+audit/__init__.py
+Re-exports generic audit, supervisor activity, and admin override log schemas.
+Auth Schemas (app/schemas/auth)
+auth/login.py
+Login and JWT token data:
+LoginRequest, PhoneLoginRequest.
+TokenData: payload encoded into JWT.
+LoginResponse, UserLoginInfo: tokens + basic user info.
+auth/otp.py
+OTP (One-Time Password) flows:
+OTPGenerateRequest: generate for email/phone with purpose.
+OTPVerifyRequest, OTPResponse, OTPVerifyResponse.
+ResendOTPRequest.
+Includes validator ensuring at least email or phone is supplied.
+auth/password.py
+Password reset/change and strength:
+PasswordResetRequest, PasswordResetConfirm (with matching & strength validation).
+PasswordChangeRequest, PasswordChangeResponse.
+PasswordStrengthCheck, PasswordStrengthResponse.
+auth/register.py
+Registration and verification:
+RegisterRequest: user creation payload with role, gender, DOB and password validation.
+RegisterResponse.
+VerifyEmailRequest, VerifyPhoneRequest, ResendVerificationRequest.
+auth/social_auth.py
+Social login via Google/Facebook:
+SocialAuthRequest, GoogleAuthRequest, FacebookAuthRequest.
+SocialAuthResponse, SocialUserInfo: tokens + user info.
+SocialProfileData: structured profile returned from providers.
+auth/token.py
+Token management:
+Token, TokenPayload: access/refresh representation and JWT claims.
+RefreshTokenRequest, RefreshTokenResponse.
+TokenValidationRequest, TokenValidationResponse.
+RevokeTokenRequest, LogoutRequest.
+auth/__init__.py
+Re-exports main auth-related schemas: login, registration, tokens, password, OTP, social auth.
+Booking Schemas (app/schemas/booking)
+booking/booking_base.py
+Core booking model:
+BookingBase: requested room type, dates, pricing, extras, source.
+Validates total_amount against (quoted_rent_monthly * stay_duration_months).
+BookingCreate: embeds guest and contact details for a new booking.
+BookingUpdate: modify booking attributes/status.
+booking/booking_response.py
+Read models:
+BookingResponse: summary item.
+BookingDetail: full booking details incl. hostel info, assignment, status history, cancellation, conversion, payment.
+BookingListItem: list card with urgency flag.
+BookingConfirmation: confirmation payload for guest.
+booking/booking_request.py
+Alternate booking entry points:
+GuestInformation: nested guest data.
+BookingRequest: more structured public booking API with validator checking future check-in date.
+BookingInquiry: lighter-weight inquiry model.
+QuickBookingRequest: minimal booking variant.
+booking/booking_approval.py
+Booking approval/rejection workflows:
+BookingApprovalRequest: assign room/bed, confirm pricing, require advance.
+ApprovalResponse: approval results (amounts, payment next steps).
+RejectionRequest: structured rejection reasons and alternatives.
+BulkApprovalRequest, ApprovalSettings: automated approvals config.
+booking/booking_assignment.py
+Room/bed assignment for bookings:
+RoomAssignment, BedAssignment: assignment records.
+AssignmentRequest, BulkAssignmentRequest, SingleAssignment: payloads for assigning/reassigning.
+AssignmentResponse.
+ReassignmentRequest.
+booking/booking_calendar.py
+Booking calendar and availability:
+CalendarView, DayBookings, BookingEvent, CalendarEvent: day-wise events and bookings.
+AvailabilityCalendar, DayAvailability: per-day availability tracking.
+booking/booking_cancellation.py
+Cancellation logic:
+CancellationRequest, CancellationResponse.
+RefundCalculation, CancellationPolicy, CancellationCharge.
+BulkCancellation for multiple bookings.
+booking/booking_conversion.py
+Converting bookings into students:
+ConvertToStudentRequest, ConversionResponse.
+ConversionChecklist, ChecklistItem.
+BulkConversion, ConversionRollback.
+booking/booking_modification.py
+Modifications after booking:
+ModificationRequest, ModificationResponse.
+Specific requests: DateChangeRequest, DurationChangeRequest, RoomTypeChangeRequest.
+ModificationApproval for admin to approve/deny modifications.
+booking/booking_filters.py
+Filters, search, export, analytics:
+BookingFilterParams, BookingSearchRequest, BookingSortOptions.
+BookingExportRequest: export format & fields.
+BookingAnalyticsRequest: time-grouped analytics.
+booking/booking_waitlist.py
+Waitlist handling when full:
+WaitlistRequest, WaitlistResponse.
+WaitlistStatus: per-visitor queue status.
+WaitlistNotification, WaitlistConversion, WaitlistCancellation.
+WaitlistManagement, WaitlistEntry: admin view & operations.
+booking/__init__.py
+Re-exports major booking-related schemas.
+Common Schemas (app/schemas/common)
+common/base.py
+Base Pydantic configurations and mixins:
+BaseSchema: standard config (from_orm-like, enum handling, JSON encoders).
+TimestampMixin, SoftDeleteMixin, UUIDMixin.
+BaseDBSchema: DB entity with ID + timestamps.
+BaseCreateSchema, BaseUpdateSchema, BaseResponseSchema, BaseFilterSchema.
+common/enums.py
+Centralized enums for:
+Roles, gender, hostel/room/bed status, booking, payment (type/method/status), complaints, maintenance, attendance, leaves, announcements, meal/dietary prefs, OTP and audit categories, subscription, student/supervisor statuses, review/referral/reward statuses, notifications, devices, search/inquiry/waitlist sources, charge types, and others.
+common/filters.py
+Reusable filter models:
+DateRangeFilter, DateTimeRangeFilter, TimeRangeFilter.
+PriceRangeFilter, NumericRangeFilter.
+SearchFilter, SortOptions, StatusFilter, LocationFilter, MultiSelectFilter, BooleanFilter, TextSearchFilter.
+Includes validators for consistent min/max and start/end semantics.
+common/mixins.py
+Small mixin models for reuse:
+AddressMixin, ContactMixin, LocationMixin, MediaMixin.
+EmergencyContactMixin, AuditMixin, ApprovalMixin, SEOMixin.
+common/pagination.py
+Pagination utilities:
+PaginationParams, PaginationMeta, PaginatedResponse[T] with create helper.
+CursorPaginationParams, CursorPaginationMeta, CursorPaginatedResponse[T] for cursor-based pagination.
+common/response.py
+Standardized API response wrappers:
+SuccessResponse[T], ErrorDetail, ErrorResponse, MessageResponse.
+BulkOperationResponse.
+Specialized error responses: ValidationErrorResponse, NotFoundResponse, UnauthorizedResponse, ForbiddenResponse, ConflictResponse, RateLimitResponse.
+common/__init__.py
+Re-exports core base types, many enums, pagination, response, and basic filter types for convenience.
+Complaint Schemas (app/schemas/complaint)
+complaint/complaint_base.py
+Core complaint model:
+ComplaintBase: hostel, raiser, category, priority, location, attachments.
+ComplaintCreate.
+ComplaintUpdate: mutable fields and status.
+ComplaintStatusUpdate: explicitly update status with notes.
+complaint/complaint_response.py
+Read models:
+ComplaintResponse: list item with SLA/age info.
+ComplaintDetail: full complaint lifecycle, assignment, escalation, override, resolution, feedback.
+ComplaintListItem: simplified listing.
+ComplaintSummary: dashboard summary counts and averages.
+complaint/complaint_assignment.py
+Assignment to staff:
+AssignmentRequest, AssignmentResponse.
+ReassignmentRequest, BulkAssignment, UnassignRequest.
+complaint/complaint_resolution.py
+Resolution/closure:
+ResolutionRequest, ResolutionResponse, ResolutionUpdate.
+ReopenRequest, CloseRequest.
+complaint/complaint_escalation.py
+Escalation handling:
+EscalationRequest, EscalationResponse.
+EscalationHistory, EscalationEntry.
+AutoEscalationRule: SLA-based escalation settings.
+complaint/complaint_feedback.py
+Post-resolution feedback:
+FeedbackRequest, FeedbackResponse.
+FeedbackSummary: entity-level stats.
+FeedbackAnalysis, RatingTrendPoint.
+complaint/complaint_comments.py
+Comments and mentions:
+CommentCreate, CommentResponse, CommentList.
+CommentUpdate, CommentDelete.
+MentionNotification: mention alerts.
+complaint/complaint_filters.py
+Filtering/search/export:
+ComplaintFilterParams, ComplaintSearchRequest, ComplaintSortOptions.
+ComplaintExportRequest: export format and fields.
+complaint/complaint_analytics.py (under complaint folder)
+Complaint-specific analytics variants (parallel to analytics module but more detailed for this domain):
+ComplaintAnalytics, ResolutionMetrics, CategoryAnalysis, CategoryMetrics, ComplaintTrendPoint.
+StaffPerformance, ComplaintHeatmap, RoomComplaintCount.
+complaint/__init__.py
+Re-exports main complaint schemas.
+Fee Structure Schemas (app/schemas/fee_structure)
+fee_structure/fee_base.py
+Base fee configuration:
+FeeStructureBase: per-hostel/per-room-type fee attributes including mess and utilities (with ChargeType).
+FeeStructureCreate, FeeStructureUpdate.
+fee_structure/fee_config.py
+Fee calculation configuration:
+ChargesBreakdown: computed components (rent, mess, utilities).
+FeeConfiguration: final configuration used to calculate total fees for a case.
+fee_structure/fee_response.py
+Read models:
+FeeStructureResponse: one fee row.
+FeeDetail: summarized first-month and recurring totals for a room type.
+FeeStructureList: all structures for a hostel.
+fee_structure/__init__.py
+Re-exports base, response, and config schemas.
+File Schemas (app/schemas/file)
+file/file_upload.py
+Generic upload initialization and completion:
+FileUploadInitRequest, FileUploadInitResponse: for pre-signed URLs or similar.
+FileUploadCompleteRequest: notify backend upload completed.
+file/file_response.py
+File metadata and listing:
+FileMetadata: type, size, tags, custom metadata.
+FileInfo: full record with ownership, URLs, audit.
+FileURL: simple URL + expiry.
+FileListResponse: basic paginated-ish listing.
+file/image_upload.py
+Image-specific uploads:
+ImageUploadInitRequest: constraints and usage context.
+ImageVariant, ImageUploadInitResponse: planned/generated variants.
+ImageProcessingResult.
+file/document_upload.py
+Document uploads:
+DocumentUploadInitRequest, DocumentUploadInitResponse.
+DocumentValidationResult: backend validation outcome.
+DocumentInfo, DocumentList: document-level views and verification flags.
+file/__init__.py
+Re-exports key file, image, and document upload/response types.
+Hostel Schemas (app/schemas/hostel)
+hostel/hostel_base.py
+Base hostel definition:
+HostelBase: details, address, contact, hostel type, pricing, amenities, rules, policies, SEO-like fields.
+Validators for slug formatting and list cleanup.
+HostelCreate: creation variant with required fields.
+HostelUpdate: partial updates.
+HostelMediaUpdate, HostelSEOUpdate: targeted updates.
+hostel/hostel_response.py
+Hostels for internal/admin views:
+HostelResponse: basic card with status and key metrics.
+HostelDetail: full internal details including capacity, policies, media, SEO, flags.
+HostelListItem: minimal list representation.
+HostelStats: aggregated stats for occupancy, revenue, complaints, bookings, reviews.
+hostel/hostel_public.py
+Public-facing hostel representations:
+PublicHostelCard: listing card for visitors.
+PublicHostelProfile: full public profile with ratings, policies, media, room types.
+PublicRoomType: specific room type pricing and availability.
+PublicHostelList: results with filters summary.
+hostel/hostel_admin.py
+Admin-specific view and settings:
+HostelAdminView: summary for admins with status, stats, subscription, performance.
+HostelSettings: configuration toggles (booking, payments, attendance, notifications, mess).
+HostelVisibilityUpdate, HostelCapacityUpdate, HostelStatusUpdate.
+hostel/hostel_analytics.py
+Hostel-level analytics (duplicate name but distinct from /analytics):
+HostelAnalytics: aggregate occupancy, revenue, bookings, complaints, reviews for a hostel over period.
+Submodels: OccupancyAnalytics, OccupancyDataPoint, RevenueAnalytics, RevenueDataPoint, BookingAnalytics, BookingDataPoint, ComplaintAnalytics, ReviewAnalytics, RatingDataPoint.
+HostelOccupancyStats, RoomTypeOccupancy, HostelRevenueStats, MonthlyRevenue, AnalyticsRequest.
+hostel/hostel_filter.py
+Filter, sorting, advanced filters, bulk filters for hostels:
+HostelFilterParams, HostelSortOptions, AdvancedFilters, BulkFilterParams.
+hostel/hostel_search.py
+Search request/response, facets for hostels:
+HostelSearchRequest: rich filters and sorting.
+HostelSearchResponse: with facets and filters summary.
+SearchFacets, FacetItem, PriceRangeFacet, RatingFacet.
+HostelSearchFilters: extra advanced filters (gender, facilities, rules, date).
+hostel/hostel_comparison.py
+Hostel comparison tool:
+HostelComparisonRequest: up to 4 hostels IDs.
+ComparisonResult, ComparisonItem: detailed per-hostel comparison attributes.
+RoomTypeComparison.
+ComparisonSummary, PriceComparison, AmenityComparison.
+hostel/__init__.py
+Re-exports base, public/admin, search/filter, analytics, and comparison models.
+Inquiry Schemas (app/schemas/inquiry)
+inquiry/inquiry_base.py
+Base visitor inquiry:
+InquiryBase: contact info, preferences, message, source, status.
+InquiryCreate: create payload.
+inquiry/inquiry_response.py
+Read models:
+InquiryResponse: basic list item.
+InquiryDetail: full view with status, contact details, notes.
+InquiryListItem: minimal list representation.
+inquiry/inquiry_status.py
+Status changes and assignment:
+InquiryStatusUpdate: change status with optional notes.
+InquiryAssignment: assign to admin/staff.
+InquiryTimelineEntry: tracks lifecycle.
+inquiry/__init__.py
+Exposes base, response, and status schemas.
+Leave Schemas (app/schemas/leave)
+leave/leave_base.py
+Base leave application:
+LeaveBase: type, dates, total_days, reason, contacts, document URL, with validator for total_days consistency.
+LeaveCreate, LeaveUpdate.
+leave/leave_application.py
+Student-facing leave flows:
+LeaveApplicationRequest: simplified submission.
+LeaveCancellationRequest: request to cancel an existing leave.
+leave/leave_approval.py
+Approval workflow:
+LeaveApprovalRequest: supervisor/admin approval or rejection.
+LeaveApprovalResponse: updated status and metadata.
+leave/leave_balance.py
+Leave balances:
+LeaveBalance: per-type counts.
+LeaveBalanceSummary: overall annual summary per student.
+leave/leave_response.py
+Read models:
+LeaveResponse: list item.
+LeaveDetail: detailed record with approval/rejection, reasons, cancellations.
+LeaveListItem: compact listing.
+leave/__init__.py
+Re-exports main leave schemas.
+Maintenance Schemas (app/schemas/maintenance)
+maintenance/maintenance_base.py
+Base maintenance request:
+MaintenanceBase: hostel, requester, category, priority, issue type, location, photos.
+MaintenanceCreate.
+MaintenanceUpdate: status and cost updates.
+MaintenanceStatusUpdate.
+maintenance/maintenance_response.py
+Read models:
+MaintenanceResponse: list item summary.
+MaintenanceDetail: full lifecycle, assignment, vendor, costs, photos, QC, preventive fields.
+RequestListItem, MaintenanceSummary: admin list and summary metrics.
+maintenance/maintenance_request.py
+Request submission flows:
+MaintenanceRequest: simple request model.
+RequestSubmission: richer supervisor submission including estimated cost, vendor, days.
+EmergencyRequest: emergency incident details.
+maintenance/maintenance_assignment.py
+Task/vendor assignment:
+TaskAssignment: record of assignment to staff.
+VendorAssignment, AssignmentUpdate, BulkAssignment.
+AssignmentHistory, AssignmentEntry.
+maintenance/maintenance_approval.py
+Cost approval:
+ApprovalRequest, ApprovalResponse.
+ThresholdConfig: cost thresholds for approvals.
+ApprovalWorkflow.
+RejectionRequest.
+maintenance/maintenance_completion.py
+Completion and QC:
+CompletionRequest: work done, materials used, costs, timeline.
+MaterialItem.
+QualityCheck, ChecklistItem.
+CompletionResponse, CompletionCertificate.
+maintenance/maintenance_cost.py
+Cost tracking and budgets:
+CostTracking: per-request financial breakdown.
+BudgetAllocation, CategoryBudget.
+ExpenseReport, MonthlyExpense, ExpenseItem.
+VendorInvoice, InvoiceLineItem.
+CostAnalysis: trends and ratios.
+maintenance/maintenance_filters.py
+Filtering and exports:
+MaintenanceFilterParams, SearchRequest.
+MaintenanceExportRequest.
+maintenance/maintenance_schedule.py
+Preventive maintenance:
+PreventiveSchedule, ScheduleCreate, ScheduleUpdate.
+ScheduleChecklistItem.
+RecurrenceConfig.
+ScheduleExecution, ChecklistResult.
+ScheduleHistory, ExecutionHistoryItem.
+maintenance/maintenance_analytics.py
+Maintenance analytics:
+MaintenanceAnalytics: high-level stats, costs, performance, trends.
+TrendPoint, CostTrendPoint.
+CategoryBreakdown.
+VendorPerformance.
+maintenance/__init__.py
+Re-exports core maintenance-related schemas (base, response, request, assignment, approval, completion, schedule, cost, filters, analytics). Note: PerformanceMetrics is imported but not defined here (potential missing/typo).
+Mess Schemas (app/schemas/mess)
+mess/mess_menu_base.py
+Base mess menu definition:
+MessMenuBase: meals per day, times, special flags, dietary options.
+MessMenuCreate: adds created_by.
+MessMenuUpdate: partial updates.
+mess/mess_menu_response.py
+Read models:
+MenuResponse: basic daily menu card with rating and publish status.
+MenuDetail: full details with times, dietary options, approvals, ratings.
+WeeklyMenu, DailyMenuSummary, MonthlyMenu: aggregated menu structures.
+TodayMenu: simplified daily menu for students.
+mess/meal_items.py
+Meal items and dietary details:
+MealItems, MenuItem: define items and dietary flags/allergens.
+DietaryOptions: hostel-level options and customization flags.
+NutritionalInfo: macros/micros for items.
+ItemMasterList, ItemCategory: master menu catalog.
+mess/menu_approval.py
+Menu approval:
+MenuApprovalRequest, MenuApprovalResponse.
+ApprovalWorkflow.
+BulkApproval.
+mess/menu_duplication.py
+Menu duplication and bulk creation:
+DuplicateMenuRequest, DuplicateResponse.
+BulkMenuCreate: generate menus across a date range from templates/patterns.
+CrossHostelDuplication.
+mess/menu_feedback.py
+Menu feedback & quality:
+FeedbackRequest, FeedbackResponse.
+RatingsSummary, QualityMetrics, ItemRating.
+FeedbackAnalysis: sentiment and recommendations.
+mess/menu_planning.py
+Planning tools:
+MenuPlanRequest, WeeklyPlan, DailyMenuPlan, MonthlyPlan.
+SpecialMenu, SpecialDayMenu.
+MenuTemplate, MenuSuggestion.
+mess/__init__.py
+Re-exports menu base/response, meal items, planning, feedback, approval, duplication.
+Notification Schemas (app/schemas/notification)
+notification/notification_base.py
+Generic notification model:
+NotificationBase: recipients, type, content, priority, schedule, metadata.
+NotificationCreate, NotificationUpdate.
+MarkAsRead, BulkMarkAsRead, NotificationDelete.
+notification/notification_response.py
+Notification response & listing:
+NotificationResponse, NotificationDetail.
+NotificationList, NotificationListItem.
+UnreadCount, NotificationSummary.
+notification/notification_template.py
+Templates for notifications:
+TemplateCreate, TemplateUpdate, TemplateResponse.
+VariableMapping, TemplatePreview, TemplatePreviewResponse, TemplateList, TemplateCategory.
+notification/email_notification.py
+Email-specific sending:
+EmailRequest, EmailConfig.
+EmailTracking, EmailTemplate, BulkEmailRequest, EmailStats.
+notification/sms_notification.py
+SMS-specific sending:
+SMSRequest, SMSConfig.
+DeliveryStatus, SMSTemplate, BulkSMSRequest, SMSStats.
+notification/push_notification.py
+Push notifications and devices:
+PushRequest, PushConfig.
+DeviceToken, DeviceRegistration, DeviceUnregistration.
+PushTemplate, PushDeliveryStatus, PushStats.
+notification/notification_queue.py
+Queue and batch processing:
+QueueStatus, QueuedNotification, BatchProcessing, QueueStats.
+notification/notification_preferences.py
+User-level preferences:
+UserPreferences, ChannelPreferences with EmailPreferences, SMSPreferences, PushPreferences.
+FrequencySettings.
+PreferenceUpdate, UnsubscribeRequest.
+notification/notification_routing.py
+Routing configurations:
+RoutingConfig, RoutingRule.
+HierarchicalRouting, EscalationRouting, EscalationLevel.
+NotificationRoute.
+notification/__init__.py
+Re-exports base, responses, templates, channels, queue, preferences, routing.
+Payment Schemas (app/schemas/payment)
+payment/payment_base.py
+Base payment schema:
+PaymentBase: payer, hostel, type, amount, period, method, due_date.
+PaymentCreate: adds transaction and collector.
+PaymentUpdate: status, timestamps, failure, receipt info.
+payment/payment_response.py
+Payment read models:
+PaymentResponse: list card summarizing payment.
+PaymentDetail: full payment record with relationships, gateway data, refunds, reminders.
+PaymentReceipt: printable receipt info.
+PaymentListItem, PaymentSummary: summary for student/hostel.
+payment/payment_request.py
+Payment initiation and manual logging:
+PaymentRequest: for online gateway payments.
+PaymentInitiation: response with gateway order/token.
+ManualPaymentRequest: cash/cheque/bank_transfer recording.
+BulkPaymentRequest, SinglePaymentRecord.
+payment/payment_gateway.py
+Gateway integration:
+GatewayRequest, GatewayResponse: order creation and gateway state.
+GatewayWebhook, GatewayCallback: incoming webhook and handling.
+GatewayRefundRequest, GatewayRefundResponse.
+payment/payment_refund.py
+Refund lifecycle:
+RefundRequest, RefundResponse.
+RefundStatus, RefundApproval, RefundList, RefundListItem.
+payment/payment_ledger.py
+Ledger/statement:
+LedgerEntry, LedgerSummary, AccountStatement.
+TransactionHistory, TransactionItem.
+BalanceAdjustment, WriteOff.
+payment/payment_reminder.py
+Payment reminder configuration & logs:
+ReminderConfig.
+ReminderLog, SendReminderRequest, ReminderBatch, ReminderStats.
+payment/payment_schedule.py
+Recurring payment schedules:
+PaymentSchedule, ScheduleCreate, ScheduleUpdate.
+ScheduleGeneration, ScheduledPaymentGenerated.
+BulkScheduleCreate, ScheduleSuspension.
+payment/payment_filters.py
+Filtering/report/export:
+PaymentFilterParams, PaymentSearchRequest.
+PaymentReportRequest: grouped report generation options.
+PaymentExportRequest: export fields and format.
+payment/__init__.py
+Re-exports major payment, gateway, refund, schedule, reminder, ledger, and filter models.
+Referral Schemas (app/schemas/referral)
+referral/referral_base.py
+Core referral record:
+ReferralBase: program, referrer, referee identifiers, referral code, status.
+ReferralCreate.
+referral/referral_code.py
+Referral code management:
+ReferralCodeGenerate, ReferralCodeResponse.
+CodeValidationRequest, CodeValidationResponse.
+referral/referral_program_base.py
+Referral program definition:
+ReferralProgramBase: reward types/amounts, thresholds, validity.
+ProgramCreate, ProgramUpdate.
+referral/referral_program_response.py
+Read-only program responses:
+ProgramResponse, ProgramList.
+referral/referral_response.py
+Referral record read models:
+ReferralResponse: details about one referral + reward statuses.
+ReferralStats: per-user aggregated stats.
+referral/referral_rewards.py
+Reward configuration and payouts:
+RewardConfig: min payout & methods.
+RewardTracking: per-user accumulated rewards.
+PayoutRequest, PayoutRequestResponse.
+referral/__init__.py
+(Empty) initializer; no exports defined in snippet.
+Review Schemas (app/schemas/review)
+review/review_base.py
+Base review model:
+ReviewBase: hostel, reviewer, ratings (overall + aspects), text, photos.
+Rounds overall rating to nearest 0.5.
+ReviewCreate, ReviewUpdate.
+review/review_response.py
+Read models:
+ReviewResponse: basic review list card.
+ReviewDetail: full content, ratings, moderation flags, hostel response.
+HostelResponseDetail.
+ReviewListItem: trimmed list view.
+ReviewSummary: summary for a hostel.
+review/review_submission.py
+Public submission flows:
+ReviewSubmissionRequest: visitor submission including verification, detailed ratings, photos, recommendations, stay details, guidelines agreement.
+DetailedRatings.
+VerifiedReview: marking/recording verified reviews.
+ReviewGuidelines.
+ReviewEligibility: logic to check if user can submit/edit.
+review/review_filters.py
+Filtering/search/export:
+ReviewFilterParams, SearchRequest, SortOptions.
+ReviewExportRequest.
+review/review_moderation.py
+Moderation workflow:
+ModerationRequest, ModerationResponse.
+ModerationQueue, PendingReview.
+ApprovalWorkflow, BulkModeration, ModerationStats.
+review/review_voting.py
+Helpfulness voting:
+VoteRequest, VoteResponse.
+HelpfulnessScore.
+VoteHistory, VoteHistoryItem, RemoveVote.
+review/review_response_schema.py
+Hostel/owner responses to reviews:
+HostelResponseCreate, OwnerResponse, ResponseUpdate.
+ResponseGuidelines, ResponseStats.
+review/review_analytics.py
+Analytics for reviews:
+ReviewAnalytics, RatingDistribution, TrendAnalysis, MonthlyRating.
+SentimentAnalysis, AspectAnalysis, CompetitorComparison.
+review/__init__.py
+Re-exports core review, submission, moderation, voting, hostel response, filters, and analytics.
+Room Schemas (app/schemas/room)
+room/room_base.py
+Base room definition:
+RoomBase: hostel, number, type, capacity, pricing, specifications, amenities, availability flags, media.
+RoomCreate.
+RoomUpdate, BulkRoomCreate.
+RoomPricingUpdate, RoomStatusUpdate.
+room/room_response.py
+Room read models:
+RoomResponse: summary.
+RoomDetail: full details including beds.
+BedDetail.
+RoomListItem.
+RoomWithBeds, BedInfo.
+RoomOccupancyStats.
+room/bed_base.py
+Bed management:
+BedBase, BedCreate, BedUpdate.
+BulkBedCreate.
+BedAssignmentRequest, BedReleaseRequest.
+room/bed_response.py
+Bed read models:
+BedResponse: single bed record.
+BedAvailability.
+BedAssignment.
+BedHistory, BedAssignmentHistory.
+room/room_availability.py
+Availability checking/calendar:
+RoomAvailabilityRequest, AvailabilityResponse.
+AvailableRoom.
+AvailabilityCalendar, DayAvailability, BookingInfo.
+room/__init__.py
+Re-exports core room and bed schemas plus availability.
+Search Schemas (app/schemas/search)
+search/search_analytics.py
+Stats around search terms:
+SearchTermStats: counts, avg results, zero-result stats.
+SearchAnalytics: aggregated metrics and lists of top and zero-result terms.
+search/search_autocomplete.py
+Autocomplete:
+AutocompleteRequest: prefix-based request.
+Suggestion, AutocompleteResponse.
+search/search_filters.py
+Simple filter blocks:
+PriceFilter, RatingFilter, AmenityFilter.
+search/search_request.py
+Search API request shapes:
+BasicSearchRequest.
+AdvancedSearchRequest: multiple filters, geo radius, sort, pagination.
+search/search_response.py
+Search results:
+SearchResultItem: attaches a score to PublicHostelCard.
+FacetBucket, FacetedSearchResponse.
+search/search_sort.py
+Sort criteria:
+SortCriteria: simple sort-by and order.
+search/__init__.py
+Empty initializer (no exports shown).
+Student Schemas (app/schemas/student)
+student/student_base.py
+Base student model (hostel context):
+StudentBase: linking user to hostel, room, bed; guardian, institutional or employment info; dates; finances; mess and dietary details, with validation for checkout after check-in.
+StudentCreate: includes optional origin booking.
+StudentUpdate: partial updates including status.
+student/student_response.py
+Read models:
+StudentResponse: list view summarizing status and key fields.
+StudentDetail: full profile including guardian, institution, employment, financials, documents.
+StudentProfile: public-facing minimal profile.
+StudentListItem: admin list row.
+StudentFinancialInfo: detailed financials.
+StudentContactInfo: contact/guardian/emergency info.
+student/student_profile.py
+Student profile (as extension of user):
+StudentProfileCreate, StudentProfileUpdate: for initial capture and updates (guardian, institution, employment, preferences).
+StudentDocuments, DocumentInfo: document management.
+DocumentUploadRequest, DocumentVerificationRequest.
+StudentPreferences: toggles on mess, notifications, privacy.
+student/student_dashboard.py
+Student dashboard view:
+StudentDashboard: overview.
+StudentFinancialSummary, AttendanceSummary, StudentStats.
+RecentPayment, RecentComplaint, PendingLeave, RecentAnnouncement, TodayMessMenu.
+student/student_filters.py
+Filtering/search/bulk ops:
+StudentFilterParams, StudentSearchRequest, StudentSortOptions.
+StudentExportRequest, StudentBulkActionRequest.
+student/student_room_history.py
+Room history and transfers:
+RoomHistoryResponse, RoomHistoryItem.
+RoomTransferRequest, RoomTransferApproval, RoomTransferStatus.
+BulkRoomTransfer, SingleTransfer.
+student/__init__.py
+Re-exports primary base, response, profile, room history, dashboard, and filter schemas.
+Subscription Schemas (app/schemas/subscription)
+subscription/subscription_plan_base.py
+Plan definition:
+SubscriptionPlanBase: plan name, type, pricing, feature flags, limits, visibility.
+PlanCreate, PlanUpdate.
+subscription/subscription_plan_response.py
+Plan read models:
+PlanResponse.
+PlanFeatures: user-friendly feature labels.
+PlanComparison: cross-plan feature matrix.
+subscription/subscription_base.py
+Hostel subscription instance:
+SubscriptionBase: which hostel, which plan, billing cycle, period, auto-renew, status.
+SubscriptionCreate: adds optional trial.
+SubscriptionUpdate.
+subscription/subscription_response.py
+Subscription read models:
+SubscriptionResponse: details for one subscription.
+BillingHistoryItem, BillingHistory: historical billing info.
+subscription/subscription_billing.py
+Billing & invoicing:
+BillingCycleInfo.
+GenerateInvoiceRequest, InvoiceInfo.
+subscription/subscription_cancellation.py
+Cancellation:
+CancellationRequest, CancellationResponse.
+subscription/commission.py
+Booking commission logic:
+CommissionConfig: global defaults and per-plan overrides.
+BookingCommissionResponse.
+CommissionSummary.
+subscription/subscription_upgrade.py
+Upgrade/downgrade:
+UpgradeRequest, UpgradePreview, DowngradeRequest.
+subscription/__init__.py
+(Empty) initializer; no explicit exports shown.
+Supervisor Schemas (app/schemas/supervisor)
+supervisor/supervisor_base.py
+Base supervisor model:
+SupervisorBase: relationship to user and hostel, employment details.
+SupervisorCreate: includes assigner and initial permissions.
+SupervisorUpdate.
+SupervisorStatusUpdate.
+SupervisorReassignment.
+supervisor/supervisor_response.py
+Read models:
+SupervisorResponse.
+SupervisorDetail: full details including permissions and performance metrics.
+SupervisorListItem, SupervisorSummary.
+supervisor/supervisor_profile.py
+Supervisor profile and employment summary:
+SupervisorProfile: aggregated view with employment, permissions, performance.
+SupervisorEmployment.
+PerformanceSummary.
+SupervisorProfileUpdate: self-editable fields.
+supervisor/supervisor_permissions.py
+Supervisor permissions:
+SupervisorPermissions: boolean flags and thresholds across many modules.
+PermissionUpdate: generic update by key, with validation.
+PermissionCheckRequest, PermissionCheckResponse.
+BulkPermissionUpdate.
+PermissionTemplate, ApplyPermissionTemplate.
+supervisor/supervisor_assignment.py
+Assignment to hostels:
+SupervisorAssignment: response model.
+AssignmentRequest, AssignmentUpdate.
+RevokeAssignmentRequest, AssignmentTransfer.
+supervisor/supervisor_activity.py
+Activity logs & analytics (distinct from audit version):
+SupervisorActivityLog: list item response.
+ActivityDetail, ActivitySummary, TopActivity, ActivityTimelinePoint.
+ActivityFilterParams.
+ActivityExportRequest.
+supervisor/supervisor_dashboard.py
+Supervisor dashboard:
+SupervisorDashboard, DashboardMetrics, TaskSummary.
+RecentComplaintItem, RecentMaintenanceItem, PendingLeaveItem.
+TodaySchedule, ScheduledMaintenanceItem, ScheduledMeeting, DashboardAlert.
+QuickActions, QuickAction.
+supervisor/supervisor_performance.py
+Performance metrics & reviews:
+PerformanceMetrics, PerformanceReport.
+ComplaintPerformance, AttendancePerformance, MaintenancePerformance.
+PerformanceTrendPoint, PeerComparison, MetricComparison, PeriodComparison.
+PerformanceReview, PerformanceReviewResponse.
+PerformanceGoal, PerformanceGoalProgress.
+supervisor/__init__.py
+Re-exports key supervisor base, response, profile, permissions, assignment, activity, dashboard, and performance schemas.
+User Schemas (app/schemas/user)
+user/user_base.py
+Base user model:
+UserBase: email, phone, full name, role, gender, DOB, profile image; age validator.
+UserCreate: adds password with strength validation.
+UserUpdate.
+UserAddressUpdate, UserEmergencyContactUpdate (via mixins).
+user/user_profile.py
+Profile updates:
+ProfileUpdate: personal and address fields.
+ProfileImageUpdate.
+ContactInfoUpdate.
+NotificationPreferencesUpdate: top-level toggles for per-user notifications.
+user/user_response.py
+User read models:
+UserResponse: basic info.
+UserDetail: extended info including address and verification states.
+UserListItem: admin list.
+UserProfile: public profile.
+user/user_session.py
+Sessions management:
+UserSession: DB record for sessions.
+SessionInfo, ActiveSessionsList.
+RevokeSessionRequest, RevokeAllSessionsRequest.
+user/__init__.py
+Re-exports user base, responses, profile updates, and session schemas.
+Visitor Schemas (app/schemas/visitor)
+visitor/visitor_base.py
+Base visitor profile:
+VisitorBase: preferences (room type, budget, cities, amenities), favorites, notification preferences.
+VisitorCreate, VisitorUpdate.
+visitor/visitor_response.py
+Visitor read models:
+VisitorResponse: summary of preferences and stats.
+VisitorProfile: public info.
+VisitorDetail: full visitor activity and preferences.
+visitor/visitor_preferences.py
+Detailed preferences & saved searches:
+VisitorPreferences: comprehensive preference model and notification triggers; budget validator.
+PreferenceUpdate.
+SearchPreferences, SavedSearch.
+visitor/visitor_dashboard.py
+Visitor dashboard:
+VisitorDashboard: high-level overview.
+SavedHostels, SavedHostelItem.
+BookingHistory, BookingHistoryItem.
+RecentSearch, RecentlyViewedHostel, RecommendedHostel.
+PriceDropAlert, AvailabilityAlert.
+visitor/visitor_favorites.py
+Favorites/wishlist:
+FavoriteRequest, FavoritesList, FavoriteHostelItem, FavoriteUpdate, FavoritesExport, FavoriteComparison.
+visitor/__init__.py
+Re-exports core visitor base, response, preferences, dashboard, and favorites schemas.
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1 =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\router.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\admin =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\assignments.py ---
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.schemas.admin.admin_hostel_assignment import (
+    AdminHostelAssignment,
+    AssignmentCreate,
+    AssignmentUpdate,
+    BulkAssignment,
+    RevokeAssignment,
+    AssignmentList,
+    HostelAdminList,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.admin import AdminHostelAssignmentService
+
+router = APIRouter(prefix="/assignments")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+# -------- Admin → Hostels -------- #
+
+
+@router.get(
+    "/admins/{admin_id}",
+    response_model=AssignmentList,
+    summary="List hostel assignments for an admin",
+)
+async def list_admin_assignments(
+    admin_id: UUID = Path(..., description="Admin ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> AssignmentList:
+    """
+    Return all hostel assignments for a given admin, including primary flags and permissions.
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.list_assignments_for_admin(admin_id=admin_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/admins/{admin_id}",
+    response_model=AdminHostelAssignment,
+    status_code=status.HTTP_201_CREATED,
+    summary="Assign an admin to a hostel",
+)
+async def create_admin_assignment(
+    admin_id: UUID,
+    payload: AssignmentCreate,
+    uow: UnitOfWork = Depends(get_uow),
+) -> AdminHostelAssignment:
+    """
+    Create a single admin↔hostel assignment.
+
+    Enforces:
+    - Uniqueness per (admin, hostel)
+    - At most one primary hostel per admin
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.create_assignment(admin_id=admin_id, data=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.patch(
+    "/admins/{admin_id}/{assignment_id}",
+    response_model=AdminHostelAssignment,
+    summary="Update admin↔hostel assignment",
+)
+async def update_admin_assignment(
+    admin_id: UUID,
+    assignment_id: UUID,
+    payload: AssignmentUpdate,
+    uow: UnitOfWork = Depends(get_uow),
+) -> AdminHostelAssignment:
+    """
+    Update assignment metadata (permissions, primary flag, etc.).
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.update_assignment(
+            admin_id=admin_id,
+            assignment_id=assignment_id,
+            data=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/admins/{admin_id}/bulk",
+    response_model=List[AdminHostelAssignment],
+    summary="Bulk assign admin to multiple hostels",
+)
+async def bulk_assign_admin(
+    admin_id: UUID,
+    payload: BulkAssignment,
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[AdminHostelAssignment]:
+    """
+    Bulk-assign an admin to multiple hostels in one call.
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.bulk_assign(admin_id=admin_id, data=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/admins/{admin_id}/{assignment_id}/revoke",
+    response_model=AdminHostelAssignment,
+    summary="Revoke admin↔hostel assignment",
+)
+async def revoke_admin_assignment(
+    admin_id: UUID,
+    assignment_id: UUID,
+    payload: RevokeAssignment,
+    uow: UnitOfWork = Depends(get_uow),
+) -> AdminHostelAssignment:
+    """
+    Revoke an assignment with a reason; typically marks it inactive and records revoked_date.
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.revoke_assignment(
+            admin_id=admin_id,
+            assignment_id=assignment_id,
+            data=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+# -------- Hostel → Admins -------- #
+
+
+@router.get(
+    "/hostels/{hostel_id}",
+    response_model=HostelAdminList,
+    summary="List admins for a hostel",
+)
+async def list_hostel_admins(
+    hostel_id: UUID = Path(..., description="Hostel ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> HostelAdminList:
+    """
+    List all admins assigned to a given hostel, with metadata.
+    """
+    service = AdminHostelAssignmentService(uow)
+    try:
+        return service.list_admins_for_hostel(hostel_id=hostel_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\dashboard.py ---
+from __future__ import annotations
+
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.schemas.analytics.platform_analytics import (
+    PlatformMetrics,
+    GrowthMetrics,
+    PlatformUsageAnalytics,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.admin import SuperAdminDashboardService
+
+router = APIRouter(prefix="/dashboard")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/platform/metrics/latest",
+    response_model=PlatformMetrics,
+    summary="Get latest platform-wide metrics (super admin)",
+)
+async def get_latest_platform_metrics(
+    uow: UnitOfWork = Depends(get_uow),
+) -> PlatformMetrics:
+    """
+    Fetch the latest platform-level metrics snapshot.
+
+    Backed by SuperAdminDashboardService.
+    """
+    service = SuperAdminDashboardService(uow)
+    try:
+        return service.get_latest_platform_metrics()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/platform/growth",
+    response_model=GrowthMetrics,
+    summary="Get growth metrics for a period (super admin)",
+)
+async def get_growth_metrics(
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> GrowthMetrics:
+    """
+    Fetch growth metrics (hostels, revenue, users) for the given period.
+    """
+    service = SuperAdminDashboardService(uow)
+    try:
+        return service.get_growth_metrics(period_start=period_start, period_end=period_end)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/platform/usage/latest",
+    response_model=PlatformUsageAnalytics,
+    summary="Get latest platform usage analytics (super admin)",
+)
+async def get_latest_platform_usage(
+    uow: UnitOfWork = Depends(get_uow),
+) -> PlatformUsageAnalytics:
+    """
+    Fetch the latest API/platform usage analytics snapshot.
+    """
+    service = SuperAdminDashboardService(uow)
+    try:
+        return service.get_latest_platform_usage()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\hostels.py ---
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.schemas.hostel.hostel_base import HostelCreate, HostelUpdate
+from app.schemas.hostel.hostel_response import HostelResponse, HostelDetail
+from app.schemas.hostel.hostel_filter import HostelFilterParams
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.hostel import HostelService
+
+router = APIRouter(prefix="/hostels")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "",
+    response_model=List[HostelResponse],
+    summary="List hostels (admin view)",
+)
+async def list_hostels(
+    filters: HostelFilterParams = Depends(),
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[HostelResponse]:
+    """
+    List hostels for admin users.
+
+    Uses HostelService.list_hostels with HostelFilterParams.
+    """
+    service = HostelService(uow)
+    try:
+        return service.list_hostels(filters=filters)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "",
+    response_model=HostelDetail,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new hostel",
+)
+async def create_hostel(
+    payload: HostelCreate,
+    uow: UnitOfWork = Depends(get_uow),
+) -> HostelDetail:
+    """
+    Create a new hostel.
+
+    Ensures slug uniqueness and applies default flags.
+    """
+    service = HostelService(uow)
+    try:
+        return service.create_hostel(data=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/{hostel_id}",
+    response_model=HostelDetail,
+    summary="Get hostel details (admin)",
+)
+async def get_hostel(
+    hostel_id: UUID = Path(..., description="Hostel ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> HostelDetail:
+    """
+    Retrieve detailed hostel information for admin users.
+    """
+    service = HostelService(uow)
+    try:
+        return service.get_hostel(hostel_id=hostel_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.patch(
+    "/{hostel_id}",
+    response_model=HostelDetail,
+    summary="Update a hostel (admin)",
+)
+async def update_hostel(
+    hostel_id: UUID = Path(..., description="Hostel ID"),
+    payload: HostelUpdate = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> HostelDetail:
+    """
+    Partially update hostel fields.
+
+    Delegates to HostelService.update_hostel.
+    """
+    service = HostelService(uow)
+    try:
+        return service.update_hostel(hostel_id=hostel_id, data=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\multi_hostel.py ---
+from __future__ import annotations
+
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow, get_current_active_user
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.models.core import User
+from app.schemas.admin.multi_hostel_dashboard import MultiHostelDashboard
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.admin import MultiHostelDashboardService
+
+router = APIRouter(prefix="/multi-hostel")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/dashboard",
+    response_model=MultiHostelDashboard,
+    summary="Get multi-hostel dashboard for an admin",
+)
+async def get_multi_hostel_dashboard(
+    admin_id: Optional[UUID] = Query(
+        None,
+        description="Admin ID (optional; if omitted, resolved from current user)",
+    ),
+    current_user: User = Depends(get_current_active_user),
+    uow: UnitOfWork = Depends(get_uow),
+) -> MultiHostelDashboard:
+    """
+    Build a consolidated dashboard for an admin managing multiple hostels.
+
+    If `admin_id` is not provided, it is derived from the current user's admin profile.
+    """
+    # Derive admin_id from current user if not explicitly provided
+    if admin_id is None:
+        admin_profile = getattr(current_user, "admin_profile", None)
+        if admin_profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Current user is not an admin",
+            )
+        admin_id = admin_profile.id
+
+    service = MultiHostelDashboardService(uow)
+    try:
+        return service.get_dashboard(admin_id=admin_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\overrides.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.schemas.admin.admin_override import (
+    AdminOverrideRequest,
+    OverrideLog,
+    OverrideSummary,
+    SupervisorOverrideStats,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.admin import AdminOverrideService
+
+router = APIRouter(prefix="/overrides")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "",
+    response_model=OverrideLog,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an admin override",
+)
+async def create_admin_override(
+    payload: AdminOverrideRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> OverrideLog:
+    """
+    Record an admin override of a supervisor decision.
+
+    Also expected to create generic audit entries internally.
+    """
+    service = AdminOverrideService(uow)
+    try:
+        return service.create_override(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/entity/{entity_type}/{entity_id}",
+    response_model=List[OverrideLog],
+    summary="List overrides for a specific entity",
+)
+async def list_overrides_for_entity(
+    entity_type: str = Path(..., description="Entity type (complaint, maintenance, leave, etc.)"),
+    entity_id: UUID = Path(..., description="Entity ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[OverrideLog]:
+    """
+    Fetch all overrides applied to a particular entity.
+    """
+    service = AdminOverrideService(uow)
+    try:
+        return service.list_overrides_for_entity(entity_type=entity_type, entity_id=entity_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/summary",
+    response_model=OverrideSummary,
+    summary="Get override summary for a period",
+)
+async def get_override_summary(
+    hostel_id: Optional[UUID] = Query(None, description="Filter by hostel"),
+    supervisor_id: Optional[UUID] = Query(None, description="Filter by supervisor"),
+    start_date: Optional[date] = Query(None, description="Start date (inclusive)"),
+    end_date: Optional[date] = Query(None, description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> OverrideSummary:
+    """
+    Summarize overrides over a period, optionally filtered by hostel/supervisor.
+    """
+    service = AdminOverrideService(uow)
+    try:
+        return service.get_override_summary(
+            hostel_id=hostel_id,
+            supervisor_id=supervisor_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/supervisors/{supervisor_id}/stats",
+    response_model=SupervisorOverrideStats,
+    summary="Get override stats for a supervisor",
+)
+async def get_supervisor_override_stats(
+    supervisor_id: UUID = Path(..., description="Supervisor ID"),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    uow: UnitOfWork = Depends(get_uow),
+) -> SupervisorOverrideStats:
+    """
+    Supervisor-specific override statistics (counts, types, trends).
+    """
+    service = AdminOverrideService(uow)
+    try:
+        return service.get_supervisor_override_stats(
+            supervisor_id=supervisor_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\permissions.py ---
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import (
+    ServiceError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+)
+from app.schemas.admin.admin_permissions import (
+    PermissionMatrix,
+    RolePermissions,
+    PermissionCheck,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.admin import PermissionMatrixService
+
+router = APIRouter(prefix="/permissions")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/matrix",
+    response_model=PermissionMatrix,
+    summary="Get global role→permissions matrix",
+)
+async def get_permission_matrix(
+    uow: UnitOfWork = Depends(get_uow),
+) -> PermissionMatrix:
+    """
+    Fetch the current role→permissions matrix.
+
+    Backed by PermissionMatrixService.
+    """
+    service = PermissionMatrixService(uow)
+    try:
+        return service.get_matrix()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.put(
+    "/matrix",
+    response_model=PermissionMatrix,
+    summary="Update global role→permissions matrix",
+)
+async def update_permission_matrix(
+    payload: PermissionMatrix,
+    uow: UnitOfWork = Depends(get_uow),
+) -> PermissionMatrix:
+    """
+    Replace the stored permission matrix.
+
+    Should typically be restricted to super admins.
+    """
+    service = PermissionMatrixService(uow)
+    try:
+        return service.update_matrix(matrix=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/roles/{role_name}",
+    response_model=RolePermissions,
+    summary="Get permissions for a specific role",
+)
+async def get_role_permissions(
+    role_name: str = Path(..., description="Role name (e.g. HOSTEL_ADMIN)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> RolePermissions:
+    """
+    Fetch the permissions assigned to a specific role.
+    """
+    service = PermissionMatrixService(uow)
+    try:
+        return service.get_role_permissions(role_name=role_name)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/check",
+    response_model=PermissionCheck,
+    summary="Check if a principal has a permission in a hostel",
+)
+async def check_permission(
+    payload: PermissionCheck,
+    uow: UnitOfWork = Depends(get_uow),
+) -> PermissionCheck:
+    """
+    Check a single permission for a principal in the context of a hostel.
+
+    Uses PermissionMatrixService.check_permission which bridges into RBACService.
+    """
+    service = PermissionMatrixService(uow)
+    try:
+        return service.check_permission(check=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\admin\__init__.py ---
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from . import dashboard
+from . import hostels
+from . import assignments
+from . import permissions
+from . import overrides
+from . import multi_hostel
+
+router = APIRouter(prefix="/admin")
+
+router.include_router(dashboard.router, tags=["Admin - Dashboard"])
+router.include_router(hostels.router, tags=["Admin - Hostels"])
+router.include_router(assignments.router, tags=["Admin - Assignments"])
+router.include_router(permissions.router, tags=["Admin - Permissions"])
+router.include_router(overrides.router, tags=["Admin - Overrides"])
+router.include_router(multi_hostel.router, tags=["Admin - Multi-Hostel"])
+
+__all__ = ["router"]
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\analytics =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\bookings.py ---
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.booking_analytics import BookingAnalyticsSummary
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingAnalyticsService
+
+router = APIRouter(prefix="/bookings")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/summary",
+    response_model=BookingAnalyticsSummary,
+    summary="Get booking analytics for a hostel",
+)
+async def get_booking_analytics(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingAnalyticsSummary:
+    """
+    Produce hostel booking analytics: KPIs, daily trends, funnel, cancellations, source conversions.
+    """
+    service = BookingAnalyticsService(uow)
+    try:
+        return service.get_booking_analytics(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\complaints.py ---
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.complaint_analytics import ComplaintDashboard
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import ComplaintAnalyticsService
+
+router = APIRouter(prefix="/complaints")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/dashboard",
+    response_model=ComplaintDashboard,
+    summary="Get complaint analytics dashboard for a hostel",
+)
+async def get_complaint_dashboard(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> ComplaintDashboard:
+    """
+    Compute complaint KPIs, trends, and category/priority breakdowns for a hostel.
+    """
+    service = ComplaintAnalyticsService(uow)
+    try:
+        return service.get_hostel_complaint_dashboard(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\custom.py ---
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.custom_reports import (
+    CustomReportRequest,
+    CustomReportResult,
+    CustomReportDefinition,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import CustomReportService
+
+router = APIRouter(prefix="/custom")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/run",
+    response_model=CustomReportResult,
+    summary="Run a custom analytics report",
+)
+async def run_custom_report(
+    payload: CustomReportRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> CustomReportResult:
+    """
+    Execute a schema-driven custom report over payments, bookings, complaints, attendance, etc.
+    """
+    service = CustomReportService(uow)
+    try:
+        return service.run_report(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/definitions",
+    response_model=CustomReportDefinition,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a saved custom report definition",
+)
+async def create_report_definition(
+    payload: CustomReportDefinition,
+    uow: UnitOfWork = Depends(get_uow),
+) -> CustomReportDefinition:
+    """
+    Create and store a custom report definition for later reuse.
+    """
+    service = CustomReportService(uow)
+    try:
+        return service.create_definition(definition=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/definitions",
+    response_model=List[CustomReportDefinition],
+    summary="List saved custom report definitions",
+)
+async def list_report_definitions(
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[CustomReportDefinition]:
+    """
+    List all saved custom report definitions (optionally, you may extend with filters).
+    """
+    service = CustomReportService(uow)
+    try:
+        return service.list_definitions()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/definitions/{report_id}",
+    response_model=CustomReportDefinition,
+    summary="Get a specific report definition",
+)
+async def get_report_definition(
+    report_id: UUID = Path(..., description="Report definition ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> CustomReportDefinition:
+    """
+    Retrieve a specific custom report definition.
+    """
+    service = CustomReportService(uow)
+    try:
+        return service.get_definition(report_id=report_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.delete(
+    "/definitions/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a report definition",
+)
+async def delete_report_definition(
+    report_id: UUID = Path(..., description="Report definition ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> None:
+    """
+    Delete a saved custom report definition.
+    """
+    service = CustomReportService(uow)
+    try:
+        service.delete_definition(report_id=report_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\dashboard.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.dashboard_analytics import DashboardMetrics as DashboardMetricsSchema
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import DashboardAnalyticsService
+
+router = APIRouter(prefix="/dashboard")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "",
+    response_model=DashboardMetricsSchema,
+    summary="Get dashboard metrics snapshot for a scope",
+)
+async def get_dashboard_metrics(
+    scope_type: str = Query(..., description="Scope type: hostel | platform | admin"),
+    scope_id: Optional[UUID] = Query(
+        None,
+        description="Scope ID (hostel_id or admin_id); null for platform scope",
+    ),
+    period_start: Optional[date] = Query(
+        None,
+        description="Start date (inclusive). If omitted, service will choose a default window.",
+    ),
+    period_end: Optional[date] = Query(
+        None,
+        description="End date (inclusive). If omitted, service will choose a default window.",
+    ),
+    uow: UnitOfWork = Depends(get_uow),
+) -> DashboardMetricsSchema:
+    """
+    Fetch a pre-aggregated dashboard metrics snapshot for the given scope.
+
+    Backed by DashboardAnalyticsService which wraps `analytics_dashboard_metrics`.
+    """
+    service = DashboardAnalyticsService(uow)
+    try:
+        return service.get_dashboard_metrics(
+            scope_type=scope_type,
+            scope_id=scope_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\financial.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.financial_analytics import FinancialReport
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import FinancialAnalyticsService
+
+router = APIRouter(prefix="/financial")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/report",
+    response_model=FinancialReport,
+    summary="Get financial analytics report",
+)
+async def get_financial_report(
+    scope_type: str = Query(
+        "hostel",
+        description="Scope type: hostel | platform | admin (default hostel)",
+    ),
+    scope_id: Optional[UUID] = Query(
+        None,
+        description="Scope ID (hostel_id, admin_id, or null for platform-wide)",
+    ),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> FinancialReport:
+    """
+    Compute a financial analytics report for the given scope and period.
+
+    Includes revenue, expenses, P&L, cashflow, and collection/overdue ratios.
+    """
+    service = FinancialAnalyticsService(uow)
+    try:
+        return service.get_financial_report(
+            scope_type=scope_type,
+            scope_id=scope_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\occupancy.py ---
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.occupancy_analytics import OccupancyReport
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import OccupancyAnalyticsService
+
+router = APIRouter(prefix="/occupancy")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/report",
+    response_model=OccupancyReport,
+    summary="Get occupancy report for a hostel",
+)
+async def get_occupancy_report(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> OccupancyReport:
+    """
+    Build an occupancy report for the given hostel and period.
+
+    Includes KPIs, daily trend, and occupancy by room type.
+    """
+    service = OccupancyAnalyticsService(uow)
+    try:
+        return service.get_occupancy_report(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\platform.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.platform_analytics import (
+    PlatformMetrics,
+    GrowthMetrics,
+    PlatformUsageAnalytics,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import PlatformAnalyticsService
+
+router = APIRouter(prefix="/platform")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/metrics/latest",
+    response_model=PlatformMetrics,
+    summary="Get latest platform metrics",
+)
+async def get_latest_platform_metrics(
+    uow: UnitOfWork = Depends(get_uow),
+) -> PlatformMetrics:
+    """
+    Fetch latest platform-wide metrics (tenants, users, load, etc.).
+    """
+    service = PlatformAnalyticsService(uow)
+    try:
+        return service.get_latest_metrics()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/growth",
+    response_model=GrowthMetrics,
+    summary="Get platform growth metrics for a period",
+)
+async def get_growth_metrics(
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    uow: UnitOfWork = Depends(get_uow),
+) -> GrowthMetrics:
+    """
+    Fetch growth metrics (hostels, revenue, users) for the given period.
+    """
+    service = PlatformAnalyticsService(uow)
+    try:
+        return service.get_growth_metrics(period_start=period_start, period_end=period_end)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/usage/latest",
+    response_model=PlatformUsageAnalytics,
+    summary="Get latest platform usage analytics",
+)
+async def get_latest_platform_usage(
+    uow: UnitOfWork = Depends(get_uow),
+) -> PlatformUsageAnalytics:
+    """
+    Fetch latest API/platform usage statistics (traffic, error rates, latency).
+    """
+    service = PlatformAnalyticsService(uow)
+    try:
+        return service.get_latest_usage()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\supervisors.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.supervisor_analytics import (
+    SupervisorDashboardAnalytics,
+    SupervisorComparison,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import SupervisorAnalyticsService
+
+router = APIRouter(prefix="/supervisors")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/{supervisor_id}/dashboard",
+    response_model=SupervisorDashboardAnalytics,
+    summary="Get supervisor performance dashboard",
+)
+async def get_supervisor_dashboard(
+    supervisor_id: UUID = Path(..., description="Supervisor ID"),
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    uow: UnitOfWork = Depends(get_uow),
+) -> SupervisorDashboardAnalytics:
+    """
+    Build a performance dashboard for a specific supervisor at a hostel.
+    """
+    service = SupervisorAnalyticsService(uow)
+    try:
+        return service.get_supervisor_dashboard(
+            supervisor_id=supervisor_id,
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/comparison",
+    response_model=SupervisorComparison,
+    summary="Compare supervisors within a hostel",
+)
+async def compare_supervisors(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    uow: UnitOfWork = Depends(get_uow),
+) -> SupervisorComparison:
+    """
+    Compare supervisors on performance metrics within a given hostel and period.
+    """
+    service = SupervisorAnalyticsService(uow)
+    try:
+        return service.get_supervisor_comparison(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\visitors.py ---
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.visitor_analytics import (
+    VisitorFunnel,
+    TrafficSourceAnalytics,
+    VisitorBehaviorAnalytics as VisitorBehaviorAnalyticsSchema,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.analytics import VisitorAnalyticsService
+
+router = APIRouter(prefix="/visitors")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/funnel",
+    response_model=VisitorFunnel,
+    summary="Get visitor funnel analytics",
+)
+async def get_visitor_funnel(
+    hostel_id: Optional[UUID] = Query(None, description="Optional hostel filter"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> VisitorFunnel:
+    """
+    Return high-level funnel metrics: visits → registrations → bookings.
+    """
+    service = VisitorAnalyticsService(uow)
+    try:
+        return service.get_funnel(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/traffic",
+    response_model=TrafficSourceAnalytics,
+    summary="Get traffic source analytics",
+)
+async def get_traffic_sources(
+    hostel_id: Optional[UUID] = Query(None, description="Optional hostel filter"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> TrafficSourceAnalytics:
+    """
+    Return per-source traffic and conversion analytics.
+    """
+    service = VisitorAnalyticsService(uow)
+    try:
+        return service.get_traffic_sources(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/behavior/{visitor_id}",
+    response_model=VisitorBehaviorAnalyticsSchema,
+    summary="Get aggregated behavior analytics for a visitor",
+)
+async def get_visitor_behavior(
+    visitor_id: UUID = Path(..., description="Visitor ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> VisitorBehaviorAnalyticsSchema:
+    """
+    Return aggregated behavior metrics for a specific visitor.
+    """
+    service = VisitorAnalyticsService(uow)
+    try:
+        return service.get_visitor_behavior(visitor_id=visitor_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: D:\hostel-management-saas\app\api\v1\analytics\__init__.py ---
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from . import dashboard
+from . import financial
+from . import occupancy
+from . import complaints
+from . import visitors
+from . import bookings
+from . import supervisors
+from . import platform
+from . import custom
+
+router = APIRouter(prefix="/analytics")
+
+router.include_router(dashboard.router, tags=["Analytics - Dashboard"])
+router.include_router(financial.router, tags=["Analytics - Financial"])
+router.include_router(occupancy.router, tags=["Analytics - Occupancy"])
+router.include_router(complaints.router, tags=["Analytics - Complaints"])
+router.include_router(visitors.router, tags=["Analytics - Visitors"])
+router.include_router(bookings.router, tags=["Analytics - Bookings"])
+router.include_router(supervisors.router, tags=["Analytics - Supervisors"])
+router.include_router(platform.router, tags=["Analytics - Platform"])
+router.include_router(custom.router, tags=["Analytics - Custom Reports"])
+
+__all__ = ["router"]
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\announcements =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\announcements.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\approval.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\delivery.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\scheduling.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\targeting.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\tracking.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\announcements\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\attendance =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\alerts.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\attendance.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\bulk.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\policy.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\record.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\reports.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\attendance\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\audit =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\audit\activity.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\audit\logs.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\audit\overrides.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\audit\reports.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\audit\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\auth =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\login.py ---
+# api/v1/auth/login.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from api import deps
+from app.schemas.auth.login import (
+    LoginRequest,
+    PhoneLoginRequest,
+    LoginResponse,
+)
+from app.services.auth import AuthService
+
+router = APIRouter()
+
+
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+async def login_with_email(
+    payload: LoginRequest,
+    request: Request,
+    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
+) -> LoginResponse:
+    """
+    Email/password login.
+
+    Returns:
+    - access_token
+    - refresh_token
+    - user info
+    """
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("User-Agent")
+
+    return auth_service.login(
+        payload,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/login/phone",
+    response_model=LoginResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def login_with_phone(
+    payload: PhoneLoginRequest,
+    request: Request,
+    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
+) -> LoginResponse:
+    """
+    Phone/password login.
+    """
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("User-Agent")
+
+    return auth_service.login_with_phone(
+        payload,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\otp.py ---
+# api/v1/auth/otp.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
+from api import deps
+from app.schemas.auth.otp import (
+    OTPGenerateRequest,
+    OTPVerifyRequest,
+    OTPResponse,
+    OTPVerifyResponse,
+)
+from app.services.auth import OTPService
+
+router = APIRouter()
+
+
+@router.post(
+    "/otp/send",
+    response_model=OTPResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def send_otp(
+    payload: OTPGenerateRequest,
+    otp_service: Annotated[OTPService, Depends(deps.get_otp_service)],
+) -> OTPResponse:
+    """
+    Generate an OTP for email/phone/user_id.
+
+    This only stores the OTP; caller is responsible for actually
+    sending it via email/SMS using the notification system.
+    """
+    return otp_service.generate(payload)
+
+
+@router.post(
+    "/otp/verify",
+    response_model=OTPVerifyResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def verify_otp(
+    payload: OTPVerifyRequest,
+    otp_service: Annotated[OTPService, Depends(deps.get_otp_service)],
+) -> OTPVerifyResponse:
+    """
+    Verify an OTP code previously generated by /otp/send.
+    """
+    return otp_service.verify(payload)
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\password.py ---
+# api/v1/auth/password.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request, status
+
+from api import deps
+from app.schemas.auth.password import (
+    PasswordChangeRequest,
+    PasswordChangeResponse,
+    PasswordStrengthCheck,
+    PasswordStrengthResponse,
+)
+from app.services.auth import PasswordService
+
+router = APIRouter()
+
+
+@router.post(
+    "/password/change",
+    response_model=PasswordChangeResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def change_password(
+    payload: PasswordChangeRequest,
+    request: Request,
+    password_service: Annotated[PasswordService, Depends(deps.get_password_service)],
+    current_user=Depends(deps.get_current_user),
+) -> PasswordChangeResponse:
+    """
+    Change password for the currently authenticated user.
+    """
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("User-Agent")
+
+    return password_service.change_password(
+        user_id=current_user.id,
+        data=payload,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/password/strength",
+    response_model=PasswordStrengthResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def evaluate_password_strength(
+    payload: PasswordStrengthCheck,
+    password_service: Annotated[PasswordService, Depends(deps.get_password_service)],
+) -> PasswordStrengthResponse:
+    """
+    Simple password strength evaluation helper.
+    """
+    return password_service.evaluate_strength(payload)
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\register.py ---
+# api/v1/auth/register.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
+from api import deps
+from app.schemas.auth.register import (
+    RegisterRequest,
+    RegisterResponse,
+)
+from app.services.auth import RegistrationService
+
+router = APIRouter()
+
+
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register_visitor(
+    payload: RegisterRequest,
+    registration_service: Annotated[RegistrationService, Depends(deps.get_registration_service)],
+) -> RegisterResponse:
+    """
+    Public visitor registration.
+
+    Only VISITOR role is allowed here; other roles must be created by admins.
+    """
+    return registration_service.register(payload)
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\social.py ---
+# api/v1/auth/social.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from api import deps
+from app.schemas.auth.social_auth import (
+    GoogleAuthRequest,
+    FacebookAuthRequest,
+    SocialAuthResponse,
+)
+from app.services.auth import SocialAuthService
+
+router = APIRouter()
+
+
+@router.post(
+    "/google",
+    response_model=SocialAuthResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def authenticate_with_google(
+    payload: GoogleAuthRequest,
+    social_auth_service: Annotated[SocialAuthService, Depends(deps.get_social_auth_service)],
+) -> SocialAuthResponse:
+    """
+    Google social login.
+
+    Currently a stub in the service layer and will raise NotImplementedError
+    until the integration is implemented.
+    """
+    try:
+        return social_auth_service.authenticate_with_google(payload)
+    except NotImplementedError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth integration is not configured",
+        )
+
+
+@router.post(
+    "/facebook",
+    response_model=SocialAuthResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def authenticate_with_facebook(
+    payload: FacebookAuthRequest,
+    social_auth_service: Annotated[SocialAuthService, Depends(deps.get_social_auth_service)],
+) -> SocialAuthResponse:
+    """
+    Facebook social login.
+
+    Currently a stub in the service layer and will raise NotImplementedError
+    until the integration is implemented.
+    """
+    try:
+        return social_auth_service.authenticate_with_facebook(payload)
+    except NotImplementedError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Facebook OAuth integration is not configured",
+        )
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\token.py ---
+# api/v1/auth/token.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
+from api import deps
+from app.schemas.auth.token import (
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+)
+from app.services.auth import AuthService
+
+router = APIRouter()
+
+
+@router.post(
+    "/token/refresh",
+    response_model=RefreshTokenResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def refresh_access_token(
+    payload: RefreshTokenRequest,
+    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
+) -> RefreshTokenResponse:
+    """
+    Exchange a refresh token for a new access (and refresh) token.
+    """
+    return auth_service.refresh_token(payload)
+
+# --- File: D:\hostel-management-saas\app\api\v1\auth\__init__.py ---
+# api/v1/auth/__init__.py
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from . import login, register, token, password, otp, social
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+router.include_router(login.router)
+router.include_router(register.router)
+router.include_router(token.router)
+router.include_router(password.router)
+router.include_router(otp.router)
+router.include_router(social.router)
+
+__all__ = ["router"]
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\bookings =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\approval.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\assignment.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\bookings.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\calendar.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\cancellation.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\conversion.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\modification.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\waitlist.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\bookings\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\complaints =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\assignment.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\comments.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\complaints.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\escalation.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\feedback.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\resolution.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\complaints\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\fee_structures =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\fee_structures\config.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\fee_structures\fees.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\fee_structures\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\files =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\files\documents.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\files\images.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\files\upload.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\files\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\hostels =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\comparison.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\details.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\hostels.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\public.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\search.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\hostels\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\inquiries =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\inquiries\inquiries.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\inquiries\status.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\inquiries\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\leaves =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\leaves\apply.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\leaves\approval.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\leaves\balance.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\leaves\leaves.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\leaves\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\maintenance =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\approval.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\assignment.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\completion.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\cost.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\requests.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\schedule.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\maintenance\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\mess =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\approval.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\duplicate.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\feedback.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\menu.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\planning.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\mess\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\notifications =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\notifications\notifications.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\notifications\preferences.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\notifications\send.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\notifications\templates.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\notifications\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\payments =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\gateway.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\initiate.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\ledger.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\payments.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\receipt.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\refunds.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\reminders.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\schedule.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\payments\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\referrals =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\referrals\codes.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\referrals\programs.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\referrals\referrals.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\referrals\rewards.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\referrals\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\reviews =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\moderation.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\response.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\reviews.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\submission.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\voting.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\reviews\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\rooms =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\rooms\assignment.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\rooms\availability.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\rooms\beds.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\rooms\rooms.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\rooms\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\search =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\search\analytics.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\search\autocomplete.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\search\search.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\search\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\students =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\dashboard.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\finance.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\profile.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\room_history.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\search.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\students.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\students\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\subscriptions =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\billing.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\cancellation.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\commission.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\plans.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\subscriptions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\upgrade.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\subscriptions\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\supervisors =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\activity.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\assignments.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\dashboard.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\performance.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\permissions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\supervisors.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\supervisors\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\users =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\users\activity.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\users\me.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\users\profile.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\users\sessions.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\users\__init__.py ---
+
+
+
+# ===== Folder: D:\hostel-management-saas\app\api\v1\visitors =====
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\dashboard.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\favorites.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\preferences.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\profile.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\search.py ---
+
+
+# --- File: D:\hostel-management-saas\app\api\v1\visitors\__init__.py ---
+
