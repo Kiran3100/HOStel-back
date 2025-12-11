@@ -1,16 +1,23 @@
 # app/utils/validators.py
 from __future__ import annotations
 
+"""
+Validation helpers:
+- Email, phone, pincode, Aadhar, PAN format validation.
+- Monetary amount and percentage validation.
+- String non-empty and length checks.
+- Choices membership validation.
+- Safe filename sanitization.
+"""
+
 import re
 from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
-import logging
-
-logger = logging.getLogger(__name__)
 
 # Compiled regex patterns for better performance
 _email_regex = re.compile(
-    r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+    r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+    r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 )
 _phone_regex = re.compile(r"^\+?[1-9]\d{6,14}$")
 _pincode_regex = re.compile(r"^\d{4,10}$")
@@ -43,13 +50,13 @@ def is_valid_phone(value: str) -> bool:
     if not isinstance(value, str):
         return False
     
-    # Remove spaces and dashes
+    # Remove spaces and dashes and parentheses
     cleaned = re.sub(r"[\s\-()]", "", value.strip())
     return bool(_phone_regex.match(cleaned))
 
 
 def is_valid_pincode(value: str) -> bool:
-    """Return True if value is a valid pincode/postal code."""
+    """Return True if value is a valid pincode/postal code (4-10 digits)."""
     if not isinstance(value, str):
         return False
     
@@ -58,7 +65,7 @@ def is_valid_pincode(value: str) -> bool:
 
 
 def is_valid_aadhar(value: str) -> bool:
-    """Return True if value is a valid Aadhar number format."""
+    """Return True if value is a valid Aadhar number format (12 digits)."""
     if not isinstance(value, str):
         return False
     
@@ -76,7 +83,7 @@ def is_valid_pan(value: str) -> bool:
 
 
 def is_valid_amount(value: Any) -> bool:
-    """Return True if value is a valid monetary amount."""
+    """Return True if value is a valid non-negative monetary amount."""
     try:
         if isinstance(value, (int, float)):
             return value >= 0
@@ -112,7 +119,7 @@ def is_valid_percentage(value: Any) -> bool:
 
 
 def require_non_empty(value: str, field_name: str = "Field") -> str:
-    """Validate and return non-empty string."""
+    """Validate and return a non-empty string (stripped)."""
     if not isinstance(value, str):
         raise ValidationError(f"{field_name} must be a string")
     
@@ -124,7 +131,7 @@ def require_non_empty(value: str, field_name: str = "Field") -> str:
 
 
 def require_valid_email(value: str, field_name: str = "Email") -> str:
-    """Validate and return valid email."""
+    """Validate and return a valid email (lowercased)."""
     cleaned = require_non_empty(value, field_name)
     
     if not is_valid_email(cleaned):
@@ -134,13 +141,13 @@ def require_valid_email(value: str, field_name: str = "Email") -> str:
 
 
 def require_valid_phone(value: str, field_name: str = "Phone") -> str:
-    """Validate and return valid phone number."""
+    """Validate and return a valid phone number (normalized)."""
     cleaned = require_non_empty(value, field_name)
     
     if not is_valid_phone(cleaned):
         raise ValidationError(f"{field_name} must be a valid phone number")
     
-    # Normalize format
+    # Normalize format by removing spaces, dashes and parentheses
     return re.sub(r"[\s\-()]", "", cleaned)
 
 
@@ -149,7 +156,7 @@ def require_in_choices(
     choices: Iterable[Any], 
     field_name: str = "Value"
 ) -> Any:
-    """Validate value is in allowed choices."""
+    """Validate that value is in the allowed choices."""
     choices_list = list(choices)
     if value not in choices_list:
         raise ValidationError(
@@ -164,7 +171,7 @@ def require_valid_amount(
     min_value: Decimal | None = None,
     max_value: Decimal | None = None,
 ) -> Decimal:
-    """Validate and return valid monetary amount."""
+    """Validate and return a valid monetary amount as Decimal."""
     if not is_valid_amount(value):
         raise ValidationError(f"{field_name} must be a valid positive amount")
     
@@ -191,7 +198,7 @@ def require_string_length(
     max_length: int | None = None,
     field_name: str = "Field",
 ) -> str:
-    """Validate string length requirements."""
+    """Validate string length requirements and return the cleaned string."""
     cleaned = require_non_empty(value, field_name)
     
     if min_length is not None and len(cleaned) < min_length:
@@ -204,7 +211,15 @@ def require_string_length(
 
 
 def sanitize_filename(filename: str) -> str:
-    """Sanitize filename for safe storage."""
+    """
+    Sanitize filename for safe storage.
+
+    - Removes directory components.
+    - Replaces unsafe characters with '_'.
+    - Collapses multiple underscores.
+    - Trims leading/trailing underscores and dots.
+    - Enforces a maximum length of 255 characters.
+    """
     if not filename or not isinstance(filename, str):
         raise ValidationError("Filename must be a non-empty string")
     

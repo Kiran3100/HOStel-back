@@ -1,18 +1,24 @@
 # app/utils/sms.py
 from __future__ import annotations
 
+"""
+SMS utilities:
+- Normalization and validation of phone numbers (E.164, Indian focus).
+- SMS provider abstraction (Twilio, MSG91, TextLocal).
+- Rate limiting and retry logic for outbound SMS.
+- OTP generation and standardized OTP message construction.
+"""
+
 import asyncio
-import hashlib
 import logging
+import os
 import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Protocol
-import json
-import os
+from typing import Any, Dict, List, Mapping
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +84,7 @@ class SMSMessage:
     schedule_at: datetime | None = None
     expire_at: datetime | None = None
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate SMS message after initialization."""
         self.phone = normalize_phone_number(self.phone)
         
@@ -313,7 +319,7 @@ class MSG91Provider(SMSProviderInterface):
     
     def get_delivery_status(self, message_id: str) -> SMSStatus:
         """Get delivery status from MSG91."""
-        # MSG91 delivery status implementation
+        # MSG91 delivery status implementation placeholder
         return SMSStatus.PENDING
     
     def get_balance(self) -> float | None:
@@ -348,7 +354,6 @@ class TextLocalProvider(SMSProviderInterface):
         """Send SMS via TextLocal."""
         try:
             import requests
-            import urllib.parse
             
             url = f"{self.base_url}/send/"
             
@@ -415,7 +420,7 @@ class TextLocalProvider(SMSProviderInterface):
 
 
 class RateLimiter:
-    """Rate limiter for SMS sending."""
+    """Simple rate limiter for SMS sending based on sliding time windows."""
     
     def __init__(self, per_minute: int = 100, per_hour: int = 1000, per_day: int = 10000):
         self.per_minute = per_minute
@@ -445,7 +450,7 @@ class RateLimiter:
         return True
     
     def record_request(self) -> None:
-        """Record a request."""
+        """Record a request timestamp."""
         now = time.time()
         self.minute_requests.append(now)
         self.hour_requests.append(now)
@@ -469,7 +474,7 @@ class SMSService:
     
     def _create_provider(self, config: SMSConfig) -> SMSProviderInterface:
         """Create SMS provider instance."""
-        providers = {
+        providers: Dict[SMSProvider, type[SMSProviderInterface]] = {
             SMSProvider.TWILIO: TwilioProvider,
             SMSProvider.MSG91: MSG91Provider,
             SMSProvider.TEXTLOCAL: TextLocalProvider,
@@ -511,7 +516,7 @@ class SMSService:
             )
             
             # Retry logic
-            last_error = None
+            last_error: str | None = None
             for attempt in range(self.config.retry_attempts):
                 try:
                     result = self.provider.send_sms(sms_message)
@@ -577,7 +582,7 @@ class SMSService:
             )
             
             # Async retry logic
-            last_error = None
+            last_error: str | None = None
             for attempt in range(self.config.retry_attempts):
                 try:
                     result = await self.provider.send_sms_async(sms_message)
@@ -637,7 +642,7 @@ def normalize_phone_number(phone: str) -> str:
     Normalize phone number to E.164 format.
     
     For Indian numbers: +91XXXXXXXXXX
-    For international: +CCXXXXXXXXXX
+    For international: +CCXXXXXXXXXX (must start with '+').
     """
     if not isinstance(phone, str):
         raise SMSValidationError("Phone number must be a string")
@@ -691,9 +696,14 @@ def is_valid_indian_mobile(phone: str) -> bool:
 
 
 def calculate_sms_parts(message: str) -> int:
-    """Calculate number of SMS parts required."""
+    """Calculate number of SMS parts required based on GSM/Unicode length."""
     # Check if message contains non-GSM characters
-    gsm_chars = set("@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà")
+    gsm_chars = set(
+        "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ "
+        "!\"#¤%&'()*+,-./0123456789:;<=>?¡"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿"
+        "abcdefghijklmnopqrstuvwxyzäöñüà"
+    )
     
     if all(char in gsm_chars for char in message):
         # GSM 7-bit encoding
@@ -735,7 +745,7 @@ _default_service: SMSService | None = None
 
 
 def get_sms_service() -> SMSService:
-    """Get default SMS service instance."""
+    """Get default SMS service instance (singleton-style)."""
     global _default_service
     if _default_service is None:
         _default_service = SMSService()

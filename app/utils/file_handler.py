@@ -1,13 +1,20 @@
 # app/utils/file_handler.py
 from __future__ import annotations
 
+"""
+File handling utilities:
+- Filename sanitization and unique name generation.
+- Validation of file extensions, sizes, and MIME types.
+- Saving raw bytes or framework upload objects to disk.
+- Safe file deletion.
+"""
+
 import hashlib
 import logging
 import mimetypes
 import os
 import secrets
 from pathlib import Path
-from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +44,28 @@ ALLOWED_MIME_TYPES = {
     'spreadsheets': {'application/vnd.ms-excel', 'text/csv'},
 }
 
+# Precomputed unions for performance when no category is specified
+ALL_ALLOWED_EXTENSIONS = {
+    ext for exts in ALLOWED_EXTENSIONS.values() for ext in exts
+}
+ALL_ALLOWED_MIME_TYPES = {
+    mime for mset in ALLOWED_MIME_TYPES.values() for mime in mset
+}
+
 # Maximum file sizes (in bytes)
 MAX_FILE_SIZES = {
-    'images': 10 * 1024 * 1024,  # 10MB
-    'documents': 50 * 1024 * 1024,  # 50MB
-    'default': 5 * 1024 * 1024,  # 5MB
+    'images': 10 * 1024 * 1024,      # 10MB
+    'documents': 50 * 1024 * 1024,   # 50MB
+    'default': 5 * 1024 * 1024,      # 5MB
 }
+
+# Filesystem permissions
+DIR_PERMISSIONS = 0o755
+FILE_PERMISSIONS = 0o644
 
 
 def safe_filename(filename: str) -> str:
-    """Generate a safe filename by stripping directory components."""
+    """Generate a safe filename by stripping directory components and unsafe chars."""
     if not filename or not isinstance(filename, str):
         raise FileHandlerError("Filename must be a non-empty string")
     
@@ -96,12 +115,8 @@ def validate_file_extension(filename: str, category: str | None = None) -> bool:
     if category and category in ALLOWED_EXTENSIONS:
         return ext in ALLOWED_EXTENSIONS[category]
     
-    # Check all categories if none specified
-    all_extensions = set()
-    for exts in ALLOWED_EXTENSIONS.values():
-        all_extensions.update(exts)
-    
-    return ext in all_extensions
+    # Check all categories if none specified or category not recognized
+    return ext in ALL_ALLOWED_EXTENSIONS
 
 
 def validate_file_size(size: int, category: str | None = None) -> bool:
@@ -115,12 +130,8 @@ def validate_mime_type(mime_type: str, category: str | None = None) -> bool:
     if category and category in ALLOWED_MIME_TYPES:
         return mime_type in ALLOWED_MIME_TYPES[category]
     
-    # Check all categories if none specified
-    all_mime_types = set()
-    for types in ALLOWED_MIME_TYPES.values():
-        all_mime_types.update(types)
-    
-    return mime_type in all_mime_types
+    # Check all categories if none specified or category not recognized
+    return mime_type in ALL_ALLOWED_MIME_TYPES
 
 
 def get_file_hash(data: bytes) -> str:
@@ -132,7 +143,7 @@ def ensure_directory(path: str | Path) -> None:
     """Ensure directory exists with proper permissions."""
     try:
         path_obj = Path(path)
-        path_obj.mkdir(parents=True, exist_ok=True, mode=0o755)
+        path_obj.mkdir(parents=True, exist_ok=True, mode=DIR_PERMISSIONS)
         logger.debug(f"Ensured directory exists: {path}")
     except Exception as e:
         logger.error(f"Failed to create directory {path}: {e}")
@@ -181,7 +192,7 @@ def save_bytes_to_path(
         
         # Write file with secure permissions
         path_obj.write_bytes(data)
-        path_obj.chmod(0o644)
+        path_obj.chmod(FILE_PERMISSIONS)
         
         logger.info(f"File saved: {path_obj} (hash: {file_hash[:8]}...)")
         

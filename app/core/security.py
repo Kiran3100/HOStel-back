@@ -5,8 +5,10 @@ from __future__ import annotations
 Core security helpers.
 
 These re-export password hashing and JWT helpers from
-app.services.common.security so you can import them
-from a single core module if needed.
+`app.services.common.security` so you can import them
+from a single core module if needed, for example:
+
+    from app.core.security import hash_password, create_access_token
 """
 
 from app.services.common.security import (

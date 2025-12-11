@@ -1,13 +1,25 @@
 # app/utils/email.py
 from __future__ import annotations
 
+"""
+Email utilities: configuration, message structure, and SMTP-based sending.
+
+This module provides:
+- EmailMessage: validated email message dataclass.
+- EmailConfig: configuration loaded from environment variables.
+- build_email: convenience helper to construct EmailMessage.
+- send_email / send_email_async: SMTP-based sending functions.
+"""
+
 import logging
+import os
 import smtplib
 from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Iterable, Mapping, Optional
-import os
+from typing import Iterable, Mapping
+
+from .validators import is_valid_email
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +41,7 @@ class EmailMessage:
     bcc: list[str] | None = None
     headers: Mapping[str, str] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate email message after initialization."""
         if not self.subject.strip():
             raise EmailError("Subject cannot be empty")
@@ -41,8 +53,6 @@ class EmailMessage:
             raise EmailError("Either body_text or body_html must be provided")
         
         # Validate email addresses
-        from .validators import is_valid_email
-        
         for email in self.to:
             if not is_valid_email(email):
                 raise EmailError(f"Invalid recipient email: {email}")

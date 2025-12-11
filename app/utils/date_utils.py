@@ -1,6 +1,15 @@
 # app/utils/date_utils.py
 from __future__ import annotations
 
+"""
+Date and time utility functions used across the project.
+
+Notes:
+- All "UTC" helpers use timezone-aware datetimes with `timezone.utc`.
+- `to_utc` assumes naïve datetimes are already in UTC and only attaches tzinfo
+  (it does not perform any timezone conversion for naïve datetimes).
+"""
+
 import logging
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Iterator, Tuple
@@ -60,7 +69,8 @@ def end_of_day(d: date, tz: timezone | None = UTC) -> datetime:
 def to_utc(dt: datetime) -> datetime:
     """
     Convert a datetime to UTC.
-    - If naive, assumes it's already in UTC.
+
+    - If naive, assumes it's already in UTC and only attaches tzinfo.
     - If aware, converts to UTC.
     """
     if not isinstance(dt, datetime):

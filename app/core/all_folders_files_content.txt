@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\hostel-management-saas\app\core ###
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\core ###
 
 
 
-# ===== Folder: D:\hostel-management-saas\app\core =====
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\core =====
 
-# --- File: D:\hostel-management-saas\app\core\constants.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\constants.py ---
 # app/core/constants.py
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ HEADER_CORRELATION_ID: str = "X-Correlation-ID"
 ENV_DATABASE_URL: str = "DATABASE_URL"
 ENV_JWT_SECRET_KEY: str = "JWT_SECRET_KEY"
 
-# --- File: D:\hostel-management-saas\app\core\database.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\database.py ---
 # app/core/database.py
 from __future__ import annotations
 
@@ -116,7 +116,7 @@ def init_db() -> None:
     """
     Base.metadata.create_all(bind=engine)
 
-# --- File: D:\hostel-management-saas\app\core\exceptions.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\exceptions.py ---
 # app/core/exceptions.py
 from __future__ import annotations
 
@@ -148,7 +148,7 @@ __all__ = [
     "ConflictError",
 ]
 
-# --- File: D:\hostel-management-saas\app\core\middleware.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\middleware.py ---
 # app/core/middleware.py
 from __future__ import annotations
 
@@ -215,7 +215,7 @@ def register_middlewares(app: FastAPI) -> None:
     register_request_id_middleware(app)
     register_timing_middleware(app)
 
-# --- File: D:\hostel-management-saas\app\core\pagination.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\pagination.py ---
 # app/core/pagination.py
 from __future__ import annotations
 
@@ -268,7 +268,7 @@ def paginate_items(
         page_size=params.page_size,
     )
 
-# --- File: D:\hostel-management-saas\app\core\permissions.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\permissions.py ---
 # app/core/permissions.py
 from __future__ import annotations
 
@@ -295,7 +295,7 @@ __all__ = [
     "require_permission",
 ]
 
-# --- File: D:\hostel-management-saas\app\core\security.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\security.py ---
 # app/core/security.py
 from __future__ import annotations
 
@@ -327,7 +327,7 @@ __all__ = [
     "decode_token",
 ]
 
-# --- File: D:\hostel-management-saas\app\core\__init__.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\core\__init__.py ---
 # app/core/__init__.py
 from __future__ import annotations
 

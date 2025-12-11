@@ -1,6 +1,17 @@
 # app/utils/formatters.py
 from __future__ import annotations
 
+"""
+Formatting utilities:
+- Currency formatting (including Indian system).
+- Conversion of amounts to words (INR-focused).
+- Date and datetime formatting.
+- Duration and percentage humanization.
+- Masking of email/phone/Aadhar/PAN.
+- File size and generic number formatting.
+- Text truncation.
+"""
+
 import logging
 import re
 from datetime import date, datetime, timedelta
@@ -18,9 +29,6 @@ CURRENCY_SYMBOLS = {
     "JPY": "¥",
 }
 
-# Indian number formatting pattern
-INDIAN_NUMBER_PATTERN = re.compile(r"(\d+?)(?=(\d\d)+(\d)(?!\d))(\.\d+)?")
-
 
 class FormatterError(Exception):
     """Custom exception for formatter errors."""
@@ -28,14 +36,19 @@ class FormatterError(Exception):
 
 
 def safe_decimal(value: Any, field_name: str = "value") -> Decimal:
-    """Safely convert value to Decimal with error handling."""
+    """
+    Safely convert value to Decimal with error handling.
+
+    Non-numeric characters (except digits, '.' and '-') are removed
+    before parsing when the input is a string.
+    """
     try:
         if isinstance(value, Decimal):
             return value
         if isinstance(value, (int, float)):
             return Decimal(str(value))
         if isinstance(value, str):
-            # Remove currency symbols and spaces
+            # Remove currency symbols and spaces and any non-numeric characters
             cleaned = re.sub(r'[^\d.-]', '', value.strip())
             if not cleaned:
                 raise FormatterError(f"Invalid {field_name}: empty after cleaning")
@@ -59,12 +72,13 @@ def format_currency(
     Format a numeric amount with currency formatting.
     
     Args:
-        amount: The amount to format
-        currency: Currency code (INR, USD, EUR, etc.)
-        show_symbol: Whether to show currency symbol (₹, $, etc.)
-        show_code: Whether to show currency code (INR, USD, etc.)
-        decimals: Number of decimal places
+        amount: The amount to format.
+        currency: Currency code (INR, USD, EUR, etc.).
+        show_symbol: Whether to show currency symbol (₹, $, etc.).
+        show_code: Whether to show currency code (INR, USD, etc.).
+        decimals: Number of decimal places.
         indian_format: Use Indian number formatting (1,00,000 vs 100,000)
+                       when currency is INR.
     """
     try:
         dec = safe_decimal(amount, "amount")
@@ -150,7 +164,7 @@ def format_indian_number(number_str: str) -> str:
 
 
 def format_currency_words(amount: Decimal | float | int | str, currency: str = "INR") -> str:
-    """Convert amount to words (Indian system for INR)."""
+    """Convert amount to words (Indian system for INR, simple units for others)."""
     try:
         dec = safe_decimal(amount, "amount")
         
@@ -165,18 +179,23 @@ def format_currency_words(amount: Decimal | float | int | str, currency: str = "
 
 
 def format_inr_words(amount: Decimal) -> str:
-    """Convert INR amount to words using Indian system."""
+    """Convert INR amount to words using Indian system (Rupees and Paise)."""
     try:
         # Split into rupees and paise
         rupees = int(amount)
         paise = int((amount - rupees) * 100)
         
-        def convert_to_words(n):
-            ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-                   "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
-                   "seventeen", "eighteen", "nineteen"]
+        def convert_to_words(n: int) -> str:
+            ones = [
+                "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                "seventeen", "eighteen", "nineteen",
+            ]
             
-            tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+            tens = [
+                "", "", "twenty", "thirty", "forty", "fifty",
+                "sixty", "seventy", "eighty", "ninety",
+            ]
             
             if n == 0:
                 return ""
@@ -193,7 +212,7 @@ def format_inr_words(amount: Decimal) -> str:
             else:  # crores
                 return convert_to_words(n // 10000000) + " crore" + ("" if n % 10000000 == 0 else " " + convert_to_words(n % 10000000))
         
-        result = []
+        result: list[str] = []
         
         if rupees > 0:
             result.append(convert_to_words(rupees).strip())
@@ -216,8 +235,7 @@ def format_inr_words(amount: Decimal) -> str:
 
 
 def format_number_words(amount: Decimal) -> str:
-    """Convert number to words (Western system)."""
-    # Simplified implementation - you can expand this
+    """Convert number to words (simplified, Western system)."""
     try:
         return f"{amount} units"
     except Exception as e:
@@ -230,8 +248,8 @@ def format_date_short(d: date | datetime | None, format_type: str = "short") -> 
     Format a date with various format options.
     
     Args:
-        d: Date or datetime to format
-        format_type: 'short', 'medium', 'long', 'iso'
+        d: Date or datetime to format. If datetime, only the date part is used.
+        format_type: 'short', 'medium', 'long', 'iso', 'indian'.
     """
     if d is None:
         return ""
@@ -265,9 +283,9 @@ def format_datetime_short(dt: datetime | None, format_type: str = "short", inclu
     Format a datetime with various options.
     
     Args:
-        dt: Datetime to format
-        format_type: 'short', 'medium', 'long', 'iso'
-        include_seconds: Whether to include seconds
+        dt: Datetime to format.
+        format_type: 'short', 'medium', 'long', 'iso', 'indian'.
+        include_seconds: Whether to include seconds.
     """
     if dt is None:
         return ""
@@ -373,9 +391,9 @@ def mask_email(email: str, mask_char: str = "*", show_domain: bool = True) -> st
     Mask an email address for privacy.
     
     Args:
-        email: Email to mask
-        mask_char: Character to use for masking
-        show_domain: Whether to show the domain part
+        email: Email to mask. Will be lowercased.
+        mask_char: Character to use for masking.
+        show_domain: Whether to show the domain part.
     """
     try:
         if not isinstance(email, str) or not email.strip():
@@ -417,9 +435,9 @@ def mask_phone(phone: str, mask_char: str = "*", show_last: int = 4) -> str:
     Mask a phone number for privacy.
     
     Args:
-        phone: Phone number to mask
-        mask_char: Character to use for masking
-        show_last: Number of digits to show at the end
+        phone: Phone number to mask.
+        mask_char: Character to use for masking.
+        show_last: Number of digits to show at the end.
     """
     try:
         if not isinstance(phone, str) or not phone.strip():
@@ -516,8 +534,8 @@ def format_file_size(size_bytes: int, binary: bool = True) -> str:
     Format file size in human readable format.
     
     Args:
-        size_bytes: Size in bytes
-        binary: Use binary (1024) or decimal (1000) units
+        size_bytes: Size in bytes.
+        binary: Use binary (1024) or decimal (1000) units.
     """
     try:
         if not isinstance(size_bytes, int) or size_bytes < 0:
@@ -527,7 +545,11 @@ def format_file_size(size_bytes: int, binary: bool = True) -> str:
             return "0 B"
         
         base = 1024 if binary else 1000
-        units = ["B", "KB", "MB", "GB", "TB", "PB"] if not binary else ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+        units = (
+            ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+            if binary
+            else ["B", "KB", "MB", "GB", "TB", "PB"]
+        )
         
         import math
         unit_index = min(int(math.log(size_bytes, base)), len(units) - 1)
@@ -562,11 +584,11 @@ def format_number(
     Format a number with custom separators and precision.
     
     Args:
-        value: Number to format
-        decimals: Number of decimal places
-        thousands_separator: Separator for thousands
-        decimal_separator: Separator for decimals
-        indian_format: Use Indian number formatting
+        value: Number to format.
+        decimals: Number of decimal places.
+        thousands_separator: Separator for thousands.
+        decimal_separator: Separator for decimals.
+        indian_format: Use Indian number formatting when True.
     """
     try:
         dec = safe_decimal(value, "number")
@@ -591,7 +613,9 @@ def format_number(
             if len(integer_part) > 3:
                 # Reverse, add separators every 3 digits, reverse back
                 reversed_int = integer_part[::-1]
-                grouped = thousands_separator.join([reversed_int[i:i+3] for i in range(0, len(reversed_int), 3)])
+                grouped = thousands_separator.join(
+                    [reversed_int[i:i+3] for i in range(0, len(reversed_int), 3)]
+                )
                 integer_part = grouped[::-1]
             
             formatted = integer_part
@@ -621,10 +645,10 @@ def truncate_text(
     Truncate text to specified length with options.
     
     Args:
-        text: Text to truncate
-        max_length: Maximum length including suffix
-        suffix: Suffix to add when truncating
-        word_boundary: Whether to break at word boundaries
+        text: Text to truncate.
+        max_length: Maximum length including suffix.
+        suffix: Suffix to add when truncating.
+        word_boundary: Whether to break at word boundaries (using spaces).
     """
     try:
         if not isinstance(text, str):

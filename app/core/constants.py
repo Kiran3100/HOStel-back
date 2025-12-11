@@ -1,7 +1,22 @@
 # app/core/constants.py
 from __future__ import annotations
 
-from datetime import timedelta
+"""
+Core application constants.
+
+These values centralize common configuration-like constants such as:
+- Pagination defaults.
+- JWT token lifetimes (defaults, can be overridden by settings).
+- API prefixes.
+- Common HTTP header names.
+- Environment variable keys.
+
+Note:
+    These constants are intended to be imported and used throughout the
+    application rather than hard-coding literals in multiple places.
+"""
+
+from datetime import timedelta  # Note: imported for potential external usage
 
 # Pagination defaults
 DEFAULT_PAGE: int = 1

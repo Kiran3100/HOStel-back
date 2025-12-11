@@ -1,11 +1,17 @@
 # app/utils/string_utils.py
 from __future__ import annotations
 
+"""
+Generic string utilities:
+- Slug generation.
+- Secure random tokens and strings.
+- Whitespace normalization.
+- Simple truncation.
+"""
+
 import re
 import secrets
 import string
-from typing import Iterable
-
 
 _slug_pattern = re.compile(r"[^a-z0-9]+")
 
@@ -13,9 +19,9 @@ _slug_pattern = re.compile(r"[^a-z0-9]+")
 def slugify(value: str) -> str:
     """
     Simple slugify implementation:
-    - Lowercase
-    - Replace non-alphanumerics with '-'
-    - Strip leading/trailing '-'
+    - Lowercase.
+    - Replace non-alphanumerics (a-z, 0-9) with '-'.
+    - Strip leading/trailing '-'.
     """
     value = value.lower()
     value = _slug_pattern.sub("-", value)
@@ -23,7 +29,13 @@ def slugify(value: str) -> str:
 
 
 def generate_token(length: int = 32) -> str:
-    """Generate a random URL-safe token."""
+    """
+    Generate a random URL-safe token.
+
+    Note:
+        `length` is the number of bytes of randomness; the resulting string
+        will typically be longer than `length` characters.
+    """
     return secrets.token_urlsafe(length)
 
 
@@ -34,6 +46,7 @@ def random_string(
 ) -> str:
     """
     Generate a random string of given length from the specified alphabet.
+
     Default alphabet: ascii_letters + digits.
     """
     if alphabet is None:

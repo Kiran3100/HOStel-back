@@ -5,7 +5,15 @@ from __future__ import annotations
 Core infrastructure exports.
 
 This module re-exports frequently used core utilities to
-simplify imports across the project.
+simplify imports across the project, allowing patterns like:
+
+    from app.core import (
+        DEFAULT_PAGE,
+        engine,
+        get_session,
+        AppError,
+        security,
+    )
 """
 
 from .constants import (
