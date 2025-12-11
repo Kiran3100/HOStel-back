@@ -1,0 +1,898 @@
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics ###
+
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics =====
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\booking_analytics.py ---
+"""
+Booking analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Dict, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.enums import BookingStatus, BookingSource
+from app.schemas.common.filters import DateRangeFilter
+
+
+class BookingKPI(BaseSchema):
+    """Key metrics for bookings"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    total_bookings: int
+    confirmed_bookings: int
+    cancelled_bookings: int
+    rejected_bookings: int
+
+    booking_conversion_rate: Decimal
+    cancellation_rate: Decimal
+    average_lead_time_days: Decimal  # between booking and check-in
+
+
+class BookingTrendPoint(BaseSchema):
+    """Booking trend point"""
+    date: date
+    total_bookings: int
+    confirmed: int
+    cancelled: int
+    rejected: int
+    revenue_for_day: Decimal
+
+
+class BookingFunnel(BaseSchema):
+    """Booking funnel analytics"""
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Steps in funnel
+    hostel_page_views: int
+    booking_form_starts: int
+    booking_submissions: int
+    bookings_confirmed: int
+
+    # Conversion
+    view_to_start_rate: Decimal
+    start_to_submit_rate: Decimal
+    submit_to_confirm_rate: Decimal
+    view_to_confirm_rate: Decimal
+
+
+class CancellationAnalytics(BaseSchema):
+    """Analytics around cancellations"""
+    period: DateRangeFilter
+    total_cancellations: int
+    cancellation_rate: Decimal
+
+    cancellations_by_reason: Dict[str, int] = Field(default_factory=dict)
+    cancellations_by_status: Dict[BookingStatus, int] = Field(default_factory=dict)
+
+    # Timing
+    average_time_before_check_in_cancelled_days: Decimal
+
+
+class BookingAnalyticsSummary(BaseSchema):
+    """Top-level booking analytics"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    kpi: BookingKPI
+    trend: List[BookingTrendPoint] = Field(default_factory=list)
+
+    funnel: BookingFunnel
+    cancellations: CancellationAnalytics
+
+    # By source
+    bookings_by_source: Dict[BookingSource, int] = Field(default_factory=dict)
+    conversion_rate_by_source: Dict[BookingSource, Decimal] = Field(default_factory=dict)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\complaint_analytics.py ---
+"""
+High-level complaint analytics schemas (dashboard aggregation)
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Dict, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class ComplaintKPI(BaseSchema):
+    """Complaint key performance indicators"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    total_complaints: int
+    open_complaints: int
+    resolved_complaints: int
+    closed_complaints: int
+
+    average_resolution_time_hours: Decimal
+    sla_compliance_rate: Decimal
+    escalation_rate: Decimal
+    reopen_rate: Decimal
+
+
+class ComplaintTrend(BaseSchema):
+    """Trend over time for complaints"""
+    period: DateRangeFilter
+    points: List["ComplaintTrendPoint"] = Field(default_factory=list)
+
+
+class ComplaintTrendPoint(BaseSchema):
+    """Complaint trend point"""
+    date: date
+    total_complaints: int
+    open_complaints: int
+    resolved_complaints: int
+    escalated: int
+    sla_breached: int
+
+
+class CategoryBreakdown(BaseSchema):
+    """Complaints by category"""
+    category: str
+    count: int
+    percentage_of_total: Decimal
+    average_resolution_time_hours: Decimal
+
+
+class ComplaintDashboard(BaseSchema):
+    """Complaint dashboard analytics"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    kpi: ComplaintKPI
+    trend: ComplaintTrend
+    by_category: List[CategoryBreakdown] = Field(default_factory=list)
+    by_priority: Dict[str, int] = Field(default_factory=dict)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\custom_reports.py ---
+"""
+Custom report builder schemas
+"""
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class CustomReportFilter(BaseSchema):
+    """Filter definition for custom report"""
+    field_name: str
+    operator: str = Field(
+        ..., description="eq, ne, gt, lt, gte, lte, in, contains, between, etc."
+    )
+    value: Any
+    value_to: Optional[Any] = Field(None, description="Second value for between, range")
+
+
+class CustomReportField(BaseSchema):
+    """Field included in custom report"""
+    field_name: str
+    display_label: Optional[str] = None
+    aggregation: Optional[str] = Field(
+        None, description="sum, avg, min, max, count, none"
+    )
+
+
+class CustomReportRequest(BaseCreateSchema):
+    """Generate a custom report"""
+    report_name: str = Field(..., min_length=3, max_length=255)
+    module: str = Field(
+        ...,
+        description="Which module: bookings, payments, complaints, attendance, etc.",
+    )
+
+    period: Optional[DateRangeFilter] = None
+
+    # Fields
+    fields: List[CustomReportField] = Field(..., min_items=1)
+
+    # Filters
+    filters: List[CustomReportFilter] = Field(default_factory=list)
+
+    # Grouping
+    group_by: Optional[List[str]] = Field(
+        None, description="List of field names to group by"
+    )
+
+    # Sorting
+    sort_by: Optional[str] = None
+    sort_order: Optional[str] = Field("asc", pattern="^(asc|desc)$")
+
+    # Output
+    format: str = Field("table", pattern="^(table|csv|excel|json)$")
+    include_summary: bool = Field(True)
+    include_charts: bool = Field(False)
+
+
+class CustomReportDefinition(BaseSchema):
+    """Saved custom report definition"""
+    id: UUID
+    owner_id: UUID
+    report_name: str
+    module: str
+
+    period: Optional[DateRangeFilter] = None
+    fields: List[CustomReportField]
+    filters: List[CustomReportFilter]
+    group_by: Optional[List[str]] = None
+
+    # Sharing
+    is_public: bool = Field(False)
+    shared_with_user_ids: List[UUID] = Field(default_factory=list)
+
+    created_at: datetime
+    updated_at: datetime
+
+
+class CustomReportResult(BaseSchema):
+    """Result of running custom report"""
+    report_id: Optional[UUID] = None
+    report_name: str
+
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Data
+    rows: List[Dict[str, Any]] = Field(default_factory=list)
+    total_rows: int
+
+    # Summary (aggregations)
+    summary: Optional[Dict[str, Any]] = None
+
+    # Charts data (if requested)
+    charts: Optional[Dict[str, Any]] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\dashboard_analytics.py ---
+"""
+Dashboard-level analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional, Dict
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class KPIResponse(BaseSchema):
+    """Single KPI item for dashboard"""
+    name: str = Field(..., description="KPI name, e.g., 'Total Revenue'")
+    value: Decimal | int | float = Field(..., description="KPI numeric value")
+    unit: Optional[str] = Field(None, description="Unit, e.g., 'INR', '%', 'students'")
+    trend_direction: Optional[str] = Field(
+        None,
+        pattern="^(up|down|stable)$",
+        description="Trend indicator vs previous period",
+    )
+    trend_percentage: Optional[Decimal] = Field(
+        None, description="Change vs previous period in %"
+    )
+    target_value: Optional[Decimal] = Field(None, description="Target/goal value")
+    good_when: Optional[str] = Field(
+        None,
+        description="Interpretation rule, e.g. 'higher_is_better', 'lower_is_better'",
+    )
+
+
+class QuickStats(BaseSchema):
+    """Quick statistics for main dashboard cards"""
+    total_hostels: int
+    active_hostels: int
+    total_students: int
+    active_students: int
+    total_visitors: int
+
+    todays_check_ins: int
+    todays_check_outs: int
+
+    open_complaints: int
+    pending_maintenance: int
+
+    todays_revenue: Decimal
+    monthly_revenue: Decimal
+    outstanding_payments: Decimal
+
+
+class DashboardMetrics(BaseSchema):
+    """Aggregated dashboard metrics for a given scope (hostel or platform)"""
+    scope_type: str = Field(..., pattern="^(hostel|platform|admin)$")
+    scope_id: Optional[UUID] = Field(
+        None, description="Hostel ID or admin ID if scope_type is not 'platform'"
+    )
+
+    period: DateRangeFilter = Field(..., description="Analysis period")
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # KPIs
+    kpis: List[KPIResponse] = Field(default_factory=list)
+
+    # Quick stats
+    quick_stats: QuickStats
+
+    # Time series for charts
+    revenue_timeseries: List["TimeseriesPoint"] = Field(default_factory=list)
+    occupancy_timeseries: List["TimeseriesPoint"] = Field(default_factory=list)
+    booking_timeseries: List["TimeseriesPoint"] = Field(default_factory=list)
+    complaint_timeseries: List["TimeseriesPoint"] = Field(default_factory=list)
+
+
+class TimeseriesPoint(BaseSchema):
+    """Generic timeseries data point"""
+    date: date
+    value: Decimal | int | float
+
+
+class RoleSpecificDashboard(BaseSchema):
+    """Dashboard sections per role"""
+    role: str = Field(..., pattern="^(super_admin|hostel_admin|supervisor)$")
+    cards: Dict[str, QuickStats] = Field(
+        default_factory=dict, description="Section name -> QuickStats"
+    )
+    kpis: Dict[str, List[KPIResponse]] = Field(
+        default_factory=dict, description="Section name -> list of KPIs"
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\financial_analytics.py ---
+"""
+Financial analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Dict, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class RevenueBreakdown(BaseSchema):
+    """Revenue breakdown by type/category"""
+    total_revenue: Decimal
+    booking_revenue: Decimal
+    rent_revenue: Decimal
+    mess_revenue: Decimal
+    other_revenue: Decimal
+
+    revenue_by_hostel: Dict[UUID, Decimal] = Field(
+        default_factory=dict, description="Hostel ID -> revenue"
+    )
+    revenue_by_payment_type: Dict[str, Decimal] = Field(
+        default_factory=dict, description="PaymentType -> revenue"
+    )
+
+
+class ExpenseBreakdown(BaseSchema):
+    """Expense breakdown by category"""
+    total_expenses: Decimal
+    maintenance_expenses: Decimal
+    staff_expenses: Decimal
+    utility_expenses: Decimal
+    other_expenses: Decimal
+
+    expenses_by_hostel: Dict[UUID, Decimal] = Field(
+        default_factory=dict, description="Hostel ID -> expenses"
+    )
+    expenses_by_category: Dict[str, Decimal] = Field(
+        default_factory=dict, description="Category -> expenses"
+    )
+
+
+class ProfitAndLossReport(BaseSchema):
+    """P&L report for a hostel or platform"""
+    scope_type: str = Field(..., pattern="^(hostel|platform)$")
+    scope_id: Optional[UUID] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Revenue & expense
+    revenue: RevenueBreakdown
+    expenses: ExpenseBreakdown
+
+    # Calculated
+    gross_profit: Decimal
+    net_profit: Decimal
+    profit_margin_percentage: Decimal
+
+
+class CashflowSummary(BaseSchema):
+    """Cashflow summary"""
+    scope_type: str = Field(..., pattern="^(hostel|platform)$")
+    scope_id: Optional[UUID] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    opening_balance: Decimal
+    closing_balance: Decimal
+
+    inflows: Decimal
+    outflows: Decimal
+
+    inflow_breakdown: Dict[str, Decimal] = Field(default_factory=dict)
+    outflow_breakdown: Dict[str, Decimal] = Field(default_factory=dict)
+
+    cashflow_timeseries: List["CashflowPoint"] = Field(default_factory=list)
+
+
+class CashflowPoint(BaseSchema):
+    """Cashflow timeseries point"""
+    date: date
+    inflow: Decimal
+    outflow: Decimal
+    net_flow: Decimal
+
+
+class FinancialReport(BaseSchema):
+    """Top-level financial analytics response"""
+    scope_type: str
+    scope_id: Optional[UUID] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    pnl_report: ProfitAndLossReport
+    cashflow: CashflowSummary
+
+    # Ratios
+    collection_rate: Decimal = Field(..., description="% of billed amount collected")
+    overdue_ratio: Decimal = Field(..., description="% of amount that is overdue")
+    avg_revenue_per_student: Decimal
+    avg_revenue_per_bed: Decimal
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\occupancy_analytics.py ---
+"""
+Occupancy analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Dict, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class OccupancyKPI(BaseSchema):
+    """Key occupancy metrics"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    current_occupancy_percentage: Decimal
+    average_occupancy_percentage: Decimal
+    peak_occupancy_percentage: Decimal
+    low_occupancy_percentage: Decimal
+
+    total_beds: int
+    occupied_beds: int
+    available_beds: int
+
+
+class OccupancyTrendPoint(BaseSchema):
+    """Occupancy over time point"""
+    date: date
+    occupancy_percentage: Decimal
+    occupied_beds: int
+    total_beds: int
+
+
+class ForecastData(BaseSchema):
+    """Occupancy forecast data"""
+    forecast_horizon_days: int
+    forecast_points: List["ForecastPoint"] = Field(default_factory=list)
+    model_used: Optional[str] = Field(
+        None, description="e.g., 'moving_average', 'arima', 'simple_extrapolation'"
+    )
+    confidence_interval: Optional[Decimal] = Field(
+        None, description="Confidence interval for forecast in %"
+    )
+
+
+class ForecastPoint(BaseSchema):
+    """Single forecast point"""
+    date: date
+    forecasted_occupancy_percentage: Decimal
+    forecasted_occupied_beds: int
+
+
+class OccupancyByRoomType(BaseSchema):
+    """Occupancy distribution by room type"""
+    room_type: str
+    total_beds: int
+    occupied_beds: int
+    occupancy_percentage: Decimal
+
+
+class OccupancyReport(BaseSchema):
+    """Complete occupancy analytics"""
+    hostel_id: Optional[UUID] = None
+    hostel_name: Optional[str] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    kpi: OccupancyKPI
+
+    # Trends
+    daily_trend: List[OccupancyTrendPoint] = Field(default_factory=list)
+
+    # Breakdown
+    by_room_type: List[OccupancyByRoomType] = Field(default_factory=list)
+    by_floor: Dict[int, OccupancyKPI] = Field(default_factory=dict)
+
+    # Forecast
+    forecast: Optional[ForecastData] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\platform_analytics.py ---
+"""
+Platform-wide analytics (super admin)
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Dict, List
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class PlatformMetrics(BaseSchema):
+    """High-level platform metrics"""
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Tenants
+    total_hostels: int
+    active_hostels: int
+    hostels_on_trial: int
+
+    # Users
+    total_users: int
+    total_students: int
+    total_supervisors: int
+    total_admins: int
+    total_visitors: int
+
+    # Load
+    avg_daily_active_users: int
+    peak_concurrent_sessions: int
+
+
+class GrowthMetrics(BaseSchema):
+    """Growth metrics over time"""
+    period: DateRangeFilter
+
+    # Hostels
+    new_hostels: int
+    churned_hostels: int
+    net_hostel_growth: int
+
+    # Revenue
+    total_revenue: Decimal
+    revenue_growth_rate: Decimal
+
+    # Users
+    new_users: int
+    user_growth_rate: Decimal
+
+    # Charts
+    monthly_revenue: List["MonthlyMetric"] = Field(default_factory=list)
+    monthly_new_hostels: List["MonthlyMetric"] = Field(default_factory=list)
+    monthly_new_users: List["MonthlyMetric"] = Field(default_factory=list)
+
+
+class MonthlyMetric(BaseSchema):
+    """Monthly metric point"""
+    month: str  # YYYY-MM
+    value: Decimal | int | float
+
+
+class PlatformUsageAnalytics(BaseSchema):
+    """Platform usage analytics"""
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Traffic
+    total_requests: int
+    avg_requests_per_minute: Decimal
+    api_error_rate: Decimal
+
+    # By endpoint group
+    requests_by_module: Dict[str, int] = Field(
+        default_factory=dict, description="module -> request count"
+    )
+
+    # Latency
+    avg_response_time_ms: Decimal
+    p95_response_time_ms: Decimal
+    p99_response_time_ms: Decimal
+
+    # Resource usage (if tracked)
+    avg_cpu_usage_percent: Optional[Decimal] = None
+    avg_memory_usage_percent: Optional[Decimal] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\supervisor_analytics.py ---
+"""
+Supervisor analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class SupervisorKPI(BaseSchema):
+    """Supervisor KPI metrics (aggregated)"""
+    supervisor_id: UUID
+    supervisor_name: str
+    hostel_id: UUID
+    hostel_name: str
+
+    period: DateRangeFilter
+
+    # Workload
+    complaints_assigned: int
+    complaints_resolved: int
+    maintenance_requests_created: int
+    maintenance_requests_completed: int
+    attendance_records_marked: int
+
+    # Performance
+    avg_complaint_resolution_time_hours: Decimal
+    avg_maintenance_completion_time_hours: Decimal
+    complaint_sla_compliance_rate: Decimal
+    maintenance_sla_compliance_rate: Decimal
+
+    student_feedback_score: Optional[Decimal] = Field(
+        None, description="Average rating from student feedback"
+    )
+
+    overall_performance_score: Decimal = Field(
+        ..., ge=0, le=100, description="Composite performance score"
+    )
+
+
+class SupervisorTrendPoint(BaseSchema):
+    """Trend point for supervisor performance"""
+    period_label: str
+    complaints_resolved: int
+    maintenance_completed: int
+    performance_score: Decimal
+
+
+class SupervisorDashboardAnalytics(BaseSchema):
+    """Supervisor dashboard analytics"""
+    supervisor_id: UUID
+    supervisor_name: str
+    hostel_id: UUID
+    hostel_name: str
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    kpi: SupervisorKPI
+    trend: List[SupervisorTrendPoint] = Field(default_factory=list)
+
+    # Breakdown
+    complaints_by_category: Dict[str, int] = Field(default_factory=dict)
+    maintenance_by_category: Dict[str, int] = Field(default_factory=dict)
+
+
+class SupervisorComparison(BaseSchema):
+    """Compare supervisors within hostel or platform"""
+    scope_type: str = Field(..., pattern="^(hostel|platform)$")
+    hostel_id: Optional[UUID] = None
+
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    supervisors: List[SupervisorKPI] = Field(default_factory=list)
+
+    # Rankings
+    ranked_by_performance: List[UUID] = Field(default_factory=list)
+    ranked_by_resolution_speed: List[UUID] = Field(default_factory=list)
+    ranked_by_feedback_score: List[UUID] = Field(default_factory=list)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\visitor_analytics.py ---
+"""
+Visitor & funnel analytics schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.enums import SearchSource
+from app.schemas.common.filters import DateRangeFilter
+
+
+class VisitorFunnel(BaseSchema):
+    """Visitor funnel from views → registration → booking"""
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Counts
+    total_visits: int
+    unique_visitors: int
+    registrations: int
+    bookings: int
+
+    # Conversion rates
+    visit_to_registration_rate: Decimal
+    registration_to_booking_rate: Decimal
+    visit_to_booking_rate: Decimal
+
+    # Drop-off points
+    dropped_after_search: int
+    dropped_after_hostel_view: int
+    dropped_after_booking_start: int
+
+
+class TrafficSourceAnalytics(BaseSchema):
+    """Traffic sources for visitor acquisition"""
+    period: DateRangeFilter
+    total_visits: int
+
+    visits_by_source: Dict[SearchSource, int] = Field(default_factory=dict)
+    registrations_by_source: Dict[SearchSource, int] = Field(default_factory=dict)
+    bookings_by_source: Dict[SearchSource, int] = Field(default_factory=dict)
+
+    # Conversion by source
+    visit_to_booking_rate_by_source: Dict[SearchSource, Decimal] = Field(
+        default_factory=dict
+    )
+
+
+class VisitorBehaviorAnalytics(BaseSchema):
+    """Behavior analytics for visitors"""
+    period: DateRangeFilter
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Search behavior
+    average_searches_per_session: Decimal
+    average_filters_used: Decimal
+    most_searched_cities: List[str] = Field(default_factory=list)
+    most_filtered_amenities: List[str] = Field(default_factory=list)
+
+    # Engagement
+    average_hostels_viewed_per_session: Decimal
+    average_time_on_hostel_page_seconds: Decimal
+    comparison_tool_usage_rate: Decimal
+
+    # Exit pages
+    common_exit_reasons: List[str] = Field(default_factory=list)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\analytics\__init__.py ---
+"""
+Analytics schemas package
+"""
+
+from app.schemas.analytics.dashboard_analytics import (
+    DashboardMetrics,
+    KPIResponse,
+    QuickStats,
+)
+from app.schemas.analytics.financial_analytics import (
+    FinancialReport,
+    RevenueBreakdown,
+    ExpenseBreakdown,
+    ProfitAndLossReport,
+    CashflowSummary,
+)
+from app.schemas.analytics.occupancy_analytics import (
+    OccupancyReport,
+    OccupancyKPI,
+    OccupancyTrendPoint,
+    ForecastData,
+)
+from app.schemas.analytics.complaint_analytics import (
+    ComplaintKPI,
+    ComplaintDashboard,
+    ComplaintTrend,
+)
+from app.schemas.analytics.visitor_analytics import (
+    VisitorFunnel,
+    TrafficSourceAnalytics,
+    VisitorBehaviorAnalytics,
+)
+from app.schemas.analytics.booking_analytics import (
+    BookingFunnel,
+    BookingKPI,
+    BookingTrendPoint,
+    CancellationAnalytics,
+)
+from app.schemas.analytics.supervisor_analytics import (
+    SupervisorKPI,
+    SupervisorDashboardAnalytics,
+    SupervisorComparison,
+)
+from app.schemas.analytics.platform_analytics import (
+    PlatformMetrics,
+    GrowthMetrics,
+    PlatformUsageAnalytics,
+)
+from app.schemas.analytics.custom_reports import (
+    CustomReportRequest,
+    CustomReportDefinition,
+    CustomReportResult,
+)
+
+__all__ = [
+    # Dashboard
+    "DashboardMetrics",
+    "KPIResponse",
+    "QuickStats",
+    # Financial
+    "FinancialReport",
+    "RevenueBreakdown",
+    "ExpenseBreakdown",
+    "ProfitAndLossReport",
+    "CashflowSummary",
+    # Occupancy
+    "OccupancyReport",
+    "OccupancyKPI",
+    "OccupancyTrendPoint",
+    "ForecastData",
+    # Complaints
+    "ComplaintKPI",
+    "ComplaintDashboard",
+    "ComplaintTrend",
+    # Visitor
+    "VisitorFunnel",
+    "TrafficSourceAnalytics",
+    "VisitorBehaviorAnalytics",
+    # Booking
+    "BookingFunnel",
+    "BookingKPI",
+    "BookingTrendPoint",
+    "CancellationAnalytics",
+    # Supervisor
+    "SupervisorKPI",
+    "SupervisorDashboardAnalytics",
+    "SupervisorComparison",
+    # Platform
+    "PlatformMetrics",
+    "GrowthMetrics",
+    "PlatformUsageAnalytics",
+    # Custom reports
+    "CustomReportRequest",
+    "CustomReportDefinition",
+    "CustomReportResult",
+]

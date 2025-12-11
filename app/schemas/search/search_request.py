@@ -1,50 +1,537 @@
+# --- File: app/schemas/search/search_request.py ---
 """
-Search request schemas (hostels, rooms, etc.)
-"""
-from typing import List, Optional
-from pydantic import Field
-from uuid import UUID
-from decimal import Decimal
+Search request schemas with comprehensive validation and type safety.
 
-from app.schemas.common.base import BaseSchema, BaseFilterSchema
-from app.schemas.common.enums import HostelType, RoomType
+Provides schemas for:
+- Basic keyword search
+- Advanced search with multiple filters
+- Nearby/proximity search
+- Saved searches
+- Search history
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseFilterSchema,
+    BaseResponseSchema,
+    BaseUpdateSchema,
+)
+from app.schemas.common.enums import Gender, HostelType, RoomType
+
+__all__ = [
+    "BasicSearchRequest",
+    "AdvancedSearchRequest",
+    "NearbySearchRequest",
+    "SavedSearchCreate",
+    "SavedSearchUpdate",
+    "SavedSearchResponse",
+    "SearchHistoryResponse",
+]
 
 
 class BasicSearchRequest(BaseFilterSchema):
-    """Simple keyword search"""
-    query: str = Field(..., min_length=1, max_length=255)
+    """
+    Simple keyword-based search request.
+
+    Optimized for quick searches with minimal parameters.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Search query string",
+        examples=["hostels in Mumbai", "PG near me"],
+    )
+    limit: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Maximum number of results to return",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def validate_and_normalize_query(cls, v: str) -> str:
+        """
+        Normalize search query.
+
+        - Strips whitespace
+        - Removes excessive spaces
+        - Validates non-empty after normalization
+        """
+        # Strip and normalize whitespace
+        normalized = " ".join(v.split())
+
+        if not normalized:
+            raise ValueError("Search query cannot be empty or only whitespace")
+
+        return normalized
 
 
 class AdvancedSearchRequest(BaseFilterSchema):
-    """Advanced hostel search request (public)"""
-    query: Optional[str] = Field(None, max_length=255)
+    """
+    Advanced search request with comprehensive filtering options.
 
-    # Location
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = Field(None, pattern=r"^\d{6}$")
+    Supports:
+    - Text search
+    - Geographic filtering
+    - Price range
+    - Amenity filtering
+    - Rating filters
+    - Availability filters
+    - Sorting and pagination
+    """
 
-    latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
-    longitude: Optional[Decimal] = Field(None, ge=-180, le=180)
-    radius_km: Optional[Decimal] = Field(None, ge=0, le=100)
+    # Search query
+    query: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Optional search keywords",
+        examples=["boys hostel", "PG with meals"],
+    )
 
-    # Filters
-    hostel_type: Optional[HostelType] = None
-    room_type: Optional[RoomType] = None
+    # Location filters
+    city: Optional[str] = Field(
+        None,
+        min_length=2,
+        max_length=100,
+        description="City name",
+        examples=["Mumbai", "Bangalore"],
+    )
+    state: Optional[str] = Field(
+        None,
+        min_length=2,
+        max_length=100,
+        description="State name",
+        examples=["Maharashtra", "Karnataka"],
+    )
+    pincode: Optional[str] = Field(
+        None,
+        pattern=r"^\d{6}$",
+        description="6-digit Indian pincode",
+        examples=["400001", "560001"],
+    )
 
-    min_price: Optional[Decimal] = Field(None, ge=0)
-    max_price: Optional[Decimal] = Field(None, ge=0)
+    # Geographic coordinates for proximity search
+    latitude: Optional[Decimal] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description="Latitude for proximity search",
+        examples=[19.0760],
+    )
+    longitude: Optional[Decimal] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description="Longitude for proximity search",
+        examples=[72.8777],
+    )
+    radius_km: Optional[Decimal] = Field(
+        None,
+        ge=0.1,
+        le=100,
+        description="Search radius in kilometers",
+        examples=[5, 10, 25],
+    )
 
-    amenities: Optional[List[str]] = None
-    min_rating: Optional[Decimal] = Field(None, ge=0, le=5)
+    # Hostel and room type filters
+    hostel_type: Optional[HostelType] = Field(
+        None,
+        description="Filter by hostel type (boys/girls/co-ed)",
+    )
+    room_types: Optional[List[RoomType]] = Field(
+        None,
+        description="Filter by room types (can select multiple)",
+        examples=[["single", "double"]],
+    )
 
-    verified_only: bool = Field(False)
-    available_only: bool = Field(False)
+    # Gender preference (for co-ed hostels)
+    gender_preference: Optional[Gender] = Field(
+        None,
+        description="Gender preference for room allocation",
+    )
 
-    # Sorting
+    # Price range filter
+    min_price: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Minimum monthly price in INR",
+        examples=[5000, 10000],
+    )
+    max_price: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Maximum monthly price in INR",
+        examples=[20000, 30000],
+    )
+
+    # Amenities filter
+    amenities: Optional[List[str]] = Field(
+        None,
+        description="Required amenities (AND logic - hostel must have all)",
+        examples=[["wifi", "ac", "parking"]],
+    )
+    any_amenities: Optional[List[str]] = Field(
+        None,
+        description="Optional amenities (OR logic - hostel can have any)",
+        examples=[["gym", "laundry", "swimming_pool"]],
+    )
+
+    # Rating filter
+    min_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Minimum average rating (0-5)",
+        examples=[3.5, 4.0],
+    )
+
+    # Availability filters
+    verified_only: bool = Field(
+        False,
+        description="Show only verified hostels",
+    )
+    available_only: bool = Field(
+        False,
+        description="Show only hostels with available beds",
+    )
+    instant_booking: bool = Field(
+        False,
+        description="Show only hostels with instant booking enabled",
+    )
+
+    # Date-based availability
+    check_in_date: Optional[date] = Field(
+        None,
+        description="Desired check-in date for availability check",
+    )
+    check_out_date: Optional[date] = Field(
+        None,
+        description="Desired check-out date for availability check",
+    )
+
+    # Sorting options
     sort_by: str = Field(
         "relevance",
-        pattern="^(relevance|price_asc|price_desc|rating_desc|distance_asc|newest)$",
+        pattern=r"^(relevance|price_asc|price_desc|rating_desc|distance_asc|newest|popular)$",
+        description="Sort criterion",
     )
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
+
+    # Pagination
+    page: int = Field(
+        1,
+        ge=1,
+        description="Page number (1-indexed)",
+    )
+    page_size: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Results per page",
+    )
+
+    # Advanced options
+    include_nearby_cities: bool = Field(
+        False,
+        description="Include results from nearby cities",
+    )
+    boost_featured: bool = Field(
+        True,
+        description="Boost featured/promoted hostels in results",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def normalize_query(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize search query."""
+        if v is not None:
+            normalized = " ".join(v.split())
+            return normalized if normalized else None
+        return v
+
+    @field_validator("city", "state")
+    @classmethod
+    def normalize_location(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize location strings."""
+        if v is not None:
+            return v.strip().title()
+        return v
+
+    @field_validator("amenities", "any_amenities")
+    @classmethod
+    def normalize_amenities(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Normalize amenity list (lowercase, deduplicate)."""
+        if v is not None:
+            # Convert to lowercase and remove duplicates while preserving order
+            seen = set()
+            normalized = []
+            for amenity in v:
+                amenity_lower = amenity.lower().strip()
+                if amenity_lower and amenity_lower not in seen:
+                    seen.add(amenity_lower)
+                    normalized.append(amenity_lower)
+            return normalized if normalized else None
+        return v
+
+    @model_validator(mode="after")
+    def validate_location_consistency(self) -> "AdvancedSearchRequest":
+        """
+        Validate location-related fields consistency.
+
+        - Ensure radius is provided only with coordinates
+        - Validate price range
+        - Validate date range
+        """
+        # Validate radius requires coordinates
+        if self.radius_km is not None:
+            if self.latitude is None or self.longitude is None:
+                raise ValueError(
+                    "Both latitude and longitude are required when using radius_km"
+                )
+
+        # Validate price range
+        if (
+            self.min_price is not None
+            and self.max_price is not None
+            and self.min_price > self.max_price
+        ):
+            raise ValueError("min_price cannot be greater than max_price")
+
+        # Validate date range
+        if self.check_in_date and self.check_out_date:
+            if self.check_in_date >= self.check_out_date:
+                raise ValueError("check_in_date must be before check_out_date")
+
+            # Validate dates are not in the past
+            today = date.today()
+            if self.check_in_date < today:
+                raise ValueError("check_in_date cannot be in the past")
+
+        return self
+
+    @property
+    def has_location_filter(self) -> bool:
+        """Check if any location filter is applied."""
+        return any(
+            [
+                self.city,
+                self.state,
+                self.pincode,
+                self.latitude and self.longitude,
+            ]
+        )
+
+    @property
+    def has_price_filter(self) -> bool:
+        """Check if price filter is applied."""
+        return self.min_price is not None or self.max_price is not None
+
+    @property
+    def offset(self) -> int:
+        """Calculate offset for database queries."""
+        return (self.page - 1) * self.page_size
+
+
+class NearbySearchRequest(BaseFilterSchema):
+    """
+    Proximity-based search request.
+
+    Optimized for "near me" searches and location-based discovery.
+    """
+
+    latitude: Decimal = Field(
+        ...,
+        ge=-90,
+        le=90,
+        description="Current latitude",
+    )
+    longitude: Decimal = Field(
+        ...,
+        ge=-180,
+        le=180,
+        description="Current longitude",
+    )
+    radius_km: Decimal = Field(
+        5.0,
+        ge=0.1,
+        le=50,
+        description="Search radius in kilometers",
+    )
+
+    # Optional filters
+    hostel_type: Optional[HostelType] = Field(
+        None,
+        description="Filter by hostel type",
+    )
+    min_price: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Minimum price filter",
+    )
+    max_price: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Maximum price filter",
+    )
+    available_only: bool = Field(
+        True,
+        description="Show only hostels with available beds",
+    )
+
+    limit: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Maximum number of results",
+    )
+
+    @model_validator(mode="after")
+    def validate_price_range(self) -> "NearbySearchRequest":
+        """Validate price range."""
+        if (
+            self.min_price is not None
+            and self.max_price is not None
+            and self.min_price > self.max_price
+        ):
+            raise ValueError("min_price cannot be greater than max_price")
+        return self
+
+
+class SavedSearchCreate(BaseCreateSchema):
+    """
+    Create saved search for user.
+
+    Allows users to save frequently used search criteria.
+    """
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="User-friendly name for the saved search",
+        examples=["My Daily Commute Search", "Budget Hostels in Mumbai"],
+    )
+    search_criteria: Dict[str, Any] = Field(
+        ...,
+        description="Serialized search parameters (AdvancedSearchRequest as dict)",
+    )
+    is_alert_enabled: bool = Field(
+        False,
+        description="Enable notifications when new matching hostels are added",
+    )
+    alert_frequency: Optional[str] = Field(
+        None,
+        pattern=r"^(daily|weekly|instant)$",
+        description="Alert notification frequency",
+    )
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, v: str) -> str:
+        """Normalize search name."""
+        normalized = " ".join(v.split())
+        if not normalized:
+            raise ValueError("Search name cannot be empty")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_alert_settings(self) -> "SavedSearchCreate":
+        """Validate alert configuration."""
+        if self.is_alert_enabled and not self.alert_frequency:
+            raise ValueError(
+                "alert_frequency is required when is_alert_enabled is True"
+            )
+        if not self.is_alert_enabled and self.alert_frequency:
+            self.alert_frequency = None  # Clear frequency if alerts disabled
+        return self
+
+
+class SavedSearchUpdate(BaseUpdateSchema):
+    """Update saved search configuration."""
+
+    name: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description="Updated name",
+    )
+    search_criteria: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Updated search parameters",
+    )
+    is_alert_enabled: Optional[bool] = Field(
+        None,
+        description="Enable/disable alerts",
+    )
+    alert_frequency: Optional[str] = Field(
+        None,
+        pattern=r"^(daily|weekly|instant)$",
+        description="Alert frequency",
+    )
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize search name."""
+        if v is not None:
+            normalized = " ".join(v.split())
+            return normalized if normalized else None
+        return v
+
+
+class SavedSearchResponse(BaseResponseSchema):
+    """Saved search response schema."""
+
+    user_id: UUID = Field(..., description="User ID who owns this search")
+    name: str = Field(..., description="Search name")
+    search_criteria: Dict[str, Any] = Field(..., description="Search parameters")
+    is_alert_enabled: bool = Field(..., description="Alert status")
+    alert_frequency: Optional[str] = Field(None, description="Alert frequency")
+    last_executed_at: Optional[datetime] = Field(
+        None,
+        description="Last time this search was executed",
+    )
+    result_count: int = Field(
+        0,
+        ge=0,
+        description="Number of results from last execution",
+    )
+
+
+class SearchHistoryResponse(BaseResponseSchema):
+    """Search history entry response."""
+
+    user_id: Optional[UUID] = Field(
+        None,
+        description="User ID (null for anonymous searches)",
+    )
+    query: str = Field(..., description="Search query")
+    search_criteria: Dict[str, Any] = Field(
+        ...,
+        description="Complete search parameters",
+    )
+    result_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of results returned",
+    )
+    execution_time_ms: int = Field(
+        ...,
+        ge=0,
+        description="Query execution time in milliseconds",
+    )
+    clicked_result_ids: List[UUID] = Field(
+        default_factory=list,
+        description="IDs of hostels clicked from this search",
+    )

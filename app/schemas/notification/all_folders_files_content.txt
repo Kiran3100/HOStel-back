@@ -1,0 +1,1202 @@
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification ###
+
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification =====
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\email_notification.py ---
+"""
+Email notification schemas
+"""
+from datetime import datetime
+from typing import List, Optional, Dict
+from pydantic import EmailStr, Field, HttpUrl
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class EmailRequest(BaseCreateSchema):
+    """Send email notification"""
+    recipient_email: EmailStr = Field(..., description="Recipient email address")
+    
+    # CC and BCC
+    cc_emails: List[EmailStr] = Field(default_factory=list)
+    bcc_emails: List[EmailStr] = Field(default_factory=list)
+    
+    # Content
+    subject: str = Field(..., min_length=1, max_length=255)
+    body_html: str = Field(..., description="HTML email body")
+    body_text: Optional[str] = Field(None, description="Plain text fallback")
+    
+    # Attachments
+    attachments: List[HttpUrl] = Field(default_factory=list, description="Attachment URLs")
+    
+    # Template
+    template_code: Optional[str] = None
+    template_variables: Optional[Dict[str, str]] = None
+    
+    # Settings
+    reply_to: Optional[EmailStr] = None
+    from_name: Optional[str] = Field(None, description="Sender name")
+    
+    # Tracking
+    track_opens: bool = Field(True)
+    track_clicks: bool = Field(True)
+    
+    # Priority
+    priority: str = Field("normal", pattern="^(low|normal|high)$")
+
+
+class EmailConfig(BaseSchema):
+    """Email configuration"""
+    # SMTP/Service settings
+    service_provider: str = Field(..., pattern="^(sendgrid|ses|smtp)$")
+    
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    
+    # From address
+    from_email: EmailStr
+    from_name: str
+    
+    # Reply-to
+    reply_to_email: Optional[EmailStr] = None
+    
+    # Rate limiting
+    max_emails_per_hour: int = Field(100, ge=1)
+    
+    # Tracking
+    enable_open_tracking: bool = Field(True)
+    enable_click_tracking: bool = Field(True)
+
+
+class EmailTracking(BaseSchema):
+    """Email tracking information"""
+    email_id: UUID
+    recipient_email: str
+    
+    # Delivery
+    sent_at: datetime
+    delivered_at: Optional[datetime]
+    bounced_at: Optional[datetime]
+    
+    delivery_status: str = Field(
+        ...,
+        pattern="^(sent|delivered|bounced|failed|spam)$"
+    )
+    
+    # Engagement
+    opened: bool = Field(False)
+    first_opened_at: Optional[datetime]
+    open_count: int = Field(0)
+    
+    clicked: bool = Field(False)
+    first_clicked_at: Optional[datetime]
+    click_count: int = Field(0)
+    
+    # Errors
+    bounce_type: Optional[str] = Field(None, description="hard/soft bounce")
+    error_message: Optional[str]
+
+
+class EmailTemplate(BaseSchema):
+    """Email-specific template"""
+    template_code: str
+    
+    subject: str
+    html_body: str
+    text_body: Optional[str]
+    
+    # Styling
+    header_image_url: Optional[HttpUrl]
+    footer_text: Optional[str]
+    
+    # Variables
+    required_variables: List[str]
+    optional_variables: List[str] = Field(default_factory=list)
+
+
+class BulkEmailRequest(BaseCreateSchema):
+    """Send bulk emails"""
+    recipients: List[EmailStr] = Field(..., min_items=1, max_items=1000)
+    
+    subject: str
+    body_html: str
+    
+    # Template
+    template_code: Optional[str] = None
+    
+    # Per-recipient variables
+    recipient_variables: Optional[Dict[str, Dict[str, str]]] = Field(
+        None,
+        description="Email -> variable mapping"
+    )
+    
+    # Batch settings
+    batch_size: int = Field(100, ge=10, le=1000)
+    delay_between_batches_seconds: int = Field(5, ge=1, le=60)
+
+
+class EmailStats(BaseSchema):
+    """Email statistics"""
+    total_sent: int
+    total_delivered: int
+    total_bounced: int
+    total_failed: int
+    
+    delivery_rate: Decimal
+    bounce_rate: Decimal
+    
+    total_opened: int
+    open_rate: Decimal
+    
+    total_clicked: int
+    click_rate: Decimal
+    
+    # By period
+    period_start: date
+    period_end: date
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_base.py ---
+"""
+Notification base schemas
+"""
+from datetime import datetime
+from typing import Dict, Any, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from app.schemas.common.enums import NotificationType, Priority
+
+
+class NotificationBase(BaseSchema):
+    """Base notification schema"""
+    recipient_user_id: Optional[UUID] = Field(None, description="Recipient user ID")
+    recipient_email: Optional[str] = Field(None, description="Recipient email")
+    recipient_phone: Optional[str] = Field(None, description="Recipient phone")
+    
+    notification_type: NotificationType = Field(..., description="Notification channel")
+    
+    # Template
+    template_code: Optional[str] = Field(None, description="Template code to use")
+    
+    # Content
+    subject: Optional[str] = Field(None, max_length=255, description="Subject/Title")
+    message_body: str = Field(..., description="Message content")
+    
+    # Priority
+    priority: Priority = Field(Priority.MEDIUM, description="Delivery priority")
+    
+    # Schedule
+    scheduled_at: Optional[datetime] = Field(None, description="When to send (null = immediate)")
+    
+    # Metadata
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context data")
+    
+    # Related entity
+    hostel_id: Optional[UUID] = Field(None, description="Related hostel")
+
+
+class NotificationCreate(NotificationBase, BaseCreateSchema):
+    """Create notification"""
+    pass
+
+
+class NotificationUpdate(BaseUpdateSchema):
+    """Update notification (limited fields)"""
+    scheduled_at: Optional[datetime] = None
+    priority: Optional[Priority] = None
+    status: Optional[str] = None
+
+
+class MarkAsRead(BaseCreateSchema):
+    """Mark notification as read"""
+    notification_id: UUID
+    user_id: UUID
+
+
+class BulkMarkAsRead(BaseCreateSchema):
+    """Mark multiple notifications as read"""
+    notification_ids: List[UUID] = Field(..., min_items=1)
+    user_id: UUID
+
+
+class NotificationDelete(BaseCreateSchema):
+    """Delete notification"""
+    notification_id: UUID
+    user_id: UUID
+    
+    # Soft delete
+    permanent: bool = Field(False, description="Permanently delete vs soft delete")
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_preferences.py ---
+"""
+Notification preferences schemas
+"""
+from typing import Dict, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseUpdateSchema
+
+
+class UserPreferences(BaseSchema):
+    """User notification preferences"""
+    user_id: UUID
+    
+    # Global settings
+    notifications_enabled: bool = Field(True)
+    
+    # Channel preferences
+    email_enabled: bool = Field(True)
+    sms_enabled: bool = Field(True)
+    push_enabled: bool = Field(True)
+    
+    # Frequency
+    frequency_settings: "FrequencySettings"
+    
+    # Quiet hours
+    quiet_hours_enabled: bool = Field(False)
+    quiet_hours_start: Optional[str] = Field(None, description="HH:MM format")
+    quiet_hours_end: Optional[str] = Field(None, description="HH:MM format")
+    
+    # Category preferences
+    payment_notifications: bool = Field(True)
+    booking_notifications: bool = Field(True)
+    complaint_notifications: bool = Field(True)
+    announcement_notifications: bool = Field(True)
+    maintenance_notifications: bool = Field(True)
+    attendance_notifications: bool = Field(True)
+    marketing_notifications: bool = Field(False)
+
+
+class ChannelPreferences(BaseSchema):
+    """Channel-specific preferences"""
+    user_id: UUID
+    
+    # Email preferences
+    email: "EmailPreferences"
+    
+    # SMS preferences
+    sms: "SMSPreferences"
+    
+    # Push preferences
+    push: "PushPreferences"
+
+
+class EmailPreferences(BaseSchema):
+    """Email notification preferences"""
+    enabled: bool = Field(True)
+    
+    # Digest settings
+    daily_digest: bool = Field(False)
+    weekly_digest: bool = Field(False)
+    
+    # Categories
+    receive_payment_emails: bool = Field(True)
+    receive_booking_emails: bool = Field(True)
+    receive_announcement_emails: bool = Field(True)
+    receive_marketing_emails: bool = Field(False)
+
+
+class SMSPreferences(BaseSchema):
+    """SMS notification preferences"""
+    enabled: bool = Field(True)
+    
+    # Only critical by default
+    urgent_only: bool = Field(True)
+    
+    # Categories
+    receive_payment_sms: bool = Field(True)
+    receive_booking_sms: bool = Field(True)
+    receive_emergency_sms: bool = Field(True)
+
+
+class PushPreferences(BaseSchema):
+    """Push notification preferences"""
+    enabled: bool = Field(True)
+    
+    # Sound
+    sound_enabled: bool = Field(True)
+    
+    # Badge
+    badge_enabled: bool = Field(True)
+    
+    # Preview
+    show_preview: bool = Field(True, description="Show message preview on lock screen")
+
+
+class FrequencySettings(BaseSchema):
+    """Notification frequency settings"""
+    # Immediate
+    immediate_notifications: bool = Field(True)
+    
+    # Batching
+    batch_notifications: bool = Field(False)
+    batch_interval_hours: int = Field(4, ge=1, le=24)
+    
+    # Digest
+    daily_digest_time: Optional[str] = Field(None, description="HH:MM format")
+    weekly_digest_day: Optional[str] = Field(None, description="Monday, Tuesday, etc.")
+
+
+class PreferenceUpdate(BaseUpdateSchema):
+    """Update notification preferences"""
+    notifications_enabled: Optional[bool] = None
+    email_enabled: Optional[bool] = None
+    sms_enabled: Optional[bool] = None
+    push_enabled: Optional[bool] = None
+    
+    quiet_hours_enabled: Optional[bool] = None
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+    
+    # Category toggles
+    payment_notifications: Optional[bool] = None
+    booking_notifications: Optional[bool] = None
+    complaint_notifications: Optional[bool] = None
+    announcement_notifications: Optional[bool] = None
+    marketing_notifications: Optional[bool] = None
+
+
+class UnsubscribeRequest(BaseSchema):
+    """Unsubscribe from notifications"""
+    user_id: UUID
+    unsubscribe_token: str
+    
+    # What to unsubscribe from
+    unsubscribe_type: str = Field(
+        ...,
+        pattern="^(all|email|sms|marketing|specific_category)$"
+    )
+    
+    category: Optional[str] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_queue.py ---
+"""
+Notification queue schemas
+"""
+from datetime import datetime
+from typing import Optional, List
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.enums import NotificationType, NotificationStatus, Priority
+
+
+class QueueStatus(BaseSchema):
+    """Notification queue status"""
+    total_queued: int
+    total_processing: int
+    total_failed: int
+    
+    # By priority
+    urgent_queued: int
+    high_queued: int
+    medium_queued: int
+    low_queued: int
+    
+    # By type
+    email_queued: int
+    sms_queued: int
+    push_queued: int
+    
+    # Processing rate
+    avg_processing_time_seconds: Decimal
+    throughput_per_minute: Decimal
+
+
+class QueuedNotification(BaseSchema):
+    """Queued notification details"""
+    notification_id: UUID
+    
+    notification_type: NotificationType
+    priority: Priority
+    status: NotificationStatus
+    
+    recipient: str = Field(..., description="Email/phone/user_id")
+    
+    scheduled_at: Optional[datetime]
+    queued_at: datetime
+    
+    retry_count: int
+    max_retries: int
+    
+    estimated_send_time: Optional[datetime]
+
+
+class BatchProcessing(BaseSchema):
+    """Batch processing status"""
+    batch_id: UUID
+    
+    total_notifications: int
+    processed: int
+    successful: int
+    failed: int
+    
+    status: str = Field(..., pattern="^(queued|processing|completed|failed)$")
+    
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    
+    estimated_completion: Optional[datetime]
+
+
+class QueueStats(BaseSchema):
+    """Queue statistics"""
+    # Current state
+    current_queue_size: int
+    oldest_queued_age_minutes: Optional[int]
+    
+    # Today's stats
+    today_processed: int
+    today_successful: int
+    today_failed: int
+    
+    # Rates
+    success_rate: Decimal
+    failure_rate: Decimal
+    
+    # Performance
+    average_queue_time_minutes: Decimal
+    average_processing_time_seconds: Decimal
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_response.py ---
+"""
+Notification response schemas
+"""
+from datetime import datetime
+from typing import Dict, Any, List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import NotificationType, NotificationStatus
+
+
+class NotificationResponse(BaseResponseSchema):
+    """Notification response"""
+    recipient_user_id: Optional[UUID]
+    recipient_email: Optional[str]
+    recipient_phone: Optional[str]
+    
+    notification_type: NotificationType
+    
+    subject: Optional[str]
+    message_body: str
+    
+    priority: str
+    status: NotificationStatus
+    
+    scheduled_at: Optional[datetime]
+    sent_at: Optional[datetime]
+    
+    created_at: datetime
+
+
+class NotificationDetail(BaseResponseSchema):
+    """Detailed notification information"""
+    recipient_user_id: Optional[UUID]
+    recipient_email: Optional[str]
+    recipient_phone: Optional[str]
+    
+    notification_type: NotificationType
+    template_code: Optional[str]
+    
+    subject: Optional[str]
+    message_body: str
+    
+    priority: str
+    status: NotificationStatus
+    
+    # Schedule
+    scheduled_at: Optional[datetime]
+    sent_at: Optional[datetime]
+    failed_at: Optional[datetime]
+    
+    # Delivery
+    failure_reason: Optional[str]
+    retry_count: int
+    max_retries: int
+    
+    # Metadata
+    metadata: Dict[str, Any]
+    
+    # Related
+    hostel_id: Optional[UUID]
+    
+    # Timestamps
+    created_at: datetime
+    updated_at: datetime
+
+
+class NotificationList(BaseSchema):
+    """List of notifications for user"""
+    user_id: UUID
+    
+    total_notifications: int
+    unread_count: int
+    
+    notifications: List["NotificationListItem"]
+
+
+class NotificationListItem(BaseSchema):
+    """Notification list item"""
+    id: UUID
+    notification_type: NotificationType
+    
+    subject: Optional[str]
+    message_preview: str = Field(..., description="First 100 characters")
+    
+    priority: str
+    
+    is_read: bool = Field(False)
+    read_at: Optional[datetime]
+    
+    created_at: datetime
+    
+    # Quick actions
+    action_url: Optional[str] = Field(None, description="URL to navigate to")
+    icon: Optional[str] = Field(None, description="Icon identifier")
+
+
+class UnreadCount(BaseSchema):
+    """Unread notification count"""
+    user_id: UUID
+    
+    total_unread: int
+    
+    # By type
+    email_unread: int
+    sms_unread: int
+    push_unread: int
+    in_app_unread: int
+    
+    # By priority
+    urgent_unread: int
+    high_unread: int
+
+
+class NotificationSummary(BaseSchema):
+    """Notification summary for user"""
+    user_id: UUID
+    
+    # Counts
+    total_notifications: int
+    unread_notifications: int
+    
+    # Recent
+    last_notification_at: Optional[datetime]
+    
+    # By type
+    notifications_by_type: Dict[str, int]
+    
+    # By status
+    notifications_by_status: Dict[str, int]
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_routing.py ---
+"""
+Notification routing schemas
+"""
+from typing import List, Optional, Dict
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.enums import UserRole, Priority
+
+
+class RoutingConfig(BaseSchema):
+    """Notification routing configuration"""
+    hostel_id: UUID
+    
+    # Routing rules
+    rules: List["RoutingRule"]
+    
+    # Escalation settings
+    enable_escalation: bool = Field(True)
+    escalation_timeout_hours: int = Field(24, ge=1, le=168)
+
+
+class RoutingRule(BaseSchema):
+    """Individual routing rule"""
+    rule_name: str
+    
+    # Condition
+    event_type: str = Field(..., description="complaint, payment, maintenance, etc.")
+    priority: Optional[Priority] = None
+    
+    # Recipients
+    recipient_roles: List[UserRole]
+    specific_users: List[UUID] = Field(default_factory=list)
+    
+    # Channels
+    channels: List[str] = Field(..., description="email, sms, push")
+    
+    # Active
+    is_active: bool = Field(True)
+
+
+class HierarchicalRouting(BaseSchema):
+    """Hierarchical notification routing"""
+    hostel_id: UUID
+    event_type: str
+    
+    # Routing chain
+    primary_recipients: List[UUID] = Field(..., description="Supervisors")
+    secondary_recipients: List[UUID] = Field(default_factory=list, description="Admins")
+    tertiary_recipients: List[UUID] = Field(default_factory=list, description="Super admin")
+    
+    # Escalation timing
+    escalate_to_secondary_after_hours: int = Field(24)
+    escalate_to_tertiary_after_hours: int = Field(48)
+
+
+class EscalationRouting(BaseCreateSchema):
+    """Escalation routing configuration"""
+    notification_id: UUID
+    
+    # Escalation path
+    escalation_chain: List["EscalationLevel"]
+    
+    # Current level
+    current_level: int = Field(0)
+    
+    # Auto-escalate
+    auto_escalate: bool = Field(True)
+
+
+class EscalationLevel(BaseSchema):
+    """Single level in escalation chain"""
+    level: int
+    recipients: List[UUID]
+    escalate_after_hours: int
+    channels: List[str]
+
+
+class NotificationRoute(BaseSchema):
+    """Determined notification route"""
+    notification_id: UUID
+    
+    # Recipients
+    primary_recipients: List[UUID]
+    cc_recipients: List[UUID] = Field(default_factory=list)
+    
+    # Channels by recipient
+    recipient_channels: Dict[UUID, List[str]]
+    
+    # Escalation
+    escalation_enabled: bool
+    escalation_path: Optional[List[EscalationLevel]]
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\notification_template.py ---
+"""
+Notification template schemas
+"""
+from typing import Dict, List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import NotificationType
+
+
+class TemplateCreate(BaseCreateSchema):
+    """Create notification template"""
+    template_code: str = Field(..., min_length=3, max_length=100, description="Unique template code")
+    template_name: str = Field(..., min_length=3, max_length=255, description="Template name")
+    
+    template_type: NotificationType = Field(..., description="Email, SMS, or Push")
+    
+    # Content
+    subject: Optional[str] = Field(None, max_length=255, description="Subject (for email/push)")
+    body_template: str = Field(..., description="Template with {{variable}} placeholders")
+    
+    # Variables
+    variables: List[str] = Field(..., description="List of required variables")
+    
+    # Settings
+    is_active: bool = Field(True)
+    
+    # Description
+    description: Optional[str] = Field(None, max_length=500)
+
+
+class TemplateUpdate(BaseUpdateSchema):
+    """Update template"""
+    template_name: Optional[str] = Field(None, min_length=3, max_length=255)
+    subject: Optional[str] = None
+    body_template: Optional[str] = None
+    variables: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+    description: Optional[str] = None
+
+
+class TemplateResponse(BaseResponseSchema):
+    """Template response"""
+    template_code: str
+    template_name: str
+    template_type: NotificationType
+    
+    subject: Optional[str]
+    body_template: str
+    
+    variables: List[str]
+    
+    is_active: bool
+    description: Optional[str]
+    
+    # Usage stats
+    usage_count: int = Field(0, description="Times this template has been used")
+    last_used_at: Optional[datetime]
+
+
+class VariableMapping(BaseSchema):
+    """Variable mapping for template rendering"""
+    template_code: str
+    variables: Dict[str, str] = Field(..., description="Variable name -> value mapping")
+
+
+class TemplatePreview(BaseCreateSchema):
+    """Preview rendered template"""
+    template_code: str
+    variables: Dict[str, str]
+
+
+class TemplatePreviewResponse(BaseSchema):
+    """Rendered template preview"""
+    subject: Optional[str]
+    rendered_body: str
+    
+    # Validation
+    all_variables_provided: bool
+    missing_variables: List[str] = Field(default_factory=list)
+
+
+class TemplateList(BaseSchema):
+    """List of templates"""
+    total_templates: int
+    active_templates: int
+    
+    templates: List[TemplateResponse]
+
+
+class TemplateCategory(BaseSchema):
+    """Template category/group"""
+    category_name: str
+    templates: List[TemplateResponse]
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\push_notification.py ---
+"""
+Push notification schemas
+"""
+from datetime import datetime
+from typing import Dict, Optional, List, Any
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from app.schemas.common.enums import DeviceType
+
+
+class PushRequest(BaseCreateSchema):
+    """Send push notification"""
+    # Recipients
+    user_id: Optional[UUID] = Field(None, description="Send to all devices of this user")
+    device_token: Optional[str] = Field(None, description="Send to specific device")
+    device_tokens: Optional[List[str]] = Field(None, description="Send to multiple devices")
+    
+    # Content
+    title: str = Field(..., min_length=1, max_length=100)
+    body: str = Field(..., min_length=1, max_length=500)
+    
+    # Additional data
+    data: Dict[str, Any] = Field(default_factory=dict, description="Custom data payload")
+    
+    # Action
+    action_url: Optional[str] = Field(None, description="Deep link or URL to open")
+    
+    # Appearance
+    icon: Optional[str] = None
+    image_url: Optional[str] = None
+    badge_count: Optional[int] = Field(None, ge=0)
+    
+    # Sound
+    sound: Optional[str] = Field("default", description="Notification sound")
+    
+    # Priority
+    priority: str = Field("normal", pattern="^(low|normal|high)$")
+    
+    # Time to live
+    ttl: int = Field(86400, ge=0, description="Time to live in seconds")
+
+
+class PushConfig(BaseSchema):
+    """Push notification configuration"""
+    # Firebase
+    firebase_project_id: str
+    firebase_server_key: str
+    
+    # APNs (iOS)
+    apns_key_id: Optional[str]
+    apns_team_id: Optional[str]
+    apns_bundle_id: Optional[str]
+    
+    # Settings
+    collapse_key: Optional[str] = Field(None, description="Notification grouping")
+    
+    # Badge management
+    auto_increment_badge: bool = Field(True)
+
+
+class DeviceToken(BaseResponseSchema):
+    """Device token registration"""
+    user_id: UUID
+    device_token: str
+    device_type: DeviceType
+    
+    device_name: Optional[str]
+    device_model: Optional[str]
+    os_version: Optional[str]
+    app_version: Optional[str]
+    
+    is_active: bool
+    last_used_at: datetime
+    registered_at: datetime
+
+
+class DeviceRegistration(BaseCreateSchema):
+    """Register device for push notifications"""
+    user_id: UUID
+    device_token: str = Field(..., min_length=10)
+    device_type: DeviceType
+    
+    # Device details
+    device_name: Optional[str] = None
+    device_model: Optional[str] = None
+    os_version: Optional[str] = None
+    app_version: Optional[str] = None
+    
+    # Timezone
+    timezone: Optional[str] = Field(None, description="Device timezone")
+
+
+class DeviceUnregistration(BaseCreateSchema):
+    """Unregister device"""
+    device_token: str
+    user_id: Optional[UUID] = None
+
+
+class PushTemplate(BaseSchema):
+    """Push notification template"""
+    template_code: str
+    
+    title: str
+    body: str
+    
+    # Default settings
+    default_icon: Optional[str]
+    default_sound: str = Field("default")
+    
+    # Variables
+    required_variables: List[str]
+    
+    # Actions
+    default_action_url: Optional[str]
+
+
+class PushDeliveryStatus(BaseSchema):
+    """Push notification delivery status"""
+    notification_id: UUID
+    device_token: str
+    
+    status: str = Field(
+        ...,
+        pattern="^(queued|sent|delivered|failed|expired)$"
+    )
+    
+    sent_at: Optional[datetime]
+    delivered_at: Optional[datetime]
+    failed_at: Optional[datetime]
+    
+    error_code: Optional[str]
+    error_message: Optional[str]
+    
+    # Provider details
+    provider_message_id: Optional[str]
+
+
+class PushStats(BaseSchema):
+    """Push notification statistics"""
+    total_sent: int
+    total_delivered: int
+    total_failed: int
+    
+    delivery_rate: Decimal
+    
+    # By platform
+    ios_sent: int
+    android_sent: int
+    web_sent: int
+    
+    # Engagement
+    total_opened: int
+    open_rate: Decimal
+    
+    period_start: date
+    period_end: date
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\sms_notification.py ---
+"""
+SMS notification schemas
+"""
+from datetime import datetime
+from typing import Optional, Dict, List
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class SMSRequest(BaseCreateSchema):
+    """Send SMS notification"""
+    recipient_phone: str = Field(..., pattern=r'^\+?[1-9]\d{9,14}$', description="Phone number")
+    
+    message: str = Field(..., min_length=1, max_length=160, description="SMS message (160 chars)")
+    
+    # Template
+    template_code: Optional[str] = None
+    template_variables: Optional[Dict[str, str]] = None
+    
+    # Settings
+    sender_id: Optional[str] = Field(None, max_length=11, description="Sender ID/Name")
+    
+    # Priority
+    priority: str = Field("normal", pattern="^(low|normal|high)$")
+    
+    # DLT (India-specific)
+    dlt_template_id: Optional[str] = Field(None, description="DLT template ID for India")
+
+
+class SMSConfig(BaseSchema):
+    """SMS configuration"""
+    # Service provider
+    service_provider: str = Field(..., pattern="^(twilio|aws_sns|msg91|custom)$")
+    
+    # Credentials
+    account_sid: Optional[str] = None
+    auth_token: Optional[str] = None
+    
+    # Sender
+    default_sender_id: str = Field(..., max_length=11)
+    
+    # Rate limiting
+    max_sms_per_hour: int = Field(100, ge=1)
+    max_sms_per_day: int = Field(1000, ge=1)
+    
+    # Country settings
+    default_country_code: str = Field("+91", description="Default country code")
+
+
+class DeliveryStatus(BaseSchema):
+    """SMS delivery status"""
+    sms_id: UUID
+    recipient_phone: str
+    
+    # Status
+    status: str = Field(
+        ...,
+        pattern="^(queued|sent|delivered|failed|undelivered)$"
+    )
+    
+    # Timeline
+    queued_at: datetime
+    sent_at: Optional[datetime]
+    delivered_at: Optional[datetime]
+    failed_at: Optional[datetime]
+    
+    # Error
+    error_code: Optional[str]
+    error_message: Optional[str]
+    
+    # Provider details
+    provider_message_id: Optional[str]
+    segments_count: int = Field(1, description="Number of SMS segments")
+    
+    # Cost
+    cost: Optional[Decimal] = Field(None, description="Cost per SMS")
+
+
+class SMSTemplate(BaseSchema):
+    """SMS template"""
+    template_code: str
+    message_template: str = Field(..., max_length=160)
+    
+    # Variables
+    required_variables: List[str]
+    
+    # DLT (India)
+    dlt_template_id: Optional[str]
+    dlt_approved: bool = Field(False)
+
+
+class BulkSMSRequest(BaseCreateSchema):
+    """Send bulk SMS"""
+    recipients: List[str] = Field(
+        ...,
+        min_items=1,
+        max_items=10000,
+        description="List of phone numbers"
+    )
+    
+    message: str = Field(..., max_length=160)
+    
+    # Template
+    template_code: Optional[str] = None
+    
+    # Per-recipient variables
+    recipient_variables: Optional[Dict[str, Dict[str, str]]] = None
+    
+    # Batch settings
+    batch_size: int = Field(100, ge=10, le=1000)
+    delay_between_batches_seconds: int = Field(2, ge=1, le=10)
+
+
+class SMSStats(BaseSchema):
+    """SMS statistics"""
+    total_sent: int
+    total_delivered: int
+    total_failed: int
+    
+    delivery_rate: Decimal
+    failure_rate: Decimal
+    
+    # Cost
+    total_cost: Decimal
+    average_cost_per_sms: Decimal
+    
+    # Segments
+    total_segments: int
+    average_segments_per_sms: Decimal
+    
+    period_start: date
+    period_end: date
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\notification\__init__.py ---
+"""
+Notification schemas package
+"""
+from app.schemas.notification.notification_base import (
+    NotificationBase,
+    NotificationCreate,
+    NotificationUpdate
+)
+from app.schemas.notification.notification_response import (
+    NotificationResponse,
+    NotificationList,
+    UnreadCount,
+    NotificationDetail
+)
+from app.schemas.notification.notification_template import (
+    TemplateCreate,
+    TemplateUpdate,
+    TemplateResponse,
+    VariableMapping
+)
+from app.schemas.notification.email_notification import (
+    EmailRequest,
+    EmailConfig,
+    EmailTracking,
+    EmailTemplate
+)
+from app.schemas.notification.sms_notification import (
+    SMSRequest,
+    SMSConfig,
+    DeliveryStatus,
+    SMSTemplate
+)
+from app.schemas.notification.push_notification import (
+    PushRequest,
+    PushConfig,
+    DeviceToken,
+    DeviceRegistration,
+    PushTemplate
+)
+from app.schemas.notification.notification_queue import (
+    QueueStatus,
+    QueuedNotification,
+    BatchProcessing,
+    QueueStats
+)
+from app.schemas.notification.notification_preferences import (
+    UserPreferences,
+    ChannelPreferences,
+    FrequencySettings,
+    PreferenceUpdate
+)
+from app.schemas.notification.notification_routing import (
+    RoutingConfig,
+    HierarchicalRouting,
+    EscalationRouting,
+    RoutingRule
+)
+
+__all__ = [
+    # Base
+    "NotificationBase",
+    "NotificationCreate",
+    "NotificationUpdate",
+    
+    # Response
+    "NotificationResponse",
+    "NotificationList",
+    "UnreadCount",
+    "NotificationDetail",
+    
+    # Template
+    "TemplateCreate",
+    "TemplateUpdate",
+    "TemplateResponse",
+    "VariableMapping",
+    
+    # Email
+    "EmailRequest",
+    "EmailConfig",
+    "EmailTracking",
+    "EmailTemplate",
+    
+    # SMS
+    "SMSRequest",
+    "SMSConfig",
+    "DeliveryStatus",
+    "SMSTemplate",
+    
+    # Push
+    "PushRequest",
+    "PushConfig",
+    "DeviceToken",
+    "DeviceRegistration",
+    "PushTemplate",
+    
+    # Queue
+    "QueueStatus",
+    "QueuedNotification",
+    "BatchProcessing",
+    "QueueStats",
+    
+    # Preferences
+    "UserPreferences",
+    "ChannelPreferences",
+    "FrequencySettings",
+    "PreferenceUpdate",
+    
+    # Routing
+    "RoutingConfig",
+    "HierarchicalRouting",
+    "EscalationRouting",
+    "RoutingRule",
+]

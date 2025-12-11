@@ -1,131 +1,502 @@
+# --- File: app/schemas/notification/notification_response.py ---
 """
-Notification response schemas
+Notification response schemas.
+
+This module provides response models for notification queries, lists,
+and detailed information returned by the API.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from pydantic import Field
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from pydantic import Field, computed_field
+
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import NotificationType, NotificationStatus
+from app.schemas.common.enums import NotificationStatus, NotificationType, Priority
+
+__all__ = [
+    "NotificationResponse",
+    "NotificationDetail",
+    "NotificationList",
+    "NotificationListItem",
+    "UnreadCount",
+    "NotificationSummary",
+]
 
 
 class NotificationResponse(BaseResponseSchema):
-    """Notification response"""
-    recipient_user_id: Optional[UUID]
-    recipient_email: Optional[str]
-    recipient_phone: Optional[str]
-    
-    notification_type: NotificationType
-    
-    subject: Optional[str]
-    message_body: str
-    
-    priority: str
-    status: NotificationStatus
-    
-    scheduled_at: Optional[datetime]
-    sent_at: Optional[datetime]
-    
-    created_at: datetime
+    """
+    Standard notification response.
+
+    Used for single notification queries and list items.
+    """
+
+    # Recipient information
+    recipient_user_id: Optional[UUID] = Field(
+        None,
+        description="Recipient user ID",
+    )
+    recipient_email: Optional[str] = Field(
+        None,
+        description="Recipient email address",
+    )
+    recipient_phone: Optional[str] = Field(
+        None,
+        description="Recipient phone number",
+    )
+
+    # Notification details
+    notification_type: NotificationType = Field(
+        ...,
+        description="Notification delivery channel",
+    )
+    subject: Optional[str] = Field(
+        None,
+        description="Notification subject/title",
+    )
+    message_body: str = Field(
+        ...,
+        description="Notification message content",
+    )
+
+    # Status and priority
+    priority: Priority = Field(
+        ...,
+        description="Notification priority level",
+    )
+    status: NotificationStatus = Field(
+        ...,
+        description="Current notification status",
+    )
+
+    # Timing
+    scheduled_at: Optional[datetime] = Field(
+        None,
+        description="Scheduled delivery time",
+    )
+    sent_at: Optional[datetime] = Field(
+        None,
+        description="Actual send time",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+
+    @computed_field
+    @property
+    def is_sent(self) -> bool:
+        """Check if notification has been sent."""
+        return self.status in [
+            NotificationStatus.SENT,
+            NotificationStatus.COMPLETED,
+        ]
+
+    @computed_field
+    @property
+    def is_pending(self) -> bool:
+        """Check if notification is pending delivery."""
+        return self.status in [
+            NotificationStatus.QUEUED,
+            NotificationStatus.PROCESSING,
+        ]
 
 
 class NotificationDetail(BaseResponseSchema):
-    """Detailed notification information"""
-    recipient_user_id: Optional[UUID]
-    recipient_email: Optional[str]
-    recipient_phone: Optional[str]
-    
-    notification_type: NotificationType
-    template_code: Optional[str]
-    
-    subject: Optional[str]
-    message_body: str
-    
-    priority: str
-    status: NotificationStatus
-    
-    # Schedule
-    scheduled_at: Optional[datetime]
-    sent_at: Optional[datetime]
-    failed_at: Optional[datetime]
-    
-    # Delivery
-    failure_reason: Optional[str]
-    retry_count: int
-    max_retries: int
-    
-    # Metadata
-    metadata: Dict[str, Any]
-    
-    # Related
-    hostel_id: Optional[UUID]
-    
-    # Timestamps
-    created_at: datetime
-    updated_at: datetime
+    """
+    Detailed notification information.
 
+    Includes extended fields for comprehensive notification data,
+    delivery tracking, and metadata.
+    """
 
-class NotificationList(BaseSchema):
-    """List of notifications for user"""
-    user_id: UUID
-    
-    total_notifications: int
-    unread_count: int
-    
-    notifications: List["NotificationListItem"]
+    # Recipient information
+    recipient_user_id: Optional[UUID] = Field(
+        None,
+        description="Recipient user ID",
+    )
+    recipient_email: Optional[str] = Field(
+        None,
+        description="Recipient email address",
+    )
+    recipient_phone: Optional[str] = Field(
+        None,
+        description="Recipient phone number",
+    )
+
+    # Template and content
+    notification_type: NotificationType = Field(
+        ...,
+        description="Notification delivery channel",
+    )
+    template_code: Optional[str] = Field(
+        None,
+        description="Template code used",
+    )
+    subject: Optional[str] = Field(
+        None,
+        description="Notification subject/title",
+    )
+    message_body: str = Field(
+        ...,
+        description="Notification message content",
+    )
+
+    # Status and priority
+    priority: Priority = Field(
+        ...,
+        description="Notification priority level",
+    )
+    status: NotificationStatus = Field(
+        ...,
+        description="Current notification status",
+    )
+
+    # Scheduling and delivery
+    scheduled_at: Optional[datetime] = Field(
+        None,
+        description="Scheduled delivery time",
+    )
+    sent_at: Optional[datetime] = Field(
+        None,
+        description="Actual send time",
+    )
+    delivered_at: Optional[datetime] = Field(
+        None,
+        description="Delivery confirmation time",
+    )
+    failed_at: Optional[datetime] = Field(
+        None,
+        description="Failure timestamp",
+    )
+
+    # Retry and error handling
+    failure_reason: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Reason for delivery failure",
+    )
+    retry_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of retry attempts",
+    )
+    max_retries: int = Field(
+        default=3,
+        ge=0,
+        description="Maximum allowed retries",
+    )
+
+    # Engagement tracking
+    read_at: Optional[datetime] = Field(
+        None,
+        description="When the notification was read",
+    )
+    clicked_at: Optional[datetime] = Field(
+        None,
+        description="When any link in the notification was clicked",
+    )
+
+    # Metadata and context
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional notification metadata",
+    )
+
+    # Related entities
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Associated hostel ID",
+    )
+
+    # Audit timestamps
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+    updated_at: datetime = Field(
+        ...,
+        description="Last update timestamp",
+    )
+
+    @computed_field
+    @property
+    def is_read(self) -> bool:
+        """Check if notification has been read."""
+        return self.read_at is not None
+
+    @computed_field
+    @property
+    def can_retry(self) -> bool:
+        """Check if notification can be retried."""
+        return (
+            self.status == NotificationStatus.FAILED
+            and self.retry_count < self.max_retries
+        )
+
+    @computed_field
+    @property
+    def delivery_duration_seconds(self) -> Optional[int]:
+        """Calculate delivery duration in seconds."""
+        if self.sent_at and self.delivered_at:
+            return int((self.delivered_at - self.sent_at).total_seconds())
+        return None
 
 
 class NotificationListItem(BaseSchema):
-    """Notification list item"""
-    id: UUID
-    notification_type: NotificationType
-    
-    subject: Optional[str]
-    message_preview: str = Field(..., description="First 100 characters")
-    
-    priority: str
-    
-    is_read: bool = Field(False)
-    read_at: Optional[datetime]
-    
-    created_at: datetime
-    
-    # Quick actions
-    action_url: Optional[str] = Field(None, description="URL to navigate to")
-    icon: Optional[str] = Field(None, description="Icon identifier")
+    """
+    Compact notification item for list views.
+
+    Optimized for performance with minimal data for displaying
+    notification lists efficiently.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="Notification ID",
+    )
+    notification_type: NotificationType = Field(
+        ...,
+        description="Notification channel",
+    )
+
+    # Content preview
+    subject: Optional[str] = Field(
+        None,
+        description="Notification subject",
+    )
+    message_preview: str = Field(
+        ...,
+        max_length=150,
+        description="Message preview (first 150 characters)",
+    )
+
+    # Status
+    priority: Priority = Field(
+        ...,
+        description="Priority level",
+    )
+    status: NotificationStatus = Field(
+        ...,
+        description="Current status",
+    )
+
+    # Read status
+    is_read: bool = Field(
+        default=False,
+        description="Whether notification has been read",
+    )
+    read_at: Optional[datetime] = Field(
+        None,
+        description="When notification was read",
+    )
+
+    # Timing
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+
+    # Actions and UI
+    action_url: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="URL to navigate to when notification is clicked",
+    )
+    icon: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Icon identifier for UI rendering",
+    )
+    category: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Notification category for grouping",
+    )
+
+    @computed_field
+    @property
+    def is_urgent(self) -> bool:
+        """Check if notification is urgent."""
+        return self.priority in [Priority.URGENT, Priority.CRITICAL]
+
+
+class NotificationList(BaseSchema):
+    """
+    Paginated list of notifications for a user.
+
+    Includes summary statistics and list items.
+    """
+
+    user_id: UUID = Field(
+        ...,
+        description="User ID for this notification list",
+    )
+    total_notifications: int = Field(
+        ...,
+        ge=0,
+        description="Total number of notifications",
+    )
+    unread_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of unread notifications",
+    )
+    notifications: List[NotificationListItem] = Field(
+        ...,
+        description="List of notification items",
+    )
+
+    @computed_field
+    @property
+    def read_count(self) -> int:
+        """Calculate number of read notifications."""
+        return self.total_notifications - self.unread_count
+
+    @computed_field
+    @property
+    def has_unread(self) -> bool:
+        """Check if there are any unread notifications."""
+        return self.unread_count > 0
 
 
 class UnreadCount(BaseSchema):
-    """Unread notification count"""
-    user_id: UUID
-    
-    total_unread: int
-    
-    # By type
-    email_unread: int
-    sms_unread: int
-    push_unread: int
-    in_app_unread: int
-    
+    """
+    Unread notification count breakdown.
+
+    Provides granular unread counts by type and priority.
+    """
+
+    user_id: UUID = Field(
+        ...,
+        description="User ID",
+    )
+
+    # Total unread
+    total_unread: int = Field(
+        ...,
+        ge=0,
+        description="Total unread notifications",
+    )
+
+    # By notification type
+    email_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread email notifications",
+    )
+    sms_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread SMS notifications",
+    )
+    push_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread push notifications",
+    )
+    in_app_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread in-app notifications",
+    )
+
     # By priority
-    urgent_unread: int
-    high_unread: int
+    urgent_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread urgent/critical notifications",
+    )
+    high_unread: int = Field(
+        default=0,
+        ge=0,
+        description="Unread high priority notifications",
+    )
+
+    # Timestamp
+    last_checked_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="When counts were last calculated",
+    )
 
 
 class NotificationSummary(BaseSchema):
-    """Notification summary for user"""
-    user_id: UUID
-    
-    # Counts
-    total_notifications: int
-    unread_notifications: int
-    
-    # Recent
-    last_notification_at: Optional[datetime]
-    
-    # By type
-    notifications_by_type: Dict[str, int]
-    
-    # By status
-    notifications_by_status: Dict[str, int]
+    """
+    Comprehensive notification summary for a user.
+
+    Provides aggregate statistics and insights.
+    """
+
+    user_id: UUID = Field(
+        ...,
+        description="User ID",
+    )
+
+    # Overall counts
+    total_notifications: int = Field(
+        ...,
+        ge=0,
+        description="Total notifications received",
+    )
+    unread_notifications: int = Field(
+        ...,
+        ge=0,
+        description="Unread notification count",
+    )
+
+    # Recent activity
+    last_notification_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of most recent notification",
+    )
+    last_read_at: Optional[datetime] = Field(
+        None,
+        description="When user last read a notification",
+    )
+
+    # Breakdown by type
+    notifications_by_type: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of notifications by type",
+    )
+
+    # Breakdown by status
+    notifications_by_status: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of notifications by status",
+    )
+
+    # Breakdown by priority
+    notifications_by_priority: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of notifications by priority",
+    )
+
+    # Summary period
+    summary_period_days: int = Field(
+        default=30,
+        ge=1,
+        le=365,
+        description="Number of days included in summary",
+    )
+
+    @computed_field
+    @property
+    def read_percentage(self) -> float:
+        """Calculate percentage of read notifications."""
+        if self.total_notifications == 0:
+            return 0.0
+        read_count = self.total_notifications - self.unread_notifications
+        return round((read_count / self.total_notifications) * 100, 2)
+
+    @computed_field
+    @property
+    def has_recent_activity(self) -> bool:
+        """Check if there's been activity in the last 24 hours."""
+        if not self.last_notification_at:
+            return False
+        time_diff = datetime.utcnow() - self.last_notification_at
+        return time_diff.total_seconds() < 86400  # 24 hours

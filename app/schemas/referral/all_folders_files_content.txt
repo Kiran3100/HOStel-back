@@ -1,0 +1,282 @@
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral ###
+
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral =====
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_base.py ---
+"""
+Referral tracking schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import ReferralStatus, RewardStatus
+
+
+class ReferralBase(BaseSchema):
+    """Base referral record"""
+    program_id: UUID
+    referrer_id: UUID
+
+    referee_email: Optional[str] = None
+    referee_phone: Optional[str] = None
+    referee_user_id: Optional[UUID] = None
+
+    referral_code: str = Field(..., max_length=50)
+    status: ReferralStatus = Field(ReferralStatus.PENDING)
+
+
+class ReferralCreate(ReferralBase, BaseCreateSchema):
+    """Create referral (generate code or track share)"""
+    pass
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_code.py ---
+"""
+Referral code generation/validation schemas
+"""
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+
+class ReferralCodeGenerate(BaseCreateSchema):
+    """Generate referral code for user"""
+    user_id: UUID
+    program_id: UUID
+
+    # Optional custom prefix
+    prefix: str = Field("HOSTEL", max_length=10)
+
+
+class ReferralCodeResponse(BaseSchema):
+    """Referral code response"""
+    user_id: UUID
+    program_id: UUID
+    referral_code: str
+
+
+class CodeValidationRequest(BaseCreateSchema):
+    """Validate referral code"""
+    referral_code: str = Field(..., max_length=50)
+
+
+class CodeValidationResponse(BaseSchema):
+    """Validation result"""
+    referral_code: str
+    is_valid: bool
+    program_id: Optional[UUID]
+    referrer_id: Optional[UUID]
+    message: str
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_program_base.py ---
+"""
+Referral program definition schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional, List
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseUpdateSchema, BaseResponseSchema
+from app.schemas.common.enums import PaymentType
+
+
+class ReferralProgramBase(BaseSchema):
+    """Base referral program schema"""
+    program_name: str = Field(..., min_length=3, max_length=100)
+    program_type: str = Field(
+        ...,
+        pattern="^(student_referral|visitor_referral|affiliate)$",
+    )
+
+    reward_type: str = Field(
+        ...,
+        pattern="^(cash|discount|voucher|free_month)$",
+    )
+    referrer_reward_amount: Optional[Decimal] = Field(None, ge=0)
+    referee_reward_amount: Optional[Decimal] = Field(None, ge=0)
+    currency: str = Field("INR", min_length=3, max_length=3)
+
+    min_booking_amount: Optional[Decimal] = Field(None, ge=0)
+    min_stay_months: Optional[int] = Field(None, ge=1)
+
+    terms_and_conditions: Optional[str] = Field(None, max_length=5000)
+
+    is_active: bool = Field(True)
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+
+
+class ProgramCreate(ReferralProgramBase, BaseCreateSchema):
+    """Create referral program"""
+    pass
+
+
+class ProgramUpdate(BaseUpdateSchema):
+    """Update referral program"""
+    program_name: Optional[str] = None
+    reward_type: Optional[str] = None
+    referrer_reward_amount: Optional[Decimal] = Field(None, ge=0)
+    referee_reward_amount: Optional[Decimal] = Field(None, ge=0)
+    min_booking_amount: Optional[Decimal] = Field(None, ge=0)
+    min_stay_months: Optional[int] = Field(None, ge=1)
+    terms_and_conditions: Optional[str] = None
+    is_active: Optional[bool] = None
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_program_response.py ---
+"""
+Referral program response schemas
+"""
+from datetime import date
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+
+
+class ProgramResponse(BaseResponseSchema):
+    """Referral program response"""
+    program_name: str
+    program_type: str
+    reward_type: str
+    referrer_reward_amount: Optional[Decimal]
+    referee_reward_amount: Optional[Decimal]
+    currency: str
+
+    min_booking_amount: Optional[Decimal]
+    min_stay_months: Optional[int]
+
+    is_active: bool
+    valid_from: Optional[date]
+    valid_to: Optional[date]
+
+    terms_and_conditions: Optional[str]
+
+
+class ProgramList(BaseSchema):
+    """List of active programs"""
+    programs: List[ProgramResponse]
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_response.py ---
+"""
+Referral record response schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import ReferralStatus, RewardStatus
+
+
+class ReferralResponse(BaseResponseSchema):
+    """Referral record response"""
+    program_id: UUID
+    program_name: str
+
+    referrer_id: UUID
+    referrer_name: str
+
+    referee_email: Optional[str]
+    referee_phone: Optional[str]
+    referee_user_id: Optional[UUID]
+
+    referral_code: str
+    status: ReferralStatus
+
+    booking_id: Optional[UUID]
+    completed_at: Optional[datetime]
+
+    referrer_reward_amount: Optional[Decimal]
+    referee_reward_amount: Optional[Decimal]
+    currency: str
+
+    referrer_reward_status: RewardStatus
+    referee_reward_status: RewardStatus
+
+
+class ReferralStats(BaseSchema):
+    """Referral statistics for a user"""
+    user_id: UUID
+
+    total_referrals: int
+    successful_referrals: int
+    pending_referrals: int
+
+    total_earned: Decimal
+    total_paid_out: Decimal
+    total_pending_rewards: Decimal
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\referral_rewards.py ---
+"""
+Referral reward tracking schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional, List
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import RewardStatus, PaymentMethod
+
+
+class RewardConfig(BaseSchema):
+    """Global referral reward config (for payouts)"""
+    min_payout_amount: Decimal = Field(
+        Decimal("100.00"), ge=0, description="Minimum amount before payout"
+    )
+    payout_methods: List[PaymentMethod] = Field(
+        default_factory=lambda: [PaymentMethod.BANK_TRANSFER, PaymentMethod.UPI]
+    )
+
+
+class RewardTracking(BaseSchema):
+    """Track rewards for user"""
+    user_id: UUID
+
+    total_rewards_earned: Decimal
+    total_rewards_paid: Decimal
+    pending_rewards: Decimal
+
+    # Breakdown
+    rewards_by_program: dict[str, Decimal]
+
+
+class PayoutRequest(BaseCreateSchema):
+    """Request payout of referral rewards"""
+    user_id: UUID
+    amount: Decimal = Field(..., ge=0)
+
+    payout_method: PaymentMethod
+    payout_details: dict = Field(
+        ..., description="Method-specific details (UPI ID, bank account, etc.)"
+    )
+
+
+class PayoutRequestResponse(BaseSchema):
+    """Payout request status"""
+    payout_request_id: UUID
+    user_id: UUID
+    amount: Decimal
+    payout_method: PaymentMethod
+
+    status: RewardStatus
+    requested_at: datetime
+    processed_at: Optional[datetime]
+    failure_reason: Optional[str] = None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\referral\__init__.py ---
+
