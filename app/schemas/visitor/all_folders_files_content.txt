@@ -1,0 +1,581 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_base.py ---
+"""
+Visitor base schemas
+"""
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from app.schemas.common.enums import RoomType
+
+
+class VisitorBase(BaseSchema):
+    """Base visitor schema"""
+    user_id: UUID = Field(..., description="Associated user ID")
+    
+    # Preferences
+    preferred_room_type: Optional[RoomType] = Field(None, description="Preferred room type")
+    budget_min: Optional[Decimal] = Field(None, ge=0, description="Minimum budget")
+    budget_max: Optional[Decimal] = Field(None, ge=0, description="Maximum budget")
+    preferred_cities: List[str] = Field(default_factory=list, description="Preferred cities")
+    preferred_amenities: List[str] = Field(default_factory=list, description="Must-have amenities")
+    
+    # Saved/favorite hostels
+    favorite_hostel_ids: List[UUID] = Field(default_factory=list, description="Favorite hostel IDs")
+    
+    # Notification preferences
+    email_notifications: bool = Field(True, description="Receive email notifications")
+    sms_notifications: bool = Field(True, description="Receive SMS notifications")
+    push_notifications: bool = Field(True, description="Receive push notifications")
+
+
+class VisitorCreate(VisitorBase, BaseCreateSchema):
+    """Create visitor profile"""
+    pass
+
+
+class VisitorUpdate(BaseUpdateSchema):
+    """Update visitor profile"""
+    preferred_room_type: Optional[RoomType] = None
+    budget_min: Optional[Decimal] = Field(None, ge=0)
+    budget_max: Optional[Decimal] = Field(None, ge=0)
+    preferred_cities: Optional[List[str]] = None
+    preferred_amenities: Optional[List[str]] = None
+    
+    # Notification preferences
+    email_notifications: Optional[bool] = None
+    sms_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_dashboard.py ---
+"""
+Visitor dashboard schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+
+
+class VisitorDashboard(BaseSchema):
+    """Visitor dashboard overview"""
+    visitor_id: UUID
+    visitor_name: str
+    
+    # Saved hostels
+    saved_hostels: "SavedHostels"
+    
+    # Booking history
+    booking_history: "BookingHistory"
+    
+    # Recent activity
+    recent_searches: List["RecentSearch"] = Field(default_factory=list, max_items=5)
+    recently_viewed: List["RecentlyViewedHostel"] = Field(default_factory=list, max_items=10)
+    
+    # Recommendations
+    recommended_hostels: List["RecommendedHostel"] = Field(default_factory=list, max_items=5)
+    
+    # Alerts
+    price_drop_alerts: List["PriceDropAlert"] = Field(default_factory=list)
+    availability_alerts: List["AvailabilityAlert"] = Field(default_factory=list)
+    
+    # Stats
+    total_searches: int
+    total_hostel_views: int
+    total_bookings: int
+
+
+class SavedHostels(BaseSchema):
+    """Saved/favorite hostels"""
+    total_saved: int
+    hostels: List["SavedHostelItem"] = Field(default_factory=list)
+
+
+class SavedHostelItem(BaseSchema):
+    """Individual saved hostel"""
+    hostel_id: UUID
+    hostel_name: str
+    hostel_city: str
+    starting_price: Decimal
+    average_rating: Decimal
+    available_beds: int
+    cover_image_url: Optional[str]
+    
+    saved_at: datetime
+    notes: Optional[str] = Field(None, description="Personal notes about this hostel")
+    
+    # Price tracking
+    price_when_saved: Decimal
+    current_price: Decimal
+    price_changed: bool
+    price_change_percentage: Optional[Decimal]
+
+
+class BookingHistory(BaseSchema):
+    """Booking history summary"""
+    total_bookings: int
+    active_bookings: int
+    completed_bookings: int
+    cancelled_bookings: int
+    
+    bookings: List["BookingHistoryItem"] = Field(default_factory=list)
+
+
+class BookingHistoryItem(BaseSchema):
+    """Individual booking in history"""
+    booking_id: UUID
+    booking_reference: str
+    hostel_id: UUID
+    hostel_name: str
+    room_type: str
+    
+    booking_date: datetime
+    check_in_date: date
+    duration_months: int
+    
+    status: str
+    total_amount: Decimal
+    
+    # Actions
+    can_cancel: bool
+    can_modify: bool
+    can_review: bool
+
+
+class RecentSearch(BaseSchema):
+    """Recent search item"""
+    search_id: UUID
+    search_query: Optional[str]
+    filters_applied: dict
+    results_count: int
+    searched_at: datetime
+
+
+class RecentlyViewedHostel(BaseSchema):
+    """Recently viewed hostel"""
+    hostel_id: UUID
+    hostel_name: str
+    hostel_city: str
+    starting_price: Decimal
+    average_rating: Decimal
+    cover_image_url: Optional[str]
+    
+    viewed_at: datetime
+    view_count: int = Field(..., description="Number of times viewed")
+
+
+class RecommendedHostel(BaseSchema):
+    """Recommended hostel based on preferences"""
+    hostel_id: UUID
+    hostel_name: str
+    hostel_city: str
+    starting_price: Decimal
+    average_rating: Decimal
+    available_beds: int
+    cover_image_url: Optional[str]
+    
+    match_score: Decimal = Field(..., ge=0, le=100, description="How well it matches preferences")
+    match_reasons: List[str] = Field(..., description="Why it's recommended")
+
+
+class PriceDropAlert(BaseSchema):
+    """Price drop alert"""
+    alert_id: UUID
+    hostel_id: UUID
+    hostel_name: str
+    
+    previous_price: Decimal
+    new_price: Decimal
+    discount_percentage: Decimal
+    
+    alert_created: datetime
+    is_read: bool
+
+
+class AvailabilityAlert(BaseSchema):
+    """Availability alert"""
+    alert_id: UUID
+    hostel_id: UUID
+    hostel_name: str
+    room_type: str
+    
+    message: str
+    
+    alert_created: datetime
+    is_read: bool
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_favorites.py ---
+"""
+Visitor favorites/wishlist schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class FavoriteRequest(BaseCreateSchema):
+    """Add/remove hostel from favorites"""
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    is_favorite: bool = Field(..., description="Add (true) or remove (false)")
+    notes: Optional[str] = Field(None, max_length=500, description="Personal notes")
+
+
+class FavoritesList(BaseSchema):
+    """List of favorite hostels"""
+    visitor_id: UUID
+    total_favorites: int
+    favorites: List["FavoriteHostelItem"]
+
+
+class FavoriteHostelItem(BaseSchema):
+    """Individual favorite hostel"""
+    favorite_id: UUID
+    hostel_id: UUID
+    hostel_name: str
+    hostel_slug: str
+    hostel_city: str
+    hostel_type: str
+    
+    # Pricing
+    starting_price_monthly: Decimal
+    price_when_saved: Decimal
+    current_price: Decimal
+    has_price_drop: bool
+    price_drop_percentage: Optional[Decimal]
+    
+    # Availability
+    available_beds: int
+    has_availability: bool
+    
+    # Rating
+    average_rating: Decimal
+    total_reviews: int
+    
+    # Media
+    cover_image_url: Optional[str]
+    
+    # Favorite metadata
+    notes: Optional[str]
+    added_to_favorites: datetime
+    
+    # Tracking
+    times_viewed: int
+    last_viewed: Optional[datetime]
+
+
+class FavoriteUpdate(BaseCreateSchema):
+    """Update favorite notes"""
+    favorite_id: UUID
+    notes: str = Field(..., max_length=500)
+
+
+class FavoritesExport(BaseSchema):
+    """Export favorites list"""
+    format: str = Field("pdf", pattern="^(pdf|csv|json)$")
+    include_prices: bool = Field(True)
+    include_notes: bool = Field(True)
+
+
+class FavoriteComparison(BaseSchema):
+    """Compare favorite hostels"""
+    favorite_ids: List[UUID] = Field(..., min_items=2, max_items=4, description="2-4 favorites to compare")
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_preferences.py ---
+"""
+Visitor preferences schemas
+"""
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import RoomType, HostelType, DietaryPreference
+
+
+class VisitorPreferences(BaseSchema):
+    """Complete visitor preferences"""
+    # Room preferences
+    preferred_room_type: Optional[RoomType] = None
+    preferred_hostel_type: Optional[HostelType] = None
+    
+    # Budget
+    budget_min: Optional[Decimal] = Field(None, ge=0)
+    budget_max: Optional[Decimal] = Field(None, ge=0)
+    
+    # Location
+    preferred_cities: List[str] = Field(default_factory=list)
+    preferred_areas: List[str] = Field(default_factory=list)
+    max_distance_from_work_km: Optional[Decimal] = Field(None, ge=0, le=50)
+    
+    # Amenities (must-have)
+    required_amenities: List[str] = Field(default_factory=list)
+    preferred_amenities: List[str] = Field(default_factory=list)
+    
+    # Facilities
+    need_parking: bool = Field(False)
+    need_gym: bool = Field(False)
+    need_laundry: bool = Field(False)
+    need_mess: bool = Field(False)
+    
+    # Dietary
+    dietary_preference: Optional[DietaryPreference] = None
+    
+    # Move-in
+    earliest_move_in_date: Optional[date] = None
+    preferred_lease_duration_months: Optional[int] = Field(None, ge=1, le=24)
+    
+    # Notifications
+    email_notifications: bool = Field(True)
+    sms_notifications: bool = Field(True)
+    push_notifications: bool = Field(True)
+    
+    # Specific notification types
+    notify_on_price_drop: bool = Field(True, description="Notify when saved hostel reduces price")
+    notify_on_availability: bool = Field(True, description="Notify when saved hostel has availability")
+    notify_on_new_listings: bool = Field(True, description="Notify about new matching hostels")
+    
+    @field_validator('budget_max')
+    @classmethod
+    def validate_budget(cls, v: Optional[Decimal], info) -> Optional[Decimal]:
+        """Validate budget_max >= budget_min"""
+        if v and info.data.get('budget_min'):
+            if v < info.data['budget_min']:
+                raise ValueError('Maximum budget must be >= minimum budget')
+        return v
+
+
+class PreferenceUpdate(BaseUpdateSchema):
+    """Update visitor preferences"""
+    preferred_room_type: Optional[RoomType] = None
+    preferred_hostel_type: Optional[HostelType] = None
+    budget_min: Optional[Decimal] = Field(None, ge=0)
+    budget_max: Optional[Decimal] = Field(None, ge=0)
+    preferred_cities: Optional[List[str]] = None
+    required_amenities: Optional[List[str]] = None
+    dietary_preference: Optional[DietaryPreference] = None
+    
+    # Notification toggles
+    email_notifications: Optional[bool] = None
+    sms_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+    notify_on_price_drop: Optional[bool] = None
+    notify_on_availability: Optional[bool] = None
+    notify_on_new_listings: Optional[bool] = None
+
+
+class SearchPreferences(BaseSchema):
+    """Saved search preferences"""
+    search_name: str = Field(..., min_length=3, max_length=100, description="Name for this saved search")
+    
+    # Search criteria
+    cities: List[str] = Field(default_factory=list)
+    room_types: List[RoomType] = Field(default_factory=list)
+    min_price: Optional[Decimal] = None
+    max_price: Optional[Decimal] = None
+    amenities: List[str] = Field(default_factory=list)
+    
+    # Alert settings
+    notify_on_new_matches: bool = Field(True, description="Notify when new hostels match criteria")
+    notification_frequency: str = Field(
+        "daily",
+        pattern="^(instant|daily|weekly)$",
+        description="How often to send notifications"
+    )
+
+
+class SavedSearch(BaseSchema):
+    """Saved search with ID"""
+    id: UUID
+    visitor_id: UUID
+    search_name: str
+    criteria: dict = Field(..., description="Search criteria as JSON")
+    notify_on_new_matches: bool
+    notification_frequency: str
+    
+    # Stats
+    total_matches: int = Field(0, description="Current number of matching hostels")
+    new_matches_since_last_check: int = Field(0)
+    
+    created_at: datetime
+    last_checked: Optional[datetime]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_response.py ---
+"""
+Visitor response schemas
+"""
+from decimal import Decimal
+from datetime import datetime
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import RoomType
+
+
+class VisitorResponse(BaseResponseSchema):
+    """Visitor response schema"""
+    user_id: UUID
+    full_name: str
+    email: str
+    phone: str
+    
+    # Preferences
+    preferred_room_type: Optional[RoomType]
+    budget_min: Optional[Decimal]
+    budget_max: Optional[Decimal]
+    preferred_cities: List[str]
+    
+    # Stats
+    total_bookings: int = Field(0, description="Total bookings made")
+    saved_hostels_count: int = Field(0, description="Number of saved hostels")
+    
+    # Notification preferences
+    email_notifications: bool
+    sms_notifications: bool
+    push_notifications: bool
+
+
+class VisitorProfile(BaseSchema):
+    """Visitor public profile"""
+    id: UUID
+    user_id: UUID
+    full_name: str
+    profile_image_url: Optional[str]
+    member_since: datetime
+
+
+class VisitorDetail(BaseResponseSchema):
+    """Detailed visitor information"""
+    # User info
+    user_id: UUID
+    full_name: str
+    email: str
+    phone: str
+    profile_image_url: Optional[str]
+    
+    # Preferences
+    preferred_room_type: Optional[RoomType]
+    budget_min: Optional[Decimal]
+    budget_max: Optional[Decimal]
+    preferred_cities: List[str]
+    preferred_amenities: List[str]
+    
+    # Saved hostels
+    favorite_hostel_ids: List[UUID]
+    total_saved_hostels: int
+    
+    # Activity
+    total_bookings: int
+    completed_bookings: int
+    cancelled_bookings: int
+    total_inquiries: int
+    
+    # Reviews
+    total_reviews_written: int
+    average_rating_given: Optional[Decimal]
+    
+    # Notification preferences
+    email_notifications: bool
+    sms_notifications: bool
+    push_notifications: bool
+    
+    # Account info
+    created_at: datetime
+    last_login: Optional[datetime]
+
+
+class VisitorStats(BaseSchema):
+    """Visitor statistics"""
+    visitor_id: UUID
+    
+    # Search activity
+    total_searches: int
+    unique_hostels_viewed: int
+    average_search_filters_used: Decimal
+    
+    # Engagement
+    total_hostel_views: int
+    total_comparisons: int
+    total_inquiries: int
+    
+    # Bookings
+    total_bookings: int
+    booking_conversion_rate: Decimal = Field(..., description="% of views that became bookings")
+    
+    # Preferences insight
+    most_searched_city: Optional[str]
+    most_viewed_room_type: Optional[RoomType]
+    average_budget: Optional[Decimal]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\__init__.py ---
+"""
+Visitor schemas package
+"""
+from app.schemas.visitor.visitor_base import (
+    VisitorBase,
+    VisitorCreate,
+    VisitorUpdate
+)
+from app.schemas.visitor.visitor_response import (
+    VisitorResponse,
+    VisitorProfile,
+    VisitorDetail
+)
+from app.schemas.visitor.visitor_preferences import (
+    VisitorPreferences,
+    PreferenceUpdate,
+    SearchPreferences
+)
+from app.schemas.visitor.visitor_dashboard import (
+    VisitorDashboard,
+    SavedHostels,
+    BookingHistory
+)
+from app.schemas.visitor.visitor_favorites import (
+    FavoriteRequest,
+    FavoritesList,
+    FavoriteHostelItem
+)
+
+__all__ = [
+    # Base
+    "VisitorBase",
+    "VisitorCreate",
+    "VisitorUpdate",
+    
+    # Response
+    "VisitorResponse",
+    "VisitorProfile",
+    "VisitorDetail",
+    
+    # Preferences
+    "VisitorPreferences",
+    "PreferenceUpdate",
+    "SearchPreferences",
+    
+    # Dashboard
+    "VisitorDashboard",
+    "SavedHostels",
+    "BookingHistory",
+    
+    # Favorites
+    "FavoriteRequest",
+    "FavoritesList",
+    "FavoriteHostelItem",
+]

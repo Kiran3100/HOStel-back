@@ -1,110 +1,326 @@
+# --- File: app/schemas/hostel/hostel_public.py ---
 """
-Public hostel profile schemas (for visitors)
+Public hostel profile schemas for visitor-facing content.
 """
-from decimal import Decimal
+
+from __future__ import annotations
+
 from datetime import time
-from typing import List, Optional
-from pydantic import Field
+from decimal import Decimal
+from typing import Dict, List, Optional
 from uuid import UUID
+
+from pydantic import Field
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.enums import HostelType
 
+__all__ = [
+    "PublicHostelCard",
+    "PublicRoomType",
+    "PublicHostelProfile",
+    "PublicHostelList",
+]
+
 
 class PublicHostelCard(BaseSchema):
-    """Hostel card for public listing"""
-    id: UUID
-    name: str
-    slug: str
-    hostel_type: HostelType
-    city: str
-    state: str
-    starting_price_monthly: Decimal
-    currency: str
-    average_rating: Decimal
-    total_reviews: int
-    available_beds: int
-    cover_image_url: Optional[str]
-    is_featured: bool
-    amenities: List[str] = Field(default_factory=list, max_items=5, description="Top 5 amenities")
-    distance_km: Optional[Decimal] = Field(None, description="Distance from search location")
+    """
+    Hostel card for public listing/search results.
+    
+    Provides essential information for hostel browsing.
+    """
 
-
-class PublicHostelProfile(BaseSchema):
-    """Complete public hostel profile"""
-    id: UUID
-    name: str
-    slug: str
-    description: Optional[str]
-    hostel_type: HostelType
-    
-    # Contact (public)
-    contact_phone: str
-    contact_email: Optional[str]
-    website_url: Optional[str]
-    
-    # Address
-    address_line1: str
-    address_line2: Optional[str]
-    city: str
-    state: str
-    pincode: str
-    latitude: Optional[Decimal]
-    longitude: Optional[Decimal]
-    
-    # Pricing
-    starting_price_monthly: Decimal
-    currency: str
-    
-    # Availability
-    available_beds: int
-    
-    # Ratings
-    average_rating: Decimal
-    total_reviews: int
-    rating_breakdown: dict = Field(
+    id: UUID = Field(..., description="Hostel ID")
+    name: str = Field(..., description="Hostel name")
+    slug: str = Field(..., description="URL slug")
+    hostel_type: HostelType = Field(..., description="Hostel type")
+    city: str = Field(..., description="City")
+    state: str = Field(..., description="State")
+    starting_price_monthly: Decimal = Field(
         ...,
-        description="Rating distribution {1: count, 2: count, ...}"
+        ge=0,
+        description="Starting monthly price",
     )
-    
-    # Features
-    amenities: List[str]
-    facilities: List[str]
-    security_features: List[str]
-    
-    # Policies
-    rules: Optional[str]
-    check_in_time: Optional[time]
-    check_out_time: Optional[time]
-    visitor_policy: Optional[str]
-    
-    # Location
-    nearby_landmarks: List[dict]
-    connectivity_info: Optional[str]
-    
-    # Media
-    cover_image_url: Optional[str]
-    gallery_images: List[str]
-    virtual_tour_url: Optional[str]
-    
-    # Room types available
-    room_types: List["PublicRoomType"]
+    currency: str = Field(..., description="Currency code")
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total number of reviews",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds",
+    )
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image URL",
+    )
+    is_featured: bool = Field(
+        ...,
+        description="Featured status",
+    )
+    amenities: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Top 5 amenities for quick view",
+    )
+    distance_km: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Distance from search location (if applicable)",
+    )
 
 
 class PublicRoomType(BaseSchema):
-    """Public room type information"""
-    room_type: str
-    price_monthly: Decimal
-    price_quarterly: Optional[Decimal]
-    price_yearly: Optional[Decimal]
-    available_beds: int
-    total_beds: int
-    room_amenities: List[str]
-    room_images: List[str]
+    """
+    Public room type information.
+    
+    Provides room-specific details for visitors.
+    """
+
+    room_type: str = Field(
+        ...,
+        description="Room type (single, double, etc.)",
+    )
+    price_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        description="Monthly price",
+    )
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Quarterly price (if available)",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Yearly price (if available)",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds of this type",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total beds of this type",
+    )
+    room_amenities: List[str] = Field(
+        default_factory=list,
+        description="Room-specific amenities",
+    )
+    room_images: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Room images (max 10)",
+    )
+    room_size_sqft: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Room size in square feet",
+    )
+
+
+class PublicHostelProfile(BaseSchema):
+    """
+    Complete public hostel profile.
+    
+    Comprehensive hostel information for detail pages.
+    """
+
+    id: UUID = Field(..., description="Hostel ID")
+    name: str = Field(..., description="Hostel name")
+    slug: str = Field(..., description="URL slug")
+    description: Optional[str] = Field(
+        default=None,
+        description="Hostel description",
+    )
+    hostel_type: HostelType = Field(..., description="Hostel type")
+
+    # Contact (public)
+    contact_phone: str = Field(..., description="Contact phone number")
+    contact_email: Optional[str] = Field(
+        default=None,
+        description="Contact email",
+    )
+    website_url: Optional[str] = Field(
+        default=None,
+        description="Official website URL",
+    )
+
+    # Address
+    address_line1: str = Field(..., description="Address line 1")
+    address_line2: Optional[str] = Field(
+        default=None,
+        description="Address line 2",
+    )
+    city: str = Field(..., description="City")
+    state: str = Field(..., description="State")
+    pincode: str = Field(..., description="Pincode")
+    latitude: Optional[Decimal] = Field(
+        default=None,
+        description="Latitude for map display",
+    )
+    longitude: Optional[Decimal] = Field(
+        default=None,
+        description="Longitude for map display",
+    )
+
+    # Pricing
+    starting_price_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        description="Starting monthly price",
+    )
+    currency: str = Field(..., description="Currency code")
+
+    # Availability
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total available beds",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total bed capacity",
+    )
+
+    # Ratings
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total number of reviews",
+    )
+    rating_breakdown: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Rating distribution {1: count, 2: count, ...}",
+    )
+
+    # Features
+    amenities: List[str] = Field(
+        default_factory=list,
+        description="Available amenities",
+    )
+    facilities: List[str] = Field(
+        default_factory=list,
+        description="Available facilities",
+    )
+    security_features: List[str] = Field(
+        default_factory=list,
+        description="Security features",
+    )
+
+    # Policies
+    rules: Optional[str] = Field(
+        default=None,
+        description="Hostel rules and regulations",
+    )
+    check_in_time: Optional[time] = Field(
+        default=None,
+        description="Standard check-in time",
+    )
+    check_out_time: Optional[time] = Field(
+        default=None,
+        description="Standard check-out time",
+    )
+    visitor_policy: Optional[str] = Field(
+        default=None,
+        description="Visitor policy",
+    )
+
+    # Location
+    nearby_landmarks: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Nearby landmarks with details",
+    )
+    connectivity_info: Optional[str] = Field(
+        default=None,
+        description="Public transport connectivity",
+    )
+
+    # Media
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image URL",
+    )
+    gallery_images: List[str] = Field(
+        default_factory=list,
+        description="Gallery images",
+    )
+    virtual_tour_url: Optional[str] = Field(
+        default=None,
+        description="360° virtual tour URL",
+    )
+
+    # Room types available
+    room_types: List[PublicRoomType] = Field(
+        default_factory=list,
+        description="Available room types with pricing",
+    )
+
+    # Additional info
+    established_year: Optional[int] = Field(
+        default=None,
+        ge=1900,
+        le=2100,
+        description="Year established",
+    )
+    total_rooms: int = Field(
+        ...,
+        ge=0,
+        description="Total number of rooms",
+    )
 
 
 class PublicHostelList(BaseSchema):
-    """List of public hostels"""
-    hostels: List[PublicHostelCard]
-    total_count: int
-    filters_applied: dict
+    """
+    List of public hostels with metadata.
+    
+    Response schema for hostel listing pages.
+    """
+
+    hostels: List[PublicHostelCard] = Field(
+        ...,
+        description="List of hostels",
+    )
+    total_count: int = Field(
+        ...,
+        ge=0,
+        description="Total number of hostels matching criteria",
+    )
+    filters_applied: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Summary of applied filters",
+    )
+    page: int = Field(
+        default=1,
+        ge=1,
+        description="Current page number",
+    )
+    page_size: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Items per page",
+    )
+    total_pages: int = Field(
+        ...,
+        ge=0,
+        description="Total number of pages",
+    )

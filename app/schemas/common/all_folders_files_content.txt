@@ -1,0 +1,1647 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\common ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\common =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\base.py ---
+# --- File: app/schemas/common/base.py ---
+"""
+Base schema classes with common fields and configurations.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+__all__ = [
+    "BaseSchema",
+    "TimestampMixin",
+    "SoftDeleteMixin",
+    "UUIDMixin",
+    "BaseDBSchema",
+    "BaseCreateSchema",
+    "BaseUpdateSchema",
+    "BaseResponseSchema",
+    "BaseFilterSchema",
+]
+
+
+class BaseSchema(BaseModel):
+    """
+    Base schema with common Pydantic configuration.
+
+    All application-facing schemas should ideally inherit from this to ensure
+    consistent behaviour (e.g. JSON encoders, validation, etc.).
+    """
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        # Keep enums as Enum instances to retain full type information;
+        # callers can still access `.value` if needed.
+        use_enum_values=False,
+        arbitrary_types_allowed=True,
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        },
+    )
+
+
+class TimestampMixin(BaseModel):
+    """Mixin for timestamp fields."""
+
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+
+
+class SoftDeleteMixin(BaseModel):
+    """Mixin for soft delete support."""
+
+    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
+    is_deleted: bool = Field(False, description="Soft delete flag")
+
+
+class UUIDMixin(BaseModel):
+    """Mixin for UUID primary key."""
+
+    id: str = Field(..., description="Unique identifier")
+
+
+class BaseDBSchema(BaseSchema, UUIDMixin, TimestampMixin):
+    """Base schema for database entities with ID and timestamps."""
+    pass
+
+
+class BaseCreateSchema(BaseSchema):
+    """Base schema for create operations."""
+    pass
+
+
+class BaseUpdateSchema(BaseSchema):
+    """
+    Base schema for update operations.
+
+    Note:
+        This base class does not itself make fields optional. Subclasses
+        intended for partial updates should declare their fields as
+        Optional[...] / with defaults as appropriate.
+    """
+    pass
+
+
+class BaseResponseSchema(BaseDBSchema):
+    """Base schema for API responses."""
+    pass
+
+
+class BaseFilterSchema(BaseSchema):
+    """Base schema for filter parameters."""
+    pass
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\enums.py ---
+# --- File: app/schemas/common/enums.py ---
+"""
+All enumeration types used across the application.
+
+These enums represent the core domain concepts for the hostel management
+system (users, hostels, rooms, bookings, payments, complaints, etc.).
+"""
+
+from __future__ import annotations
+
+from enum import Enum
+
+__all__ = [
+    "UserRole",
+    "Gender",
+    "HostelType",
+    "HostelStatus",
+    "RoomType",
+    "RoomStatus",
+    "BedStatus",
+    "BookingStatus",
+    "BookingSource",
+    "PaymentStatus",
+    "PaymentMethod",
+    "PaymentType",
+    "FeeType",
+    "ComplaintCategory",
+    "ComplaintStatus",
+    "Priority",
+    "AttendanceStatus",
+    "AttendanceMode",
+    "LeaveType",
+    "LeaveStatus",
+    "MaintenanceCategory",
+    "MaintenanceStatus",
+    "MaintenanceIssueType",
+    "MaintenanceRecurrence",
+    "NotificationType",
+    "NotificationStatus",
+    "SubscriptionPlan",
+    "SubscriptionStatus",
+    "BillingCycle",
+    "StudentStatus",
+    "SupervisorStatus",
+    "EmploymentType",
+    "AnnouncementCategory",
+    "TargetAudience",
+    "MealType",
+    "DietaryPreference",
+    "IDProofType",
+    "PermissionLevel",
+    "ReferralStatus",
+    "RewardStatus",
+    "ReviewStatus",
+    "VoteType",
+    "DeviceType",
+    "SearchSource",
+    "InquiryStatus",
+    "InquirySource",
+    "WaitlistStatus",
+    "OTPType",
+    "AuditActionCategory",
+    "ChargeType",
+]
+
+
+class UserRole(str, Enum):
+    """User role enumeration."""
+
+    SUPER_ADMIN = "super_admin"
+    HOSTEL_ADMIN = "hostel_admin"
+    SUPERVISOR = "supervisor"
+    STUDENT = "student"
+    VISITOR = "visitor"
+
+
+class Gender(str, Enum):
+    """Gender enumeration."""
+
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+
+
+class HostelType(str, Enum):
+    """Hostel type enumeration."""
+
+    BOYS = "boys"
+    GIRLS = "girls"
+    CO_ED = "co_ed"
+
+
+class HostelStatus(str, Enum):
+    """Hostel operational status."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    UNDER_MAINTENANCE = "under_maintenance"
+    CLOSED = "closed"
+
+
+class RoomType(str, Enum):
+    """Room type enumeration."""
+
+    SINGLE = "single"
+    DOUBLE = "double"
+    TRIPLE = "triple"
+    FOUR_SHARING = "four_sharing"
+    DORMITORY = "dormitory"
+
+
+class RoomStatus(str, Enum):
+    """Room status enumeration."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    MAINTENANCE = "maintenance"
+    RESERVED = "reserved"
+
+
+class BedStatus(str, Enum):
+    """Bed status enumeration."""
+
+    AVAILABLE = "available"
+    OCCUPIED = "occupied"
+    RESERVED = "reserved"
+    MAINTENANCE = "maintenance"
+
+
+class BookingStatus(str, Enum):
+    """Booking status enumeration."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    CONFIRMED = "confirmed"
+    CHECKED_IN = "checked_in"
+    COMPLETED = "completed"
+
+
+class BookingSource(str, Enum):
+    """Booking source enumeration."""
+
+    WEBSITE = "website"
+    MOBILE_APP = "mobile_app"
+    REFERRAL = "referral"
+    WALK_IN = "walk_in"
+    AGENT = "agent"
+    OTHER = "other"
+
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+
+
+class PaymentMethod(str, Enum):
+    """Payment method enumeration."""
+
+    CASH = "cash"
+    UPI = "upi"
+    CARD = "card"
+    NET_BANKING = "net_banking"
+    CHEQUE = "cheque"
+    BANK_TRANSFER = "bank_transfer"
+    PAYMENT_GATEWAY = "payment_gateway"
+
+
+class PaymentType(str, Enum):
+    """Payment type enumeration."""
+
+    RENT = "rent"
+    SECURITY_DEPOSIT = "security_deposit"
+    MESS_CHARGES = "mess_charges"
+    ELECTRICITY = "electricity"
+    WATER = "water"
+    MAINTENANCE = "maintenance"
+    BOOKING_ADVANCE = "booking_advance"
+    OTHER = "other"
+
+
+class FeeType(str, Enum):
+    """Fee type enumeration."""
+
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    HALF_YEARLY = "half_yearly"
+    YEARLY = "yearly"
+
+
+class ComplaintCategory(str, Enum):
+    """Complaint category enumeration."""
+
+    ROOM_MAINTENANCE = "room_maintenance"
+    PLUMBING = "plumbing"
+    ELECTRICAL = "electrical"
+    CLEANLINESS = "cleanliness"
+    MESS_FOOD_QUALITY = "mess_food_quality"
+    SECURITY = "security"
+    NOISE = "noise"
+    INTERNET = "internet"
+    STAFF_BEHAVIOR = "staff_behavior"
+    OTHER = "other"
+
+
+class ComplaintStatus(str, Enum):
+    """Complaint status enumeration."""
+
+    OPEN = "open"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    ON_HOLD = "on_hold"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+    REOPENED = "reopened"
+
+
+class Priority(str, Enum):
+    """Priority level enumeration."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+    CRITICAL = "critical"
+
+
+class AttendanceStatus(str, Enum):
+    """Attendance status enumeration."""
+
+    PRESENT = "present"
+    ABSENT = "absent"
+    LATE = "late"
+    ON_LEAVE = "on_leave"
+    HALF_DAY = "half_day"
+
+
+class AttendanceMode(str, Enum):
+    """Attendance recording mode."""
+
+    MANUAL = "manual"
+    BIOMETRIC = "biometric"
+    QR_CODE = "qr_code"
+    MOBILE_APP = "mobile_app"
+
+
+class LeaveType(str, Enum):
+    """Leave type enumeration."""
+
+    CASUAL = "casual"
+    SICK = "sick"
+    EMERGENCY = "emergency"
+    VACATION = "vacation"
+    OTHER = "other"
+
+
+class LeaveStatus(str, Enum):
+    """Leave application status."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class MaintenanceCategory(str, Enum):
+    """Maintenance category enumeration."""
+
+    ELECTRICAL = "electrical"
+    PLUMBING = "plumbing"
+    CARPENTRY = "carpentry"
+    CLEANING = "cleaning"
+    APPLIANCE_REPAIR = "appliance_repair"
+    STRUCTURAL = "structural"
+    PAINTING = "painting"
+    OTHER = "other"
+
+
+class MaintenanceStatus(str, Enum):
+    """Maintenance request status."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    ON_HOLD = "on_hold"
+    COMPLETED = "completed"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class MaintenanceIssueType(str, Enum):
+    """Maintenance issue type."""
+
+    ROUTINE = "routine"
+    PREVENTIVE = "preventive"
+    EMERGENCY = "emergency"
+    BREAKDOWN = "breakdown"
+
+
+class MaintenanceRecurrence(str, Enum):
+    """Preventive maintenance recurrence."""
+
+    NONE = "none"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    HALF_YEARLY = "half_yearly"
+    YEARLY = "yearly"
+
+
+class NotificationType(str, Enum):
+    """Notification type enumeration."""
+
+    EMAIL = "email"
+    SMS = "sms"
+    PUSH = "push"
+
+
+class NotificationStatus(str, Enum):
+    """Notification delivery status."""
+
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    SENT = "sent"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class SubscriptionPlan(str, Enum):
+    """Subscription plan types."""
+
+    FREE = "free"
+    BASIC = "basic"
+    STANDARD = "standard"
+    PREMIUM = "premium"
+    ENTERPRISE = "enterprise"
+
+
+class SubscriptionStatus(str, Enum):
+    """Subscription status."""
+
+    TRIAL = "trial"
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class BillingCycle(str, Enum):
+    """Billing cycle."""
+
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
+class StudentStatus(str, Enum):
+    """Student status enumeration."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    NOTICE_PERIOD = "notice_period"
+    ALUMNI = "alumni"
+    SUSPENDED = "suspended"
+
+
+class SupervisorStatus(str, Enum):
+    """Supervisor status enumeration."""
+
+    ACTIVE = "active"
+    ON_LEAVE = "on_leave"
+    SUSPENDED = "suspended"
+    TERMINATED = "terminated"
+
+
+class EmploymentType(str, Enum):
+    """Employment type."""
+
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+    CONTRACT = "contract"
+
+
+class AnnouncementCategory(str, Enum):
+    """Announcement category."""
+
+    GENERAL = "general"
+    URGENT = "urgent"
+    MAINTENANCE = "maintenance"
+    EVENT = "event"
+    RULE_CHANGE = "rule_change"
+    FEE_RELATED = "fee_related"
+    SECURITY = "security"
+    OTHER = "other"
+
+
+class TargetAudience(str, Enum):
+    """Target audience for announcements."""
+
+    ALL = "all"
+    STUDENTS_ONLY = "students_only"
+    SPECIFIC_ROOMS = "specific_rooms"
+    SPECIFIC_FLOORS = "specific_floors"
+    INDIVIDUAL = "individual"
+
+
+class MealType(str, Enum):
+    """Meal type enumeration."""
+
+    BREAKFAST = "breakfast"
+    LUNCH = "lunch"
+    SNACKS = "snacks"
+    DINNER = "dinner"
+
+
+class DietaryPreference(str, Enum):
+    """Dietary preference."""
+
+    VEGETARIAN = "vegetarian"
+    NON_VEGETARIAN = "non_vegetarian"
+    VEGAN = "vegan"
+    JAIN = "jain"
+
+
+class IDProofType(str, Enum):
+    """ID proof type."""
+
+    AADHAAR = "aadhaar"
+    PASSPORT = "passport"
+    DRIVING_LICENSE = "driving_license"
+    VOTER_ID = "voter_id"
+    PAN_CARD = "pan_card"
+
+
+class PermissionLevel(str, Enum):
+    """Permission level for admin-hostel assignments."""
+
+    FULL_ACCESS = "full_access"
+    LIMITED_ACCESS = "limited_access"
+    VIEW_ONLY = "view_only"
+
+
+class ReferralStatus(str, Enum):
+    """Referral status."""
+
+    PENDING = "pending"
+    REGISTERED = "registered"
+    BOOKING_MADE = "booking_made"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class RewardStatus(str, Enum):
+    """Reward payment status."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+
+class ReviewStatus(str, Enum):
+    """Review moderation status."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    FLAGGED = "flagged"
+
+
+class VoteType(str, Enum):
+    """Review vote type."""
+
+    HELPFUL = "helpful"
+    NOT_HELPFUL = "not_helpful"
+
+
+class DeviceType(str, Enum):
+    """Device type for push notifications."""
+
+    IOS = "ios"
+    ANDROID = "android"
+    WEB = "web"
+
+
+class SearchSource(str, Enum):
+    """Search result source."""
+
+    SEARCH_RESULTS = "search_results"
+    DIRECT_LINK = "direct_link"
+    FEATURED = "featured"
+    COMPARISON = "comparison"
+    REFERRAL = "referral"
+
+
+class InquiryStatus(str, Enum):
+    """Inquiry status."""
+
+    NEW = "new"
+    CONTACTED = "contacted"
+    INTERESTED = "interested"
+    NOT_INTERESTED = "not_interested"
+    CONVERTED = "converted"
+
+
+class InquirySource(str, Enum):
+    """Inquiry source."""
+
+    WEBSITE = "website"
+    MOBILE_APP = "mobile_app"
+    REFERRAL = "referral"
+    SOCIAL_MEDIA = "social_media"
+    OTHER = "other"
+
+
+class WaitlistStatus(str, Enum):
+    """Waitlist status."""
+
+    WAITING = "waiting"
+    NOTIFIED = "notified"
+    CONVERTED = "converted"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class OTPType(str, Enum):
+    """OTP type."""
+
+    EMAIL_VERIFICATION = "email_verification"
+    PHONE_VERIFICATION = "phone_verification"
+    LOGIN = "login"
+    PASSWORD_RESET = "password_reset"
+
+
+class AuditActionCategory(str, Enum):
+    """Audit action category."""
+
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    USER_MANAGEMENT = "user_management"
+    HOSTEL_MANAGEMENT = "hostel_management"
+    BOOKING = "booking"
+    PAYMENT = "payment"
+    COMPLAINT = "complaint"
+    ATTENDANCE = "attendance"
+    MAINTENANCE = "maintenance"
+    ANNOUNCEMENT = "announcement"
+    STUDENT_MANAGEMENT = "student_management"
+    SUPERVISOR_MANAGEMENT = "supervisor_management"
+    CONFIGURATION = "configuration"
+    OTHER = "other"
+
+
+class ChargeType(str, Enum):
+    """Utility charge type."""
+
+    INCLUDED = "included"
+    ACTUAL = "actual"
+    FIXED_MONTHLY = "fixed_monthly"
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\filters.py ---
+# --- File: app/schemas/common/filters.py ---
+"""
+Common filter schemas used for query/filter parameters across the API.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime, time
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseFilterSchema, BaseSchema
+
+__all__ = [
+    "DateRangeFilter",
+    "DateTimeRangeFilter",
+    "TimeRangeFilter",
+    "PriceRangeFilter",
+    "SearchFilter",
+    "SortOptions",
+    "StatusFilter",
+    "NumericRangeFilter",
+    "LocationFilter",
+    "MultiSelectFilter",
+    "BooleanFilter",
+    "TextSearchFilter",
+]
+
+
+class DateRangeFilter(BaseFilterSchema):
+    """Date range filter."""
+
+    start_date: Optional[date] = Field(None, description="Start date (inclusive)")
+    end_date: Optional[date] = Field(None, description="End date (inclusive)")
+
+    @field_validator("end_date")
+    @classmethod
+    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate end_date is after or equal to start_date."""
+        start_date = info.data.get("start_date")
+        if v is not None and start_date is not None and v < start_date:
+            raise ValueError("end_date must be after or equal to start_date")
+        return v
+
+
+class DateTimeRangeFilter(BaseFilterSchema):
+    """Datetime range filter."""
+
+    start_datetime: Optional[datetime] = Field(
+        None,
+        description="Start datetime (inclusive)",
+    )
+    end_datetime: Optional[datetime] = Field(
+        None,
+        description="End datetime (inclusive)",
+    )
+
+    @field_validator("end_datetime")
+    @classmethod
+    def validate_datetime_range(
+        cls,
+        v: Optional[datetime],
+        info,
+    ) -> Optional[datetime]:
+        """Validate end_datetime is after or equal to start_datetime."""
+        start_datetime = info.data.get("start_datetime")
+        if v is not None and start_datetime is not None and v < start_datetime:
+            raise ValueError(
+                "end_datetime must be after or equal to start_datetime",
+            )
+        return v
+
+
+class TimeRangeFilter(BaseFilterSchema):
+    """Time range filter."""
+
+    start_time: Optional[time] = Field(None, description="Start time")
+    end_time: Optional[time] = Field(None, description="End time")
+
+
+class PriceRangeFilter(BaseFilterSchema):
+    """Price range filter."""
+
+    min_price: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Minimum price",
+    )
+    max_price: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Maximum price",
+    )
+
+    @field_validator("max_price")
+    @classmethod
+    def validate_price_range(cls, v: Optional[float], info) -> Optional[float]:
+        """Validate max_price is greater than or equal to min_price."""
+        min_price = info.data.get("min_price")
+        if v is not None and min_price is not None and v < min_price:
+            raise ValueError(
+                "max_price must be greater than or equal to min_price",
+            )
+        return v
+
+
+class SearchFilter(BaseFilterSchema):
+    """Generic search filter."""
+
+    search_query: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=255,
+        description="Search query string",
+    )
+
+
+class SortOptions(BaseFilterSchema):
+    """Sorting options."""
+
+    sort_by: str = Field(..., description="Field to sort by")
+    sort_order: str = Field(
+        "asc",
+        pattern=r"^(asc|desc)$",
+        description="Sort order: asc or desc (case-insensitive input allowed)",
+    )
+
+    @field_validator("sort_order")
+    @classmethod
+    def validate_sort_order(cls, v: str) -> str:
+        """Validate and normalize sort order."""
+        return v.lower()
+
+
+class StatusFilter(BaseFilterSchema):
+    """Status filter."""
+
+    statuses: Optional[List[str]] = Field(
+        None,
+        description="Filter by status values",
+    )
+    exclude_statuses: Optional[List[str]] = Field(
+        None,
+        description="Exclude status values",
+    )
+
+
+class NumericRangeFilter(BaseFilterSchema):
+    """Generic numeric range filter."""
+
+    min_value: Optional[float] = Field(None, description="Minimum value")
+    max_value: Optional[float] = Field(None, description="Maximum value")
+
+    @field_validator("max_value")
+    @classmethod
+    def validate_range(cls, v: Optional[float], info) -> Optional[float]:
+        """Validate max_value is greater than or equal to min_value."""
+        min_value = info.data.get("min_value")
+        if v is not None and min_value is not None and v < min_value:
+            raise ValueError(
+                "max_value must be greater than or equal to min_value",
+            )
+        return v
+
+
+class LocationFilter(BaseFilterSchema):
+    """Location-based filter."""
+
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description="Latitude",
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description="Longitude",
+    )
+    radius_km: Optional[float] = Field(
+        None,
+        ge=0,
+        le=100,
+        description="Search radius in kilometers",
+    )
+    city: Optional[str] = Field(None, description="City name")
+    state: Optional[str] = Field(None, description="State name")
+    pincode: Optional[str] = Field(
+        None,
+        pattern=r"^\d{6}$",
+        description="Pincode",
+    )
+
+
+class MultiSelectFilter(BaseFilterSchema):
+    """Multi-select filter with include/exclude."""
+
+    include: Optional[List[str]] = Field(
+        None,
+        description="Include these values",
+    )
+    exclude: Optional[List[str]] = Field(
+        None,
+        description="Exclude these values",
+    )
+
+
+class BooleanFilter(BaseFilterSchema):
+    """Boolean filter (yes/no/all)."""
+
+    value: Optional[bool] = Field(
+        None,
+        description="Boolean filter value",
+    )
+
+
+class TextSearchFilter(BaseFilterSchema):
+    """Full-text search filter."""
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Search query",
+    )
+    fields: Optional[List[str]] = Field(
+        None,
+        description="Fields to search in",
+    )
+    fuzzy: bool = Field(False, description="Enable fuzzy search")
+    boost: Optional[Dict[str, float]] = Field(
+        None,
+        description="Field boost weights",
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\mixins.py ---
+# --- File: app/schemas/common/mixins.py ---
+"""
+Reusable schema mixins for address, contact info, media, audit, etc.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, Field, HttpUrl
+
+__all__ = [
+    "AddressMixin",
+    "ContactMixin",
+    "LocationMixin",
+    "MediaMixin",
+    "EmergencyContactMixin",
+    "AuditMixin",
+    "ApprovalMixin",
+    "SEOMixin",
+]
+
+
+class AddressMixin(BaseModel):
+    """Address fields mixin."""
+
+    address_line1: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Address line 1",
+    )
+    address_line2: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Address line 2",
+    )
+    city: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="City",
+    )
+    state: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="State",
+    )
+    pincode: str = Field(
+        ...,
+        pattern=r"^\d{6}$",
+        description="6-digit pincode",
+    )
+    country: str = Field(
+        "India",
+        min_length=2,
+        max_length=100,
+        description="Country",
+    )
+
+
+class ContactMixin(BaseModel):
+    """Contact information mixin."""
+
+    contact_phone: str = Field(
+        ...,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Primary contact phone",
+    )
+    alternate_phone: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Alternate phone",
+    )
+    contact_email: Optional[str] = Field(
+        None,
+        description="Contact email",
+    )
+
+
+class LocationMixin(BaseModel):
+    """Geographic location mixin."""
+
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description="Latitude",
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description="Longitude",
+    )
+
+
+class MediaMixin(BaseModel):
+    """Media URLs mixin."""
+
+    images: List[HttpUrl] = Field(
+        default_factory=list,
+        description="Image URLs",
+    )
+    videos: List[HttpUrl] = Field(
+        default_factory=list,
+        description="Video URLs",
+    )
+    documents: List[HttpUrl] = Field(
+        default_factory=list,
+        description="Document URLs",
+    )
+
+
+class EmergencyContactMixin(BaseModel):
+    """Emergency contact mixin."""
+
+    emergency_contact_name: Optional[str] = Field(
+        None,
+        description="Emergency contact name",
+    )
+    emergency_contact_phone: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Emergency contact phone",
+    )
+    emergency_contact_relation: Optional[str] = Field(
+        None,
+        description="Relation to person",
+    )
+
+
+class AuditMixin(BaseModel):
+    """Audit trail mixin."""
+
+    created_by: Optional[UUID] = Field(
+        None,
+        description="User who created the record",
+    )
+    updated_by: Optional[UUID] = Field(
+        None,
+        description="User who last updated the record",
+    )
+
+
+class ApprovalMixin(BaseModel):
+    """Approval workflow mixin."""
+
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="User who approved",
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejection",
+    )
+
+
+class SEOMixin(BaseModel):
+    """SEO fields mixin."""
+
+    meta_title: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="SEO meta title",
+    )
+    meta_description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="SEO meta description",
+    )
+    meta_keywords: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="SEO keywords",
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\pagination.py ---
+# --- File: app/schemas/common/pagination.py ---
+"""
+Pagination schemas for page-based and cursor-based responses.
+"""
+
+from __future__ import annotations
+
+from typing import Generic, List, Optional, TypeVar
+
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseSchema
+
+T = TypeVar("T")
+
+__all__ = [
+    "PaginationParams",
+    "PaginationMeta",
+    "PaginatedResponse",
+    "CursorPaginationParams",
+    "CursorPaginationMeta",
+    "CursorPaginatedResponse",
+]
+
+
+class PaginationParams(BaseSchema):
+    """Pagination query parameters."""
+
+    page: int = Field(
+        1,
+        ge=1,
+        description="Page number (1-indexed)",
+    )
+    page_size: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Items per page",
+    )
+
+    @field_validator("page")
+    @classmethod
+    def validate_page(cls, v: int) -> int:
+        """Validate page number."""
+        if v < 1:
+            raise ValueError("Page number must be >= 1")
+        return v
+
+    @field_validator("page_size")
+    @classmethod
+    def validate_page_size(cls, v: int) -> int:
+        """Validate page size."""
+        if v < 1 or v > 100:
+            raise ValueError("Page size must be between 1 and 100")
+        return v
+
+    @property
+    def offset(self) -> int:
+        """Calculate offset for database queries."""
+        return (self.page - 1) * self.page_size
+
+    @property
+    def limit(self) -> int:
+        """Get limit for database queries."""
+        return self.page_size
+
+
+class PaginationMeta(BaseSchema):
+    """Pagination metadata."""
+
+    total_items: int = Field(
+        ...,
+        ge=0,
+        description="Total number of items",
+    )
+    total_pages: int = Field(
+        ...,
+        ge=0,
+        description="Total number of pages",
+    )
+    current_page: int = Field(
+        ...,
+        ge=1,
+        description="Current page number",
+    )
+    page_size: int = Field(
+        ...,
+        ge=1,
+        description="Items per page",
+    )
+    has_next: bool = Field(..., description="Has next page")
+    has_previous: bool = Field(..., description="Has previous page")
+
+
+class PaginatedResponse(BaseSchema, Generic[T]):
+    """Generic paginated response."""
+
+    items: List[T] = Field(..., description="List of items")
+    meta: PaginationMeta = Field(..., description="Pagination metadata")
+
+    @classmethod
+    def create(
+        cls,
+        items: List[T],
+        total_items: int,
+        page: int,
+        page_size: int,
+    ) -> "PaginatedResponse[T]":
+        """
+        Create paginated response with calculated metadata.
+
+        Args:
+            items: List of items for current page.
+            total_items: Total number of items across all pages.
+            page: Current page number.
+            page_size: Number of items per page.
+
+        Returns:
+            PaginatedResponse with items and metadata.
+        """
+        # Calculate total pages (handle division by zero)
+        total_pages = (
+            (total_items + page_size - 1) // page_size if page_size > 0 else 0
+        )
+
+        # Ensure total_pages is at least 1 if there are items
+        if total_items > 0 and total_pages == 0:
+            total_pages = 1
+
+        meta = PaginationMeta(
+            total_items=total_items,
+            total_pages=total_pages,
+            current_page=page,
+            page_size=page_size,
+            has_next=page < total_pages,
+            has_previous=page > 1,
+        )
+
+        return cls(items=items, meta=meta)
+
+
+class CursorPaginationParams(BaseSchema):
+    """Cursor-based pagination parameters (for infinite scroll)."""
+
+    cursor: Optional[str] = Field(
+        None,
+        description="Cursor for next page",
+    )
+    limit: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Number of items to fetch",
+    )
+
+
+class CursorPaginationMeta(BaseSchema):
+    """Cursor pagination metadata."""
+
+    next_cursor: Optional[str] = Field(
+        None,
+        description="Cursor for next page",
+    )
+    has_more: bool = Field(
+        ...,
+        description="Whether more items exist",
+    )
+
+
+class CursorPaginatedResponse(BaseSchema, Generic[T]):
+    """Generic cursor-based paginated response."""
+
+    items: List[T] = Field(..., description="List of items")
+    meta: CursorPaginationMeta = Field(
+        ...,
+        description="Cursor pagination metadata",
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\response.py ---
+# --- File: app/schemas/common/response.py ---
+"""
+Standard API response wrappers for success, error, and bulk operations.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Generic, List, Optional, TypeVar
+
+from pydantic import Field
+
+from app.schemas.common.base import BaseSchema
+
+T = TypeVar("T")
+
+__all__ = [
+    "SuccessResponse",
+    "ErrorDetail",
+    "ErrorResponse",
+    "MessageResponse",
+    "BulkOperationResponse",
+    "ValidationErrorResponse",
+    "NotFoundResponse",
+    "UnauthorizedResponse",
+    "ForbiddenResponse",
+    "ConflictResponse",
+    "RateLimitResponse",
+]
+
+
+class SuccessResponse(BaseSchema, Generic[T]):
+    """Standard success response."""
+
+    success: bool = Field(True, description="Success flag")
+    message: str = Field(..., description="Response message")
+    data: Optional[T] = Field(None, description="Response data")
+
+    @classmethod
+    def create(
+        cls,
+        message: str,
+        data: Optional[T] = None,
+    ) -> "SuccessResponse[T]":
+        """Create success response."""
+        return cls(success=True, message=message, data=data)
+
+
+class ErrorDetail(BaseSchema):
+    """Error detail information."""
+
+    field: Optional[str] = Field(
+        None,
+        description="Field name causing error",
+    )
+    message: str = Field(..., description="Error message")
+    code: Optional[str] = Field(
+        None,
+        description="Error code",
+    )
+    location: Optional[List[str]] = Field(
+        None,
+        description="Error location in nested structure",
+    )
+
+
+class ErrorResponse(BaseSchema):
+    """Standard error response."""
+
+    success: bool = Field(False, description="Success flag")
+    message: str = Field(..., description="Error message")
+    errors: Optional[List[ErrorDetail]] = Field(
+        None,
+        description="Detailed errors",
+    )
+    error_code: Optional[str] = Field(
+        None,
+        description="Application error code",
+    )
+    timestamp: Optional[str] = Field(
+        None,
+        description="Error timestamp",
+    )
+    path: Optional[str] = Field(
+        None,
+        description="Request path that caused error",
+    )
+
+    @classmethod
+    def create(
+        cls,
+        message: str,
+        errors: Optional[List[ErrorDetail]] = None,
+        error_code: Optional[str] = None,
+    ) -> "ErrorResponse":
+        """Create error response."""
+        return cls(
+            success=False,
+            message=message,
+            errors=errors,
+            error_code=error_code,
+        )
+
+
+class MessageResponse(BaseSchema):
+    """Simple message response."""
+
+    message: str = Field(..., description="Response message")
+
+    @classmethod
+    def create(cls, message: str) -> "MessageResponse":
+        """Create message response."""
+        return cls(message=message)
+
+
+class BulkOperationResponse(BaseSchema):
+    """Response for bulk operations."""
+
+    total: int = Field(
+        ...,
+        ge=0,
+        description="Total items processed",
+    )
+    successful: int = Field(
+        ...,
+        ge=0,
+        description="Successfully processed items",
+    )
+    failed: int = Field(
+        ...,
+        ge=0,
+        description="Failed items",
+    )
+    errors: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Errors for failed items",
+    )
+    details: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Additional operation details",
+    )
+
+    @classmethod
+    def create(
+        cls,
+        total: int,
+        successful: int,
+        failed: int,
+        errors: Optional[List[Dict[str, Any]]] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> "BulkOperationResponse":
+        """Create bulk operation response."""
+        return cls(
+            total=total,
+            successful=successful,
+            failed=failed,
+            errors=errors,
+            details=details,
+        )
+
+
+class ValidationErrorResponse(ErrorResponse):
+    """Validation error response (422)."""
+
+    validation_errors: List[ErrorDetail] = Field(
+        ...,
+        description="Validation error details",
+    )
+
+
+class NotFoundResponse(ErrorResponse):
+    """Not found error response (404)."""
+
+    resource_type: Optional[str] = Field(
+        None,
+        description="Type of resource not found",
+    )
+    resource_id: Optional[str] = Field(
+        None,
+        description="ID of resource not found",
+    )
+
+
+class UnauthorizedResponse(ErrorResponse):
+    """Unauthorized error response (401)."""
+
+    auth_scheme: Optional[str] = Field(
+        None,
+        description="Authentication scheme required",
+    )
+
+
+class ForbiddenResponse(ErrorResponse):
+    """Forbidden error response (403)."""
+
+    required_permission: Optional[str] = Field(
+        None,
+        description="Required permission",
+    )
+    user_permissions: Optional[List[str]] = Field(
+        None,
+        description="User's current permissions",
+    )
+
+
+class ConflictResponse(ErrorResponse):
+    """Conflict error response (409)."""
+
+    conflicting_resource: Optional[str] = Field(
+        None,
+        description="Conflicting resource identifier",
+    )
+
+
+class RateLimitResponse(ErrorResponse):
+    """Rate limit exceeded response (429)."""
+
+    retry_after: Optional[int] = Field(
+        None,
+        description="Seconds to wait before retry",
+    )
+    limit: Optional[int] = Field(
+        None,
+        description="Rate limit",
+    )
+    window: Optional[int] = Field(
+        None,
+        description="Time window in seconds",
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\__init__.py ---
+# --- File: app/schemas/common/__init__.py ---
+"""
+Common schemas package.
+
+This __init__ module re-exports frequently used base schemas, enums,
+pagination helpers, responses, and filters from a single location:
+
+    from app.schemas.common import BaseSchema, UserRole, PaginationParams
+"""
+
+from __future__ import annotations
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseDBSchema,
+    BaseFilterSchema,
+    BaseResponseSchema,
+    BaseSchema,
+    BaseUpdateSchema,
+    SoftDeleteMixin,
+    TimestampMixin,
+    UUIDMixin,
+)
+from app.schemas.common.enums import (
+    AnnouncementCategory,
+    AttendanceStatus,
+    BillingCycle,
+    BookingStatus,
+    ComplaintCategory,
+    ComplaintStatus,
+    DietaryPreference,
+    DeviceType,
+    EmploymentType,
+    Gender,
+    IDProofType,
+    InquiryStatus,
+    MealType,
+    MaintenanceCategory,
+    MaintenanceStatus,
+    NotificationStatus,
+    NotificationType,
+    PaymentMethod,
+    PaymentStatus,
+    PaymentType,
+    Priority,
+    ReferralStatus,
+    ReviewStatus,
+    RoomType,
+    SearchSource,
+    StudentStatus,
+    SubscriptionPlan,
+    SubscriptionStatus,
+    SupervisorStatus,
+    TargetAudience,
+    UserRole,
+)
+from app.schemas.common.filters import (
+    DateRangeFilter,
+    DateTimeRangeFilter,
+    PriceRangeFilter,
+    SearchFilter,
+    SortOptions,
+    StatusFilter,
+)
+from app.schemas.common.pagination import (
+    PaginatedResponse,
+    PaginationMeta,
+    PaginationParams,
+)
+from app.schemas.common.response import (
+    BulkOperationResponse,
+    ErrorDetail,
+    ErrorResponse,
+    MessageResponse,
+    SuccessResponse,
+)
+
+__all__ = [
+    # Base schemas
+    "BaseSchema",
+    "BaseCreateSchema",
+    "BaseUpdateSchema",
+    "BaseResponseSchema",
+    "BaseDBSchema",
+    "BaseFilterSchema",
+    "TimestampMixin",
+    "SoftDeleteMixin",
+    "UUIDMixin",
+    # Enums
+    "UserRole",
+    "Gender",
+    "RoomType",
+    "BookingStatus",
+    "PaymentStatus",
+    "PaymentMethod",
+    "PaymentType",
+    "ComplaintCategory",
+    "ComplaintStatus",
+    "Priority",
+    "AttendanceStatus",
+    "MaintenanceCategory",
+    "MaintenanceStatus",
+    "NotificationType",
+    "SubscriptionPlan",
+    "StudentStatus",
+    "SupervisorStatus",
+    "AnnouncementCategory",
+    "TargetAudience",
+    "MealType",
+    "DietaryPreference",
+    "IDProofType",
+    "EmploymentType",
+    "BillingCycle",
+    "SubscriptionStatus",
+    "ReferralStatus",
+    "ReviewStatus",
+    "NotificationStatus",
+    "DeviceType",
+    "SearchSource",
+    "InquiryStatus",
+    # Pagination
+    "PaginationParams",
+    "PaginationMeta",
+    "PaginatedResponse",
+    # Responses
+    "SuccessResponse",
+    "ErrorDetail",
+    "ErrorResponse",
+    "MessageResponse",
+    "BulkOperationResponse",
+    # Filters
+    "DateRangeFilter",
+    "DateTimeRangeFilter",
+    "PriceRangeFilter",
+    "SearchFilter",
+    "SortOptions",
+    "StatusFilter",
+]

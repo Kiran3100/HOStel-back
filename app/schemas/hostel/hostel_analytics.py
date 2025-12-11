@@ -1,234 +1,783 @@
+# --- File: app/schemas/hostel/hostel_analytics.py ---
 """
-Hostel analytics and reporting schemas
+Hostel analytics and reporting schemas with comprehensive metrics.
 """
-from decimal import Decimal
+
+from __future__ import annotations
+
 from datetime import date, datetime
-from typing import List, Optional, Dict
-from pydantic import Field
+from decimal import Decimal
+from typing import Dict, List, Optional
 from uuid import UUID
+
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.filters import DateRangeFilter
 
-
-class HostelAnalytics(BaseSchema):
-    """Comprehensive hostel analytics"""
-    hostel_id: UUID
-    hostel_name: str
-    period_start: date
-    period_end: date
-    
-    occupancy: "OccupancyAnalytics"
-    revenue: "RevenueAnalytics"
-    bookings: "BookingAnalytics"
-    complaints: "ComplaintAnalytics"
-    reviews: "ReviewAnalytics"
-    generated_at: datetime
-
-
-class OccupancyAnalytics(BaseSchema):
-    """Occupancy analytics"""
-    current_occupancy_rate: Decimal = Field(..., description="Current occupancy %")
-    average_occupancy_rate: Decimal = Field(..., description="Average for period")
-    peak_occupancy_rate: Decimal = Field(..., description="Peak occupancy")
-    lowest_occupancy_rate: Decimal = Field(..., description="Lowest occupancy")
-    
-    total_beds: int
-    occupied_beds: int
-    available_beds: int
-    
-    # Trends
-    occupancy_trend: List["OccupancyDataPoint"] = Field(default_factory=list)
-    
-    # Predictions
-    predicted_occupancy_next_month: Optional[Decimal] = None
+__all__ = [
+    "HostelAnalytics",
+    "OccupancyAnalytics",
+    "OccupancyDataPoint",
+    "RevenueAnalytics",
+    "RevenueDataPoint",
+    "BookingAnalytics",
+    "BookingDataPoint",
+    "ComplaintAnalytics",
+    "ReviewAnalytics",
+    "RatingDataPoint",
+    "HostelOccupancyStats",
+    "RoomTypeOccupancy",
+    "HostelRevenueStats",
+    "MonthlyRevenue",
+    "AnalyticsRequest",
+]
 
 
 class OccupancyDataPoint(BaseSchema):
-    """Occupancy data point for trends"""
-    date: date
-    occupancy_rate: Decimal
-    occupied_beds: int
-    total_beds: int
+    """
+    Single occupancy data point for trends.
+    
+    Represents occupancy at a specific point in time.
+    """
+
+    date: date = Field(..., description="Date of the data point")
+    occupancy_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Occupancy rate percentage",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Number of occupied beds",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=1,
+        description="Total available beds",
+    )
 
 
-class RevenueAnalytics(BaseSchema):
-    """Revenue analytics"""
-    total_revenue: Decimal = Field(..., description="Total revenue for period")
-    rent_revenue: Decimal
-    mess_revenue: Decimal
-    other_revenue: Decimal
+class OccupancyAnalytics(BaseSchema):
+    """
+    Comprehensive occupancy analytics.
     
-    total_collected: Decimal
-    total_pending: Decimal
-    total_overdue: Decimal
-    
-    collection_rate: Decimal = Field(..., description="Payment collection rate %")
-    
+    Provides detailed occupancy metrics and trends.
+    """
+
+    current_occupancy_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Current occupancy percentage",
+    )
+    average_occupancy_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Average occupancy for the period",
+    )
+    peak_occupancy_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Peak occupancy during period",
+    )
+    lowest_occupancy_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Lowest occupancy during period",
+    )
+
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total bed capacity",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Currently occupied beds",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Currently available beds",
+    )
+
     # Trends
-    revenue_trend: List["RevenueDataPoint"] = Field(default_factory=list)
-    
-    # Comparison
-    revenue_vs_last_period: Decimal = Field(..., description="% change from last period")
-    revenue_vs_last_year: Optional[Decimal] = None
+    occupancy_trend: List[OccupancyDataPoint] = Field(
+        default_factory=list,
+        description="Historical occupancy trend",
+    )
+
+    # Predictions
+    predicted_occupancy_next_month: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Predicted occupancy for next month",
+    )
+    trend_direction: str = Field(
+        ...,
+        pattern=r"^(increasing|decreasing|stable)$",
+        description="Overall occupancy trend direction",
+    )
 
 
 class RevenueDataPoint(BaseSchema):
-    """Revenue data point"""
-    date: date
-    revenue: Decimal
-    collected: Decimal
-    pending: Decimal
+    """
+    Single revenue data point.
+    
+    Represents revenue metrics at a specific point in time.
+    """
+
+    date: date = Field(..., description="Date of the data point")
+    revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total revenue",
+    )
+    collected: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount collected",
+    )
+    pending: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount pending",
+    )
 
 
-class BookingAnalytics(BaseSchema):
-    """Booking analytics"""
-    total_bookings: int
-    approved_bookings: int
-    pending_bookings: int
-    rejected_bookings: int
-    cancelled_bookings: int
+class RevenueAnalytics(BaseSchema):
+    """
+    Comprehensive revenue analytics.
     
-    conversion_rate: Decimal = Field(..., description="Booking approval rate %")
-    cancellation_rate: Decimal = Field(..., description="Cancellation rate %")
-    
-    # Sources
-    booking_sources: Dict[str, int] = Field(default_factory=dict)
-    
+    Provides detailed financial metrics and trends.
+    """
+
+    total_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total revenue for period",
+    )
+    rent_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Revenue from rent",
+    )
+    mess_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Revenue from mess charges",
+    )
+    other_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Revenue from other sources",
+    )
+
+    total_collected: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount collected",
+    )
+    total_pending: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount pending",
+    )
+    total_overdue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total overdue amount",
+    )
+
+    collection_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Payment collection rate percentage",
+    )
+
     # Trends
-    booking_trend: List["BookingDataPoint"] = Field(default_factory=list)
+    revenue_trend: List[RevenueDataPoint] = Field(
+        default_factory=list,
+        description="Historical revenue trend",
+    )
+
+    # Comparisons
+    revenue_vs_last_period: Decimal = Field(
+        ...,
+        description="Percentage change from last period",
+    )
+    revenue_vs_last_year: Optional[Decimal] = Field(
+        default=None,
+        description="Year-over-year percentage change",
+    )
+
+    # Additional metrics
+    average_revenue_per_bed: Decimal = Field(
+        ...,
+        ge=0,
+        description="Average revenue per occupied bed",
+    )
 
 
 class BookingDataPoint(BaseSchema):
-    """Booking data point"""
-    date: date
-    total_bookings: int
-    approved: int
-    rejected: int
+    """
+    Single booking data point.
+    
+    Represents booking metrics at a specific point in time.
+    """
+
+    date: date = Field(..., description="Date of the data point")
+    total_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Total bookings",
+    )
+    approved: int = Field(
+        ...,
+        ge=0,
+        description="Approved bookings",
+    )
+    rejected: int = Field(
+        ...,
+        ge=0,
+        description="Rejected bookings",
+    )
+
+
+class BookingAnalytics(BaseSchema):
+    """
+    Comprehensive booking analytics.
+    
+    Provides detailed booking metrics and conversion rates.
+    """
+
+    total_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Total booking requests",
+    )
+    approved_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Approved bookings",
+    )
+    pending_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Pending bookings",
+    )
+    rejected_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Rejected bookings",
+    )
+    cancelled_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Cancelled bookings",
+    )
+
+    conversion_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Booking approval rate percentage",
+    )
+    cancellation_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Cancellation rate percentage",
+    )
+
+    # Sources
+    booking_sources: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Bookings by source (website, app, etc.)",
+    )
+
+    # Trends
+    booking_trend: List[BookingDataPoint] = Field(
+        default_factory=list,
+        description="Historical booking trend",
+    )
+
+    # Average metrics
+    average_booking_value: Decimal = Field(
+        ...,
+        ge=0,
+        description="Average booking value",
+    )
 
 
 class ComplaintAnalytics(BaseSchema):
-    """Complaint analytics"""
-    total_complaints: int
-    open_complaints: int
-    resolved_complaints: int
-    closed_complaints: int
+    """
+    Comprehensive complaint analytics.
     
-    average_resolution_time_hours: Decimal
-    resolution_rate: Decimal = Field(..., description="% of resolved complaints")
-    
-    # By category
-    complaints_by_category: Dict[str, int] = Field(default_factory=dict)
-    
-    # By priority
-    complaints_by_priority: Dict[str, int] = Field(default_factory=dict)
-    
-    # SLA compliance
-    sla_compliance_rate: Decimal = Field(..., description="% meeting SLA")
+    Provides detailed complaint metrics and resolution statistics.
+    """
 
-
-class ReviewAnalytics(BaseSchema):
-    """Review analytics"""
-    total_reviews: int
-    average_rating: Decimal
-    
-    # Rating distribution
-    rating_distribution: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Count of ratings by star (1-5)"
+    total_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Total complaints",
     )
-    
-    # Detailed ratings
-    average_cleanliness_rating: Optional[Decimal] = None
-    average_food_quality_rating: Optional[Decimal] = None
-    average_staff_behavior_rating: Optional[Decimal] = None
-    average_security_rating: Optional[Decimal] = None
-    average_value_rating: Optional[Decimal] = None
-    
-    # Trends
-    rating_trend: List["RatingDataPoint"] = Field(default_factory=list)
+    open_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Currently open complaints",
+    )
+    resolved_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Resolved complaints",
+    )
+    closed_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Closed complaints",
+    )
+
+    average_resolution_time_hours: Decimal = Field(
+        ...,
+        ge=0,
+        description="Average time to resolve (hours)",
+    )
+    resolution_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Percentage of resolved complaints",
+    )
+
+    # By category
+    complaints_by_category: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaints grouped by category",
+    )
+
+    # By priority
+    complaints_by_priority: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaints grouped by priority",
+    )
+
+    # SLA compliance
+    sla_compliance_rate: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Percentage meeting SLA",
+    )
+    sla_breaches: int = Field(
+        ...,
+        ge=0,
+        description="Number of SLA breaches",
+    )
 
 
 class RatingDataPoint(BaseSchema):
-    """Rating data point"""
-    month: str
-    average_rating: Decimal
-    review_count: int
+    """
+    Single rating data point.
+    
+    Represents rating metrics for a period.
+    """
+
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-\d{2}$",
+        description="Month in YYYY-MM format",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    review_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of reviews",
+    )
 
 
-class HostelOccupancyStats(BaseSchema):
-    """Detailed occupancy statistics"""
-    hostel_id: UUID
+class ReviewAnalytics(BaseSchema):
+    """
+    Comprehensive review analytics.
     
-    # Current status
-    total_rooms: int
-    total_beds: int
-    occupied_beds: int
-    available_beds: int
-    occupancy_percentage: Decimal
+    Provides detailed review and rating statistics.
+    """
+
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total number of reviews",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Overall average rating",
+    )
+
+    # Rating distribution
+    rating_distribution: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of ratings by star (1-5)",
+    )
+
+    # Detailed aspect ratings
+    average_cleanliness_rating: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Average cleanliness rating",
+    )
+    average_food_quality_rating: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Average food quality rating",
+    )
+    average_staff_behavior_rating: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Average staff behavior rating",
+    )
+    average_security_rating: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Average security rating",
+    )
+    average_value_rating: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Average value for money rating",
+    )
+
+    # Trends
+    rating_trend: List[RatingDataPoint] = Field(
+        default_factory=list,
+        description="Historical rating trend",
+    )
+
+    # Sentiment
+    positive_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Number of positive reviews (4-5 stars)",
+    )
+    negative_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Number of negative reviews (1-2 stars)",
+    )
+    sentiment_score: Decimal = Field(
+        ...,
+        ge=-1,
+        le=1,
+        description="Overall sentiment score (-1 to 1)",
+    )
+
+
+class HostelAnalytics(BaseSchema):
+    """
+    Comprehensive hostel analytics dashboard.
     
-    # By room type
-    occupancy_by_room_type: List["RoomTypeOccupancy"] = Field(default_factory=list)
-    
-    # Historical
-    occupancy_history: List[OccupancyDataPoint] = Field(default_factory=list)
-    
-    # Projections
-    projected_occupancy_30_days: Optional[Decimal] = None
-    projected_occupancy_90_days: Optional[Decimal] = None
+    Aggregates all analytics for a hostel over a period.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    period_start: date = Field(..., description="Analytics period start")
+    period_end: date = Field(..., description="Analytics period end")
+
+    occupancy: OccupancyAnalytics = Field(
+        ...,
+        description="Occupancy analytics",
+    )
+    revenue: RevenueAnalytics = Field(
+        ...,
+        description="Revenue analytics",
+    )
+    bookings: BookingAnalytics = Field(
+        ...,
+        description="Booking analytics",
+    )
+    complaints: ComplaintAnalytics = Field(
+        ...,
+        description="Complaint analytics",
+    )
+    reviews: ReviewAnalytics = Field(
+        ...,
+        description="Review analytics",
+    )
+
+    generated_at: datetime = Field(
+        ...,
+        description="Analytics generation timestamp",
+    )
 
 
 class RoomTypeOccupancy(BaseSchema):
-    """Occupancy by room type"""
-    room_type: str
-    total_beds: int
-    occupied_beds: int
-    available_beds: int
-    occupancy_percentage: Decimal
+    """
+    Occupancy statistics by room type.
+    
+    Provides occupancy breakdown for different room types.
+    """
+
+    room_type: str = Field(
+        ...,
+        description="Room type (single, double, etc.)",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total beds of this type",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Occupied beds of this type",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds of this type",
+    )
+    occupancy_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Occupancy percentage for this type",
+    )
 
 
-class HostelRevenueStats(BaseSchema):
-    """Detailed revenue statistics"""
-    hostel_id: UUID
-    period: DateRangeFilter
+class HostelOccupancyStats(BaseSchema):
+    """
+    Detailed occupancy statistics with breakdowns and projections.
     
-    # Totals
-    total_revenue: Decimal
-    total_expenses: Decimal
-    net_profit: Decimal
-    profit_margin: Decimal
-    
-    # Revenue breakdown
-    revenue_by_type: Dict[str, Decimal] = Field(default_factory=dict)
-    
-    # Collection
-    total_collected: Decimal
-    total_pending: Decimal
-    total_overdue: Decimal
-    collection_efficiency: Decimal
-    
-    # Monthly breakdown
-    monthly_revenue: List["MonthlyRevenue"] = Field(default_factory=list)
-    
-    # Comparison
-    revenue_growth_mom: Decimal = Field(..., description="Month-over-month growth %")
-    revenue_growth_yoy: Optional[Decimal] = Field(None, description="Year-over-year growth %")
+    Provides comprehensive occupancy analysis.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+
+    # Current status
+    total_rooms: int = Field(
+        ...,
+        ge=0,
+        description="Total number of rooms",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total number of beds",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Currently occupied beds",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Currently available beds",
+    )
+    occupancy_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Current occupancy percentage",
+    )
+
+    # By room type
+    occupancy_by_room_type: List[RoomTypeOccupancy] = Field(
+        default_factory=list,
+        description="Occupancy breakdown by room type",
+    )
+
+    # Historical
+    occupancy_history: List[OccupancyDataPoint] = Field(
+        default_factory=list,
+        description="Historical occupancy data",
+    )
+
+    # Projections
+    projected_occupancy_30_days: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Projected occupancy in 30 days",
+    )
+    projected_occupancy_90_days: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Projected occupancy in 90 days",
+    )
 
 
 class MonthlyRevenue(BaseSchema):
-    """Monthly revenue breakdown"""
-    month: str  # YYYY-MM format
-    revenue: Decimal
-    collected: Decimal
-    pending: Decimal
-    student_count: int
-    average_revenue_per_student: Decimal
+    """
+    Monthly revenue breakdown with detailed metrics.
+    
+    Represents revenue for a single month.
+    """
+
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-\d{2}$",
+        description="Month in YYYY-MM format",
+    )
+    revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total revenue",
+    )
+    collected: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount collected",
+    )
+    pending: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount pending",
+    )
+    student_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of students",
+    )
+    average_revenue_per_student: Decimal = Field(
+        ...,
+        ge=0,
+        description="Average revenue per student",
+    )
+
+
+class HostelRevenueStats(BaseSchema):
+    """
+    Detailed revenue statistics with breakdowns and growth metrics.
+    
+    Provides comprehensive financial analysis.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    period: DateRangeFilter = Field(
+        ...,
+        description="Analysis period",
+    )
+
+    # Totals
+    total_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total revenue for period",
+    )
+    total_expenses: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total expenses for period",
+    )
+    net_profit: Decimal = Field(
+        ...,
+        description="Net profit (can be negative)",
+    )
+    profit_margin: Decimal = Field(
+        ...,
+        ge=-100,
+        le=100,
+        description="Profit margin percentage",
+    )
+
+    # Revenue breakdown
+    revenue_by_type: Dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Revenue breakdown by type (rent, mess, etc.)",
+    )
+
+    # Collection
+    total_collected: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount collected",
+    )
+    total_pending: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount pending",
+    )
+    total_overdue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total overdue amount",
+    )
+    collection_efficiency: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Collection efficiency percentage",
+    )
+
+    # Monthly breakdown
+    monthly_revenue: List[MonthlyRevenue] = Field(
+        default_factory=list,
+        description="Month-by-month revenue breakdown",
+    )
+
+    # Comparison
+    revenue_growth_mom: Decimal = Field(
+        ...,
+        description="Month-over-month growth percentage",
+    )
+    revenue_growth_yoy: Optional[Decimal] = Field(
+        default=None,
+        description="Year-over-year growth percentage",
+    )
 
 
 class AnalyticsRequest(BaseSchema):
-    """Analytics generation request"""
-    hostel_id: UUID
-    start_date: date
-    end_date: date
-    include_predictions: bool = Field(False, description="Include predictive analytics")
-    granularity: str = Field("daily", pattern="^(daily|weekly|monthly)$")
+    """
+    Request schema for generating analytics.
+    
+    Specifies parameters for analytics generation.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    start_date: date = Field(..., description="Analytics start date")
+    end_date: date = Field(..., description="Analytics end date")
+    include_predictions: bool = Field(
+        default=False,
+        description="Include predictive analytics",
+    )
+    granularity: str = Field(
+        default="daily",
+        pattern=r"^(daily|weekly|monthly)$",
+        description="Data granularity",
+    )
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "AnalyticsRequest":
+        """Validate date range is reasonable."""
+        if self.end_date < self.start_date:
+            raise ValueError("end_date must be after or equal to start_date")
+        
+        # Check if date range is not too large (max 2 years)
+        days_diff = (self.end_date - self.start_date).days
+        if days_diff > 730:  # 2 years
+            raise ValueError("Date range cannot exceed 2 years")
+        
+        return self

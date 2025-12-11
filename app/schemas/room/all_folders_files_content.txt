@@ -1,0 +1,2598 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\room ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\room =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\bed_base.py ---
+# --- File: app/schemas/room/bed_base.py ---
+"""
+Bed base schemas with enhanced validation and assignment management.
+
+Provides schemas for individual bed management, bulk operations,
+assignments, and releases.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import List, Optional
+
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import BedStatus
+
+__all__ = [
+    "BedBase",
+    "BedCreate",
+    "BedUpdate",
+    "BulkBedCreate",
+    "BedAssignmentRequest",
+    "BedReleaseRequest",
+    "BedSwapRequest",
+    "BulkBedStatusUpdate",
+]
+
+
+class BedBase(BaseSchema):
+    """
+    Base bed schema with core bed attributes.
+    
+    Represents an individual bed/berth within a room.
+    """
+
+    room_id: str = Field(
+        ...,
+        description="Room ID this bed belongs to",
+    )
+    bed_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="Bed identifier within room (A1, B2, Bed-1, etc.)",
+        examples=["A1", "B2", "Bed-1", "Upper-1"],
+    )
+    status: BedStatus = Field(
+        default=BedStatus.AVAILABLE,
+        description="Current bed status",
+    )
+
+    @field_validator("bed_number")
+    @classmethod
+    def validate_bed_number(cls, v: str) -> str:
+        """
+        Validate and normalize bed number.
+        
+        Ensures consistent bed number format.
+        """
+        v = v.strip().upper()
+        if not v:
+            raise ValueError("Bed number cannot be empty")
+        # Remove excessive whitespace
+        v = " ".join(v.split())
+        return v
+
+
+class BedCreate(BedBase, BaseCreateSchema):
+    """
+    Schema for creating a single bed.
+    
+    Used when manually adding beds to a room.
+    """
+
+    # Override to ensure required fields
+    room_id: str = Field(
+        ...,
+        description="Room ID (required)",
+    )
+    bed_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="Bed number (required)",
+    )
+
+
+class BedUpdate(BaseUpdateSchema):
+    """
+    Schema for updating bed information.
+    
+    Allows partial updates to bed attributes.
+    """
+
+    bed_number: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=10,
+        description="Bed identifier",
+    )
+    status: Optional[BedStatus] = Field(
+        default=None,
+        description="Bed status",
+    )
+    is_occupied: Optional[bool] = Field(
+        default=None,
+        description="Occupancy status (legacy, prefer using status)",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Additional notes about the bed",
+    )
+
+    @field_validator("bed_number")
+    @classmethod
+    def validate_bed_number(cls, v: Optional[str]) -> Optional[str]:
+        """Validate bed number format."""
+        if v is not None:
+            v = v.strip().upper()
+            if not v:
+                raise ValueError("Bed number cannot be empty")
+            v = " ".join(v.split())
+        return v
+
+    @model_validator(mode="after")
+    def sync_status_with_occupancy(self) -> "BedUpdate":
+        """
+        Sync legacy is_occupied with status field.
+        
+        Maintains backward compatibility.
+        """
+        if self.is_occupied is not None:
+            if self.is_occupied:
+                self.status = BedStatus.OCCUPIED
+            else:
+                # Only set to available if not in maintenance/reserved
+                if self.status in [BedStatus.OCCUPIED, None]:
+                    self.status = BedStatus.AVAILABLE
+        return self
+
+
+class BulkBedCreate(BaseCreateSchema):
+    """
+    Schema for bulk bed creation.
+    
+    Automatically creates multiple beds for a room with sequential numbering.
+    Useful for initial room setup.
+    """
+
+    room_id: str = Field(
+        ...,
+        description="Room ID to create beds for",
+    )
+    bed_count: int = Field(
+        ...,
+        ge=1,
+        le=20,
+        description="Number of beds to create (1-20)",
+    )
+    bed_prefix: str = Field(
+        default="B",
+        min_length=1,
+        max_length=5,
+        description="Prefix for bed numbers (e.g., 'B', 'BED', 'A')",
+        examples=["B", "BED", "A", "BERTH"],
+    )
+    start_number: int = Field(
+        default=1,
+        ge=1,
+        le=100,
+        description="Starting number for bed sequence",
+    )
+    number_format: str = Field(
+        default="{prefix}{number}",
+        description="Format string for bed numbers (use {prefix} and {number})",
+        examples=["{prefix}{number}", "{prefix}-{number}", "Bed-{number}"],
+    )
+
+    @field_validator("bed_prefix")
+    @classmethod
+    def validate_bed_prefix(cls, v: str) -> str:
+        """Validate and normalize bed prefix."""
+        v = v.strip().upper()
+        if not v:
+            raise ValueError("Bed prefix cannot be empty")
+        # Only alphanumeric characters
+        if not v.replace("-", "").replace("_", "").isalnum():
+            raise ValueError(
+                "Bed prefix can only contain alphanumeric characters, hyphens, and underscores"
+            )
+        return v
+
+    @field_validator("number_format")
+    @classmethod
+    def validate_number_format(cls, v: str) -> str:
+        """Validate number format string."""
+        if "{number}" not in v:
+            raise ValueError("Number format must contain {number} placeholder")
+        # Validate format string can be used
+        try:
+            test = v.format(prefix="TEST", number=1)
+        except KeyError as e:
+            raise ValueError(f"Invalid placeholder in format string: {e}")
+        return v
+
+    def generate_bed_numbers(self) -> List[str]:
+        """
+        Generate bed numbers based on configuration.
+        
+        Returns:
+            List of bed numbers to create
+        """
+        bed_numbers = []
+        for i in range(self.bed_count):
+            bed_num = self.number_format.format(
+                prefix=self.bed_prefix,
+                number=self.start_number + i
+            )
+            bed_numbers.append(bed_num)
+        return bed_numbers
+
+
+class BedAssignmentRequest(BaseCreateSchema):
+    """
+    Schema for assigning a bed to a student.
+    
+    Creates a bed assignment with proper date tracking.
+    """
+
+    bed_id: str = Field(
+        ...,
+        description="Bed ID to assign",
+    )
+    student_id: str = Field(
+        ...,
+        description="Student ID to assign bed to",
+    )
+    occupied_from: date = Field(
+        ...,
+        description="Occupancy start date",
+    )
+    expected_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Expected vacate/checkout date (optional)",
+    )
+    booking_id: Optional[str] = Field(
+        default=None,
+        description="Related booking ID (if applicable)",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Assignment notes",
+    )
+
+    @field_validator("occupied_from")
+    @classmethod
+    def validate_occupied_from(cls, v: date) -> date:
+        """
+        Validate occupancy start date.
+        
+        Allows past dates for historical assignments but warns for future dates.
+        """
+        from datetime import date as dt
+        
+        # Allow past dates for historical data entry
+        # Could add warning logic here if needed
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "BedAssignmentRequest":
+        """Validate expected vacate date is after occupied_from."""
+        if self.expected_vacate_date:
+            if self.expected_vacate_date <= self.occupied_from:
+                raise ValueError(
+                    "Expected vacate date must be after occupancy start date"
+                )
+        return self
+
+
+class BedReleaseRequest(BaseCreateSchema):
+    """
+    Schema for releasing a bed from a student.
+    
+    Handles bed checkout/vacating with proper documentation.
+    """
+
+    bed_id: str = Field(
+        ...,
+        description="Bed ID to release",
+    )
+    student_id: Optional[str] = Field(
+        default=None,
+        description="Student ID (optional, for validation)",
+    )
+    release_date: date = Field(
+        ...,
+        description="Actual release/checkout date",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for release",
+        examples=[
+            "Completed stay",
+            "Early checkout",
+            "Transferred to another room",
+            "Hostel exit",
+        ],
+    )
+    condition_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Bed/room condition notes at checkout",
+    )
+    damages_reported: bool = Field(
+        default=False,
+        description="Whether any damages were reported",
+    )
+
+    @field_validator("release_date")
+    @classmethod
+    def validate_release_date(cls, v: date) -> date:
+        """
+        Validate release date.
+        
+        Allows past dates for historical entries.
+        """
+        # Allow past dates for data entry
+        # Future dates might be allowed for scheduled releases
+        return v
+
+
+class BedSwapRequest(BaseCreateSchema):
+    """
+    Schema for swapping beds between students.
+    
+    Handles bed exchanges with proper tracking.
+    """
+
+    student_1_id: str = Field(
+        ...,
+        description="First student ID",
+    )
+    bed_1_id: str = Field(
+        ...,
+        description="First student's current bed ID",
+    )
+    student_2_id: str = Field(
+        ...,
+        description="Second student ID",
+    )
+    bed_2_id: str = Field(
+        ...,
+        description="Second student's current bed ID",
+    )
+    swap_date: date = Field(
+        ...,
+        description="Date of bed swap",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for swap",
+        examples=[
+            "Student request",
+            "Compatibility issues",
+            "Room preference",
+            "Administrative decision",
+        ],
+    )
+    approved_by: Optional[str] = Field(
+        default=None,
+        description="Admin/supervisor who approved the swap",
+    )
+
+    @field_validator("swap_date")
+    @classmethod
+    def validate_swap_date(cls, v: date) -> date:
+        """Validate swap date is not too far in the past."""
+        from datetime import date as dt, timedelta
+        
+        # Warn if swap date is more than 30 days in the past
+        if v < dt.today() - timedelta(days=30):
+            # Could log a warning here
+            pass
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_different_students_and_beds(self) -> "BedSwapRequest":
+        """Ensure students and beds are different."""
+        if self.student_1_id == self.student_2_id:
+            raise ValueError("Cannot swap beds for the same student")
+        
+        if self.bed_1_id == self.bed_2_id:
+            raise ValueError("Cannot swap the same bed")
+        
+        return self
+
+
+class BulkBedStatusUpdate(BaseCreateSchema):
+    """
+    Schema for bulk bed status updates.
+    
+    Allows updating status of multiple beds simultaneously.
+    Useful for maintenance or availability updates.
+    """
+
+    bed_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="List of bed IDs to update (max 50)",
+    )
+    status: BedStatus = Field(
+        ...,
+        description="New status for all beds",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for bulk status change",
+    )
+    effective_date: Optional[date] = Field(
+        default=None,
+        description="Effective date for status change",
+    )
+
+    @field_validator("bed_ids")
+    @classmethod
+    def validate_unique_bed_ids(cls, v: List[str]) -> List[str]:
+        """Ensure bed IDs are unique."""
+        if len(v) != len(set(v)):
+            raise ValueError("Bed IDs must be unique")
+        return v
+
+    @model_validator(mode="after")
+    def validate_status_change(self) -> "BulkBedStatusUpdate":
+        """Validate status change requirements."""
+        # If setting to maintenance, require reason
+        if self.status == BedStatus.MAINTENANCE and not self.reason:
+            raise ValueError(
+                "Reason is required when setting beds to maintenance status"
+            )
+        return self
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\bed_response.py ---
+# --- File: app/schemas/room/bed_response.py ---
+"""
+Bed response schemas for API responses.
+
+Provides various response formats for bed data including
+availability, assignments, and history.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, computed_field
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import BedStatus
+
+__all__ = [
+    "BedResponse",
+    "BedAvailability",
+    "BedAssignment",
+    "BedHistory",
+    "BedAssignmentHistory",
+    "BedDetailedStatus",
+]
+
+
+class BedResponse(BaseResponseSchema):
+    """
+    Standard bed response schema.
+    
+    Basic bed information for general API responses.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    bed_number: str = Field(..., description="Bed identifier")
+    is_occupied: bool = Field(..., description="Currently occupied")
+    status: BedStatus = Field(..., description="Bed status")
+    current_student_id: Optional[str] = Field(
+        default=None,
+        description="Current occupant ID",
+    )
+    occupied_from: Optional[date] = Field(
+        default=None,
+        description="Occupancy start date",
+    )
+
+    @computed_field
+    @property
+    def is_available(self) -> bool:
+        """Check if bed is available for assignment."""
+        return self.status == BedStatus.AVAILABLE and not self.is_occupied
+
+
+class BedAvailability(BaseSchema):
+    """
+    Bed availability information.
+    
+    Detailed availability status for booking purposes.
+    """
+
+    bed_id: str = Field(..., description="Bed ID")
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    bed_number: str = Field(..., description="Bed identifier")
+    
+    # Availability
+    is_available: bool = Field(..., description="Available for assignment")
+    status: BedStatus = Field(..., description="Current status")
+    available_from: Optional[date] = Field(
+        default=None,
+        description="Date when bed becomes available",
+    )
+    
+    # Current occupant (if any)
+    current_student_name: Optional[str] = Field(
+        default=None,
+        description="Current occupant name",
+    )
+    current_student_id: Optional[str] = Field(
+        default=None,
+        description="Current occupant ID",
+    )
+    expected_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+    
+    # Room info
+    room_type: str = Field(..., description="Room type")
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    is_ac: bool = Field(..., description="AC available in room")
+    has_attached_bathroom: bool = Field(
+        ...,
+        description="Attached bathroom",
+    )
+
+    @computed_field
+    @property
+    def days_until_available(self) -> Optional[int]:
+        """Calculate days until bed becomes available."""
+        if not self.available_from:
+            return None
+        if self.is_available:
+            return 0
+        today = date.today()
+        if self.available_from <= today:
+            return 0
+        return (self.available_from - today).days
+
+
+class BedAssignment(BaseResponseSchema):
+    """
+    Bed assignment details.
+    
+    Complete information about a bed assignment.
+    """
+
+    bed_id: str = Field(..., description="Bed ID")
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    bed_number: str = Field(..., description="Bed identifier")
+    
+    # Student info
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+    student_email: Optional[str] = Field(
+        default=None,
+        description="Student email",
+    )
+    student_phone: Optional[str] = Field(
+        default=None,
+        description="Student phone",
+    )
+    
+    # Assignment dates
+    occupied_from: date = Field(..., description="Occupancy start date")
+    expected_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+    actual_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Actual checkout date (if completed)",
+    )
+    
+    # Pricing
+    monthly_rent: Decimal = Field(..., ge=0, description="Monthly rent amount")
+    
+    # Related records
+    booking_id: Optional[str] = Field(
+        default=None,
+        description="Related booking ID",
+    )
+    
+    # Status
+    is_active: bool = Field(
+        default=True,
+        description="Assignment is currently active",
+    )
+    
+    # Metadata
+    assigned_at: datetime = Field(..., description="Assignment timestamp")
+    assigned_by: Optional[str] = Field(
+        default=None,
+        description="Admin who created assignment",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        description="Assignment notes",
+    )
+
+    @computed_field
+    @property
+    def days_occupied(self) -> int:
+        """Calculate days occupied."""
+        end_date = self.actual_vacate_date or date.today()
+        return (end_date - self.occupied_from).days
+
+    @computed_field
+    @property
+    def expected_duration_days(self) -> Optional[int]:
+        """Calculate expected duration in days."""
+        if not self.expected_vacate_date:
+            return None
+        return (self.expected_vacate_date - self.occupied_from).days
+
+
+class BedAssignmentHistory(BaseSchema):
+    """
+    Individual bed assignment history entry.
+    
+    Historical record of a single bed assignment.
+    """
+
+    assignment_id: str = Field(..., description="Assignment ID")
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+    move_in_date: date = Field(..., description="Move-in date")
+    move_out_date: Optional[date] = Field(
+        default=None,
+        description="Move-out date (null if current)",
+    )
+    duration_days: Optional[int] = Field(
+        default=None,
+        description="Total duration in days",
+    )
+    monthly_rent: Decimal = Field(..., ge=0, description="Monthly rent paid")
+    total_rent_paid: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        description="Total rent paid during stay",
+    )
+    is_current: bool = Field(
+        default=False,
+        description="Currently active assignment",
+    )
+
+    @computed_field
+    @property
+    def duration_months(self) -> Optional[Decimal]:
+        """Calculate duration in months."""
+        if self.duration_days is None:
+            return None
+        return Decimal(self.duration_days / 30).quantize(Decimal("0.1"))
+
+
+class BedHistory(BaseSchema):
+    """
+    Complete bed occupancy history.
+    
+    Historical timeline of all assignments for a bed.
+    """
+
+    bed_id: str = Field(..., description="Bed ID")
+    room_number: str = Field(..., description="Room number")
+    bed_number: str = Field(..., description="Bed identifier")
+    
+    # Current status
+    current_status: BedStatus = Field(..., description="Current bed status")
+    is_currently_occupied: bool = Field(
+        ...,
+        description="Currently occupied",
+    )
+    
+    # Assignment history
+    assignments: List[BedAssignmentHistory] = Field(
+        default_factory=list,
+        description="Historical assignments (newest first)",
+    )
+    
+    # Statistics
+    total_assignments: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of assignments",
+    )
+    total_occupancy_days: int = Field(
+        default=0,
+        ge=0,
+        description="Total days occupied",
+    )
+    average_stay_duration_days: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Average stay duration",
+    )
+    last_occupied_date: Optional[date] = Field(
+        default=None,
+        description="Last occupancy date",
+    )
+
+    @computed_field
+    @property
+    def utilization_rate(self) -> Optional[Decimal]:
+        """
+        Calculate utilization rate since first assignment.
+        
+        Returns percentage of time bed has been occupied.
+        """
+        if not self.assignments:
+            return None
+        
+        # Get earliest assignment
+        earliest = min(a.move_in_date for a in self.assignments)
+        total_days = (date.today() - earliest).days
+        
+        if total_days == 0:
+            return None
+        
+        return Decimal(
+            (self.total_occupancy_days / total_days * 100)
+        ).quantize(Decimal("0.01"))
+
+
+class BedDetailedStatus(BaseResponseSchema):
+    """
+    Detailed bed status with comprehensive information.
+    
+    Extended bed information including maintenance and condition.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    bed_number: str = Field(..., description="Bed identifier")
+    
+    # Status
+    status: BedStatus = Field(..., description="Current status")
+    is_occupied: bool = Field(..., description="Occupied flag")
+    is_available: bool = Field(..., description="Available for assignment")
+    
+    # Current assignment
+    current_student_id: Optional[str] = Field(
+        default=None,
+        description="Current student ID",
+    )
+    current_student_name: Optional[str] = Field(
+        default=None,
+        description="Current student name",
+    )
+    occupied_from: Optional[date] = Field(
+        default=None,
+        description="Current occupancy start date",
+    )
+    expected_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+    
+    # Maintenance
+    last_maintenance_date: Optional[date] = Field(
+        default=None,
+        description="Last maintenance date",
+    )
+    next_scheduled_maintenance: Optional[date] = Field(
+        default=None,
+        description="Next scheduled maintenance",
+    )
+    maintenance_notes: Optional[str] = Field(
+        default=None,
+        description="Maintenance notes",
+    )
+    
+    # Condition
+    condition_rating: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=5,
+        description="Condition rating (1-5, 5 being excellent)",
+    )
+    last_inspection_date: Optional[date] = Field(
+        default=None,
+        description="Last inspection date",
+    )
+    reported_issues: List[str] = Field(
+        default_factory=list,
+        description="Currently reported issues",
+    )
+    
+    # History stats
+    total_assignments: int = Field(
+        default=0,
+        ge=0,
+        description="Total historical assignments",
+    )
+    average_stay_duration_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Average stay duration",
+    )
+    
+    # Metadata
+    notes: Optional[str] = Field(
+        default=None,
+        description="General notes",
+    )
+    last_status_change: Optional[datetime] = Field(
+        default=None,
+        description="Last status change timestamp",
+    )
+
+    @computed_field
+    @property
+    def needs_maintenance(self) -> bool:
+        """Check if bed needs maintenance."""
+        # Needs maintenance if:
+        # 1. Status is maintenance
+        # 2. Has reported issues
+        # 3. Condition rating is low (1-2)
+        if self.status == BedStatus.MAINTENANCE:
+            return True
+        if self.reported_issues:
+            return True
+        if self.condition_rating and self.condition_rating <= 2:
+            return True
+        return False
+
+    @computed_field
+    @property
+    def current_occupancy_days(self) -> Optional[int]:
+        """Calculate days of current occupancy."""
+        if not self.occupied_from:
+            return None
+        return (date.today() - self.occupied_from).days
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_availability.py ---
+# --- File: app/schemas/room/room_availability.py ---
+"""
+Room availability schemas with enhanced date validation.
+
+Provides schemas for checking room availability, calendar views,
+and booking-related information.
+"""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator, model_validator, computed_field
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import RoomType
+
+__all__ = [
+    "RoomAvailabilityRequest",
+    "AvailabilityResponse",
+    "AvailableRoom",
+    "AvailabilityCalendar",
+    "DayAvailability",
+    "BookingInfo",
+    "BulkAvailabilityRequest",
+]
+
+
+class RoomAvailabilityRequest(BaseCreateSchema):
+    """
+    Request to check room availability.
+    
+    Validates dates and duration for availability checking.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID to check availability for",
+    )
+    check_in_date: date = Field(
+        ...,
+        description="Desired check-in date",
+    )
+    duration_months: int = Field(
+        ...,
+        ge=1,
+        le=24,
+        description="Stay duration in months (1-24)",
+    )
+    room_type: Optional[RoomType] = Field(
+        default=None,
+        description="Preferred room type (optional filter)",
+    )
+    min_beds: int = Field(
+        default=1,
+        ge=1,
+        le=20,
+        description="Minimum beds required",
+    )
+    
+    # Preferences (optional filters)
+    is_ac_required: Optional[bool] = Field(
+        default=None,
+        description="AC required",
+    )
+    attached_bathroom_required: Optional[bool] = Field(
+        default=None,
+        description="Attached bathroom required",
+    )
+    max_price_monthly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Maximum acceptable monthly rent",
+    )
+
+    @field_validator("check_in_date")
+    @classmethod
+    def validate_check_in_date(cls, v: date) -> date:
+        """
+        Validate check-in date.
+        
+        Ensures date is not too far in the past.
+        """
+        today = date.today()
+        # Allow up to 7 days in the past for flexibility
+        min_date = today - timedelta(days=7)
+        
+        if v < min_date:
+            raise ValueError(
+                "Check-in date cannot be more than 7 days in the past"
+            )
+        
+        # Warn if too far in future (1 year)
+        max_date = today + timedelta(days=365)
+        if v > max_date:
+            raise ValueError(
+                "Check-in date cannot be more than 1 year in the future"
+            )
+        
+        return v
+
+    @computed_field
+    @property
+    def check_out_date(self) -> date:
+        """Calculate checkout date based on duration."""
+        # Approximate: 1 month = 30 days
+        return self.check_in_date + timedelta(days=self.duration_months * 30)
+
+
+class AvailableRoom(BaseSchema):
+    """
+    Available room details for booking.
+    
+    Comprehensive room information for availability results.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    room_type: RoomType = Field(..., description="Room type")
+    floor_number: Optional[int] = Field(default=None, description="Floor")
+    wing: Optional[str] = Field(default=None, description="Wing/Block")
+    
+    # Availability
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    total_beds: int = Field(..., ge=1, description="Total beds")
+    
+    # Pricing
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent per bed")
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Quarterly rate",
+    )
+    price_half_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Half-yearly rate",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Yearly rate",
+    )
+    
+    # Features
+    is_ac: bool = Field(..., description="Air conditioned")
+    has_attached_bathroom: bool = Field(..., description="Attached bathroom")
+    has_balcony: bool = Field(default=False, description="Has balcony")
+    has_wifi: bool = Field(default=True, description="WiFi available")
+    room_size_sqft: Optional[int] = Field(
+        default=None,
+        description="Room size",
+    )
+    
+    # Amenities
+    amenities: List[str] = Field(
+        default_factory=list,
+        description="Room amenities",
+    )
+    furnishing: List[str] = Field(
+        default_factory=list,
+        description="Furniture items",
+    )
+    
+    # Media
+    room_images: List[str] = Field(
+        default_factory=list,
+        description="Room images",
+    )
+    primary_image: Optional[str] = Field(
+        default=None,
+        description="Primary image URL",
+    )
+
+    @computed_field
+    @property
+    def occupancy_rate(self) -> Decimal:
+        """Calculate current occupancy rate."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        occupied = self.total_beds - self.available_beds
+        return Decimal((occupied / self.total_beds * 100)).quantize(
+            Decimal("0.01")
+        )
+
+
+class AvailabilityResponse(BaseSchema):
+    """
+    Room availability response.
+    
+    Complete availability results with metadata.
+    """
+
+    hostel_id: str = Field(..., description="Hostel ID")
+    check_in_date: date = Field(..., description="Requested check-in date")
+    check_out_date: date = Field(..., description="Calculated checkout date")
+    duration_months: int = Field(..., ge=1, description="Stay duration")
+    
+    # Results
+    available_rooms: List[AvailableRoom] = Field(
+        default_factory=list,
+        description="List of available rooms",
+    )
+    total_available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total available beds across all rooms",
+    )
+    has_availability: bool = Field(
+        ...,
+        description="Whether any beds are available",
+    )
+    
+    # Filters applied
+    filters_applied: Dict[str, any] = Field(
+        default_factory=dict,
+        description="Summary of applied filters",
+    )
+
+    @computed_field
+    @property
+    def total_rooms_available(self) -> int:
+        """Count of rooms with availability."""
+        return len(self.available_rooms)
+
+    @computed_field
+    @property
+    def price_range(self) -> Optional[Dict[str, Decimal]]:
+        """Calculate price range across available rooms."""
+        if not self.available_rooms:
+            return None
+        
+        prices = [room.price_monthly for room in self.available_rooms]
+        return {
+            "min": min(prices),
+            "max": max(prices),
+            "average": Decimal(sum(prices) / len(prices)).quantize(
+                Decimal("0.01")
+            ),
+        }
+
+
+class BookingInfo(BaseSchema):
+    """
+    Booking information for calendar display.
+    
+    Brief booking details for availability calendar.
+    """
+
+    booking_id: str = Field(..., description="Booking ID")
+    student_name: str = Field(..., description="Student name")
+    student_id: str = Field(..., description="Student ID")
+    check_in_date: date = Field(..., description="Check-in date")
+    check_out_date: date = Field(..., description="Check-out date")
+    bed_number: Optional[str] = Field(
+        default=None,
+        description="Assigned bed number",
+    )
+    status: str = Field(..., description="Booking status")
+
+
+class DayAvailability(BaseSchema):
+    """
+    Availability information for a specific day.
+    
+    Day-level availability with booking details.
+    """
+
+    date: date = Field(..., description="Date")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    total_beds: int = Field(..., ge=1, description="Total beds")
+    is_available: bool = Field(..., description="Has availability")
+    bookings: List[BookingInfo] = Field(
+        default_factory=list,
+        description="Active bookings for this day",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        description="Special notes (holidays, maintenance, etc.)",
+    )
+
+    @computed_field
+    @property
+    def occupancy_percentage(self) -> Decimal:
+        """Calculate occupancy percentage for the day."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        occupied = self.total_beds - self.available_beds
+        return Decimal((occupied / self.total_beds * 100)).quantize(
+            Decimal("0.01")
+        )
+
+
+class AvailabilityCalendar(BaseSchema):
+    """
+    Availability calendar for a room.
+    
+    Month-view calendar showing daily availability.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-\d{2}$",
+        description="Month in YYYY-MM format",
+    )
+    total_beds: int = Field(..., ge=1, description="Total beds in room")
+    
+    # Day-by-day availability
+    availability: Dict[str, DayAvailability] = Field(
+        ...,
+        description="Availability by date (ISO date string as key)",
+    )
+
+    @field_validator("month")
+    @classmethod
+    def validate_month_format(cls, v: str) -> str:
+        """Validate month format and range."""
+        try:
+            year, month = map(int, v.split("-"))
+            if not (1 <= month <= 12):
+                raise ValueError("Month must be between 01 and 12")
+            if not (2000 <= year <= 2100):
+                raise ValueError("Year must be between 2000 and 2100")
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Invalid month format: {e}")
+        return v
+
+    @computed_field
+    @property
+    def average_occupancy(self) -> Decimal:
+        """Calculate average occupancy for the month."""
+        if not self.availability:
+            return Decimal("0.00")
+        
+        total_occupancy = sum(
+            day.occupancy_percentage for day in self.availability.values()
+        )
+        return Decimal(total_occupancy / len(self.availability)).quantize(
+            Decimal("0.01")
+        )
+
+    @computed_field
+    @property
+    def fully_booked_days(self) -> int:
+        """Count days with no availability."""
+        return sum(
+            1 for day in self.availability.values()
+            if day.available_beds == 0
+        )
+
+
+class BulkAvailabilityRequest(BaseCreateSchema):
+    """
+    Request to check availability for multiple rooms/hostels.
+    
+    Batch availability checking for comparison or bulk operations.
+    """
+
+    hostel_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="List of hostel IDs (max 10)",
+    )
+    check_in_date: date = Field(
+        ...,
+        description="Check-in date",
+    )
+    duration_months: int = Field(
+        ...,
+        ge=1,
+        le=24,
+        description="Stay duration",
+    )
+    room_type: Optional[RoomType] = Field(
+        default=None,
+        description="Room type filter",
+    )
+    min_beds_per_hostel: int = Field(
+        default=1,
+        ge=1,
+        description="Minimum beds required per hostel",
+    )
+
+    @field_validator("hostel_ids")
+    @classmethod
+    def validate_unique_hostel_ids(cls, v: List[str]) -> List[str]:
+        """Ensure hostel IDs are unique."""
+        if len(v) != len(set(v)):
+            raise ValueError("Hostel IDs must be unique")
+        return v
+
+    @field_validator("check_in_date")
+    @classmethod
+    def validate_check_in_date(cls, v: date) -> date:
+        """Validate check-in date is not in the past."""
+        today = date.today()
+        if v < today - timedelta(days=7):
+            raise ValueError(
+                "Check-in date cannot be more than 7 days in the past"
+            )
+        return v
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_base.py ---
+# --- File: app/schemas/room/room_base.py ---
+"""
+Room base schemas with enhanced validation and type safety.
+
+Provides core room management schemas including creation, updates,
+bulk operations, and pricing/status management.
+"""
+
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseSchema,
+    BaseUpdateSchema,
+)
+from app.schemas.common.enums import RoomStatus, RoomType
+
+__all__ = [
+    "RoomBase",
+    "RoomCreate",
+    "RoomUpdate",
+    "BulkRoomCreate",
+    "RoomPricingUpdate",
+    "RoomStatusUpdate",
+    "RoomMediaUpdate",
+]
+
+
+class RoomBase(BaseSchema):
+    """
+    Base room schema with comprehensive room attributes.
+    
+    Contains common fields shared across room operations including
+    specifications, pricing, amenities, and availability.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID this room belongs to",
+    )
+    room_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Room number/identifier (e.g., '101', 'A-201')",
+        examples=["101", "A-201", "Block-B-301"],
+    )
+    floor_number: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=50,
+        description="Floor number (0 for ground floor)",
+    )
+    wing: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Wing/Block designation (A, B, North Wing, etc.)",
+        examples=["A", "B", "North Wing", "Block-1"],
+    )
+
+    # Type and capacity
+    room_type: RoomType = Field(
+        ...,
+        description="Room occupancy type",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=1,
+        le=20,
+        description="Total bed capacity in the room",
+    )
+
+    # Pricing (all in same currency as hostel)
+    price_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Monthly rent amount",
+    )
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Quarterly rent (3 months, often discounted)",
+    )
+    price_half_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Half-yearly rent (6 months, often discounted)",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Yearly rent (12 months, often discounted)",
+    )
+
+    # Physical specifications
+    room_size_sqft: Optional[int] = Field(
+        default=None,
+        ge=50,
+        le=1000,
+        description="Room size in square feet",
+    )
+    is_ac: bool = Field(
+        default=False,
+        description="Air conditioning available",
+    )
+    has_attached_bathroom: bool = Field(
+        default=False,
+        description="Attached/ensuite bathroom",
+    )
+    has_balcony: bool = Field(
+        default=False,
+        description="Private balcony available",
+    )
+    has_wifi: bool = Field(
+        default=True,
+        description="WiFi connectivity available",
+    )
+
+    # Amenities and furnishing
+    amenities: List[str] = Field(
+        default_factory=list,
+        description="Room-specific amenities (separate from general hostel amenities)",
+        examples=[["Study Table", "Wardrobe", "Fan", "Geyser"]],
+    )
+    furnishing: List[str] = Field(
+        default_factory=list,
+        description="Furniture and fixtures provided",
+        examples=[["Bed", "Mattress", "Study Table", "Chair", "Wardrobe"]],
+    )
+
+    # Availability and status
+    is_available_for_booking: bool = Field(
+        default=True,
+        description="Available for online booking requests",
+    )
+    is_under_maintenance: bool = Field(
+        default=False,
+        description="Currently under maintenance",
+    )
+
+    # Media
+    room_images: List[str] = Field(
+        default_factory=list,
+        max_length=15,
+        description="Room image URLs (max 15)",
+    )
+
+    @field_validator("room_number")
+    @classmethod
+    def validate_room_number(cls, v: str) -> str:
+        """
+        Validate and normalize room number.
+        
+        Ensures room number is properly formatted and trimmed.
+        """
+        v = v.strip().upper()
+        if not v:
+            raise ValueError("Room number cannot be empty")
+        # Remove excessive whitespace
+        v = " ".join(v.split())
+        return v
+
+    @field_validator("wing")
+    @classmethod
+    def validate_wing(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and normalize wing/block designation."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            # Remove excessive whitespace
+            v = " ".join(v.split())
+        return v
+
+    @field_validator("amenities", "furnishing")
+    @classmethod
+    def validate_and_clean_lists(cls, v: List[str]) -> List[str]:
+        """
+        Validate and clean list fields.
+        
+        Removes empty strings, duplicates, and normalizes values.
+        """
+        if not v:
+            return []
+        # Clean and normalize
+        cleaned = [item.strip() for item in v if item and item.strip()]
+        # Remove duplicates while preserving order (case-insensitive)
+        seen = set()
+        unique = []
+        for item in cleaned:
+            item_lower = item.lower()
+            if item_lower not in seen:
+                seen.add(item_lower)
+                unique.append(item)
+        return unique
+
+    @field_validator("room_images")
+    @classmethod
+    def validate_room_images(cls, v: List[str]) -> List[str]:
+        """
+        Validate room image URLs.
+        
+        Removes empty strings, duplicates, and validates URL format.
+        """
+        if not v:
+            return []
+        # Clean URLs
+        cleaned = []
+        seen = set()
+        for url in v:
+            if not url or not url.strip():
+                continue
+            url = url.strip()
+            # Basic URL validation
+            if not (url.startswith("http://") or url.startswith("https://")):
+                continue
+            # Remove duplicates
+            if url not in seen:
+                seen.add(url)
+                cleaned.append(url)
+        return cleaned[:15]  # Limit to 15 images
+
+    @model_validator(mode="after")
+    def validate_pricing_consistency(self) -> "RoomBase":
+        """
+        Validate pricing consistency and logical discounts.
+        
+        Ensures longer-term prices are not higher than monthly equivalent.
+        """
+        monthly = self.price_monthly
+        
+        # Validate quarterly pricing
+        if self.price_quarterly is not None:
+            monthly_equivalent = monthly * 3
+            if self.price_quarterly > monthly_equivalent:
+                raise ValueError(
+                    f"Quarterly price ({self.price_quarterly}) should not exceed "
+                    f"3x monthly price ({monthly_equivalent})"
+                )
+        
+        # Validate half-yearly pricing
+        if self.price_half_yearly is not None:
+            monthly_equivalent = monthly * 6
+            if self.price_half_yearly > monthly_equivalent:
+                raise ValueError(
+                    f"Half-yearly price ({self.price_half_yearly}) should not exceed "
+                    f"6x monthly price ({monthly_equivalent})"
+                )
+        
+        # Validate yearly pricing
+        if self.price_yearly is not None:
+            monthly_equivalent = monthly * 12
+            if self.price_yearly > monthly_equivalent:
+                raise ValueError(
+                    f"Yearly price ({self.price_yearly}) should not exceed "
+                    f"12x monthly price ({monthly_equivalent})"
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_room_type_beds(self) -> "RoomBase":
+        """
+        Validate bed count matches room type expectations.
+        
+        Provides warnings for unusual configurations.
+        """
+        expected_beds = {
+            RoomType.SINGLE: (1, 1),
+            RoomType.DOUBLE: (2, 2),
+            RoomType.TRIPLE: (3, 3),
+            RoomType.FOUR_SHARING: (4, 4),
+            RoomType.DORMITORY: (5, 20),
+        }
+        
+        if self.room_type in expected_beds:
+            min_beds, max_beds = expected_beds[self.room_type]
+            if not (min_beds <= self.total_beds <= max_beds):
+                # Note: We don't raise an error to allow flexibility
+                # but this could be logged as a warning
+                pass
+        
+        return self
+
+
+class RoomCreate(RoomBase, BaseCreateSchema):
+    """
+    Schema for creating a new room.
+    
+    Enforces all required fields for room creation.
+    """
+
+    # Override to ensure required fields
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID (required)",
+    )
+    room_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Room number (required)",
+    )
+    room_type: RoomType = Field(
+        ...,
+        description="Room type (required)",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=1,
+        le=20,
+        description="Total beds (required)",
+    )
+    price_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        description="Monthly rent (required)",
+    )
+
+
+class RoomUpdate(BaseUpdateSchema):
+    """
+    Schema for updating room information.
+    
+    All fields are optional for partial updates.
+    """
+
+    room_number: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        description="Room number",
+    )
+    floor_number: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=50,
+        description="Floor number",
+    )
+    wing: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Wing/Block",
+    )
+    room_type: Optional[RoomType] = Field(
+        default=None,
+        description="Room type",
+    )
+    total_beds: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=20,
+        description="Total beds",
+    )
+
+    # Pricing updates
+    price_monthly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Monthly rent",
+    )
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Quarterly rent",
+    )
+    price_half_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Half-yearly rent",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Yearly rent",
+    )
+
+    # Physical specifications
+    room_size_sqft: Optional[int] = Field(
+        default=None,
+        ge=50,
+        le=1000,
+        description="Room size in sq ft",
+    )
+    is_ac: Optional[bool] = Field(
+        default=None,
+        description="Air conditioning",
+    )
+    has_attached_bathroom: Optional[bool] = Field(
+        default=None,
+        description="Attached bathroom",
+    )
+    has_balcony: Optional[bool] = Field(
+        default=None,
+        description="Balcony",
+    )
+    has_wifi: Optional[bool] = Field(
+        default=None,
+        description="WiFi",
+    )
+
+    # Amenities
+    amenities: Optional[List[str]] = Field(
+        default=None,
+        description="Room amenities",
+    )
+    furnishing: Optional[List[str]] = Field(
+        default=None,
+        description="Furniture items",
+    )
+
+    # Availability
+    is_available_for_booking: Optional[bool] = Field(
+        default=None,
+        description="Booking availability",
+    )
+    is_under_maintenance: Optional[bool] = Field(
+        default=None,
+        description="Maintenance status",
+    )
+
+    # Status
+    status: Optional[RoomStatus] = Field(
+        default=None,
+        description="Room operational status",
+    )
+
+    # Media
+    room_images: Optional[List[str]] = Field(
+        default=None,
+        max_length=15,
+        description="Room image URLs",
+    )
+
+    # Apply same validators as base
+    _validate_room_number = field_validator("room_number")(
+        RoomBase.validate_room_number.__func__
+    )
+    _validate_wing = field_validator("wing")(RoomBase.validate_wing.__func__)
+    _validate_lists = field_validator("amenities", "furnishing")(
+        RoomBase.validate_and_clean_lists.__func__
+    )
+    _validate_images = field_validator("room_images")(
+        RoomBase.validate_room_images.__func__
+    )
+
+
+class BulkRoomCreate(BaseCreateSchema):
+    """
+    Schema for bulk room creation.
+    
+    Allows creating multiple rooms in a single operation.
+    Useful for initial hostel setup or adding multiple similar rooms.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID for all rooms",
+    )
+    rooms: List[RoomCreate] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="List of rooms to create (max 100 per batch)",
+    )
+
+    @field_validator("rooms")
+    @classmethod
+    def validate_unique_room_numbers(cls, v: List[RoomCreate]) -> List[RoomCreate]:
+        """
+        Validate room numbers are unique within the batch.
+        
+        Prevents duplicate room numbers in bulk creation.
+        """
+        room_numbers = [room.room_number.strip().upper() for room in v]
+        if len(room_numbers) != len(set(room_numbers)):
+            raise ValueError("Room numbers must be unique within the batch")
+        return v
+
+    @field_validator("rooms")
+    @classmethod
+    def validate_consistent_hostel(cls, v: List[RoomCreate], info) -> List[RoomCreate]:
+        """
+        Validate all rooms belong to the same hostel.
+        
+        Ensures consistency in bulk operations.
+        """
+        hostel_id = info.data.get("hostel_id")
+        if hostel_id:
+            for room in v:
+                if room.hostel_id != hostel_id:
+                    raise ValueError(
+                        f"All rooms must belong to hostel {hostel_id}. "
+                        f"Found room with hostel_id: {room.hostel_id}"
+                    )
+        return v
+
+
+class RoomPricingUpdate(BaseUpdateSchema):
+    """
+    Schema for updating room pricing.
+    
+    Dedicated schema for price updates with validation.
+    """
+
+    price_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Monthly rent (required)",
+    )
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Quarterly rent (optional discount)",
+    )
+    price_half_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Half-yearly rent (optional discount)",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Yearly rent (optional discount)",
+    )
+    effective_from: Optional[date] = Field(
+        default=None,
+        description="Effective date for new pricing (optional)",
+    )
+
+    @model_validator(mode="after")
+    def validate_pricing_logic(self) -> "RoomPricingUpdate":
+        """Validate pricing consistency."""
+        monthly = self.price_monthly
+
+        if self.price_quarterly is not None:
+            if self.price_quarterly > (monthly * 3):
+                raise ValueError(
+                    "Quarterly price should not exceed 3x monthly price"
+                )
+
+        if self.price_half_yearly is not None:
+            if self.price_half_yearly > (monthly * 6):
+                raise ValueError(
+                    "Half-yearly price should not exceed 6x monthly price"
+                )
+
+        if self.price_yearly is not None:
+            if self.price_yearly > (monthly * 12):
+                raise ValueError(
+                    "Yearly price should not exceed 12x monthly price"
+                )
+
+        return self
+
+    @field_validator("effective_from")
+    @classmethod
+    def validate_effective_date(cls, v: Optional[date]) -> Optional[date]:
+        """Validate effective date is not in the past."""
+        if v is not None:
+            from datetime import date as dt
+            if v < dt.today():
+                raise ValueError("Effective date cannot be in the past")
+        return v
+
+
+class RoomStatusUpdate(BaseUpdateSchema):
+    """
+    Schema for updating room operational status.
+    
+    Manages room availability and maintenance status with proper tracking.
+    """
+
+    status: RoomStatus = Field(
+        ...,
+        description="Room operational status",
+    )
+    is_available_for_booking: bool = Field(
+        ...,
+        description="Available for online bookings",
+    )
+    is_under_maintenance: bool = Field(
+        default=False,
+        description="Currently under maintenance",
+    )
+    maintenance_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Maintenance details and notes",
+    )
+    maintenance_start_date: Optional[date] = Field(
+        default=None,
+        description="Maintenance start date",
+    )
+    maintenance_end_date: Optional[date] = Field(
+        default=None,
+        description="Expected maintenance completion date",
+    )
+
+    @model_validator(mode="after")
+    def validate_maintenance_requirements(self) -> "RoomStatusUpdate":
+        """
+        Validate maintenance-related fields.
+        
+        Ensures proper documentation when room is under maintenance.
+        """
+        if self.is_under_maintenance or self.status == RoomStatus.MAINTENANCE:
+            # Require maintenance notes when under maintenance
+            if not self.maintenance_notes:
+                raise ValueError(
+                    "Maintenance notes are required when room is under maintenance"
+                )
+            # Require maintenance start date
+            if not self.maintenance_start_date:
+                raise ValueError(
+                    "Maintenance start date is required when room is under maintenance"
+                )
+            # Set room as unavailable for booking
+            if self.is_available_for_booking:
+                raise ValueError(
+                    "Room cannot be available for booking while under maintenance"
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_maintenance_dates(self) -> "RoomStatusUpdate":
+        """Validate maintenance date range."""
+        if self.maintenance_start_date and self.maintenance_end_date:
+            if self.maintenance_end_date < self.maintenance_start_date:
+                raise ValueError(
+                    "Maintenance end date must be after or equal to start date"
+                )
+        return self
+
+
+class RoomMediaUpdate(BaseUpdateSchema):
+    """
+    Schema for updating room media (images).
+    
+    Dedicated schema for managing room photographs and virtual tours.
+    """
+
+    room_images: List[str] = Field(
+        default_factory=list,
+        max_length=15,
+        description="Room image URLs (max 15)",
+    )
+    primary_image: Optional[str] = Field(
+        default=None,
+        description="Primary/cover image URL (must be in room_images)",
+    )
+    virtual_tour_url: Optional[str] = Field(
+        default=None,
+        description="360° virtual tour URL",
+    )
+
+    @field_validator("room_images")
+    @classmethod
+    def validate_room_images(cls, v: List[str]) -> List[str]:
+        """Validate room image URLs."""
+        if not v:
+            return []
+        
+        cleaned = []
+        seen = set()
+        for url in v:
+            if not url or not url.strip():
+                continue
+            url = url.strip()
+            # Validate URL format
+            if not (url.startswith("http://") or url.startswith("https://")):
+                raise ValueError(f"Invalid image URL format: {url}")
+            # Remove duplicates
+            if url not in seen:
+                seen.add(url)
+                cleaned.append(url)
+        
+        return cleaned[:15]
+
+    @model_validator(mode="after")
+    def validate_primary_image(self) -> "RoomMediaUpdate":
+        """Validate primary image is in room_images list."""
+        if self.primary_image:
+            if self.primary_image not in self.room_images:
+                raise ValueError(
+                    "Primary image must be one of the room images"
+                )
+        return self
+
+    @field_validator("virtual_tour_url")
+    @classmethod
+    def validate_virtual_tour_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate virtual tour URL format."""
+        if v is not None:
+            v = v.strip()
+            if v and not (v.startswith("http://") or v.startswith("https://")):
+                raise ValueError("Invalid virtual tour URL format")
+        return v
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_response.py ---
+# --- File: app/schemas/room/room_response.py ---
+"""
+Room response schemas for API responses.
+
+Provides various response formats for room data including
+detailed views, list items, and statistics.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, computed_field
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import BedStatus, RoomStatus, RoomType
+
+__all__ = [
+    "RoomResponse",
+    "RoomDetail",
+    "RoomListItem",
+    "RoomWithBeds",
+    "RoomOccupancyStats",
+    "RoomFinancialSummary",
+]
+
+
+class RoomResponse(BaseResponseSchema):
+    """
+    Standard room response schema.
+    
+    Basic room information for general API responses.
+    """
+
+    hostel_id: str = Field(..., description="Hostel ID")
+    room_number: str = Field(..., description="Room number")
+    floor_number: Optional[int] = Field(default=None, description="Floor number")
+    wing: Optional[str] = Field(default=None, description="Wing/Block")
+    
+    # Type and capacity
+    room_type: RoomType = Field(..., description="Room type")
+    total_beds: int = Field(..., ge=0, description="Total bed capacity")
+    occupied_beds: int = Field(..., ge=0, description="Currently occupied beds")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    
+    # Pricing
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    
+    # Features
+    is_ac: bool = Field(..., description="Air conditioned")
+    has_attached_bathroom: bool = Field(..., description="Attached bathroom")
+    
+    # Status
+    status: RoomStatus = Field(..., description="Room status")
+    is_available_for_booking: bool = Field(
+        ...,
+        description="Available for booking",
+    )
+    
+    @computed_field
+    @property
+    def occupancy_percentage(self) -> Decimal:
+        """Calculate occupancy percentage."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.occupied_beds / self.total_beds * 100)
+        ).quantize(Decimal("0.01"))
+
+
+class BedDetail(BaseSchema):
+    """
+    Detailed bed information within a room.
+    
+    Provides complete bed status and assignment details.
+    """
+
+    id: str = Field(..., description="Bed ID")
+    bed_number: str = Field(..., description="Bed identifier")
+    is_occupied: bool = Field(..., description="Currently occupied")
+    status: BedStatus = Field(..., description="Bed status")
+    
+    # Current occupant
+    current_student_id: Optional[str] = Field(
+        default=None,
+        description="Current student ID (if occupied)",
+    )
+    current_student_name: Optional[str] = Field(
+        default=None,
+        description="Current student name (if occupied)",
+    )
+    occupied_from: Optional[date] = Field(
+        default=None,
+        description="Occupancy start date",
+    )
+    expected_vacate_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+    
+    # Additional info
+    last_maintenance_date: Optional[date] = Field(
+        default=None,
+        description="Last maintenance date",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        description="Bed notes",
+    )
+
+
+class RoomDetail(BaseResponseSchema):
+    """
+    Detailed room information.
+    
+    Comprehensive room data including all specifications,
+    amenities, and bed details.
+    """
+
+    # Basic info
+    hostel_id: str = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    room_number: str = Field(..., description="Room number")
+    floor_number: Optional[int] = Field(default=None, description="Floor number")
+    wing: Optional[str] = Field(default=None, description="Wing/Block")
+
+    # Type and capacity
+    room_type: RoomType = Field(..., description="Room type")
+    total_beds: int = Field(..., ge=0, description="Total beds")
+    occupied_beds: int = Field(..., ge=0, description="Occupied beds")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+
+    # Pricing
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    price_quarterly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Quarterly rent",
+    )
+    price_half_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Half-yearly rent",
+    )
+    price_yearly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Yearly rent",
+    )
+
+    # Specifications
+    room_size_sqft: Optional[int] = Field(
+        default=None,
+        description="Room size in sq ft",
+    )
+    is_ac: bool = Field(..., description="Air conditioned")
+    has_attached_bathroom: bool = Field(..., description="Attached bathroom")
+    has_balcony: bool = Field(..., description="Has balcony")
+    has_wifi: bool = Field(..., description="WiFi available")
+
+    # Amenities
+    amenities: List[str] = Field(
+        default_factory=list,
+        description="Room amenities",
+    )
+    furnishing: List[str] = Field(
+        default_factory=list,
+        description="Furniture items",
+    )
+
+    # Status
+    status: RoomStatus = Field(..., description="Room status")
+    is_available_for_booking: bool = Field(
+        ...,
+        description="Available for booking",
+    )
+    is_under_maintenance: bool = Field(
+        ...,
+        description="Under maintenance",
+    )
+    maintenance_start_date: Optional[date] = Field(
+        default=None,
+        description="Maintenance start date",
+    )
+    maintenance_end_date: Optional[date] = Field(
+        default=None,
+        description="Expected maintenance end date",
+    )
+    maintenance_notes: Optional[str] = Field(
+        default=None,
+        description="Maintenance notes",
+    )
+
+    # Media
+    room_images: List[str] = Field(
+        default_factory=list,
+        description="Room image URLs",
+    )
+    primary_image: Optional[str] = Field(
+        default=None,
+        description="Primary/cover image",
+    )
+    virtual_tour_url: Optional[str] = Field(
+        default=None,
+        description="Virtual tour URL",
+    )
+
+    # Beds detail
+    beds: List[BedDetail] = Field(
+        default_factory=list,
+        description="Detailed bed information",
+    )
+
+    @computed_field
+    @property
+    def occupancy_percentage(self) -> Decimal:
+        """Calculate current occupancy percentage."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.occupied_beds / self.total_beds * 100)
+        ).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def is_fully_occupied(self) -> bool:
+        """Check if room is fully occupied."""
+        return self.occupied_beds >= self.total_beds
+
+    @computed_field
+    @property
+    def discount_percentage_quarterly(self) -> Optional[Decimal]:
+        """Calculate quarterly discount percentage."""
+        if not self.price_quarterly:
+            return None
+        monthly_equivalent = self.price_monthly * 3
+        if monthly_equivalent == 0:
+            return None
+        discount = (
+            (monthly_equivalent - self.price_quarterly) / monthly_equivalent * 100
+        )
+        return Decimal(discount).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def discount_percentage_yearly(self) -> Optional[Decimal]:
+        """Calculate yearly discount percentage."""
+        if not self.price_yearly:
+            return None
+        monthly_equivalent = self.price_monthly * 12
+        if monthly_equivalent == 0:
+            return None
+        discount = (
+            (monthly_equivalent - self.price_yearly) / monthly_equivalent * 100
+        )
+        return Decimal(discount).quantize(Decimal("0.01"))
+
+
+class RoomListItem(BaseSchema):
+    """
+    Room list item for list views.
+    
+    Minimal room information for efficient list rendering.
+    """
+
+    id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    floor_number: Optional[int] = Field(default=None, description="Floor")
+    wing: Optional[str] = Field(default=None, description="Wing")
+    room_type: RoomType = Field(..., description="Room type")
+    total_beds: int = Field(..., ge=0, description="Total beds")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    is_ac: bool = Field(..., description="AC available")
+    status: RoomStatus = Field(..., description="Status")
+    is_available_for_booking: bool = Field(..., description="Bookable")
+    primary_image: Optional[str] = Field(default=None, description="Cover image")
+
+    @computed_field
+    @property
+    def occupancy_percentage(self) -> Decimal:
+        """Calculate occupancy percentage."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        occupied = self.total_beds - self.available_beds
+        return Decimal((occupied / self.total_beds * 100)).quantize(
+            Decimal("0.01")
+        )
+
+
+class BedInfo(BaseSchema):
+    """
+    Brief bed information for room overview.
+    
+    Simplified bed data for quick views.
+    """
+
+    id: str = Field(..., description="Bed ID")
+    bed_number: str = Field(..., description="Bed number")
+    is_occupied: bool = Field(..., description="Occupied status")
+    status: BedStatus = Field(..., description="Bed status")
+    student_name: Optional[str] = Field(
+        default=None,
+        description="Occupant name (if applicable)",
+    )
+    occupied_from: Optional[date] = Field(
+        default=None,
+        description="Occupancy start date",
+    )
+
+
+class RoomWithBeds(BaseResponseSchema):
+    """
+    Room with bed information.
+    
+    Room overview with bed-level details.
+    """
+
+    hostel_id: str = Field(..., description="Hostel ID")
+    room_number: str = Field(..., description="Room number")
+    room_type: RoomType = Field(..., description="Room type")
+    total_beds: int = Field(..., ge=0, description="Total beds")
+    occupied_beds: int = Field(..., ge=0, description="Occupied beds")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    beds: List[BedInfo] = Field(
+        default_factory=list,
+        description="Bed details",
+    )
+
+    @computed_field
+    @property
+    def occupancy_rate(self) -> Decimal:
+        """Calculate occupancy rate."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.occupied_beds / self.total_beds * 100)
+        ).quantize(Decimal("0.01"))
+
+
+class RoomOccupancyStats(BaseSchema):
+    """
+    Room occupancy statistics.
+    
+    Provides occupancy metrics and revenue calculations.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    room_type: RoomType = Field(..., description="Room type")
+    
+    # Capacity
+    total_beds: int = Field(..., ge=0, description="Total beds")
+    occupied_beds: int = Field(..., ge=0, description="Occupied beds")
+    available_beds: int = Field(..., ge=0, description="Available beds")
+    reserved_beds: int = Field(
+        default=0,
+        ge=0,
+        description="Reserved beds",
+    )
+    
+    # Revenue
+    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent per bed")
+    current_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Current monthly revenue",
+    )
+    potential_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Potential revenue at full capacity",
+    )
+    
+    # Status
+    status: RoomStatus = Field(..., description="Room status")
+    is_available_for_booking: bool = Field(..., description="Booking availability")
+    
+    # Timestamps
+    last_occupancy_change: Optional[datetime] = Field(
+        default=None,
+        description="Last occupancy change timestamp",
+    )
+
+    @computed_field
+    @property
+    def occupancy_percentage(self) -> Decimal:
+        """Calculate occupancy percentage."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.occupied_beds / self.total_beds * 100)
+        ).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def revenue_percentage(self) -> Decimal:
+        """Calculate revenue realization percentage."""
+        if self.potential_revenue == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.current_revenue / self.potential_revenue * 100)
+        ).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def lost_revenue(self) -> Decimal:
+        """Calculate lost revenue due to vacancy."""
+        return self.potential_revenue - self.current_revenue
+
+
+class RoomFinancialSummary(BaseSchema):
+    """
+    Room financial summary.
+    
+    Provides detailed financial metrics for a room.
+    """
+
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    
+    # Pricing
+    price_monthly_per_bed: Decimal = Field(
+        ...,
+        ge=0,
+        description="Monthly rent per bed",
+    )
+    total_beds: int = Field(..., ge=0, description="Total beds")
+    occupied_beds: int = Field(..., ge=0, description="Occupied beds")
+    
+    # Current month
+    current_month_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Current month revenue",
+    )
+    current_month_collected: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount collected this month",
+    )
+    current_month_pending: Decimal = Field(
+        ...,
+        ge=0,
+        description="Amount pending this month",
+    )
+    
+    # Historical
+    total_revenue_ytd: Decimal = Field(
+        ...,
+        ge=0,
+        description="Year-to-date total revenue",
+    )
+    total_collected_ytd: Decimal = Field(
+        ...,
+        ge=0,
+        description="Year-to-date collected amount",
+    )
+    average_occupancy_ytd: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Year-to-date average occupancy %",
+    )
+    
+    # Projections
+    projected_monthly_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Projected revenue at current occupancy",
+    )
+    projected_yearly_revenue: Decimal = Field(
+        ...,
+        ge=0,
+        description="Projected yearly revenue",
+    )
+
+    @computed_field
+    @property
+    def collection_rate(self) -> Decimal:
+        """Calculate collection rate for current month."""
+        if self.current_month_revenue == 0:
+            return Decimal("100.00")
+        return Decimal(
+            (self.current_month_collected / self.current_month_revenue * 100)
+        ).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def occupancy_rate(self) -> Decimal:
+        """Calculate current occupancy rate."""
+        if self.total_beds == 0:
+            return Decimal("0.00")
+        return Decimal(
+            (self.occupied_beds / self.total_beds * 100)
+        ).quantize(Decimal("0.01"))
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\__init__.py ---
+# --- File: app/schemas/room/__init__.py ---
+"""
+Room schemas package.
+
+Re-exports commonly used room and bed-related schemas for convenient imports.
+
+Example:
+    from app.schemas.room import RoomCreate, BedAssignment, AvailabilityResponse
+"""
+
+from __future__ import annotations
+
+from app.schemas.room.bed_base import (
+    BedAssignmentRequest,
+    BedBase,
+    BedCreate,
+    BedReleaseRequest,
+    BedSwapRequest,
+    BedUpdate,
+    BulkBedCreate,
+    BulkBedStatusUpdate,
+)
+from app.schemas.room.bed_response import (
+    BedAssignment,
+    BedAssignmentHistory,
+    BedAvailability,
+    BedDetailedStatus,
+    BedHistory,
+    BedResponse,
+)
+from app.schemas.room.room_availability import (
+    AvailabilityCalendar,
+    AvailabilityResponse,
+    AvailableRoom,
+    BulkAvailabilityRequest,
+    DayAvailability,
+    RoomAvailabilityRequest,
+)
+from app.schemas.room.room_base import (
+    BulkRoomCreate,
+    RoomBase,
+    RoomCreate,
+    RoomMediaUpdate,
+    RoomPricingUpdate,
+    RoomStatusUpdate,
+    RoomUpdate,
+)
+from app.schemas.room.room_response import (
+    BedDetail,
+    BedInfo,
+    RoomDetail,
+    RoomFinancialSummary,
+    RoomListItem,
+    RoomOccupancyStats,
+    RoomResponse,
+    RoomWithBeds,
+)
+
+__all__ = [
+    # Room base
+    "RoomBase",
+    "RoomCreate",
+    "RoomUpdate",
+    "BulkRoomCreate",
+    "RoomPricingUpdate",
+    "RoomStatusUpdate",
+    "RoomMediaUpdate",
+    # Room response
+    "RoomResponse",
+    "RoomDetail",
+    "RoomListItem",
+    "RoomWithBeds",
+    "RoomOccupancyStats",
+    "RoomFinancialSummary",
+    "BedDetail",
+    "BedInfo",
+    # Bed base
+    "BedBase",
+    "BedCreate",
+    "BedUpdate",
+    "BulkBedCreate",
+    "BedAssignmentRequest",
+    "BedReleaseRequest",
+    "BedSwapRequest",
+    "BulkBedStatusUpdate",
+    # Bed response
+    "BedResponse",
+    "BedAvailability",
+    "BedAssignment",
+    "BedHistory",
+    "BedAssignmentHistory",
+    "BedDetailedStatus",
+    # Availability
+    "RoomAvailabilityRequest",
+    "AvailabilityResponse",
+    "AvailableRoom",
+    "AvailabilityCalendar",
+    "DayAvailability",
+    "BulkAvailabilityRequest",
+]

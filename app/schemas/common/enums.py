@@ -1,11 +1,72 @@
+# --- File: app/schemas/common/enums.py ---
 """
-All enumeration types used across the application
+All enumeration types used across the application.
+
+These enums represent the core domain concepts for the hostel management
+system (users, hostels, rooms, bookings, payments, complaints, etc.).
 """
+
+from __future__ import annotations
+
 from enum import Enum
+
+__all__ = [
+    "UserRole",
+    "Gender",
+    "HostelType",
+    "HostelStatus",
+    "RoomType",
+    "RoomStatus",
+    "BedStatus",
+    "BookingStatus",
+    "BookingSource",
+    "PaymentStatus",
+    "PaymentMethod",
+    "PaymentType",
+    "FeeType",
+    "ComplaintCategory",
+    "ComplaintStatus",
+    "Priority",
+    "AttendanceStatus",
+    "AttendanceMode",
+    "LeaveType",
+    "LeaveStatus",
+    "MaintenanceCategory",
+    "MaintenanceStatus",
+    "MaintenanceIssueType",
+    "MaintenanceRecurrence",
+    "NotificationType",
+    "NotificationStatus",
+    "SubscriptionPlan",
+    "SubscriptionStatus",
+    "BillingCycle",
+    "StudentStatus",
+    "SupervisorStatus",
+    "EmploymentType",
+    "AnnouncementCategory",
+    "TargetAudience",
+    "MealType",
+    "DietaryPreference",
+    "IDProofType",
+    "PermissionLevel",
+    "ReferralStatus",
+    "RewardStatus",
+    "ReviewStatus",
+    "VoteType",
+    "DeviceType",
+    "SearchSource",
+    "InquiryStatus",
+    "InquirySource",
+    "WaitlistStatus",
+    "OTPType",
+    "AuditActionCategory",
+    "ChargeType",
+]
 
 
 class UserRole(str, Enum):
-    """User role enumeration"""
+    """User role enumeration."""
+
     SUPER_ADMIN = "super_admin"
     HOSTEL_ADMIN = "hostel_admin"
     SUPERVISOR = "supervisor"
@@ -14,21 +75,24 @@ class UserRole(str, Enum):
 
 
 class Gender(str, Enum):
-    """Gender enumeration"""
+    """Gender enumeration."""
+
     MALE = "male"
     FEMALE = "female"
     OTHER = "other"
 
 
 class HostelType(str, Enum):
-    """Hostel type enumeration"""
+    """Hostel type enumeration."""
+
     BOYS = "boys"
     GIRLS = "girls"
     CO_ED = "co_ed"
 
 
 class HostelStatus(str, Enum):
-    """Hostel operational status"""
+    """Hostel operational status."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     UNDER_MAINTENANCE = "under_maintenance"
@@ -36,7 +100,8 @@ class HostelStatus(str, Enum):
 
 
 class RoomType(str, Enum):
-    """Room type enumeration"""
+    """Room type enumeration."""
+
     SINGLE = "single"
     DOUBLE = "double"
     TRIPLE = "triple"
@@ -45,7 +110,8 @@ class RoomType(str, Enum):
 
 
 class RoomStatus(str, Enum):
-    """Room status enumeration"""
+    """Room status enumeration."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     MAINTENANCE = "maintenance"
@@ -53,7 +119,8 @@ class RoomStatus(str, Enum):
 
 
 class BedStatus(str, Enum):
-    """Bed status enumeration"""
+    """Bed status enumeration."""
+
     AVAILABLE = "available"
     OCCUPIED = "occupied"
     RESERVED = "reserved"
@@ -61,7 +128,8 @@ class BedStatus(str, Enum):
 
 
 class BookingStatus(str, Enum):
-    """Booking status enumeration"""
+    """Booking status enumeration."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -73,7 +141,8 @@ class BookingStatus(str, Enum):
 
 
 class BookingSource(str, Enum):
-    """Booking source enumeration"""
+    """Booking source enumeration."""
+
     WEBSITE = "website"
     MOBILE_APP = "mobile_app"
     REFERRAL = "referral"
@@ -83,7 +152,8 @@ class BookingSource(str, Enum):
 
 
 class PaymentStatus(str, Enum):
-    """Payment status enumeration"""
+    """Payment status enumeration."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -93,7 +163,8 @@ class PaymentStatus(str, Enum):
 
 
 class PaymentMethod(str, Enum):
-    """Payment method enumeration"""
+    """Payment method enumeration."""
+
     CASH = "cash"
     UPI = "upi"
     CARD = "card"
@@ -104,7 +175,8 @@ class PaymentMethod(str, Enum):
 
 
 class PaymentType(str, Enum):
-    """Payment type enumeration"""
+    """Payment type enumeration."""
+
     RENT = "rent"
     SECURITY_DEPOSIT = "security_deposit"
     MESS_CHARGES = "mess_charges"
@@ -116,7 +188,8 @@ class PaymentType(str, Enum):
 
 
 class FeeType(str, Enum):
-    """Fee type enumeration"""
+    """Fee type enumeration."""
+
     MONTHLY = "monthly"
     QUARTERLY = "quarterly"
     HALF_YEARLY = "half_yearly"
@@ -124,7 +197,8 @@ class FeeType(str, Enum):
 
 
 class ComplaintCategory(str, Enum):
-    """Complaint category enumeration"""
+    """Complaint category enumeration."""
+
     ROOM_MAINTENANCE = "room_maintenance"
     PLUMBING = "plumbing"
     ELECTRICAL = "electrical"
@@ -138,7 +212,8 @@ class ComplaintCategory(str, Enum):
 
 
 class ComplaintStatus(str, Enum):
-    """Complaint status enumeration"""
+    """Complaint status enumeration."""
+
     OPEN = "open"
     ASSIGNED = "assigned"
     IN_PROGRESS = "in_progress"
@@ -149,7 +224,8 @@ class ComplaintStatus(str, Enum):
 
 
 class Priority(str, Enum):
-    """Priority level enumeration"""
+    """Priority level enumeration."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -158,7 +234,8 @@ class Priority(str, Enum):
 
 
 class AttendanceStatus(str, Enum):
-    """Attendance status enumeration"""
+    """Attendance status enumeration."""
+
     PRESENT = "present"
     ABSENT = "absent"
     LATE = "late"
@@ -167,7 +244,8 @@ class AttendanceStatus(str, Enum):
 
 
 class AttendanceMode(str, Enum):
-    """Attendance recording mode"""
+    """Attendance recording mode."""
+
     MANUAL = "manual"
     BIOMETRIC = "biometric"
     QR_CODE = "qr_code"
@@ -175,7 +253,8 @@ class AttendanceMode(str, Enum):
 
 
 class LeaveType(str, Enum):
-    """Leave type enumeration"""
+    """Leave type enumeration."""
+
     CASUAL = "casual"
     SICK = "sick"
     EMERGENCY = "emergency"
@@ -184,7 +263,8 @@ class LeaveType(str, Enum):
 
 
 class LeaveStatus(str, Enum):
-    """Leave application status"""
+    """Leave application status."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -192,7 +272,8 @@ class LeaveStatus(str, Enum):
 
 
 class MaintenanceCategory(str, Enum):
-    """Maintenance category enumeration"""
+    """Maintenance category enumeration."""
+
     ELECTRICAL = "electrical"
     PLUMBING = "plumbing"
     CARPENTRY = "carpentry"
@@ -204,7 +285,8 @@ class MaintenanceCategory(str, Enum):
 
 
 class MaintenanceStatus(str, Enum):
-    """Maintenance request status"""
+    """Maintenance request status."""
+
     PENDING = "pending"
     APPROVED = "approved"
     ASSIGNED = "assigned"
@@ -216,7 +298,8 @@ class MaintenanceStatus(str, Enum):
 
 
 class MaintenanceIssueType(str, Enum):
-    """Maintenance issue type"""
+    """Maintenance issue type."""
+
     ROUTINE = "routine"
     PREVENTIVE = "preventive"
     EMERGENCY = "emergency"
@@ -224,7 +307,8 @@ class MaintenanceIssueType(str, Enum):
 
 
 class MaintenanceRecurrence(str, Enum):
-    """Preventive maintenance recurrence"""
+    """Preventive maintenance recurrence."""
+
     NONE = "none"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -234,14 +318,16 @@ class MaintenanceRecurrence(str, Enum):
 
 
 class NotificationType(str, Enum):
-    """Notification type enumeration"""
+    """Notification type enumeration."""
+
     EMAIL = "email"
     SMS = "sms"
     PUSH = "push"
 
 
 class NotificationStatus(str, Enum):
-    """Notification delivery status"""
+    """Notification delivery status."""
+
     QUEUED = "queued"
     PROCESSING = "processing"
     SENT = "sent"
@@ -250,7 +336,8 @@ class NotificationStatus(str, Enum):
 
 
 class SubscriptionPlan(str, Enum):
-    """Subscription plan types"""
+    """Subscription plan types."""
+
     FREE = "free"
     BASIC = "basic"
     STANDARD = "standard"
@@ -259,7 +346,8 @@ class SubscriptionPlan(str, Enum):
 
 
 class SubscriptionStatus(str, Enum):
-    """Subscription status"""
+    """Subscription status."""
+
     TRIAL = "trial"
     ACTIVE = "active"
     PAST_DUE = "past_due"
@@ -268,13 +356,15 @@ class SubscriptionStatus(str, Enum):
 
 
 class BillingCycle(str, Enum):
-    """Billing cycle"""
+    """Billing cycle."""
+
     MONTHLY = "monthly"
     YEARLY = "yearly"
 
 
 class StudentStatus(str, Enum):
-    """Student status enumeration"""
+    """Student status enumeration."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     NOTICE_PERIOD = "notice_period"
@@ -283,7 +373,8 @@ class StudentStatus(str, Enum):
 
 
 class SupervisorStatus(str, Enum):
-    """Supervisor status enumeration"""
+    """Supervisor status enumeration."""
+
     ACTIVE = "active"
     ON_LEAVE = "on_leave"
     SUSPENDED = "suspended"
@@ -291,14 +382,16 @@ class SupervisorStatus(str, Enum):
 
 
 class EmploymentType(str, Enum):
-    """Employment type"""
+    """Employment type."""
+
     FULL_TIME = "full_time"
     PART_TIME = "part_time"
     CONTRACT = "contract"
 
 
 class AnnouncementCategory(str, Enum):
-    """Announcement category"""
+    """Announcement category."""
+
     GENERAL = "general"
     URGENT = "urgent"
     MAINTENANCE = "maintenance"
@@ -310,7 +403,8 @@ class AnnouncementCategory(str, Enum):
 
 
 class TargetAudience(str, Enum):
-    """Target audience for announcements"""
+    """Target audience for announcements."""
+
     ALL = "all"
     STUDENTS_ONLY = "students_only"
     SPECIFIC_ROOMS = "specific_rooms"
@@ -319,7 +413,8 @@ class TargetAudience(str, Enum):
 
 
 class MealType(str, Enum):
-    """Meal type enumeration"""
+    """Meal type enumeration."""
+
     BREAKFAST = "breakfast"
     LUNCH = "lunch"
     SNACKS = "snacks"
@@ -327,7 +422,8 @@ class MealType(str, Enum):
 
 
 class DietaryPreference(str, Enum):
-    """Dietary preference"""
+    """Dietary preference."""
+
     VEGETARIAN = "vegetarian"
     NON_VEGETARIAN = "non_vegetarian"
     VEGAN = "vegan"
@@ -335,7 +431,8 @@ class DietaryPreference(str, Enum):
 
 
 class IDProofType(str, Enum):
-    """ID proof type"""
+    """ID proof type."""
+
     AADHAAR = "aadhaar"
     PASSPORT = "passport"
     DRIVING_LICENSE = "driving_license"
@@ -344,14 +441,16 @@ class IDProofType(str, Enum):
 
 
 class PermissionLevel(str, Enum):
-    """Permission level for admin-hostel assignments"""
+    """Permission level for admin-hostel assignments."""
+
     FULL_ACCESS = "full_access"
     LIMITED_ACCESS = "limited_access"
     VIEW_ONLY = "view_only"
 
 
 class ReferralStatus(str, Enum):
-    """Referral status"""
+    """Referral status."""
+
     PENDING = "pending"
     REGISTERED = "registered"
     BOOKING_MADE = "booking_made"
@@ -361,7 +460,8 @@ class ReferralStatus(str, Enum):
 
 
 class RewardStatus(str, Enum):
-    """Reward payment status"""
+    """Reward payment status."""
+
     PENDING = "pending"
     APPROVED = "approved"
     PAID = "paid"
@@ -369,7 +469,8 @@ class RewardStatus(str, Enum):
 
 
 class ReviewStatus(str, Enum):
-    """Review moderation status"""
+    """Review moderation status."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -377,20 +478,23 @@ class ReviewStatus(str, Enum):
 
 
 class VoteType(str, Enum):
-    """Review vote type"""
+    """Review vote type."""
+
     HELPFUL = "helpful"
     NOT_HELPFUL = "not_helpful"
 
 
 class DeviceType(str, Enum):
-    """Device type for push notifications"""
+    """Device type for push notifications."""
+
     IOS = "ios"
     ANDROID = "android"
     WEB = "web"
 
 
 class SearchSource(str, Enum):
-    """Search result source"""
+    """Search result source."""
+
     SEARCH_RESULTS = "search_results"
     DIRECT_LINK = "direct_link"
     FEATURED = "featured"
@@ -399,7 +503,8 @@ class SearchSource(str, Enum):
 
 
 class InquiryStatus(str, Enum):
-    """Inquiry status"""
+    """Inquiry status."""
+
     NEW = "new"
     CONTACTED = "contacted"
     INTERESTED = "interested"
@@ -408,7 +513,8 @@ class InquiryStatus(str, Enum):
 
 
 class InquirySource(str, Enum):
-    """Inquiry source"""
+    """Inquiry source."""
+
     WEBSITE = "website"
     MOBILE_APP = "mobile_app"
     REFERRAL = "referral"
@@ -417,7 +523,8 @@ class InquirySource(str, Enum):
 
 
 class WaitlistStatus(str, Enum):
-    """Waitlist status"""
+    """Waitlist status."""
+
     WAITING = "waiting"
     NOTIFIED = "notified"
     CONVERTED = "converted"
@@ -426,7 +533,8 @@ class WaitlistStatus(str, Enum):
 
 
 class OTPType(str, Enum):
-    """OTP type"""
+    """OTP type."""
+
     EMAIL_VERIFICATION = "email_verification"
     PHONE_VERIFICATION = "phone_verification"
     LOGIN = "login"
@@ -434,7 +542,8 @@ class OTPType(str, Enum):
 
 
 class AuditActionCategory(str, Enum):
-    """Audit action category"""
+    """Audit action category."""
+
     AUTHENTICATION = "authentication"
     AUTHORIZATION = "authorization"
     USER_MANAGEMENT = "user_management"
@@ -452,7 +561,8 @@ class AuditActionCategory(str, Enum):
 
 
 class ChargeType(str, Enum):
-    """Utility charge type"""
+    """Utility charge type."""
+
     INCLUDED = "included"
     ACTUAL = "actual"
     FIXED_MONTHLY = "fixed_monthly"

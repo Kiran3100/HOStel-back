@@ -1,137 +1,581 @@
+# --- File: app/schemas/hostel/hostel_base.py ---
 """
-Hostel base schemas
+Hostel base schemas with enhanced validation and type safety.
 """
-from decimal import Decimal
-from datetime import time
-from typing import List, Optional
-from pydantic import Field, HttpUrl, field_validator
-from uuid import UUID
 
-from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
-from app.schemas.common.enums import HostelType, HostelStatus
+from __future__ import annotations
+
+from datetime import time
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseSchema,
+    BaseUpdateSchema,
+)
+from app.schemas.common.enums import HostelStatus, HostelType
 from app.schemas.common.mixins import AddressMixin, ContactMixin, LocationMixin
+
+__all__ = [
+    "HostelBase",
+    "HostelCreate",
+    "HostelUpdate",
+    "HostelMediaUpdate",
+    "HostelSEOUpdate",
+]
 
 
 class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
-    """Base hostel schema with common fields"""
-    name: str = Field(..., min_length=3, max_length=255, description="Hostel name")
-    slug: str = Field(..., min_length=3, max_length=255, pattern=r'^[a-z0-9-]+$', description="URL-friendly slug")
-    description: Optional[str] = Field(None, max_length=2000, description="Hostel description")
+    """
+    Base hostel schema with common fields.
     
+    Combines address, contact, and location information with hostel-specific fields.
+    """
+
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=255,
+        description="Hostel name",
+        examples=["Green Valley Hostel"],
+    )
+    slug: str = Field(
+        ...,
+        min_length=3,
+        max_length=255,
+        pattern=r"^[a-z0-9-]+$",
+        description="URL-friendly slug (lowercase, alphanumeric, hyphens only)",
+        examples=["green-valley-hostel"],
+    )
+    description: Optional[str] = Field(
+        default=None,
+        max_length=2000,
+        description="Detailed hostel description",
+    )
+
     # Type
-    hostel_type: HostelType = Field(..., description="Hostel type (boys/girls/co-ed)")
-    
+    hostel_type: HostelType = Field(
+        ...,
+        description="Hostel type (boys/girls/co-ed)",
+    )
+
     # Website
-    website_url: Optional[HttpUrl] = Field(None, description="Hostel website URL")
-    
+    website_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="Hostel official website URL",
+    )
+
     # Pricing
     starting_price_monthly: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         max_digits=10,
         decimal_places=2,
-        description="Starting monthly price"
+        description="Starting monthly price (lowest room type)",
     )
-    currency: str = Field("INR", min_length=3, max_length=3, description="Currency code")
-    
-    # Amenities and facilities (JSON arrays)
-    amenities: List[str] = Field(default_factory=list, description="List of amenities")
-    facilities: List[str] = Field(default_factory=list, description="List of facilities")
-    security_features: List[str] = Field(default_factory=list, description="Security features")
-    
-    # Policies
-    rules: Optional[str] = Field(None, max_length=5000, description="Hostel rules and regulations")
-    check_in_time: Optional[time] = Field(None, description="Standard check-in time")
-    check_out_time: Optional[time] = Field(None, description="Standard check-out time")
-    visitor_policy: Optional[str] = Field(None, max_length=1000, description="Visitor policy")
-    late_entry_policy: Optional[str] = Field(None, max_length=1000, description="Late entry policy")
-    
-    # Location info
-    nearby_landmarks: List[dict] = Field(
+    currency: str = Field(
+        default="INR",
+        min_length=3,
+        max_length=3,
+        pattern=r"^[A-Z]{3}$",
+        description="Currency code (ISO 4217)",
+        examples=["INR", "USD"],
+    )
+
+    # Amenities and facilities
+    amenities: List[str] = Field(
         default_factory=list,
-        description="Nearby landmarks with name and distance"
+        description="List of amenities (WiFi, AC, etc.)",
+        examples=[["WiFi", "AC", "Laundry", "Hot Water"]],
     )
-    connectivity_info: Optional[str] = Field(None, max_length=1000, description="Connectivity information")
-    
-    @field_validator('slug')
+    facilities: List[str] = Field(
+        default_factory=list,
+        description="List of facilities (Gym, Library, etc.)",
+        examples=[["Gym", "Library", "Common Room"]],
+    )
+    security_features: List[str] = Field(
+        default_factory=list,
+        description="Security features (CCTV, Guards, etc.)",
+        examples=[["CCTV", "24/7 Security", "Biometric Access"]],
+    )
+
+    # Policies
+    rules: Optional[str] = Field(
+        default=None,
+        max_length=5000,
+        description="Hostel rules and regulations",
+    )
+    check_in_time: Optional[time] = Field(
+        default=None,
+        description="Standard check-in time",
+        examples=["10:00:00"],
+    )
+    check_out_time: Optional[time] = Field(
+        default=None,
+        description="Standard check-out time",
+        examples=["11:00:00"],
+    )
+    visitor_policy: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Visitor policy details",
+    )
+    late_entry_policy: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Late entry policy and timings",
+    )
+
+    # Location info
+    nearby_landmarks: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Nearby landmarks with name, type, and distance",
+        examples=[[{"name": "Metro Station", "type": "transport", "distance": "500m"}]],
+    )
+    connectivity_info: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Public transport and connectivity information",
+    )
+
+    @field_validator("slug")
     @classmethod
     def validate_slug(cls, v: str) -> str:
-        """Validate slug format"""
-        if not v.replace('-', '').replace('_', '').isalnum():
-            raise ValueError('Slug can only contain lowercase letters, numbers, and hyphens')
-        return v.lower()
-    
-    @field_validator('amenities', 'facilities', 'security_features')
+        """
+        Validate and normalize slug format.
+        
+        Ensures slug contains only lowercase letters, numbers, and hyphens.
+        """
+        v = v.lower().strip()
+        if not v.replace("-", "").isalnum():
+            raise ValueError(
+                "Slug can only contain lowercase letters, numbers, and hyphens"
+            )
+        # Remove consecutive hyphens
+        while "--" in v:
+            v = v.replace("--", "-")
+        # Remove leading/trailing hyphens
+        v = v.strip("-")
+        return v
+
+    @field_validator("name")
     @classmethod
-    def validate_lists_not_empty(cls, v: List[str]) -> List[str]:
-        """Remove empty strings from lists"""
-        return [item.strip() for item in v if item.strip()]
+    def validate_name(cls, v: str) -> str:
+        """Validate and normalize hostel name."""
+        v = v.strip()
+        # Remove excessive whitespace
+        v = " ".join(v.split())
+        if v.isdigit():
+            raise ValueError("Hostel name cannot be only numbers")
+        return v
+
+    @field_validator("amenities", "facilities", "security_features")
+    @classmethod
+    def validate_and_clean_lists(cls, v: List[str]) -> List[str]:
+        """
+        Validate and clean list fields.
+        
+        Removes empty strings, duplicates, and normalizes values.
+        """
+        if not v:
+            return []
+        # Clean and normalize
+        cleaned = [item.strip() for item in v if item and item.strip()]
+        # Remove duplicates while preserving order
+        seen = set()
+        unique = []
+        for item in cleaned:
+            item_lower = item.lower()
+            if item_lower not in seen:
+                seen.add(item_lower)
+                unique.append(item)
+        return unique
+
+    @field_validator("nearby_landmarks")
+    @classmethod
+    def validate_landmarks(cls, v: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Validate nearby landmarks structure."""
+        if not v:
+            return []
+        validated = []
+        for landmark in v:
+            if not isinstance(landmark, dict):
+                continue
+            if "name" in landmark and landmark["name"].strip():
+                validated.append({
+                    "name": landmark.get("name", "").strip(),
+                    "type": landmark.get("type", "other").strip(),
+                    "distance": landmark.get("distance", "").strip(),
+                })
+        return validated
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, v: str) -> str:
+        """Normalize currency code to uppercase."""
+        return v.upper().strip()
+
+    @model_validator(mode="after")
+    def validate_check_times(self) -> "HostelBase":
+        """Validate check-in and check-out times."""
+        if (
+            self.check_in_time is not None
+            and self.check_out_time is not None
+            and self.check_in_time >= self.check_out_time
+        ):
+            raise ValueError("Check-in time must be before check-out time")
+        return self
 
 
 class HostelCreate(HostelBase, BaseCreateSchema):
-    """Schema for creating a hostel"""
-    # Override to make certain fields required
-    name: str = Field(..., min_length=3, max_length=255)
-    hostel_type: HostelType = Field(...)
-    contact_phone: str = Field(...)
+    """
+    Schema for creating a hostel.
+    
+    Enforces required fields for hostel creation.
+    """
+
+    # Override to enforce requirements
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=255,
+        description="Hostel name (required)",
+    )
+    hostel_type: HostelType = Field(
+        ...,
+        description="Hostel type (required)",
+    )
+    contact_phone: str = Field(
+        ...,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Primary contact phone (required)",
+    )
+    address_line1: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Address line 1 (required)",
+    )
+    city: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="City (required)",
+    )
+    state: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="State (required)",
+    )
+    pincode: str = Field(
+        ...,
+        pattern=r"^\d{6}$",
+        description="6-digit pincode (required)",
+    )
 
 
 class HostelUpdate(BaseUpdateSchema):
-    """Schema for updating a hostel (all fields optional)"""
-    name: Optional[str] = Field(None, min_length=3, max_length=255)
-    slug: Optional[str] = Field(None, min_length=3, max_length=255)
-    description: Optional[str] = Field(None, max_length=2000)
-    hostel_type: Optional[HostelType] = None
+    """
+    Schema for updating hostel information.
     
+    All fields are optional for partial updates.
+    """
+
+    # Basic info
+    name: Optional[str] = Field(
+        default=None,
+        min_length=3,
+        max_length=255,
+        description="Hostel name",
+    )
+    slug: Optional[str] = Field(
+        default=None,
+        min_length=3,
+        max_length=255,
+        pattern=r"^[a-z0-9-]+$",
+        description="URL slug",
+    )
+    description: Optional[str] = Field(
+        default=None,
+        max_length=2000,
+        description="Description",
+    )
+    hostel_type: Optional[HostelType] = Field(
+        default=None,
+        description="Hostel type",
+    )
+
     # Address fields
-    address_line1: Optional[str] = None
-    address_line2: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    country: Optional[str] = None
-    
+    address_line1: Optional[str] = Field(
+        default=None,
+        min_length=5,
+        max_length=255,
+        description="Address line 1",
+    )
+    address_line2: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Address line 2",
+    )
+    city: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+        description="City",
+    )
+    state: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+        description="State",
+    )
+    pincode: Optional[str] = Field(
+        default=None,
+        pattern=r"^\d{6}$",
+        description="Pincode",
+    )
+    country: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+        description="Country",
+    )
+
     # Contact
-    contact_phone: Optional[str] = None
-    alternate_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    
+    contact_phone: Optional[str] = Field(
+        default=None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Contact phone",
+    )
+    alternate_phone: Optional[str] = Field(
+        default=None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Alternate phone",
+    )
+    contact_email: Optional[str] = Field(
+        default=None,
+        description="Contact email",
+    )
+    website_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="Website URL",
+    )
+
     # Location
-    latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
-    longitude: Optional[Decimal] = Field(None, ge=-180, le=180)
-    
+    latitude: Optional[Decimal] = Field(
+        default=None,
+        ge=-90,
+        le=90,
+        description="Latitude",
+    )
+    longitude: Optional[Decimal] = Field(
+        default=None,
+        ge=-180,
+        le=180,
+        description="Longitude",
+    )
+
     # Pricing
-    starting_price_monthly: Optional[Decimal] = Field(None, ge=0)
-    
+    starting_price_monthly: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Starting monthly price",
+    )
+    currency: Optional[str] = Field(
+        default=None,
+        min_length=3,
+        max_length=3,
+        pattern=r"^[A-Z]{3}$",
+        description="Currency code",
+    )
+
     # Lists
-    amenities: Optional[List[str]] = None
-    facilities: Optional[List[str]] = None
-    security_features: Optional[List[str]] = None
-    
+    amenities: Optional[List[str]] = Field(
+        default=None,
+        description="Amenities list",
+    )
+    facilities: Optional[List[str]] = Field(
+        default=None,
+        description="Facilities list",
+    )
+    security_features: Optional[List[str]] = Field(
+        default=None,
+        description="Security features list",
+    )
+
     # Policies
-    rules: Optional[str] = None
-    check_in_time: Optional[time] = None
-    check_out_time: Optional[time] = None
-    
+    rules: Optional[str] = Field(
+        default=None,
+        max_length=5000,
+        description="Rules and regulations",
+    )
+    check_in_time: Optional[time] = Field(
+        default=None,
+        description="Check-in time",
+    )
+    check_out_time: Optional[time] = Field(
+        default=None,
+        description="Check-out time",
+    )
+    visitor_policy: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Visitor policy",
+    )
+    late_entry_policy: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Late entry policy",
+    )
+
+    # Location info
+    nearby_landmarks: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="Nearby landmarks",
+    )
+    connectivity_info: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Connectivity info",
+    )
+
     # Media
-    cover_image_url: Optional[str] = None
-    gallery_images: Optional[List[str]] = None
-    virtual_tour_url: Optional[str] = None
-    
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image URL",
+    )
+    gallery_images: Optional[List[str]] = Field(
+        default=None,
+        description="Gallery image URLs",
+    )
+    virtual_tour_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="Virtual tour URL",
+    )
+
     # Status
-    status: Optional[HostelStatus] = None
-    is_active: Optional[bool] = None
+    status: Optional[HostelStatus] = Field(
+        default=None,
+        description="Operational status",
+    )
+    is_active: Optional[bool] = Field(
+        default=None,
+        description="Active status",
+    )
+
+    # Apply same validators as base
+    _validate_slug = field_validator("slug")(HostelBase.validate_slug.__func__)
+    _validate_name = field_validator("name")(HostelBase.validate_name.__func__)
+    _validate_lists = field_validator(
+        "amenities", "facilities", "security_features"
+    )(HostelBase.validate_and_clean_lists.__func__)
+    _validate_currency = field_validator("currency")(
+        HostelBase.validate_currency.__func__
+    )
+
+    @field_validator("contact_phone", "alternate_phone")
+    @classmethod
+    def normalize_phone(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize phone numbers."""
+        if v is not None:
+            return v.replace(" ", "").replace("-", "").strip()
+        return v
 
 
 class HostelMediaUpdate(BaseUpdateSchema):
-    """Update hostel media (images, videos)"""
-    cover_image_url: Optional[str] = Field(None, description="Cover image URL")
-    gallery_images: List[str] = Field(default_factory=list, description="Gallery image URLs")
-    virtual_tour_url: Optional[HttpUrl] = Field(None, description="Virtual tour URL")
+    """
+    Update hostel media (images, videos, virtual tours).
+    
+    Manages hostel visual content.
+    """
+
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover/main image URL",
+    )
+    gallery_images: List[str] = Field(
+        default_factory=list,
+        max_items=20,
+        description="Gallery image URLs (max 20)",
+    )
+    virtual_tour_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="360° virtual tour URL",
+    )
+    video_urls: Optional[List[HttpUrl]] = Field(
+        default=None,
+        max_items=5,
+        description="Video URLs (max 5)",
+    )
+
+    @field_validator("gallery_images")
+    @classmethod
+    def validate_gallery_images(cls, v: List[str]) -> List[str]:
+        """Validate gallery images."""
+        if not v:
+            return []
+        # Remove empty strings and duplicates
+        cleaned = [img.strip() for img in v if img and img.strip()]
+        # Remove duplicates while preserving order
+        seen = set()
+        unique = []
+        for img in cleaned:
+            if img not in seen:
+                seen.add(img)
+                unique.append(img)
+        return unique[:20]  # Limit to 20
 
 
 class HostelSEOUpdate(BaseUpdateSchema):
-    """Update hostel SEO metadata"""
-    meta_title: Optional[str] = Field(None, max_length=255, description="SEO meta title")
-    meta_description: Optional[str] = Field(None, max_length=500, description="SEO meta description")
-    meta_keywords: Optional[str] = Field(None, max_length=500, description="SEO keywords (comma-separated)")
+    """
+    Update hostel SEO metadata.
+    
+    Manages search engine optimization fields.
+    """
+
+    meta_title: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=60,
+        description="SEO meta title (optimal: 50-60 chars)",
+    )
+    meta_description: Optional[str] = Field(
+        default=None,
+        min_length=50,
+        max_length=160,
+        description="SEO meta description (optimal: 150-160 chars)",
+    )
+    meta_keywords: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="SEO keywords (comma-separated)",
+    )
+    og_title: Optional[str] = Field(
+        default=None,
+        max_length=95,
+        description="Open Graph title",
+    )
+    og_description: Optional[str] = Field(
+        default=None,
+        max_length=200,
+        description="Open Graph description",
+    )
+    og_image_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="Open Graph image URL",
+    )
+
+    @field_validator("meta_keywords")
+    @classmethod
+    def validate_keywords(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and clean meta keywords."""
+        if v is None:
+            return v
+        # Split, clean, and rejoin
+        keywords = [kw.strip() for kw in v.split(",") if kw.strip()]
+        # Limit to 10 keywords
+        return ", ".join(keywords[:10])

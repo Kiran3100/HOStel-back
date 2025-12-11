@@ -1,58 +1,230 @@
+# --- File: app/schemas/auth/social_auth.py ---
 """
-Social authentication schemas (Google, Facebook OAuth)
+Social authentication schemas with provider-specific validation.
 """
-from typing import Optional
-from pydantic import EmailStr, Field, HttpUrl
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
-from app.schemas.common.enums import UserRole, Gender
+from __future__ import annotations
+
+from typing import Optional
+from uuid import UUID
+
+from pydantic import EmailStr, Field, HttpUrl, field_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import Gender, UserRole
+
+__all__ = [
+    "SocialAuthRequest",
+    "GoogleAuthRequest",
+    "FacebookAuthRequest",
+    "SocialUserInfo",
+    "SocialProfileData",
+    "SocialAuthResponse",
+]
 
 
 class SocialAuthRequest(BaseCreateSchema):
-    """Base social authentication request"""
-    access_token: str = Field(..., description="OAuth access token from provider")
-    provider: str = Field(..., pattern="^(google|facebook)$", description="OAuth provider")
+    """
+    Base social authentication request.
+    
+    Generic schema for OAuth providers.
+    """
+
+    access_token: str = Field(
+        ...,
+        min_length=1,
+        description="OAuth access token from provider",
+    )
+    provider: str = Field(
+        ...,
+        pattern=r"^(google|facebook|apple)$",
+        description="OAuth provider name",
+        examples=["google", "facebook"],
+    )
+
+    @field_validator("provider")
+    @classmethod
+    def normalize_provider(cls, v: str) -> str:
+        """Normalize provider name to lowercase."""
+        return v.lower().strip()
+
+    @field_validator("access_token")
+    @classmethod
+    def validate_token_not_empty(cls, v: str) -> str:
+        """Ensure access token is not empty or whitespace."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Access token cannot be empty")
+        return v
 
 
 class GoogleAuthRequest(BaseCreateSchema):
-    """Google OAuth authentication request"""
-    id_token: str = Field(..., description="Google ID token")
-    access_token: Optional[str] = Field(None, description="Google access token")
+    """
+    Google OAuth authentication request.
+    
+    Uses Google ID token for secure authentication.
+    """
+
+    id_token: str = Field(
+        ...,
+        min_length=1,
+        description="Google ID token (JWT) from OAuth flow",
+    )
+    access_token: Optional[str] = Field(
+        default=None,
+        description="Google access token (optional, for additional API access)",
+    )
+
+    @field_validator("id_token", "access_token")
+    @classmethod
+    def validate_token_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate token format and strip whitespace."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Token cannot be empty or whitespace")
+        return v
 
 
 class FacebookAuthRequest(BaseCreateSchema):
-    """Facebook OAuth authentication request"""
-    access_token: str = Field(..., description="Facebook access token")
-    user_id: str = Field(..., description="Facebook user ID")
+    """
+    Facebook OAuth authentication request.
+    
+    Uses Facebook access token and user ID for authentication.
+    """
 
+    access_token: str = Field(
+        ...,
+        min_length=1,
+        description="Facebook access token from OAuth flow",
+    )
+    user_id: str = Field(
+        ...,
+        min_length=1,
+        description="Facebook user ID",
+    )
 
-class SocialAuthResponse(BaseSchema):
-    """Social authentication response"""
-    access_token: str = Field(..., description="JWT access token")
-    refresh_token: str = Field(..., description="JWT refresh token")
-    token_type: str = Field("bearer", description="Token type")
-    expires_in: int = Field(..., description="Token expiration in seconds")
-    user: "SocialUserInfo" = Field(..., description="User information")
-    is_new_user: bool = Field(..., description="Whether this is a new user registration")
+    @field_validator("access_token", "user_id")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        """Ensure field is not empty or whitespace."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Field cannot be empty or whitespace")
+        return v
 
 
 class SocialUserInfo(BaseSchema):
-    """User information from social auth"""
-    id: UUID = Field(..., description="User ID")
-    email: str = Field(..., description="User email")
-    full_name: str = Field(..., description="User full name")
-    role: UserRole = Field(..., description="User role")
-    profile_image_url: Optional[str] = Field(None, description="Profile image URL")
-    is_email_verified: bool = Field(True, description="Email verification status")
+    """
+    User information from social authentication.
+    
+    Minimal user profile data returned after social auth.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="User ID in our system",
+    )
+    email: str = Field(
+        ...,
+        description="User email address",
+    )
+    full_name: str = Field(
+        ...,
+        description="User full name",
+    )
+    role: UserRole = Field(
+        ...,
+        description="User role",
+    )
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image URL from social provider",
+    )
+    is_email_verified: bool = Field(
+        default=True,
+        description="Email verification status (auto-verified via social auth)",
+    )
 
 
 class SocialProfileData(BaseSchema):
-    """Profile data from social provider"""
-    provider_user_id: str = Field(..., description="User ID from provider")
-    email: EmailStr = Field(..., description="Email from provider")
-    full_name: str = Field(..., description="Full name from provider")
-    first_name: Optional[str] = Field(None, description="First name")
-    last_name: Optional[str] = Field(None, description="Last name")
-    profile_picture_url: Optional[HttpUrl] = Field(None, description="Profile picture URL")
-    gender: Optional[Gender] = Field(None, description="Gender")
-    locale: Optional[str] = Field(None, description="User locale")
+    """
+    Profile data extracted from social provider.
+    
+    Comprehensive user information from OAuth provider.
+    """
+
+    provider_user_id: str = Field(
+        ...,
+        description="Unique user ID from OAuth provider",
+    )
+    email: EmailStr = Field(
+        ...,
+        description="Email address from provider",
+    )
+    full_name: str = Field(
+        ...,
+        description="Full name from provider",
+    )
+    first_name: Optional[str] = Field(
+        default=None,
+        description="First name",
+    )
+    last_name: Optional[str] = Field(
+        default=None,
+        description="Last name",
+    )
+    profile_picture_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="Profile picture URL from provider",
+    )
+    gender: Optional[Gender] = Field(
+        default=None,
+        description="Gender (if provided by provider)",
+    )
+    locale: Optional[str] = Field(
+        default=None,
+        description="User locale/language preference",
+        examples=["en_US", "hi_IN"],
+    )
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: EmailStr) -> str:
+        """Normalize email to lowercase."""
+        return v.lower().strip()
+
+
+class SocialAuthResponse(BaseSchema):
+    """
+    Social authentication response.
+    
+    Follows OAuth 2.0 token response format with user information.
+    """
+
+    access_token: str = Field(
+        ...,
+        description="JWT access token for API authentication",
+    )
+    refresh_token: str = Field(
+        ...,
+        description="JWT refresh token",
+    )
+    token_type: str = Field(
+        default="bearer",
+        description="Token type (always 'bearer')",
+    )
+    expires_in: int = Field(
+        ...,
+        gt=0,
+        description="Access token expiration in seconds",
+        examples=[3600],
+    )
+    user: SocialUserInfo = Field(
+        ...,
+        description="Authenticated user information",
+    )
+    is_new_user: bool = Field(
+        ...,
+        description="Whether this is a new user (first-time registration)",
+    )

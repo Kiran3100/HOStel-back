@@ -1,6 +1,20 @@
 # app/core/database.py
 from __future__ import annotations
 
+"""
+Database engine and session management.
+
+This module defines:
+- The global SQLAlchemy engine.
+- A configured SessionLocal factory.
+- Helpers for obtaining/using sessions with FastAPI and scripts.
+
+Notes:
+    - DATABASE_URL is read from the environment (ENV_DATABASE_URL) with
+      a sensible default (`sqlite:///./app.db`).
+    - In production, you should use Alembic migrations instead of `init_db()`.
+"""
+
 import os
 from contextlib import contextmanager
 from typing import Iterator, Generator
@@ -34,7 +48,9 @@ SessionLocal = sessionmaker(
 
 def get_session() -> Generator[Session, None, None]:
     """
-    FastAPI-friendly dependency for DB session:
+    FastAPI-friendly dependency for a DB session.
+
+    Example integration:
 
         def get_db():
             db = SessionLocal()
@@ -43,7 +59,9 @@ def get_session() -> Generator[Session, None, None]:
             finally:
                 db.close()
 
-    Here we export get_session directly.
+    Here we export get_session directly so application code can do:
+
+        from app.core import get_session
     """
     db = SessionLocal()
     try:
@@ -55,12 +73,17 @@ def get_session() -> Generator[Session, None, None]:
 @contextmanager
 def session_scope() -> Iterator[Session]:
     """
-    Context manager for scripts / CLIs / background tasks:
+    Context manager for scripts / CLIs / background tasks.
+
+    Usage:
+
+        from app.core import session_scope
 
         with session_scope() as session:
+            # use session
             ...
 
-    Commits on success, rollbacks on error.
+    This commits on success, and rolls back on any exception.
     """
     session: Session = SessionLocal()
     try:
@@ -75,8 +98,9 @@ def session_scope() -> Iterator[Session]:
 
 def init_db() -> None:
     """
-    Simple helper to create all tables.
+    Simple helper to create all tables from SQLAlchemy models.
 
-    In production, prefer Alembic migrations instead of this.
+    In production, prefer Alembic migrations instead of calling this
+    directly, to ensure schema changes are managed and versioned.
     """
     Base.metadata.create_all(bind=engine)

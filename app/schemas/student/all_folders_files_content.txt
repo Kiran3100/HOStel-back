@@ -1,0 +1,4142 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\student ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\student =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_base.py ---
+# --- File: app/schemas/student/student_base.py ---
+"""
+Student base schemas with enhanced validation and type safety.
+
+Provides core student management schemas including creation, updates,
+check-in/check-out operations, and student-specific attributes.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseSchema,
+    BaseUpdateSchema,
+)
+from app.schemas.common.enums import (
+    DietaryPreference,
+    IDProofType,
+    StudentStatus,
+)
+
+__all__ = [
+    "StudentBase",
+    "StudentCreate",
+    "StudentUpdate",
+    "StudentCheckInRequest",
+    "StudentCheckOutRequest",
+    "StudentRoomAssignment",
+    "StudentStatusUpdate",
+]
+
+
+class StudentBase(BaseSchema):
+    """
+    Base student schema with comprehensive student attributes.
+    
+    Contains common fields shared across student operations including
+    identification, guardian info, institutional/employment details,
+    and preferences.
+    """
+
+    user_id: str = Field(
+        ...,
+        description="Associated user ID",
+    )
+    hostel_id: str = Field(
+        ...,
+        description="Current hostel ID",
+    )
+    room_id: Optional[str] = Field(
+        default=None,
+        description="Assigned room ID (null if not assigned)",
+    )
+    bed_id: Optional[str] = Field(
+        default=None,
+        description="Assigned bed ID (null if not assigned)",
+    )
+
+    # Identification documents
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="Type of ID proof submitted",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="ID proof number/reference",
+    )
+    id_proof_document_url: Optional[str] = Field(
+        default=None,
+        description="Uploaded ID proof document URL",
+    )
+
+    # Guardian information (mandatory for students)
+    guardian_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=255,
+        description="Guardian/parent full name",
+        examples=["John Smith", "Mrs. Jane Doe"],
+    )
+    guardian_phone: str = Field(
+        ...,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Guardian contact phone (E.164 format)",
+        examples=["+919876543210", "9876543210"],
+    )
+    guardian_email: Optional[str] = Field(
+        default=None,
+        description="Guardian email address",
+    )
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Relation to student",
+        examples=["Father", "Mother", "Uncle", "Guardian"],
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Guardian residential address",
+    )
+
+    # Institutional information (for students)
+    institution_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="College/University/School name",
+        examples=["IIT Delhi", "Delhi University", "XYZ College"],
+    )
+    course: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Course/Program name",
+        examples=["B.Tech Computer Science", "MBA", "BA Economics"],
+    )
+    year_of_study: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Current year/semester",
+        examples=["1st Year", "3rd Semester", "Final Year"],
+    )
+    student_id_number: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="College/University ID number",
+    )
+    institutional_id_url: Optional[str] = Field(
+        default=None,
+        description="Uploaded institutional ID card URL",
+    )
+
+    # Employment information (for working professionals)
+    company_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Employer/Company name",
+        examples=["Google India", "Infosys", "Startup XYZ"],
+    )
+    designation: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Job title/designation",
+        examples=["Software Engineer", "Marketing Manager", "Analyst"],
+    )
+    company_id_url: Optional[str] = Field(
+        default=None,
+        description="Company ID card URL",
+    )
+
+    # Check-in/Check-out dates
+    check_in_date: Optional[date] = Field(
+        default=None,
+        description="Actual check-in date",
+    )
+    expected_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Expected/planned checkout date",
+    )
+    actual_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Actual checkout date (when checked out)",
+    )
+
+    # Financial information
+    security_deposit_amount: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Security deposit amount",
+    )
+    security_deposit_paid: bool = Field(
+        default=False,
+        description="Security deposit payment status",
+    )
+    security_deposit_paid_date: Optional[date] = Field(
+        default=None,
+        description="Date security deposit was paid",
+    )
+    monthly_rent_amount: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Monthly rent amount for the student",
+    )
+
+    # Meal preferences
+    mess_subscribed: bool = Field(
+        default=False,
+        description="Subscribed to mess/canteen facility",
+    )
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference (veg/non-veg/vegan/jain)",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Food allergies and restrictions",
+        examples=["Peanuts, Shellfish", "Lactose intolerant", "Gluten allergy"],
+    )
+
+    # Status tracking
+    student_status: StudentStatus = Field(
+        default=StudentStatus.ACTIVE,
+        description="Current student status",
+    )
+    notice_period_start: Optional[date] = Field(
+        default=None,
+        description="Notice period start date (if leaving)",
+    )
+    notice_period_end: Optional[date] = Field(
+        default=None,
+        description="Notice period end date",
+    )
+
+    @field_validator("guardian_name")
+    @classmethod
+    def validate_guardian_name(cls, v: str) -> str:
+        """
+        Validate and normalize guardian name.
+        
+        Ensures name is properly formatted and trimmed.
+        """
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Guardian name must be at least 2 characters")
+        if v.isdigit():
+            raise ValueError("Guardian name cannot be only numbers")
+        # Remove excessive whitespace
+        v = " ".join(v.split())
+        return v
+
+    @field_validator("guardian_phone")
+    @classmethod
+    def normalize_guardian_phone(cls, v: str) -> str:
+        """Normalize guardian phone number."""
+        return v.replace(" ", "").replace("-", "").strip()
+
+    @field_validator("guardian_email")
+    @classmethod
+    def normalize_guardian_email(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize guardian email."""
+        if v is not None:
+            return v.lower().strip()
+        return v
+
+    @field_validator("id_proof_number")
+    @classmethod
+    def validate_id_proof_number(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and normalize ID proof number."""
+        if v is not None:
+            v = v.strip().upper()
+            if not v:
+                return None
+            # Remove excessive whitespace
+            v = " ".join(v.split())
+        return v
+
+    @field_validator(
+        "institution_name",
+        "course",
+        "company_name",
+        "designation",
+    )
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            # Remove excessive whitespace
+            v = " ".join(v.split())
+        return v
+
+    @model_validator(mode="after")
+    def validate_checkout_dates(self) -> "StudentBase":
+        """
+        Validate checkout date relationships.
+        
+        Ensures expected checkout is after check-in and actual is after expected.
+        """
+        if self.check_in_date and self.expected_checkout_date:
+            if self.expected_checkout_date <= self.check_in_date:
+                raise ValueError(
+                    "Expected checkout date must be after check-in date"
+                )
+
+        if self.check_in_date and self.actual_checkout_date:
+            if self.actual_checkout_date < self.check_in_date:
+                raise ValueError(
+                    "Actual checkout date cannot be before check-in date"
+                )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_notice_period(self) -> "StudentBase":
+        """Validate notice period dates."""
+        if self.notice_period_start and self.notice_period_end:
+            if self.notice_period_end <= self.notice_period_start:
+                raise ValueError(
+                    "Notice period end must be after start date"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_institutional_or_employment(self) -> "StudentBase":
+        """
+        Validate that either institutional or employment info is provided.
+        
+        Students should be either studying or working.
+        Note: This is a soft validation - we don't raise error to allow flexibility.
+        """
+        has_institution = any(
+            [
+                self.institution_name,
+                self.course,
+                self.student_id_number,
+            ]
+        )
+        has_employment = any([self.company_name, self.designation])
+
+        # Just log or track - don't enforce strictly
+        # This allows for gap year students, etc.
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_room_bed_consistency(self) -> "StudentBase":
+        """Validate room and bed assignment consistency."""
+        # If bed is assigned, room must be assigned
+        if self.bed_id and not self.room_id:
+            raise ValueError(
+                "Cannot assign bed without assigning room"
+            )
+        return self
+
+
+class StudentCreate(StudentBase, BaseCreateSchema):
+    """
+    Schema for creating a new student record.
+    
+    Used when converting a booking to student or direct student registration.
+    """
+
+    # Override to ensure required fields
+    user_id: str = Field(
+        ...,
+        description="User ID (required)",
+    )
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID (required)",
+    )
+    guardian_name: str = Field(
+        ...,
+        min_length=2,
+        description="Guardian name (required)",
+    )
+    guardian_phone: str = Field(
+        ...,
+        description="Guardian phone (required)",
+    )
+
+    # Optional link to source booking
+    booking_id: Optional[str] = Field(
+        default=None,
+        description="Source booking ID (if converted from booking)",
+    )
+
+    # Initial payment status
+    initial_rent_paid: bool = Field(
+        default=False,
+        description="Whether initial/first month rent is paid",
+    )
+
+
+class StudentUpdate(BaseUpdateSchema):
+    """
+    Schema for updating student information.
+    
+    All fields are optional for partial updates.
+    """
+
+    # Room assignment updates
+    room_id: Optional[str] = Field(
+        default=None,
+        description="Updated room ID",
+    )
+    bed_id: Optional[str] = Field(
+        default=None,
+        description="Updated bed ID",
+    )
+
+    # Identification updates
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="ID proof type",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="ID proof number",
+    )
+    id_proof_document_url: Optional[str] = Field(
+        default=None,
+        description="ID proof document URL",
+    )
+
+    # Guardian updates
+    guardian_name: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=255,
+        description="Guardian name",
+    )
+    guardian_phone: Optional[str] = Field(
+        default=None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Guardian phone",
+    )
+    guardian_email: Optional[str] = Field(
+        default=None,
+        description="Guardian email",
+    )
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Guardian relation",
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Guardian address",
+    )
+
+    # Institutional updates
+    institution_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Institution name",
+    )
+    course: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Course",
+    )
+    year_of_study: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Year of study",
+    )
+    student_id_number: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Student ID number",
+    )
+    institutional_id_url: Optional[str] = Field(
+        default=None,
+        description="Institutional ID URL",
+    )
+
+    # Employment updates
+    company_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Company name",
+    )
+    designation: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Designation",
+    )
+    company_id_url: Optional[str] = Field(
+        default=None,
+        description="Company ID URL",
+    )
+
+    # Date updates
+    check_in_date: Optional[date] = Field(
+        default=None,
+        description="Check-in date",
+    )
+    expected_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+    actual_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Actual checkout date",
+    )
+
+    # Financial updates
+    security_deposit_amount: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Security deposit amount",
+    )
+    security_deposit_paid: Optional[bool] = Field(
+        default=None,
+        description="Security deposit paid status",
+    )
+    security_deposit_paid_date: Optional[date] = Field(
+        default=None,
+        description="Security deposit paid date",
+    )
+    monthly_rent_amount: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Monthly rent amount",
+    )
+
+    # Meal updates
+    mess_subscribed: Optional[bool] = Field(
+        default=None,
+        description="Mess subscription status",
+    )
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Food allergies",
+    )
+
+    # Status updates
+    student_status: Optional[StudentStatus] = Field(
+        default=None,
+        description="Student status",
+    )
+    notice_period_start: Optional[date] = Field(
+        default=None,
+        description="Notice period start",
+    )
+    notice_period_end: Optional[date] = Field(
+        default=None,
+        description="Notice period end",
+    )
+
+    # Apply same validators as base
+    _validate_guardian_name = field_validator("guardian_name")(
+        StudentBase.validate_guardian_name.__func__
+    )
+    _normalize_guardian_phone = field_validator("guardian_phone")(
+        StudentBase.normalize_guardian_phone.__func__
+    )
+    _normalize_guardian_email = field_validator("guardian_email")(
+        StudentBase.normalize_guardian_email.__func__
+    )
+    _validate_id_proof = field_validator("id_proof_number")(
+        StudentBase.validate_id_proof_number.__func__
+    )
+    _normalize_text = field_validator(
+        "institution_name",
+        "course",
+        "company_name",
+        "designation",
+    )(StudentBase.normalize_text_fields.__func__)
+
+
+class StudentCheckInRequest(BaseCreateSchema):
+    """
+    Schema for student check-in operation.
+    
+    Handles the complete check-in process with room/bed assignment
+    and payment verification.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID to check in",
+    )
+    check_in_date: date = Field(
+        ...,
+        description="Check-in date",
+    )
+    room_id: str = Field(
+        ...,
+        description="Assigned room ID",
+    )
+    bed_id: str = Field(
+        ...,
+        description="Assigned bed ID",
+    )
+
+    # Payment verification
+    security_deposit_paid: bool = Field(
+        default=False,
+        description="Security deposit payment confirmation",
+    )
+    security_deposit_payment_id: Optional[str] = Field(
+        default=None,
+        description="Security deposit payment reference ID",
+    )
+    initial_rent_paid: bool = Field(
+        default=False,
+        description="First month rent payment confirmation",
+    )
+    initial_rent_payment_id: Optional[str] = Field(
+        default=None,
+        description="Initial rent payment reference ID",
+    )
+
+    # Additional charges
+    mess_advance_paid: bool = Field(
+        default=False,
+        description="Mess advance payment (if applicable)",
+    )
+    other_charges_paid: bool = Field(
+        default=False,
+        description="Other charges payment confirmation",
+    )
+
+    # Documentation
+    id_proof_verified: bool = Field(
+        default=False,
+        description="ID proof verification status",
+    )
+    documents_collected: bool = Field(
+        default=False,
+        description="All required documents collected",
+    )
+
+    # Notes
+    check_in_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Check-in notes and observations",
+    )
+
+    @field_validator("check_in_date")
+    @classmethod
+    def validate_check_in_date(cls, v: date) -> date:
+        """Validate check-in date is reasonable."""
+        from datetime import timedelta
+
+        today = date.today()
+
+        # Allow up to 30 days in the past for data entry
+        if v < today - timedelta(days=30):
+            raise ValueError(
+                "Check-in date cannot be more than 30 days in the past"
+            )
+
+        # Warn if more than 7 days in future
+        if v > today + timedelta(days=7):
+            raise ValueError(
+                "Check-in date cannot be more than 7 days in the future"
+            )
+
+        return v
+
+    @model_validator(mode="after")
+    def validate_payment_references(self) -> "StudentCheckInRequest":
+        """Validate payment reference IDs are provided when payments are confirmed."""
+        if self.security_deposit_paid and not self.security_deposit_payment_id:
+            raise ValueError(
+                "Security deposit payment ID is required when payment is confirmed"
+            )
+
+        if self.initial_rent_paid and not self.initial_rent_payment_id:
+            raise ValueError(
+                "Initial rent payment ID is required when payment is confirmed"
+            )
+
+        return self
+
+
+class StudentCheckOutRequest(BaseCreateSchema):
+    """
+    Schema for student check-out operation.
+    
+    Handles the complete checkout process with clearance verification
+    and refund processing.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID to check out",
+    )
+    checkout_date: date = Field(
+        ...,
+        description="Actual checkout date",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for checkout",
+        examples=[
+            "Course completion",
+            "Job relocation",
+            "Personal reasons",
+            "Transferred to another hostel",
+        ],
+    )
+
+    # Financial clearance
+    final_dues_cleared: bool = Field(
+        default=False,
+        description="All outstanding dues cleared",
+    )
+    outstanding_amount: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        description="Outstanding amount (if any)",
+    )
+    refund_security_deposit: bool = Field(
+        default=True,
+        description="Refund security deposit",
+    )
+    security_deposit_refund_amount: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Security deposit refund amount (after deductions)",
+    )
+    deduction_amount: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        description="Deductions from security deposit",
+    )
+    deduction_reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for deductions",
+    )
+
+    # Room clearance
+    room_condition_acceptable: bool = Field(
+        default=True,
+        description="Room condition is acceptable",
+    )
+    damages_reported: bool = Field(
+        default=False,
+        description="Any damages reported",
+    )
+    damage_charges: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        description="Charges for damages",
+    )
+
+    # Property return
+    key_returned: bool = Field(
+        default=False,
+        description="Room key returned",
+    )
+    id_card_returned: bool = Field(
+        default=False,
+        description="Hostel ID card returned",
+    )
+    other_items_returned: bool = Field(
+        default=False,
+        description="Other borrowed items returned",
+    )
+
+    # Clearance from departments
+    mess_clearance: bool = Field(
+        default=True,
+        description="Mess dues cleared",
+    )
+    library_clearance: bool = Field(
+        default=True,
+        description="Library clearance obtained",
+    )
+    maintenance_clearance: bool = Field(
+        default=True,
+        description="No pending maintenance complaints",
+    )
+
+    # Notes
+    checkout_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Checkout notes and observations",
+    )
+    forwarding_address: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Forwarding address for correspondence",
+    )
+
+    @field_validator("checkout_date")
+    @classmethod
+    def validate_checkout_date(cls, v: date) -> date:
+        """Validate checkout date."""
+        from datetime import timedelta
+
+        today = date.today()
+
+        # Allow past dates for data entry
+        # Future dates for scheduled checkout
+        if v > today + timedelta(days=90):
+            raise ValueError(
+                "Checkout date cannot be more than 90 days in the future"
+            )
+
+        return v
+
+    @model_validator(mode="after")
+    def validate_financial_consistency(self) -> "StudentCheckOutRequest":
+        """Validate financial data consistency."""
+        if not self.final_dues_cleared and self.outstanding_amount == 0:
+            raise ValueError(
+                "If dues are not cleared, outstanding amount must be greater than 0"
+            )
+
+        if self.refund_security_deposit and self.security_deposit_refund_amount is None:
+            raise ValueError(
+                "Security deposit refund amount is required when refunding deposit"
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_clearance_requirements(self) -> "StudentCheckOutRequest":
+        """Validate clearance requirements."""
+        # If damages reported or poor room condition, require damage charges or reason
+        if self.damages_reported or not self.room_condition_acceptable:
+            if self.damage_charges == 0 and not self.deduction_reason:
+                raise ValueError(
+                    "Damage charges or deduction reason required for reported damages"
+                )
+
+        return self
+
+
+class StudentRoomAssignment(BaseCreateSchema):
+    """
+    Schema for assigning/reassigning room and bed to student.
+    
+    Dedicated schema for room/bed assignment operations.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID",
+    )
+    room_id: str = Field(
+        ...,
+        description="Room ID to assign",
+    )
+    bed_id: str = Field(
+        ...,
+        description="Bed ID to assign",
+    )
+    assignment_date: date = Field(
+        ...,
+        description="Assignment effective date",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Reason for assignment/reassignment",
+    )
+
+    # Financial impact
+    rent_adjustment: Optional[Decimal] = Field(
+        default=None,
+        description="Rent adjustment due to room change",
+    )
+    prorated_rent: bool = Field(
+        default=True,
+        description="Calculate prorated rent for partial month",
+    )
+
+    @field_validator("assignment_date")
+    @classmethod
+    def validate_assignment_date(cls, v: date) -> date:
+        """Validate assignment date."""
+        from datetime import timedelta
+
+        today = date.today()
+
+        if v < today - timedelta(days=7):
+            raise ValueError(
+                "Assignment date cannot be more than 7 days in the past"
+            )
+
+        return v
+
+
+class StudentStatusUpdate(BaseCreateSchema):
+    """
+    Schema for updating student status.
+    
+    Handles status transitions with proper tracking and documentation.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID",
+    )
+    new_status: StudentStatus = Field(
+        ...,
+        description="New student status",
+    )
+    effective_date: date = Field(
+        ...,
+        description="Status change effective date",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for status change",
+    )
+
+    # For notice period status
+    notice_period_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=90,
+        description="Notice period duration in days",
+    )
+
+    # For suspension
+    suspension_end_date: Optional[date] = Field(
+        default=None,
+        description="Suspension end date (for SUSPENDED status)",
+    )
+
+    # Additional notes
+    admin_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Administrative notes",
+    )
+
+    @model_validator(mode="after")
+    def validate_status_specific_fields(self) -> "StudentStatusUpdate":
+        """Validate status-specific required fields."""
+        if self.new_status == StudentStatus.SUSPENDED:
+            if not self.suspension_end_date:
+                raise ValueError(
+                    "Suspension end date is required for SUSPENDED status"
+                )
+
+        if self.new_status == StudentStatus.NOTICE_PERIOD:
+            if not self.notice_period_days:
+                raise ValueError(
+                    "Notice period duration is required for NOTICE_PERIOD status"
+                )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_suspension_date(self) -> "StudentStatusUpdate":
+        """Validate suspension end date."""
+        if self.suspension_end_date:
+            if self.suspension_end_date <= self.effective_date:
+                raise ValueError(
+                    "Suspension end date must be after effective date"
+                )
+
+        return self
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_dashboard.py ---
+# --- File: app/schemas/student/student_dashboard.py ---
+"""
+Student dashboard schemas with comprehensive overview data.
+
+Provides schemas for student dashboard, statistics, summaries,
+and quick-view information.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, computed_field
+
+from app.schemas.common.base import BaseSchema
+
+__all__ = [
+    "StudentDashboard",
+    "StudentFinancialSummary",
+    "AttendanceSummary",
+    "StudentStats",
+    "RecentPayment",
+    "RecentComplaint",
+    "PendingLeave",
+    "RecentAnnouncement",
+    "TodayMessMenu",
+    "UpcomingEvent",
+]
+
+
+class StudentFinancialSummary(BaseSchema):
+    """
+    Financial summary for student dashboard.
+    
+    Provides quick overview of payment status and dues.
+    """
+
+    monthly_rent: Decimal = Field(..., description="Monthly rent amount")
+    next_due_date: date = Field(..., description="Next payment due date")
+    amount_due: Decimal = Field(..., description="Current amount due")
+    amount_overdue: Decimal = Field(..., description="Overdue amount")
+    advance_balance: Decimal = Field(..., description="Advance payment balance")
+    security_deposit: Decimal = Field(..., description="Security deposit amount")
+
+    # Mess charges
+    mess_charges: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Monthly mess charges",
+    )
+    mess_balance: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Mess account balance",
+    )
+
+    # Payment status
+    payment_status: str = Field(
+        ...,
+        pattern=r"^(current|due_soon|overdue)$",
+        description="Overall payment status",
+    )
+    days_until_due: Optional[int] = Field(
+        default=None,
+        description="Days until next payment due",
+    )
+    days_overdue: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Days payment is overdue",
+    )
+
+    @computed_field
+    @property
+    def total_outstanding(self) -> Decimal:
+        """Calculate total outstanding amount."""
+        return self.amount_due + self.amount_overdue
+
+    @computed_field
+    @property
+    def net_balance(self) -> Decimal:
+        """Calculate net balance (advance - dues)."""
+        return self.advance_balance - self.total_outstanding
+
+    @computed_field
+    @property
+    def is_payment_urgent(self) -> bool:
+        """Check if payment is urgent (due in 3 days or overdue)."""
+        if self.amount_overdue > 0:
+            return True
+        if self.days_until_due is not None and self.days_until_due <= 3:
+            return True
+        return False
+
+
+class AttendanceSummary(BaseSchema):
+    """
+    Attendance summary for student dashboard.
+    
+    Provides attendance statistics and status.
+    """
+
+    # Current month
+    current_month_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Current month attendance percentage",
+    )
+    current_month_present: int = Field(
+        ...,
+        ge=0,
+        description="Days present this month",
+    )
+    current_month_absent: int = Field(
+        ...,
+        ge=0,
+        description="Days absent this month",
+    )
+    current_month_leaves: int = Field(
+        ...,
+        ge=0,
+        description="Days on leave this month",
+    )
+    current_month_total_days: int = Field(
+        ...,
+        ge=0,
+        description="Total trackable days this month",
+    )
+
+    # Last 30 days
+    last_30_days_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Last 30 days attendance percentage",
+    )
+
+    # Overall
+    overall_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Overall attendance percentage",
+    )
+    minimum_required_percentage: Decimal = Field(
+        default=Decimal("75.00"),
+        description="Minimum required attendance",
+    )
+
+    # Status
+    attendance_status: str = Field(
+        ...,
+        pattern=r"^(good|warning|critical)$",
+        description="Attendance status indicator",
+    )
+
+    # Leaves
+    leave_balance: int = Field(
+        default=0,
+        ge=0,
+        description="Remaining leave balance",
+    )
+    pending_leave_requests: int = Field(
+        default=0,
+        ge=0,
+        description="Pending leave applications",
+    )
+
+    @computed_field
+    @property
+    def is_below_minimum(self) -> bool:
+        """Check if attendance is below minimum requirement."""
+        return self.overall_percentage < self.minimum_required_percentage
+
+    @computed_field
+    @property
+    def percentage_gap(self) -> Decimal:
+        """Calculate gap from minimum requirement."""
+        return self.minimum_required_percentage - self.overall_percentage
+
+
+class StudentStats(BaseSchema):
+    """
+    Quick statistics for student dashboard.
+    
+    Provides key metrics and counts.
+    """
+
+    days_in_hostel: int = Field(
+        ...,
+        ge=0,
+        description="Total days as hostel resident",
+    )
+    months_in_hostel: int = Field(
+        ...,
+        ge=0,
+        description="Total months in hostel",
+    )
+
+    # Payments
+    total_payments_made: int = Field(
+        ...,
+        ge=0,
+        description="Total number of payments",
+    )
+    total_amount_paid: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount paid",
+    )
+    last_payment_date: Optional[date] = Field(
+        default=None,
+        description="Last payment date",
+    )
+
+    # Complaints
+    complaints_raised: int = Field(
+        ...,
+        ge=0,
+        description="Total complaints raised",
+    )
+    complaints_resolved: int = Field(
+        ...,
+        ge=0,
+        description="Resolved complaints",
+    )
+    complaints_pending: int = Field(
+        ...,
+        ge=0,
+        description="Pending complaints",
+    )
+
+    # Attendance
+    current_attendance_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Current attendance percentage",
+    )
+
+    # Mess
+    mess_meals_consumed: int = Field(
+        default=0,
+        ge=0,
+        description="Total mess meals consumed",
+    )
+
+    @computed_field
+    @property
+    def complaint_resolution_rate(self) -> Decimal:
+        """Calculate complaint resolution rate."""
+        if self.complaints_raised == 0:
+            return Decimal("100.00")
+        return Decimal(
+            (self.complaints_resolved / self.complaints_raised * 100)
+        ).quantize(Decimal("0.01"))
+
+
+class RecentPayment(BaseSchema):
+    """
+    Recent payment item for dashboard.
+    
+    Displays recent payment transaction.
+    """
+
+    payment_id: str = Field(..., description="Payment ID")
+    amount: Decimal = Field(..., ge=0, description="Payment amount")
+    payment_type: str = Field(..., description="Payment type")
+    payment_date: date = Field(..., description="Payment date")
+    status: str = Field(..., description="Payment status")
+    receipt_url: Optional[str] = Field(
+        default=None,
+        description="Receipt download URL",
+    )
+    payment_method: Optional[str] = Field(
+        default=None,
+        description="Payment method used",
+    )
+
+
+class RecentComplaint(BaseSchema):
+    """
+    Recent complaint item for dashboard.
+    
+    Displays recent complaint with status.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    title: str = Field(..., description="Complaint title")
+    category: str = Field(..., description="Complaint category")
+    status: str = Field(..., description="Current status")
+    priority: str = Field(..., description="Priority level")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    assigned_to: Optional[str] = Field(
+        default=None,
+        description="Assigned staff name",
+    )
+
+    @computed_field
+    @property
+    def days_open(self) -> int:
+        """Calculate days since complaint was raised."""
+        return (datetime.now() - self.created_at).days
+
+
+class PendingLeave(BaseSchema):
+    """
+    Pending leave application for dashboard.
+    
+    Displays leave request awaiting approval.
+    """
+
+    leave_id: str = Field(..., description="Leave application ID")
+    leave_type: str = Field(..., description="Leave type")
+    from_date: date = Field(..., description="Leave start date")
+    to_date: date = Field(..., description="Leave end date")
+    total_days: int = Field(..., ge=1, description="Total leave days")
+    reason: Optional[str] = Field(default=None, description="Leave reason")
+    status: str = Field(..., description="Application status")
+    applied_at: datetime = Field(..., description="Application timestamp")
+
+    @computed_field
+    @property
+    def is_upcoming(self) -> bool:
+        """Check if leave is upcoming."""
+        return self.from_date > date.today()
+
+
+class RecentAnnouncement(BaseSchema):
+    """
+    Recent announcement for dashboard.
+    
+    Displays hostel announcement.
+    """
+
+    announcement_id: str = Field(..., description="Announcement ID")
+    title: str = Field(..., description="Announcement title")
+    content: Optional[str] = Field(default=None, description="Announcement content")
+    category: str = Field(..., description="Category")
+    priority: str = Field(..., description="Priority level")
+    published_at: datetime = Field(..., description="Published timestamp")
+    is_read: bool = Field(default=False, description="Read status")
+    is_important: bool = Field(default=False, description="Important flag")
+
+    @computed_field
+    @property
+    def is_new(self) -> bool:
+        """Check if announcement is new (within 24 hours)."""
+        from datetime import timedelta
+
+        return datetime.now() - self.published_at < timedelta(hours=24)
+
+
+class TodayMessMenu(BaseSchema):
+    """
+    Today's mess menu for dashboard.
+    
+    Displays daily meal menu.
+    """
+
+    date: date = Field(..., description="Menu date")
+    breakfast: List[str] = Field(
+        default_factory=list,
+        description="Breakfast items",
+    )
+    lunch: List[str] = Field(
+        default_factory=list,
+        description="Lunch items",
+    )
+    snacks: List[str] = Field(
+        default_factory=list,
+        description="Snacks/tea items",
+    )
+    dinner: List[str] = Field(
+        default_factory=list,
+        description="Dinner items",
+    )
+    is_special: bool = Field(
+        default=False,
+        description="Special menu (festival, etc.)",
+    )
+    special_occasion: Optional[str] = Field(
+        default=None,
+        description="Special occasion name",
+    )
+
+
+class UpcomingEvent(BaseSchema):
+    """
+    Upcoming event for dashboard.
+    
+    Displays hostel event or activity.
+    """
+
+    event_id: str = Field(..., description="Event ID")
+    title: str = Field(..., description="Event title")
+    description: Optional[str] = Field(default=None, description="Event description")
+    event_date: date = Field(..., description="Event date")
+    event_time: Optional[str] = Field(default=None, description="Event time")
+    location: Optional[str] = Field(default=None, description="Event location")
+    category: str = Field(..., description="Event category")
+    is_registered: bool = Field(
+        default=False,
+        description="Student registration status",
+    )
+    registration_required: bool = Field(
+        default=False,
+        description="Whether registration is required",
+    )
+
+    @computed_field
+    @property
+    def days_until_event(self) -> int:
+        """Calculate days until event."""
+        return (self.event_date - date.today()).days
+
+
+class StudentDashboard(BaseSchema):
+    """
+    Complete student dashboard.
+    
+    Aggregates all dashboard components for student overview.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image",
+    )
+
+    # Hostel info
+    hostel_name: str = Field(..., description="Current hostel")
+    room_number: str = Field(..., description="Room number")
+    bed_number: str = Field(..., description="Bed number")
+    floor_number: Optional[int] = Field(default=None, description="Floor number")
+
+    # Summaries
+    financial_summary: StudentFinancialSummary = Field(
+        ...,
+        description="Financial overview",
+    )
+    attendance_summary: AttendanceSummary = Field(
+        ...,
+        description="Attendance overview",
+    )
+    stats: StudentStats = Field(
+        ...,
+        description="Quick statistics",
+    )
+
+    # Recent activity
+    recent_payments: List[RecentPayment] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Last 5 payments",
+    )
+    recent_complaints: List[RecentComplaint] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Recent complaints",
+    )
+    pending_leave_applications: List[PendingLeave] = Field(
+        default_factory=list,
+        description="Pending leave requests",
+    )
+
+    # Announcements and events
+    recent_announcements: List[RecentAnnouncement] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Recent announcements",
+    )
+    upcoming_events: List[UpcomingEvent] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Upcoming events",
+    )
+    unread_announcements_count: int = Field(
+        default=0,
+        ge=0,
+        description="Unread announcements count",
+    )
+
+    # Mess menu
+    today_mess_menu: Optional[TodayMessMenu] = Field(
+        default=None,
+        description="Today's mess menu",
+    )
+
+    # Notifications
+    unread_notifications_count: int = Field(
+        default=0,
+        ge=0,
+        description="Unread notifications count",
+    )
+
+    # Last updated
+    dashboard_updated_at: datetime = Field(
+        ...,
+        description="Dashboard data timestamp",
+    )
+
+    @computed_field
+    @property
+    def has_urgent_items(self) -> bool:
+        """Check if there are urgent items requiring attention."""
+        # Check for urgent payments
+        if self.financial_summary.is_payment_urgent:
+            return True
+
+        # Check for critical attendance
+        if self.attendance_summary.attendance_status == "critical":
+            return True
+
+        # Check for high-priority complaints
+        if any(c.priority in ["high", "urgent"] for c in self.recent_complaints):
+            return True
+
+        return False
+
+    @computed_field
+    @property
+    def action_items_count(self) -> int:
+        """Count items requiring action."""
+        count = 0
+
+        # Pending payments
+        if self.financial_summary.amount_due > 0:
+            count += 1
+
+        # Pending leave approvals
+        count += len(self.pending_leave_applications)
+
+        # Open complaints
+        count += sum(
+            1 for c in self.recent_complaints if c.status != "resolved"
+        )
+
+        return count
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_filters.py ---
+# --- File: app/schemas/student/student_filters.py ---
+"""
+Student filter and search schemas with advanced filtering options.
+
+Provides comprehensive filtering, searching, sorting, and bulk operation
+schemas for student management.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import List, Optional
+
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseFilterSchema, BaseCreateSchema
+from app.schemas.common.enums import StudentStatus
+
+__all__ = [
+    "StudentFilterParams",
+    "StudentSearchRequest",
+    "StudentSortOptions",
+    "StudentExportRequest",
+    "StudentBulkActionRequest",
+    "AdvancedStudentFilters",
+]
+
+
+class StudentFilterParams(BaseFilterSchema):
+    """
+    Student filter parameters.
+    
+    Comprehensive filtering options for student queries.
+    """
+
+    # Text search
+    search: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+        description="Search in name, email, phone, room number",
+    )
+
+    # Hostel filter
+    hostel_id: Optional[str] = Field(
+        default=None,
+        description="Filter by single hostel ID",
+    )
+    hostel_ids: Optional[List[str]] = Field(
+        default=None,
+        min_length=1,
+        max_length=10,
+        description="Filter by multiple hostel IDs",
+    )
+
+    # Room filter
+    room_id: Optional[str] = Field(
+        default=None,
+        description="Filter by specific room",
+    )
+    room_number: Optional[str] = Field(
+        default=None,
+        description="Filter by room number",
+    )
+    room_type: Optional[str] = Field(
+        default=None,
+        description="Filter by room type",
+    )
+    floor_number: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=50,
+        description="Filter by floor number",
+    )
+    wing: Optional[str] = Field(
+        default=None,
+        description="Filter by wing/block",
+    )
+
+    # Status filter
+    status: Optional[StudentStatus] = Field(
+        default=None,
+        description="Filter by single status",
+    )
+    statuses: Optional[List[StudentStatus]] = Field(
+        default=None,
+        min_length=1,
+        description="Filter by multiple statuses",
+    )
+    is_active: Optional[bool] = Field(
+        default=None,
+        description="Filter by active status",
+    )
+    is_checked_in: Optional[bool] = Field(
+        default=None,
+        description="Filter by check-in status",
+    )
+
+    # Date filters
+    checked_in_after: Optional[date] = Field(
+        default=None,
+        description="Checked in after this date",
+    )
+    checked_in_before: Optional[date] = Field(
+        default=None,
+        description="Checked in before this date",
+    )
+    expected_checkout_after: Optional[date] = Field(
+        default=None,
+        description="Expected checkout after this date",
+    )
+    expected_checkout_before: Optional[date] = Field(
+        default=None,
+        description="Expected checkout before this date",
+    )
+
+    # Financial filters
+    has_overdue_payments: Optional[bool] = Field(
+        default=None,
+        description="Has overdue payments",
+    )
+    has_advance_balance: Optional[bool] = Field(
+        default=None,
+        description="Has advance payment balance",
+    )
+    security_deposit_paid: Optional[bool] = Field(
+        default=None,
+        description="Security deposit paid status",
+    )
+
+    # Meal filter
+    mess_subscribed: Optional[bool] = Field(
+        default=None,
+        description="Subscribed to mess facility",
+    )
+
+    # Institutional filters
+    institution_name: Optional[str] = Field(
+        default=None,
+        description="Filter by institution name (partial match)",
+    )
+    course: Optional[str] = Field(
+        default=None,
+        description="Filter by course (partial match)",
+    )
+
+    # Company filter
+    company_name: Optional[str] = Field(
+        default=None,
+        description="Filter by company name (partial match)",
+    )
+
+    # Gender filter
+    gender: Optional[str] = Field(
+        default=None,
+        pattern=r"^(male|female|other)$",
+        description="Filter by gender",
+    )
+
+    @field_validator("hostel_ids")
+    @classmethod
+    def validate_unique_hostel_ids(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Ensure hostel IDs are unique."""
+        if v is not None and len(v) != len(set(v)):
+            raise ValueError("Hostel IDs must be unique")
+        return v
+
+    @field_validator("statuses")
+    @classmethod
+    def validate_unique_statuses(
+        cls, v: Optional[List[StudentStatus]]
+    ) -> Optional[List[StudentStatus]]:
+        """Ensure statuses are unique."""
+        if v is not None and len(v) != len(set(v)):
+            raise ValueError("Statuses must be unique")
+        return v
+
+
+class StudentSearchRequest(BaseFilterSchema):
+    """
+    Student search request.
+    
+    Full-text search with field selection and filters.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Search query",
+    )
+    hostel_id: Optional[str] = Field(
+        default=None,
+        description="Limit search to specific hostel",
+    )
+
+    # Search field selection
+    search_in_name: bool = Field(
+        default=True,
+        description="Search in student name",
+    )
+    search_in_email: bool = Field(
+        default=True,
+        description="Search in email address",
+    )
+    search_in_phone: bool = Field(
+        default=True,
+        description="Search in phone number",
+    )
+    search_in_room: bool = Field(
+        default=True,
+        description="Search in room number",
+    )
+    search_in_institution: bool = Field(
+        default=True,
+        description="Search in institution name",
+    )
+    search_in_company: bool = Field(
+        default=False,
+        description="Search in company name",
+    )
+    search_in_guardian: bool = Field(
+        default=False,
+        description="Search in guardian name",
+    )
+
+    # Additional filters
+    status: Optional[StudentStatus] = Field(
+        default=None,
+        description="Filter by status",
+    )
+    only_active: bool = Field(
+        default=True,
+        description="Only include active students",
+    )
+
+    # Pagination
+    page: int = Field(
+        default=1,
+        ge=1,
+        description="Page number",
+    )
+    page_size: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Results per page",
+    )
+
+
+class StudentSortOptions(BaseFilterSchema):
+    """
+    Student sorting options.
+    
+    Defines available sort criteria and order.
+    """
+
+    sort_by: str = Field(
+        default="created_at",
+        pattern=r"^(name|email|room_number|check_in_date|created_at|monthly_rent|status)$",
+        description="Field to sort by",
+    )
+    sort_order: str = Field(
+        default="desc",
+        pattern=r"^(asc|desc)$",
+        description="Sort order (ascending/descending)",
+    )
+
+    @field_validator("sort_order")
+    @classmethod
+    def normalize_sort_order(cls, v: str) -> str:
+        """Normalize sort order to lowercase."""
+        return v.lower()
+
+
+class AdvancedStudentFilters(BaseFilterSchema):
+    """
+    Advanced filtering options.
+    
+    Additional complex filters for detailed queries.
+    """
+
+    # Attendance filters
+    min_attendance_percentage: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Minimum attendance percentage",
+    )
+    max_attendance_percentage: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Maximum attendance percentage",
+    )
+    attendance_below_required: Optional[bool] = Field(
+        default=None,
+        description="Attendance below minimum requirement",
+    )
+
+    # Payment behavior
+    payment_history: Optional[str] = Field(
+        default=None,
+        pattern=r"^(good|irregular|poor)$",
+        description="Payment history pattern",
+    )
+    has_pending_complaints: Optional[bool] = Field(
+        default=None,
+        description="Has open complaints",
+    )
+
+    # Duration filters
+    min_stay_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Minimum stay duration in days",
+    )
+    max_stay_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Maximum stay duration in days",
+    )
+
+    # Age filters
+    min_age: Optional[int] = Field(
+        default=None,
+        ge=16,
+        le=100,
+        description="Minimum age",
+    )
+    max_age: Optional[int] = Field(
+        default=None,
+        ge=16,
+        le=100,
+        description="Maximum age",
+    )
+
+    # Document verification
+    documents_verified: Optional[bool] = Field(
+        default=None,
+        description="All documents verified",
+    )
+
+    @field_validator("max_attendance_percentage")
+    @classmethod
+    def validate_attendance_range(cls, v: Optional[float], info) -> Optional[float]:
+        """Validate attendance percentage range."""
+        if v is not None:
+            min_att = info.data.get("min_attendance_percentage")
+            if min_att is not None and v < min_att:
+                raise ValueError(
+                    "max_attendance_percentage must be >= min_attendance_percentage"
+                )
+        return v
+
+
+class StudentExportRequest(BaseFilterSchema):
+    """
+    Export students request.
+    
+    Configures student data export with format and field selection.
+    """
+
+    hostel_id: Optional[str] = Field(
+        default=None,
+        description="Export students from specific hostel",
+    )
+    filters: Optional[StudentFilterParams] = Field(
+        default=None,
+        description="Apply filters to export",
+    )
+
+    # Export format
+    format: str = Field(
+        default="csv",
+        pattern=r"^(csv|excel|pdf)$",
+        description="Export file format",
+    )
+
+    # Field selection
+    include_financial_data: bool = Field(
+        default=False,
+        description="Include payment and financial information",
+    )
+    include_attendance_data: bool = Field(
+        default=False,
+        description="Include attendance statistics",
+    )
+    include_guardian_info: bool = Field(
+        default=True,
+        description="Include guardian information",
+    )
+    include_institutional_info: bool = Field(
+        default=True,
+        description="Include college/company information",
+    )
+    include_contact_details: bool = Field(
+        default=True,
+        description="Include phone and email",
+    )
+    include_room_assignment: bool = Field(
+        default=True,
+        description="Include room and bed details",
+    )
+
+    # Additional options
+    include_inactive: bool = Field(
+        default=False,
+        description="Include inactive students",
+    )
+    include_checkout_students: bool = Field(
+        default=False,
+        description="Include checked-out students",
+    )
+
+    @field_validator("format")
+    @classmethod
+    def normalize_format(cls, v: str) -> str:
+        """Normalize format to lowercase."""
+        return v.lower()
+
+
+class StudentBulkActionRequest(BaseCreateSchema):
+    """
+    Bulk action on students.
+    
+    Performs bulk operations on multiple students.
+    """
+
+    student_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Student IDs (max 100)",
+    )
+    action: str = Field(
+        ...,
+        pattern=r"^(activate|deactivate|send_notification|export|change_status|assign_room|update_rent)$",
+        description="Action to perform",
+    )
+
+    # Action-specific parameters
+    new_status: Optional[StudentStatus] = Field(
+        default=None,
+        description="New status (for change_status action)",
+    )
+    notification_message: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Notification message (for send_notification)",
+    )
+    notification_title: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Notification title",
+    )
+    new_rent_amount: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="New rent amount (for update_rent)",
+    )
+    effective_date: Optional[date] = Field(
+        default=None,
+        description="Effective date for changes",
+    )
+
+    # Confirmation
+    confirm_action: bool = Field(
+        default=False,
+        description="Explicit confirmation for bulk action",
+    )
+
+    @field_validator("student_ids")
+    @classmethod
+    def validate_unique_ids(cls, v: List[str]) -> List[str]:
+        """Ensure student IDs are unique."""
+        if len(v) != len(set(v)):
+            raise ValueError("Student IDs must be unique")
+        return v
+
+    @field_validator("action")
+    @classmethod
+    def normalize_action(cls, v: str) -> str:
+        """Normalize action to lowercase."""
+        return v.lower()
+
+    @model_validator(mode="after")
+    def validate_action_parameters(self) -> "StudentBulkActionRequest":
+        """Validate action-specific required parameters."""
+        if self.action == "change_status" and not self.new_status:
+            raise ValueError("new_status is required for change_status action")
+
+        if self.action == "send_notification":
+            if not self.notification_message:
+                raise ValueError(
+                    "notification_message is required for send_notification action"
+                )
+            if not self.notification_title:
+                raise ValueError(
+                    "notification_title is required for send_notification action"
+                )
+
+        if self.action == "update_rent" and self.new_rent_amount is None:
+            raise ValueError("new_rent_amount is required for update_rent action")
+
+        return self
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_profile.py ---
+# --- File: app/schemas/student/student_profile.py ---
+"""
+Student profile management schemas with enhanced validation.
+
+Provides schemas for student profile creation, updates, document management,
+and preference settings.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import DietaryPreference, IDProofType
+
+__all__ = [
+    "StudentProfileCreate",
+    "StudentProfileUpdate",
+    "StudentDocuments",
+    "DocumentInfo",
+    "DocumentUploadRequest",
+    "DocumentVerificationRequest",
+    "StudentPreferences",
+    "StudentPrivacySettings",
+]
+
+
+class StudentProfileCreate(BaseCreateSchema):
+    """
+    Create student profile (extends user registration).
+    
+    Used during student onboarding to collect student-specific information.
+    """
+
+    # Guardian information (required for students)
+    guardian_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=255,
+        description="Guardian/parent full name",
+    )
+    guardian_phone: str = Field(
+        ...,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Guardian contact phone",
+    )
+    guardian_email: Optional[str] = Field(
+        default=None,
+        description="Guardian email address",
+    )
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Relation to student",
+        examples=["Father", "Mother", "Uncle", "Guardian"],
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Guardian residential address",
+    )
+
+    # Institutional information (for students)
+    institution_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Educational institution name",
+    )
+    course: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Course/program name",
+    )
+    year_of_study: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Current year/semester",
+    )
+    student_id_number: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="College/University ID",
+    )
+
+    # Employment information (for working professionals)
+    company_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Employer name",
+    )
+    designation: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Job designation",
+    )
+
+    # ID proof
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="Type of ID proof",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="ID proof number",
+    )
+
+    # Preferences
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Food allergies and restrictions",
+    )
+
+    @field_validator("guardian_name")
+    @classmethod
+    def validate_guardian_name(cls, v: str) -> str:
+        """Validate and normalize guardian name."""
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Guardian name must be at least 2 characters")
+        if v.isdigit():
+            raise ValueError("Guardian name cannot be only numbers")
+        return " ".join(v.split())
+
+    @field_validator("guardian_phone")
+    @classmethod
+    def normalize_guardian_phone(cls, v: str) -> str:
+        """Normalize guardian phone number."""
+        return v.replace(" ", "").replace("-", "").strip()
+
+    @field_validator("guardian_email")
+    @classmethod
+    def normalize_guardian_email(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize guardian email."""
+        if v is not None:
+            return v.lower().strip()
+        return v
+
+    @field_validator(
+        "institution_name",
+        "course",
+        "company_name",
+        "designation",
+    )
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            return " ".join(v.split())
+        return v
+
+    @field_validator("id_proof_number")
+    @classmethod
+    def normalize_id_proof(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize ID proof number."""
+        if v is not None:
+            v = v.strip().upper()
+            if not v:
+                return None
+            return " ".join(v.split())
+        return v
+
+    @model_validator(mode="after")
+    def validate_student_or_professional(self) -> "StudentProfileCreate":
+        """
+        Validate that either institutional or employment info is provided.
+        
+        Students should be either studying or working.
+        """
+        has_institution = any(
+            [
+                self.institution_name,
+                self.course,
+                self.student_id_number,
+            ]
+        )
+        has_employment = any([self.company_name, self.designation])
+
+        if not has_institution and not has_employment:
+            raise ValueError(
+                "Either institutional information (for students) or "
+                "employment information (for working professionals) must be provided"
+            )
+
+        return self
+
+
+class StudentProfileUpdate(BaseUpdateSchema):
+    """
+    Update student profile.
+    
+    All fields optional for partial updates.
+    """
+
+    # Guardian updates
+    guardian_name: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=255,
+        description="Guardian name",
+    )
+    guardian_phone: Optional[str] = Field(
+        default=None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Guardian phone",
+    )
+    guardian_email: Optional[str] = Field(
+        default=None,
+        description="Guardian email",
+    )
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Guardian relation",
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Guardian address",
+    )
+
+    # Institutional updates
+    institution_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Institution name",
+    )
+    course: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Course",
+    )
+    year_of_study: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="Year of study",
+    )
+    student_id_number: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Student ID",
+    )
+
+    # Employment updates
+    company_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Company name",
+    )
+    designation: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Designation",
+    )
+
+    # ID proof updates
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="ID proof type",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="ID proof number",
+    )
+
+    # Preferences
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Food allergies",
+    )
+
+    # Apply validators
+    _validate_guardian_name = field_validator("guardian_name")(
+        StudentProfileCreate.validate_guardian_name.__func__
+    )
+    _normalize_phone = field_validator("guardian_phone")(
+        StudentProfileCreate.normalize_guardian_phone.__func__
+    )
+    _normalize_email = field_validator("guardian_email")(
+        StudentProfileCreate.normalize_guardian_email.__func__
+    )
+    _normalize_text = field_validator(
+        "institution_name",
+        "course",
+        "company_name",
+        "designation",
+    )(StudentProfileCreate.normalize_text_fields.__func__)
+    _normalize_id = field_validator("id_proof_number")(
+        StudentProfileCreate.normalize_id_proof.__func__
+    )
+
+
+class DocumentInfo(BaseSchema):
+    """
+    Individual document information.
+    
+    Represents a single uploaded document with metadata.
+    """
+
+    id: str = Field(..., description="Document ID")
+    document_type: str = Field(
+        ...,
+        description="Document category/type",
+        examples=[
+            "id_proof",
+            "address_proof",
+            "photo",
+            "institutional_id",
+            "company_id",
+            "other",
+        ],
+    )
+    document_name: str = Field(
+        ...,
+        description="Document display name",
+    )
+    document_url: HttpUrl = Field(
+        ...,
+        description="Document storage URL",
+    )
+    file_size_bytes: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="File size in bytes",
+    )
+    mime_type: Optional[str] = Field(
+        default=None,
+        description="MIME type",
+        examples=["application/pdf", "image/jpeg", "image/png"],
+    )
+    uploaded_at: datetime = Field(
+        ...,
+        description="Upload timestamp",
+    )
+    uploaded_by: str = Field(
+        ...,
+        description="User ID who uploaded",
+    )
+
+    # Verification
+    verified: bool = Field(
+        default=False,
+        description="Verification status",
+    )
+    verified_by: Optional[str] = Field(
+        default=None,
+        description="Admin who verified",
+    )
+    verified_at: Optional[datetime] = Field(
+        default=None,
+        description="Verification timestamp",
+    )
+    verification_notes: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Verification notes",
+    )
+
+    # Expiry (for documents like ID proofs)
+    expiry_date: Optional[datetime] = Field(
+        default=None,
+        description="Document expiry date",
+    )
+    is_expired: bool = Field(
+        default=False,
+        description="Whether document is expired",
+    )
+
+
+class StudentDocuments(BaseSchema):
+    """
+    Student document collection.
+    
+    All documents associated with a student.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+    documents: List[DocumentInfo] = Field(
+        default_factory=list,
+        description="List of uploaded documents",
+    )
+    total_documents: int = Field(
+        default=0,
+        ge=0,
+        description="Total document count",
+    )
+    verified_documents: int = Field(
+        default=0,
+        ge=0,
+        description="Verified document count",
+    )
+    pending_verification: int = Field(
+        default=0,
+        ge=0,
+        description="Pending verification count",
+    )
+
+
+class DocumentUploadRequest(BaseCreateSchema):
+    """
+    Upload document request.
+    
+    Used after file upload to register document in system.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID",
+    )
+    document_type: str = Field(
+        ...,
+        pattern=r"^(id_proof|address_proof|photo|institutional_id|company_id|other)$",
+        description="Document type/category",
+    )
+    document_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Document name",
+    )
+    document_url: HttpUrl = Field(
+        ...,
+        description="Document URL (after upload to storage)",
+    )
+    file_size_bytes: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=10485760,  # 10MB
+        description="File size in bytes (max 10MB)",
+    )
+    mime_type: Optional[str] = Field(
+        default=None,
+        description="MIME type",
+    )
+    expiry_date: Optional[datetime] = Field(
+        default=None,
+        description="Document expiry date (for ID proofs)",
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Additional notes",
+    )
+
+    @field_validator("document_type")
+    @classmethod
+    def normalize_document_type(cls, v: str) -> str:
+        """Normalize document type to lowercase."""
+        return v.lower().strip()
+
+    @field_validator("document_name")
+    @classmethod
+    def validate_document_name(cls, v: str) -> str:
+        """Validate and normalize document name."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Document name cannot be empty")
+        return " ".join(v.split())
+
+    @field_validator("mime_type")
+    @classmethod
+    def validate_mime_type(cls, v: Optional[str]) -> Optional[str]:
+        """Validate MIME type is allowed."""
+        if v is not None:
+            allowed_types = [
+                "application/pdf",
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/webp",
+            ]
+            if v.lower() not in allowed_types:
+                raise ValueError(
+                    f"MIME type must be one of: {', '.join(allowed_types)}"
+                )
+        return v
+
+    @field_validator("expiry_date")
+    @classmethod
+    def validate_expiry_date(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Validate expiry date is in the future."""
+        if v is not None:
+            if v < datetime.now():
+                raise ValueError("Document expiry date cannot be in the past")
+        return v
+
+
+class DocumentVerificationRequest(BaseCreateSchema):
+    """
+    Verify document request.
+    
+    Used by admins to verify or reject uploaded documents.
+    """
+
+    document_id: str = Field(
+        ...,
+        description="Document ID to verify",
+    )
+    verified: bool = Field(
+        ...,
+        description="Verification status (true=verified, false=rejected)",
+    )
+    verification_notes: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Verification notes/comments",
+    )
+    reject_reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Rejection reason (if not verified)",
+    )
+
+    @model_validator(mode="after")
+    def validate_rejection_reason(self) -> "DocumentVerificationRequest":
+        """Require rejection reason if document is rejected."""
+        if not self.verified and not self.reject_reason:
+            raise ValueError(
+                "Rejection reason is required when rejecting a document"
+            )
+        return self
+
+
+class StudentPreferences(BaseUpdateSchema):
+    """
+    Student preferences and settings.
+    
+    Manages student-specific preferences for meal, notifications, etc.
+    """
+
+    # Meal preferences
+    mess_subscribed: Optional[bool] = Field(
+        default=None,
+        description="Mess subscription status",
+    )
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Food allergies and restrictions",
+    )
+
+    # Meal plan preferences
+    meal_plan_type: Optional[str] = Field(
+        default=None,
+        pattern=r"^(full|breakfast_only|lunch_dinner|custom)$",
+        description="Meal plan type",
+    )
+    skip_breakfast: bool = Field(
+        default=False,
+        description="Skip breakfast in meal plan",
+    )
+    skip_lunch: bool = Field(
+        default=False,
+        description="Skip lunch in meal plan",
+    )
+    skip_dinner: bool = Field(
+        default=False,
+        description="Skip dinner in meal plan",
+    )
+
+    # Notification preferences
+    email_notifications: bool = Field(
+        default=True,
+        description="Enable email notifications",
+    )
+    sms_notifications: bool = Field(
+        default=True,
+        description="Enable SMS notifications",
+    )
+    push_notifications: bool = Field(
+        default=True,
+        description="Enable push notifications",
+    )
+
+    # Notification types
+    payment_reminders: bool = Field(
+        default=True,
+        description="Receive payment reminders",
+    )
+    attendance_alerts: bool = Field(
+        default=True,
+        description="Receive attendance alerts",
+    )
+    announcement_notifications: bool = Field(
+        default=True,
+        description="Receive announcements",
+    )
+    complaint_updates: bool = Field(
+        default=True,
+        description="Receive complaint status updates",
+    )
+    event_notifications: bool = Field(
+        default=True,
+        description="Receive event notifications",
+    )
+
+    # Communication preferences
+    preferred_language: str = Field(
+        default="en",
+        pattern=r"^(en|hi|ta|te|bn|mr|gu)$",
+        description="Preferred language for communications",
+    )
+    preferred_contact_method: str = Field(
+        default="email",
+        pattern=r"^(email|sms|phone|whatsapp)$",
+        description="Preferred contact method",
+    )
+
+    @field_validator("preferred_language", "preferred_contact_method")
+    @classmethod
+    def normalize_preferences(cls, v: str) -> str:
+        """Normalize preference values."""
+        return v.lower().strip()
+
+
+class StudentPrivacySettings(BaseUpdateSchema):
+    """
+    Student privacy settings.
+    
+    Controls visibility of student information to others.
+    """
+
+    # Profile visibility
+    show_profile_to_others: bool = Field(
+        default=True,
+        description="Show profile to other students",
+    )
+    show_room_number: bool = Field(
+        default=True,
+        description="Show room number in profile",
+    )
+    show_phone_number: bool = Field(
+        default=False,
+        description="Show phone number to other students",
+    )
+    show_email: bool = Field(
+        default=False,
+        description="Show email to other students",
+    )
+    show_institutional_info: bool = Field(
+        default=True,
+        description="Show college/company information",
+    )
+
+    # Contact permissions
+    allow_roommate_contact: bool = Field(
+        default=True,
+        description="Allow roommates to view contact info",
+    )
+    allow_floormate_contact: bool = Field(
+        default=True,
+        description="Allow floormates to view contact info",
+    )
+    allow_hostelmate_contact: bool = Field(
+        default=False,
+        description="Allow all hostel residents to view contact info",
+    )
+
+    # Search visibility
+    searchable_by_name: bool = Field(
+        default=True,
+        description="Allow search by name",
+    )
+    searchable_by_institution: bool = Field(
+        default=True,
+        description="Allow search by institution",
+    )
+
+    # Activity visibility
+    show_last_seen: bool = Field(
+        default=True,
+        description="Show last seen/activity status",
+    )
+    show_attendance_to_others: bool = Field(
+        default=False,
+        description="Show attendance status to other students",
+    )
+
+
+class StudentBulkImport(BaseCreateSchema):
+    """
+    Bulk import students from file.
+    
+    Used for initial data migration or batch student registration.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel ID for all students",
+    )
+    import_file_url: HttpUrl = Field(
+        ...,
+        description="URL of uploaded CSV/Excel file",
+    )
+    file_type: str = Field(
+        ...,
+        pattern=r"^(csv|excel)$",
+        description="File format",
+    )
+    skip_duplicates: bool = Field(
+        default=True,
+        description="Skip duplicate email/phone entries",
+    )
+    send_welcome_email: bool = Field(
+        default=True,
+        description="Send welcome email to imported students",
+    )
+    auto_generate_passwords: bool = Field(
+        default=True,
+        description="Auto-generate passwords for new users",
+    )
+
+    # Field mapping (if custom columns)
+    field_mapping: Optional[dict] = Field(
+        default=None,
+        description="Custom field mapping for CSV columns",
+        examples=[
+            {
+                "Name": "full_name",
+                "Email": "email",
+                "Phone": "phone",
+                "Guardian Name": "guardian_name",
+            }
+        ],
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_response.py ---
+# --- File: app/schemas/student/student_response.py ---
+"""
+Student response schemas for API responses.
+
+Provides various response formats for student data including
+detailed views, list items, profiles, and specialized information.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, computed_field
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import (
+    DietaryPreference,
+    IDProofType,
+    StudentStatus,
+)
+
+__all__ = [
+    "StudentResponse",
+    "StudentDetail",
+    "StudentProfile",
+    "StudentListItem",
+    "StudentFinancialInfo",
+    "StudentContactInfo",
+    "StudentDocumentInfo",
+]
+
+
+class StudentResponse(BaseResponseSchema):
+    """
+    Standard student response schema.
+    
+    Basic student information for general API responses.
+    """
+
+    user_id: str = Field(..., description="User ID")
+    hostel_id: str = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    room_id: Optional[str] = Field(default=None, description="Room ID")
+    room_number: Optional[str] = Field(default=None, description="Room number")
+    bed_id: Optional[str] = Field(default=None, description="Bed ID")
+    bed_number: Optional[str] = Field(default=None, description="Bed number")
+
+    # Personal info (from user)
+    full_name: str = Field(..., description="Student full name")
+    email: str = Field(..., description="Email address")
+    phone: str = Field(..., description="Phone number")
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image URL",
+    )
+
+    # Guardian
+    guardian_name: str = Field(..., description="Guardian name")
+    guardian_phone: str = Field(..., description="Guardian phone")
+
+    # Status
+    student_status: StudentStatus = Field(..., description="Student status")
+    check_in_date: Optional[date] = Field(
+        default=None,
+        description="Check-in date",
+    )
+    expected_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout date",
+    )
+
+    # Financial
+    monthly_rent_amount: Optional[Decimal] = Field(
+        default=None,
+        description="Monthly rent",
+    )
+    security_deposit_amount: Decimal = Field(
+        ...,
+        description="Security deposit amount",
+    )
+    security_deposit_paid: bool = Field(
+        ...,
+        description="Security deposit paid status",
+    )
+
+    # Meal
+    mess_subscribed: bool = Field(..., description="Mess subscription status")
+
+    @computed_field
+    @property
+    def days_in_hostel(self) -> Optional[int]:
+        """Calculate days stayed in hostel."""
+        if not self.check_in_date:
+            return None
+        end_date = self.actual_checkout_date or date.today()
+        return (end_date - self.check_in_date).days
+
+    @computed_field
+    @property
+    def is_checked_in(self) -> bool:
+        """Check if student is currently checked in."""
+        return (
+            self.check_in_date is not None
+            and self.actual_checkout_date is None
+        )
+
+
+class StudentDetail(BaseResponseSchema):
+    """
+    Detailed student information.
+    
+    Comprehensive student profile with all attributes.
+    """
+
+    # User information
+    user_id: str = Field(..., description="User ID")
+    full_name: str = Field(..., description="Full name")
+    email: str = Field(..., description="Email")
+    phone: str = Field(..., description="Phone")
+    gender: Optional[str] = Field(default=None, description="Gender")
+    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image",
+    )
+
+    # Hostel assignment
+    hostel_id: str = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    room_id: Optional[str] = Field(default=None, description="Room ID")
+    room_number: Optional[str] = Field(default=None, description="Room number")
+    room_type: Optional[str] = Field(default=None, description="Room type")
+    floor_number: Optional[int] = Field(default=None, description="Floor number")
+    bed_id: Optional[str] = Field(default=None, description="Bed ID")
+    bed_number: Optional[str] = Field(default=None, description="Bed number")
+
+    # Identification
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="ID proof type",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        description="ID proof number",
+    )
+    id_proof_document_url: Optional[str] = Field(
+        default=None,
+        description="ID proof document URL",
+    )
+    id_proof_verified: bool = Field(
+        default=False,
+        description="ID proof verification status",
+    )
+
+    # Guardian information
+    guardian_name: str = Field(..., description="Guardian name")
+    guardian_phone: str = Field(..., description="Guardian phone")
+    guardian_email: Optional[str] = Field(default=None, description="Guardian email")
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        description="Guardian relation",
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        description="Guardian address",
+    )
+
+    # Institutional information
+    institution_name: Optional[str] = Field(
+        default=None,
+        description="Institution name",
+    )
+    course: Optional[str] = Field(default=None, description="Course")
+    year_of_study: Optional[str] = Field(default=None, description="Year of study")
+    student_id_number: Optional[str] = Field(
+        default=None,
+        description="Student ID number",
+    )
+    institutional_id_url: Optional[str] = Field(
+        default=None,
+        description="Institutional ID URL",
+    )
+
+    # Employment information
+    company_name: Optional[str] = Field(default=None, description="Company name")
+    designation: Optional[str] = Field(default=None, description="Designation")
+    company_id_url: Optional[str] = Field(
+        default=None,
+        description="Company ID URL",
+    )
+
+    # Dates
+    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
+    expected_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Expected checkout",
+    )
+    actual_checkout_date: Optional[date] = Field(
+        default=None,
+        description="Actual checkout",
+    )
+
+    # Financial
+    security_deposit_amount: Decimal = Field(
+        ...,
+        description="Security deposit amount",
+    )
+    security_deposit_paid: bool = Field(
+        ...,
+        description="Security deposit paid",
+    )
+    security_deposit_paid_date: Optional[date] = Field(
+        default=None,
+        description="Deposit paid date",
+    )
+    monthly_rent_amount: Optional[Decimal] = Field(
+        default=None,
+        description="Monthly rent",
+    )
+
+    # Meal preferences
+    mess_subscribed: bool = Field(..., description="Mess subscription")
+    dietary_preference: Optional[DietaryPreference] = Field(
+        default=None,
+        description="Dietary preference",
+    )
+    food_allergies: Optional[str] = Field(
+        default=None,
+        description="Food allergies",
+    )
+
+    # Status
+    student_status: StudentStatus = Field(..., description="Student status")
+    notice_period_start: Optional[date] = Field(
+        default=None,
+        description="Notice period start",
+    )
+    notice_period_end: Optional[date] = Field(
+        default=None,
+        description="Notice period end",
+    )
+
+    # Source
+    booking_id: Optional[str] = Field(
+        default=None,
+        description="Source booking ID",
+    )
+
+    # Additional documents
+    additional_documents: List[dict] = Field(
+        default_factory=list,
+        description="Additional uploaded documents",
+    )
+
+    @computed_field
+    @property
+    def age(self) -> Optional[int]:
+        """Calculate age from date of birth."""
+        if not self.date_of_birth:
+            return None
+        today = date.today()
+        return (
+            today.year
+            - self.date_of_birth.year
+            - (
+                (today.month, today.day)
+                < (self.date_of_birth.month, self.date_of_birth.day)
+            )
+        )
+
+    @computed_field
+    @property
+    def days_in_hostel(self) -> Optional[int]:
+        """Calculate total days in hostel."""
+        if not self.check_in_date:
+            return None
+        end_date = self.actual_checkout_date or date.today()
+        return (end_date - self.check_in_date).days
+
+    @computed_field
+    @property
+    def is_currently_resident(self) -> bool:
+        """Check if currently a resident."""
+        return (
+            self.check_in_date is not None
+            and self.actual_checkout_date is None
+            and self.student_status == StudentStatus.ACTIVE
+        )
+
+    @computed_field
+    @property
+    def is_student(self) -> bool:
+        """Check if institutional student."""
+        return bool(self.institution_name or self.course)
+
+    @computed_field
+    @property
+    def is_working_professional(self) -> bool:
+        """Check if working professional."""
+        return bool(self.company_name or self.designation)
+
+
+class StudentProfile(BaseSchema):
+    """
+    Public student profile.
+    
+    Limited information suitable for public/peer viewing.
+    """
+
+    id: str = Field(..., description="Student ID")
+    full_name: str = Field(..., description="Full name")
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image",
+    )
+    hostel_name: str = Field(..., description="Hostel name")
+    room_number: Optional[str] = Field(default=None, description="Room number")
+    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
+
+    # Optional info (based on privacy settings)
+    institution_name: Optional[str] = Field(
+        default=None,
+        description="Institution name",
+    )
+    course: Optional[str] = Field(default=None, description="Course")
+    year_of_study: Optional[str] = Field(default=None, description="Year")
+    company_name: Optional[str] = Field(default=None, description="Company")
+
+    @computed_field
+    @property
+    def duration_in_hostel(self) -> Optional[str]:
+        """Human-readable duration in hostel."""
+        if not self.check_in_date:
+            return None
+
+        days = (date.today() - self.check_in_date).days
+        if days < 30:
+            return f"{days} days"
+        elif days < 365:
+            months = days // 30
+            return f"{months} month{'s' if months > 1 else ''}"
+        else:
+            years = days // 365
+            return f"{years} year{'s' if years > 1 else ''}"
+
+
+class StudentListItem(BaseSchema):
+    """
+    Student list item for admin views.
+    
+    Optimized for list rendering with essential information.
+    """
+
+    id: str = Field(..., description="Student ID")
+    user_id: str = Field(..., description="User ID")
+    full_name: str = Field(..., description="Full name")
+    email: str = Field(..., description="Email")
+    phone: str = Field(..., description="Phone")
+    profile_image_url: Optional[str] = Field(
+        default=None,
+        description="Profile image",
+    )
+
+    # Room assignment
+    room_number: Optional[str] = Field(default=None, description="Room number")
+    bed_number: Optional[str] = Field(default=None, description="Bed number")
+
+    # Status
+    student_status: StudentStatus = Field(..., description="Status")
+    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
+
+    # Financial
+    monthly_rent: Optional[Decimal] = Field(default=None, description="Monthly rent")
+    payment_status: str = Field(
+        ...,
+        description="Payment status (current/overdue/advance)",
+    )
+    overdue_amount: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Overdue amount",
+    )
+
+    # Timestamps
+    created_at: datetime = Field(..., description="Registration timestamp")
+
+    @computed_field
+    @property
+    def days_in_hostel(self) -> Optional[int]:
+        """Calculate days in hostel."""
+        if not self.check_in_date:
+            return None
+        return (date.today() - self.check_in_date).days
+
+
+class StudentFinancialInfo(BaseSchema):
+    """
+    Student financial information.
+    
+    Comprehensive financial details for a student.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+
+    # Rent
+    monthly_rent_amount: Decimal = Field(..., description="Monthly rent")
+    rent_due_day: int = Field(..., description="Monthly due day")
+
+    # Security deposit
+    security_deposit_amount: Decimal = Field(..., description="Security deposit")
+    security_deposit_paid: bool = Field(..., description="Deposit paid status")
+    security_deposit_paid_date: Optional[date] = Field(
+        default=None,
+        description="Deposit paid date",
+    )
+    security_deposit_refundable: Decimal = Field(
+        ...,
+        description="Refundable amount",
+    )
+
+    # Payments
+    total_paid: Decimal = Field(..., description="Total amount paid")
+    total_due: Decimal = Field(..., description="Total amount due")
+    last_payment_date: Optional[date] = Field(
+        default=None,
+        description="Last payment date",
+    )
+    next_due_date: Optional[date] = Field(default=None, description="Next due date")
+
+    # Outstanding
+    overdue_amount: Decimal = Field(..., description="Overdue amount")
+    advance_amount: Decimal = Field(..., description="Advance balance")
+
+    # Mess
+    mess_charges_monthly: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Monthly mess charges",
+    )
+    mess_balance: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Mess account balance",
+    )
+
+    # Other charges
+    other_charges: Decimal = Field(
+        default=Decimal("0.00"),
+        description="Other charges",
+    )
+
+    @computed_field
+    @property
+    def payment_status(self) -> str:
+        """Determine payment status."""
+        if self.overdue_amount > 0:
+            return "overdue"
+        elif self.advance_amount > 0:
+            return "advance"
+        else:
+            return "current"
+
+    @computed_field
+    @property
+    def total_outstanding(self) -> Decimal:
+        """Calculate total outstanding amount."""
+        return self.total_due - self.advance_amount
+
+    @computed_field
+    @property
+    def net_balance(self) -> Decimal:
+        """Calculate net balance (advance - dues)."""
+        return self.advance_amount - self.total_due
+
+
+class StudentContactInfo(BaseSchema):
+    """
+    Student contact information.
+    
+    Comprehensive contact details for emergency and communication.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+
+    # Student contact
+    email: str = Field(..., description="Email")
+    phone: str = Field(..., description="Phone")
+    alternate_phone: Optional[str] = Field(default=None, description="Alternate phone")
+
+    # Guardian contact
+    guardian_name: str = Field(..., description="Guardian name")
+    guardian_phone: str = Field(..., description="Guardian phone")
+    guardian_email: Optional[str] = Field(default=None, description="Guardian email")
+    guardian_relation: Optional[str] = Field(
+        default=None,
+        description="Guardian relation",
+    )
+    guardian_address: Optional[str] = Field(
+        default=None,
+        description="Guardian address",
+    )
+
+    # Emergency contact (from user profile)
+    emergency_contact_name: Optional[str] = Field(
+        default=None,
+        description="Emergency contact name",
+    )
+    emergency_contact_phone: Optional[str] = Field(
+        default=None,
+        description="Emergency contact phone",
+    )
+    emergency_contact_relation: Optional[str] = Field(
+        default=None,
+        description="Emergency relation",
+    )
+
+    # Current address (hostel)
+    current_hostel: str = Field(..., description="Current hostel")
+    current_room: Optional[str] = Field(default=None, description="Current room")
+
+    # Forwarding address (if checked out)
+    forwarding_address: Optional[str] = Field(
+        default=None,
+        description="Forwarding address",
+    )
+
+
+class StudentDocumentInfo(BaseSchema):
+    """
+    Student document information.
+    
+    Details about uploaded documents and verification status.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+
+    # ID documents
+    id_proof_type: Optional[IDProofType] = Field(
+        default=None,
+        description="ID proof type",
+    )
+    id_proof_number: Optional[str] = Field(
+        default=None,
+        description="ID proof number",
+    )
+    id_proof_url: Optional[str] = Field(
+        default=None,
+        description="ID proof document URL",
+    )
+    id_proof_verified: bool = Field(
+        default=False,
+        description="ID verification status",
+    )
+    id_proof_verified_at: Optional[datetime] = Field(
+        default=None,
+        description="Verification timestamp",
+    )
+
+    # Institutional documents
+    institutional_id_url: Optional[str] = Field(
+        default=None,
+        description="College/University ID",
+    )
+    institutional_id_verified: bool = Field(
+        default=False,
+        description="Institutional ID verified",
+    )
+
+    # Employment documents
+    company_id_url: Optional[str] = Field(
+        default=None,
+        description="Company ID card",
+    )
+    company_id_verified: bool = Field(
+        default=False,
+        description="Company ID verified",
+    )
+
+    # Additional documents
+    additional_documents: List[dict] = Field(
+        default_factory=list,
+        description="Other uploaded documents",
+    )
+
+    @computed_field
+    @property
+    def verification_status(self) -> str:
+        """Overall verification status."""
+        if self.id_proof_verified:
+            return "verified"
+        elif self.id_proof_url:
+            return "pending_verification"
+        else:
+            return "not_uploaded"
+
+    @computed_field
+    @property
+    def documents_complete(self) -> bool:
+        """Check if all required documents are uploaded."""
+        return bool(self.id_proof_url)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\student_room_history.py ---
+# --- File: app/schemas/student/student_room_history.py ---
+"""
+Student room history and transfer schemas with enhanced validation.
+
+Provides schemas for tracking room assignments, transfers, and
+movement history for students.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, field_validator, model_validator, computed_field
+
+from app.schemas.common.base import (
+    BaseCreateSchema,
+    BaseResponseSchema,
+    BaseSchema,
+)
+
+__all__ = [
+    "RoomHistoryResponse",
+    "RoomHistoryItem",
+    "RoomTransferRequest",
+    "RoomTransferApproval",
+    "RoomTransferStatus",
+    "BulkRoomTransfer",
+    "SingleTransfer",
+    "RoomSwapRequest",
+]
+
+
+class RoomHistoryItem(BaseResponseSchema):
+    """
+    Individual room history entry.
+    
+    Represents a single room assignment period in student's history.
+    """
+
+    hostel_id: str = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    room_id: str = Field(..., description="Room ID")
+    room_number: str = Field(..., description="Room number")
+    room_type: str = Field(..., description="Room type")
+    floor_number: Optional[int] = Field(default=None, description="Floor number")
+    wing: Optional[str] = Field(default=None, description="Wing/Block")
+    bed_id: Optional[str] = Field(default=None, description="Bed ID")
+    bed_number: Optional[str] = Field(default=None, description="Bed number")
+
+    # Duration
+    move_in_date: date = Field(..., description="Move-in date")
+    move_out_date: Optional[date] = Field(
+        default=None,
+        description="Move-out date (null if current)",
+    )
+    duration_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Total duration in days",
+    )
+
+    # Financial
+    rent_amount: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Monthly rent for this assignment",
+    )
+    total_rent_paid: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Total rent paid during this period",
+    )
+
+    # Transfer details
+    reason: Optional[str] = Field(
+        default=None,
+        description="Reason for assignment/transfer",
+    )
+    transfer_type: Optional[str] = Field(
+        default=None,
+        description="Transfer type (initial, request, admin)",
+    )
+
+    # Audit
+    requested_by: Optional[str] = Field(
+        default=None,
+        description="User who requested transfer",
+    )
+    approved_by: Optional[str] = Field(
+        default=None,
+        description="Admin who approved assignment",
+    )
+    assigned_at: datetime = Field(
+        ...,
+        description="Assignment timestamp",
+    )
+
+    @computed_field
+    @property
+    def is_current(self) -> bool:
+        """Check if this is the current assignment."""
+        return self.move_out_date is None
+
+    @computed_field
+    @property
+    def duration_months(self) -> Optional[Decimal]:
+        """Calculate duration in months."""
+        if self.duration_days is None:
+            return None
+        return Decimal(self.duration_days / 30).quantize(Decimal("0.1"))
+
+
+class RoomHistoryResponse(BaseSchema):
+    """
+    Complete student room history.
+    
+    Chronological list of all room assignments for a student.
+    """
+
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+    hostel_id: str = Field(..., description="Current hostel ID")
+    hostel_name: str = Field(..., description="Current hostel name")
+
+    # Current assignment
+    current_room: Optional[str] = Field(
+        default=None,
+        description="Current room number",
+    )
+    current_bed: Optional[str] = Field(
+        default=None,
+        description="Current bed number",
+    )
+
+    # History
+    room_history: List[RoomHistoryItem] = Field(
+        ...,
+        description="Room assignment history (newest first)",
+    )
+
+    # Statistics
+    total_assignments: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of room assignments",
+    )
+    total_transfers: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of room transfers",
+    )
+
+    @computed_field
+    @property
+    def has_changed_rooms(self) -> bool:
+        """Check if student has changed rooms."""
+        return self.total_assignments > 1
+
+
+class RoomTransferRequest(BaseCreateSchema):
+    """
+    Request room transfer.
+    
+    Student-initiated or admin-initiated room transfer request.
+    """
+
+    student_id: str = Field(
+        ...,
+        description="Student ID requesting transfer",
+    )
+    current_room_id: str = Field(
+        ...,
+        description="Current room ID",
+    )
+    requested_room_id: str = Field(
+        ...,
+        description="Desired room ID",
+    )
+    requested_bed_id: Optional[str] = Field(
+        default=None,
+        description="Desired bed ID (if specific bed requested)",
+    )
+
+    transfer_date: date = Field(
+        ...,
+        description="Desired transfer date",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Detailed reason for transfer",
+        examples=[
+            "Room too small for my belongings",
+            "Prefer ground floor room",
+            "Request to be closer to friends",
+            "Medical reasons - need AC room",
+        ],
+    )
+
+    # Preferences
+    accept_price_difference: bool = Field(
+        default=False,
+        description="Accept if new room has different rent",
+    )
+    flexible_on_bed: bool = Field(
+        default=True,
+        description="Flexible on specific bed (any bed in room)",
+    )
+
+    # Priority
+    priority: str = Field(
+        default="normal",
+        pattern=r"^(low|normal|high|urgent)$",
+        description="Transfer priority/urgency",
+    )
+
+    # Supporting documents
+    supporting_documents: List[str] = Field(
+        default_factory=list,
+        description="URLs of supporting documents (medical certificates, etc.)",
+    )
+
+    @field_validator("transfer_date")
+    @classmethod
+    def validate_transfer_date(cls, v: date) -> date:
+        """Validate transfer date is reasonable."""
+        from datetime import timedelta
+
+        today = date.today()
+
+        # Must be at least today or future
+        if v < today:
+            raise ValueError("Transfer date cannot be in the past")
+
+        # Warn if too far in future (more than 90 days)
+        if v > today + timedelta(days=90):
+            raise ValueError(
+                "Transfer date cannot be more than 90 days in the future"
+            )
+
+        return v
+
+    @model_validator(mode="after")
+    def validate_different_room(self) -> "RoomTransferRequest":
+        """Ensure requested room is different from current room."""
+        if self.current_room_id == self.requested_room_id:
+            raise ValueError(
+                "Requested room must be different from current room"
+            )
+        return self
+
+
+class RoomTransferApproval(BaseCreateSchema):
+    """
+    Approve or reject room transfer request.
+    
+    Admin action to process transfer requests.
+    """
+
+    transfer_request_id: str = Field(
+        ...,
+        description="Transfer request ID to process",
+    )
+    approved: bool = Field(
+        ...,
+        description="Approval decision (true=approved, false=rejected)",
+    )
+
+    # If approved
+    new_room_id: Optional[str] = Field(
+        default=None,
+        description="Approved room (may differ from requested)",
+    )
+    new_bed_id: Optional[str] = Field(
+        default=None,
+        description="Assigned bed in new room",
+    )
+    transfer_date: Optional[date] = Field(
+        default=None,
+        description="Approved transfer date (may differ from requested)",
+    )
+
+    # If rejected
+    rejection_reason: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Detailed rejection reason",
+        examples=[
+            "Requested room not available",
+            "Transfer not justified",
+            "Pending payment dues must be cleared first",
+        ],
+    )
+
+    # Financial implications
+    rent_adjustment: Optional[Decimal] = Field(
+        default=None,
+        description="Monthly rent adjustment (positive=increase, negative=decrease)",
+    )
+    additional_charges: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="One-time transfer charges",
+    )
+    prorated_rent_calculation: bool = Field(
+        default=True,
+        description="Calculate prorated rent for partial month",
+    )
+
+    # Notes
+    admin_notes: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Administrative notes",
+    )
+
+    @model_validator(mode="after")
+    def validate_approval_requirements(self) -> "RoomTransferApproval":
+        """Validate approval-specific required fields."""
+        if self.approved:
+            # Approved transfers require room and bed assignment
+            if not self.new_room_id:
+                raise ValueError(
+                    "new_room_id is required when approving transfer"
+                )
+            if not self.new_bed_id:
+                raise ValueError(
+                    "new_bed_id is required when approving transfer"
+                )
+            if not self.transfer_date:
+                raise ValueError(
+                    "transfer_date is required when approving transfer"
+                )
+        else:
+            # Rejected transfers require rejection reason
+            if not self.rejection_reason:
+                raise ValueError(
+                    "rejection_reason is required when rejecting transfer"
+                )
+
+        return self
+
+    @field_validator("transfer_date")
+    @classmethod
+    def validate_transfer_date(cls, v: Optional[date]) -> Optional[date]:
+        """Validate transfer date."""
+        if v is not None:
+            from datetime import timedelta
+
+            today = date.today()
+            if v < today:
+                raise ValueError("Transfer date cannot be in the past")
+            if v > today + timedelta(days=90):
+                raise ValueError(
+                    "Transfer date cannot be more than 90 days in the future"
+                )
+        return v
+
+
+class RoomTransferStatus(BaseSchema):
+    """
+    Room transfer request status.
+    
+    Current status and details of a transfer request.
+    """
+
+    request_id: str = Field(..., description="Transfer request ID")
+    student_id: str = Field(..., description="Student ID")
+    student_name: str = Field(..., description="Student name")
+
+    # Room details
+    current_room: str = Field(..., description="Current room number")
+    current_bed: Optional[str] = Field(default=None, description="Current bed")
+    requested_room: str = Field(..., description="Requested room number")
+    requested_bed: Optional[str] = Field(default=None, description="Requested bed")
+    approved_room: Optional[str] = Field(
+        default=None,
+        description="Approved room (if different)",
+    )
+    approved_bed: Optional[str] = Field(
+        default=None,
+        description="Approved bed",
+    )
+
+    # Dates
+    transfer_date: date = Field(..., description="Transfer date")
+    requested_at: datetime = Field(..., description="Request timestamp")
+    processed_at: Optional[datetime] = Field(
+        default=None,
+        description="Processing timestamp",
+    )
+
+    # Status
+    status: str = Field(
+        ...,
+        pattern=r"^(pending|approved|rejected|completed|cancelled)$",
+        description="Request status",
+    )
+    priority: str = Field(..., description="Request priority")
+
+    # Details
+    reason: str = Field(..., description="Transfer reason")
+    approval_notes: Optional[str] = Field(
+        default=None,
+        description="Approval/rejection notes",
+    )
+    processed_by: Optional[str] = Field(
+        default=None,
+        description="Admin who processed",
+    )
+    processed_by_name: Optional[str] = Field(
+        default=None,
+        description="Admin name",
+    )
+
+    # Financial
+    rent_adjustment: Optional[Decimal] = Field(
+        default=None,
+        description="Rent adjustment",
+    )
+    additional_charges: Optional[Decimal] = Field(
+        default=None,
+        description="Transfer charges",
+    )
+
+    @computed_field
+    @property
+    def is_pending(self) -> bool:
+        """Check if request is still pending."""
+        return self.status == "pending"
+
+    @computed_field
+    @property
+    def days_pending(self) -> Optional[int]:
+        """Calculate days request has been pending."""
+        if self.status != "pending":
+            return None
+        return (datetime.now() - self.requested_at).days
+
+
+class SingleTransfer(BaseSchema):
+    """
+    Single transfer in bulk operation.
+    
+    Represents one student transfer in a bulk transfer operation.
+    """
+
+    student_id: str = Field(..., description="Student ID to transfer")
+    new_room_id: str = Field(..., description="New room ID")
+    new_bed_id: Optional[str] = Field(
+        default=None,
+        description="New bed ID (optional, auto-assign if not specified)",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        max_length=200,
+        description="Transfer reason (optional, uses bulk reason if not specified)",
+    )
+
+
+class BulkRoomTransfer(BaseCreateSchema):
+    """
+    Bulk room transfer (admin only).
+    
+    Transfer multiple students simultaneously (e.g., floor reorganization).
+    """
+
+    transfers: List[SingleTransfer] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="List of transfers to perform (max 50)",
+    )
+    transfer_date: date = Field(
+        ...,
+        description="Transfer date for all students",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Common reason for bulk transfer",
+        examples=[
+            "Floor renovation - temporary relocation",
+            "Wing reorganization",
+            "Room type consolidation",
+        ],
+    )
+
+    # Options
+    skip_on_error: bool = Field(
+        default=True,
+        description="Skip individual transfers that fail, continue with rest",
+    )
+    send_notifications: bool = Field(
+        default=True,
+        description="Send notifications to affected students",
+    )
+    prorated_rent: bool = Field(
+        default=True,
+        description="Calculate prorated rent for all transfers",
+    )
+
+    # Confirmation
+    confirm_bulk_transfer: bool = Field(
+        default=False,
+        description="Explicit confirmation for bulk operation",
+    )
+
+    @field_validator("transfers")
+    @classmethod
+    def validate_unique_students(cls, v: List[SingleTransfer]) -> List[SingleTransfer]:
+        """Ensure each student appears only once."""
+        student_ids = [t.student_id for t in v]
+        if len(student_ids) != len(set(student_ids)):
+            raise ValueError(
+                "Each student can only be transferred once in bulk operation"
+            )
+        return v
+
+    @field_validator("transfer_date")
+    @classmethod
+    def validate_transfer_date(cls, v: date) -> date:
+        """Validate transfer date."""
+        from datetime import timedelta
+
+        today = date.today()
+        if v < today:
+            raise ValueError("Transfer date cannot be in the past")
+        if v > today + timedelta(days=30):
+            raise ValueError(
+                "Bulk transfer date cannot be more than 30 days in the future"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_confirmation(self) -> "BulkRoomTransfer":
+        """Require explicit confirmation for bulk operations."""
+        if not self.confirm_bulk_transfer:
+            raise ValueError(
+                "Bulk transfer requires explicit confirmation (confirm_bulk_transfer=true)"
+            )
+        return self
+
+
+class RoomSwapRequest(BaseCreateSchema):
+    """
+    Request room swap between two students.
+    
+    Mutual room exchange between two students.
+    """
+
+    student_1_id: str = Field(
+        ...,
+        description="First student ID",
+    )
+    student_2_id: str = Field(
+        ...,
+        description="Second student ID",
+    )
+    swap_date: date = Field(
+        ...,
+        description="Swap date",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for swap",
+        examples=[
+            "Mutual preference exchange",
+            "Closer to respective friends",
+            "Room size preference swap",
+        ],
+    )
+
+    # Consent
+    student_1_consent: bool = Field(
+        default=False,
+        description="First student consent",
+    )
+    student_2_consent: bool = Field(
+        default=False,
+        description="Second student consent",
+    )
+
+    # Financial
+    handle_rent_difference: bool = Field(
+        default=True,
+        description="Automatically handle rent difference between rooms",
+    )
+
+    @field_validator("swap_date")
+    @classmethod
+    def validate_swap_date(cls, v: date) -> date:
+        """Validate swap date."""
+        from datetime import timedelta
+
+        today = date.today()
+        if v < today:
+            raise ValueError("Swap date cannot be in the past")
+        if v > today + timedelta(days=30):
+            raise ValueError(
+                "Swap date cannot be more than 30 days in the future"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_different_students(self) -> "RoomSwapRequest":
+        """Ensure students are different."""
+        if self.student_1_id == self.student_2_id:
+            raise ValueError(
+                "Cannot swap room for the same student"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_consent(self) -> "RoomSwapRequest":
+        """Validate both students have consented."""
+        if not self.student_1_consent or not self.student_2_consent:
+            raise ValueError(
+                "Both students must consent to room swap"
+            )
+        return self
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\student\__init__.py ---
+# --- File: app/schemas/student/__init__.py ---
+"""
+Student schemas package.
+
+Re-exports commonly used student-related schemas for convenient imports.
+
+Example:
+    from app.schemas.student import (
+        StudentCreate,
+        StudentDetail,
+        StudentDashboard,
+        RoomTransferRequest,
+    )
+"""
+
+from __future__ import annotations
+
+from app.schemas.student.student_base import (
+    StudentBase,
+    StudentCheckInRequest,
+    StudentCheckOutRequest,
+    StudentCreate,
+    StudentRoomAssignment,
+    StudentStatusUpdate,
+    StudentUpdate,
+)
+from app.schemas.student.student_dashboard import (
+    AttendanceSummary,
+    PendingLeave,
+    RecentAnnouncement,
+    RecentComplaint,
+    RecentPayment,
+    StudentDashboard,
+    StudentFinancialSummary,
+    StudentStats,
+    TodayMessMenu,
+    UpcomingEvent,
+)
+from app.schemas.student.student_filters import (
+    AdvancedStudentFilters,
+    StudentBulkActionRequest,
+    StudentExportRequest,
+    StudentFilterParams,
+    StudentSearchRequest,
+    StudentSortOptions,
+)
+from app.schemas.student.student_profile import (
+    DocumentInfo,
+    DocumentUploadRequest,
+    DocumentVerificationRequest,
+    StudentBulkImport,
+    StudentDocuments,
+    StudentPreferences,
+    StudentPrivacySettings,
+    StudentProfileCreate,
+    StudentProfileUpdate,
+)
+from app.schemas.student.student_response import (
+    StudentContactInfo,
+    StudentDetail,
+    StudentDocumentInfo,
+    StudentFinancialInfo,
+    StudentListItem,
+    StudentProfile,
+    StudentResponse,
+)
+from app.schemas.student.student_room_history import (
+    BulkRoomTransfer,
+    RoomHistoryItem,
+    RoomHistoryResponse,
+    RoomSwapRequest,
+    RoomTransferApproval,
+    RoomTransferRequest,
+    RoomTransferStatus,
+    SingleTransfer,
+)
+
+__all__ = [
+    # Base
+    "StudentBase",
+    "StudentCreate",
+    "StudentUpdate",
+    "StudentCheckInRequest",
+    "StudentCheckOutRequest",
+    "StudentRoomAssignment",
+    "StudentStatusUpdate",
+    # Response
+    "StudentResponse",
+    "StudentDetail",
+    "StudentProfile",
+    "StudentListItem",
+    "StudentFinancialInfo",
+    "StudentContactInfo",
+    "StudentDocumentInfo",
+    # Profile
+    "StudentProfileCreate",
+    "StudentProfileUpdate",
+    "StudentDocuments",
+    "DocumentInfo",
+    "DocumentUploadRequest",
+    "DocumentVerificationRequest",
+    "StudentPreferences",
+    "StudentPrivacySettings",
+    "StudentBulkImport",
+    # Room history
+    "RoomHistoryResponse",
+    "RoomHistoryItem",
+    "RoomTransferRequest",
+    "RoomTransferApproval",
+    "RoomTransferStatus",
+    "BulkRoomTransfer",
+    "SingleTransfer",
+    "RoomSwapRequest",
+    # Dashboard
+    "StudentDashboard",
+    "StudentStats",
+    "StudentFinancialSummary",
+    "AttendanceSummary",
+    "RecentPayment",
+    "RecentComplaint",
+    "PendingLeave",
+    "RecentAnnouncement",
+    "TodayMessMenu",
+    "UpcomingEvent",
+    # Filters
+    "StudentFilterParams",
+    "StudentSearchRequest",
+    "StudentSortOptions",
+    "StudentExportRequest",
+    "StudentBulkActionRequest",
+    "AdvancedStudentFilters",
+]

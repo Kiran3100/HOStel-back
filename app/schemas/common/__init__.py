@@ -1,62 +1,58 @@
+# --- File: app/schemas/common/__init__.py ---
 """
-Common schemas package
+Common schemas package.
+
+This __init__ module re-exports frequently used base schemas, enums,
+pagination helpers, responses, and filters from a single location:
+
+    from app.schemas.common import BaseSchema, UserRole, PaginationParams
 """
+
+from __future__ import annotations
+
 from app.schemas.common.base import (
-    BaseSchema,
     BaseCreateSchema,
-    BaseUpdateSchema,
-    BaseResponseSchema,
     BaseDBSchema,
-    TimestampMixin,
+    BaseFilterSchema,
+    BaseResponseSchema,
+    BaseSchema,
+    BaseUpdateSchema,
     SoftDeleteMixin,
-    UUIDMixin
+    TimestampMixin,
+    UUIDMixin,
 )
 from app.schemas.common.enums import (
-    UserRole,
-    Gender,
-    HostelType,
-    RoomType,
+    AnnouncementCategory,
+    AttendanceStatus,
+    BillingCycle,
     BookingStatus,
-    PaymentStatus,
-    PaymentMethod,
-    PaymentType,
     ComplaintCategory,
     ComplaintStatus,
-    Priority,
-    AttendanceStatus,
-    LeaveType,
+    DietaryPreference,
+    DeviceType,
+    EmploymentType,
+    Gender,
+    IDProofType,
+    InquiryStatus,
+    MealType,
     MaintenanceCategory,
     MaintenanceStatus,
+    NotificationStatus,
     NotificationType,
-    SubscriptionPlan,
-    StudentStatus,
-    SupervisorStatus,
-    AnnouncementCategory,
-    TargetAudience,
-    MealType,
-    DietaryPreference,
-    IDProofType,
-    EmploymentType,
-    BillingCycle,
-    SubscriptionStatus,
+    PaymentMethod,
+    PaymentStatus,
+    PaymentType,
+    Priority,
     ReferralStatus,
     ReviewStatus,
-    NotificationStatus,
-    DeviceType,
+    RoomType,
     SearchSource,
-    InquiryStatus
-)
-from app.schemas.common.pagination import (
-    PaginationParams,
-    PaginationMeta,
-    PaginatedResponse
-)
-from app.schemas.common.response import (
-    SuccessResponse,
-    ErrorDetail,
-    ErrorResponse,
-    MessageResponse,
-    BulkOperationResponse
+    StudentStatus,
+    SubscriptionPlan,
+    SubscriptionStatus,
+    SupervisorStatus,
+    TargetAudience,
+    UserRole,
 )
 from app.schemas.common.filters import (
     DateRangeFilter,
@@ -64,7 +60,19 @@ from app.schemas.common.filters import (
     PriceRangeFilter,
     SearchFilter,
     SortOptions,
-    StatusFilter
+    StatusFilter,
+)
+from app.schemas.common.pagination import (
+    PaginatedResponse,
+    PaginationMeta,
+    PaginationParams,
+)
+from app.schemas.common.response import (
+    BulkOperationResponse,
+    ErrorDetail,
+    ErrorResponse,
+    MessageResponse,
+    SuccessResponse,
 )
 
 __all__ = [
@@ -74,14 +82,13 @@ __all__ = [
     "BaseUpdateSchema",
     "BaseResponseSchema",
     "BaseDBSchema",
+    "BaseFilterSchema",
     "TimestampMixin",
     "SoftDeleteMixin",
     "UUIDMixin",
-    
     # Enums
     "UserRole",
     "Gender",
-    "HostelType",
     "RoomType",
     "BookingStatus",
     "PaymentStatus",
@@ -91,7 +98,6 @@ __all__ = [
     "ComplaintStatus",
     "Priority",
     "AttendanceStatus",
-    "LeaveType",
     "MaintenanceCategory",
     "MaintenanceStatus",
     "NotificationType",
@@ -112,19 +118,16 @@ __all__ = [
     "DeviceType",
     "SearchSource",
     "InquiryStatus",
-    
     # Pagination
     "PaginationParams",
     "PaginationMeta",
     "PaginatedResponse",
-    
     # Responses
     "SuccessResponse",
     "ErrorDetail",
     "ErrorResponse",
     "MessageResponse",
     "BulkOperationResponse",
-    
     # Filters
     "DateRangeFilter",
     "DateTimeRangeFilter",

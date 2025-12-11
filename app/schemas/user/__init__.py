@@ -1,26 +1,42 @@
+# --- File: app/schemas/user/__init__.py ---
 """
-User schemas package
+User schemas package.
+
+Re-exports commonly used user-related schemas for convenient imports.
+
+Example:
+    from app.schemas.user import UserCreate, UserResponse, ProfileUpdate
 """
+
+from __future__ import annotations
+
 from app.schemas.user.user_base import (
+    UserAddressUpdate,
     UserBase,
     UserCreate,
-    UserUpdate
-)
-from app.schemas.user.user_response import (
-    UserResponse,
-    UserDetail,
-    UserListItem,
-    UserProfile
+    UserEmergencyContactUpdate,
+    UserUpdate,
 )
 from app.schemas.user.user_profile import (
-    ProfileUpdate,
+    ContactInfoUpdate,
+    NotificationPreferencesUpdate,
     ProfileImageUpdate,
-    ContactInfoUpdate
+    ProfileUpdate,
+)
+from app.schemas.user.user_response import (
+    UserDetail,
+    UserListItem,
+    UserProfile,
+    UserResponse,
+    UserStats,
 )
 from app.schemas.user.user_session import (
-    UserSession,
+    ActiveSessionsList,
+    CreateSessionRequest,
+    RevokeAllSessionsRequest,
+    RevokeSessionRequest,
     SessionInfo,
-    ActiveSessionsList
+    UserSession,
 )
 
 __all__ = [
@@ -28,20 +44,24 @@ __all__ = [
     "UserBase",
     "UserCreate",
     "UserUpdate",
-    
+    "UserAddressUpdate",
+    "UserEmergencyContactUpdate",
+    # Profile
+    "ProfileUpdate",
+    "ProfileImageUpdate",
+    "ContactInfoUpdate",
+    "NotificationPreferencesUpdate",
     # Response
     "UserResponse",
     "UserDetail",
     "UserListItem",
     "UserProfile",
-    
-    # Profile
-    "ProfileUpdate",
-    "ProfileImageUpdate",
-    "ContactInfoUpdate",
-    
+    "UserStats",
     # Session
     "UserSession",
     "SessionInfo",
     "ActiveSessionsList",
+    "RevokeSessionRequest",
+    "RevokeAllSessionsRequest",
+    "CreateSessionRequest",
 ]

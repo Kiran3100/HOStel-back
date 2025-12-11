@@ -5,8 +5,10 @@ from __future__ import annotations
 Core application-level exceptions.
 
 These are thin wrappers / aliases around the service-layer exceptions
-defined in `app.services.common.errors` so the rest of the app can
-import from a single, central place if desired.
+defined in `app.services.common.errors`, allowing the rest of the app
+to import exception types from a single, central place:
+
+    from app.core import AppError, NotFoundError, ValidationError
 """
 
 from app.services.common import errors as _errors

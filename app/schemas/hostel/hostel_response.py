@@ -1,151 +1,389 @@
+# --- File: app/schemas/hostel/hostel_response.py ---
 """
-Hostel response schemas
+Hostel response schemas for API responses.
 """
-from decimal import Decimal
+
+from __future__ import annotations
+
 from datetime import datetime, time
+from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
 from uuid import UUID
 
+from pydantic import Field
+
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import HostelType, HostelStatus
+from app.schemas.common.enums import HostelStatus, HostelType
+
+__all__ = [
+    "HostelResponse",
+    "HostelDetail",
+    "HostelListItem",
+    "HostelStats",
+]
 
 
 class HostelResponse(BaseResponseSchema):
-    """Basic hostel response"""
+    """
+    Basic hostel response schema.
+    
+    Standard response for hostel operations.
+    """
+
     name: str = Field(..., description="Hostel name")
     slug: str = Field(..., description="URL slug")
     hostel_type: HostelType = Field(..., description="Hostel type")
     city: str = Field(..., description="City")
     state: str = Field(..., description="State")
-    starting_price_monthly: Optional[Decimal] = Field(None, description="Starting price")
-    average_rating: Decimal = Field(..., description="Average rating")
-    total_reviews: int = Field(..., description="Total reviews")
-    total_rooms: int = Field(..., description="Total rooms")
-    available_beds: int = Field(..., description="Available beds")
+    starting_price_monthly: Optional[Decimal] = Field(
+        default=None,
+        description="Starting monthly price",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total number of reviews",
+    )
+    total_rooms: int = Field(
+        ...,
+        ge=0,
+        description="Total number of rooms",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds",
+    )
     is_public: bool = Field(..., description="Public visibility")
     is_featured: bool = Field(..., description="Featured status")
-    cover_image_url: Optional[str] = Field(None, description="Cover image")
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image URL",
+    )
     status: HostelStatus = Field(..., description="Operational status")
 
 
 class HostelDetail(BaseResponseSchema):
-    """Detailed hostel information"""
-    name: str
-    slug: str
-    description: Optional[str]
+    """
+    Detailed hostel information.
     
+    Comprehensive hostel data for detail views.
+    """
+
+    name: str = Field(..., description="Hostel name")
+    slug: str = Field(..., description="URL slug")
+    description: Optional[str] = Field(
+        default=None,
+        description="Hostel description",
+    )
+
     # Type and contact
-    hostel_type: HostelType
-    contact_email: Optional[str]
-    contact_phone: str
-    alternate_phone: Optional[str]
-    website_url: Optional[str]
-    
+    hostel_type: HostelType = Field(..., description="Hostel type")
+    contact_email: Optional[str] = Field(
+        default=None,
+        description="Contact email",
+    )
+    contact_phone: str = Field(..., description="Contact phone")
+    alternate_phone: Optional[str] = Field(
+        default=None,
+        description="Alternate phone",
+    )
+    website_url: Optional[str] = Field(
+        default=None,
+        description="Website URL",
+    )
+
     # Address
-    address_line1: str
-    address_line2: Optional[str]
-    city: str
-    state: str
-    pincode: str
-    country: str
-    latitude: Optional[Decimal]
-    longitude: Optional[Decimal]
-    
+    address_line1: str = Field(..., description="Address line 1")
+    address_line2: Optional[str] = Field(
+        default=None,
+        description="Address line 2",
+    )
+    city: str = Field(..., description="City")
+    state: str = Field(..., description="State")
+    pincode: str = Field(..., description="Pincode")
+    country: str = Field(..., description="Country")
+    latitude: Optional[Decimal] = Field(
+        default=None,
+        description="Latitude",
+    )
+    longitude: Optional[Decimal] = Field(
+        default=None,
+        description="Longitude",
+    )
+
     # Pricing
-    starting_price_monthly: Optional[Decimal]
-    currency: str
-    
+    starting_price_monthly: Optional[Decimal] = Field(
+        default=None,
+        description="Starting monthly price",
+    )
+    currency: str = Field(..., description="Currency code")
+
     # Capacity
-    total_rooms: int
-    total_beds: int
-    occupied_beds: int
-    available_beds: int
-    
+    total_rooms: int = Field(
+        ...,
+        ge=0,
+        description="Total number of rooms",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total number of beds",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Occupied beds",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds",
+    )
+
     # Ratings
-    average_rating: Decimal
-    total_reviews: int
-    
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total reviews",
+    )
+
     # Features
-    amenities: List[str]
-    facilities: List[str]
-    security_features: List[str]
-    
+    amenities: List[str] = Field(
+        default_factory=list,
+        description="Available amenities",
+    )
+    facilities: List[str] = Field(
+        default_factory=list,
+        description="Available facilities",
+    )
+    security_features: List[str] = Field(
+        default_factory=list,
+        description="Security features",
+    )
+
     # Policies
-    rules: Optional[str]
-    check_in_time: Optional[time]
-    check_out_time: Optional[time]
-    visitor_policy: Optional[str]
-    late_entry_policy: Optional[str]
-    
+    rules: Optional[str] = Field(
+        default=None,
+        description="Hostel rules",
+    )
+    check_in_time: Optional[time] = Field(
+        default=None,
+        description="Check-in time",
+    )
+    check_out_time: Optional[time] = Field(
+        default=None,
+        description="Check-out time",
+    )
+    visitor_policy: Optional[str] = Field(
+        default=None,
+        description="Visitor policy",
+    )
+    late_entry_policy: Optional[str] = Field(
+        default=None,
+        description="Late entry policy",
+    )
+
     # Location info
-    nearby_landmarks: List[dict]
-    connectivity_info: Optional[str]
-    
+    nearby_landmarks: List[dict] = Field(
+        default_factory=list,
+        description="Nearby landmarks",
+    )
+    connectivity_info: Optional[str] = Field(
+        default=None,
+        description="Connectivity information",
+    )
+
     # Media
-    cover_image_url: Optional[str]
-    gallery_images: List[str]
-    virtual_tour_url: Optional[str]
-    
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image URL",
+    )
+    gallery_images: List[str] = Field(
+        default_factory=list,
+        description="Gallery images",
+    )
+    virtual_tour_url: Optional[str] = Field(
+        default=None,
+        description="Virtual tour URL",
+    )
+
     # Status
-    is_public: bool
-    is_featured: bool
-    is_verified: bool
-    status: HostelStatus
-    is_active: bool
-    
+    is_public: bool = Field(..., description="Public visibility")
+    is_featured: bool = Field(..., description="Featured status")
+    is_verified: bool = Field(..., description="Verification status")
+    status: HostelStatus = Field(..., description="Operational status")
+    is_active: bool = Field(..., description="Active status")
+
     # SEO
-    meta_title: Optional[str]
-    meta_description: Optional[str]
+    meta_title: Optional[str] = Field(
+        default=None,
+        description="SEO meta title",
+    )
+    meta_description: Optional[str] = Field(
+        default=None,
+        description="SEO meta description",
+    )
+    meta_keywords: Optional[str] = Field(
+        default=None,
+        description="SEO keywords",
+    )
 
 
 class HostelListItem(BaseSchema):
-    """Hostel list item (minimal info for lists)"""
-    id: UUID
-    name: str
-    slug: str
-    hostel_type: HostelType
-    city: str
-    state: str
-    starting_price_monthly: Optional[Decimal]
-    average_rating: Decimal
-    total_reviews: int
-    available_beds: int
-    cover_image_url: Optional[str]
-    is_featured: bool
-    distance_km: Optional[Decimal] = Field(None, description="Distance from search location")
+    """
+    Hostel list item for list views.
+    
+    Minimal information for efficient list rendering.
+    """
+
+    id: UUID = Field(..., description="Hostel ID")
+    name: str = Field(..., description="Hostel name")
+    slug: str = Field(..., description="URL slug")
+    hostel_type: HostelType = Field(..., description="Hostel type")
+    city: str = Field(..., description="City")
+    state: str = Field(..., description="State")
+    starting_price_monthly: Optional[Decimal] = Field(
+        default=None,
+        description="Starting price",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total reviews",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds",
+    )
+    cover_image_url: Optional[str] = Field(
+        default=None,
+        description="Cover image",
+    )
+    is_featured: bool = Field(..., description="Featured status")
+    distance_km: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Distance from search location",
+    )
 
 
 class HostelStats(BaseSchema):
-    """Hostel statistics"""
-    hostel_id: UUID
+    """
+    Hostel statistics summary.
     
+    Key metrics and statistics for a hostel.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+
     # Occupancy
-    total_rooms: int
-    total_beds: int
-    occupied_beds: int
-    available_beds: int
-    occupancy_percentage: Decimal
-    
+    total_rooms: int = Field(
+        ...,
+        ge=0,
+        description="Total rooms",
+    )
+    total_beds: int = Field(
+        ...,
+        ge=0,
+        description="Total beds",
+    )
+    occupied_beds: int = Field(
+        ...,
+        ge=0,
+        description="Occupied beds",
+    )
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Available beds",
+    )
+    occupancy_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Occupancy percentage",
+    )
+
     # Revenue
-    total_revenue_monthly: Decimal
-    total_outstanding: Decimal
-    
+    total_revenue_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total monthly revenue",
+    )
+    total_outstanding: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total outstanding payments",
+    )
+
     # Students
-    total_students: int
-    active_students: int
-    
+    total_students: int = Field(
+        ...,
+        ge=0,
+        description="Total registered students",
+    )
+    active_students: int = Field(
+        ...,
+        ge=0,
+        description="Active students",
+    )
+
     # Complaints
-    open_complaints: int
-    resolved_complaints: int
-    
+    open_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Open complaints",
+    )
+    resolved_complaints: int = Field(
+        ...,
+        ge=0,
+        description="Resolved complaints",
+    )
+
     # Bookings
-    pending_bookings: int
-    confirmed_bookings: int
-    
+    pending_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Pending booking requests",
+    )
+    confirmed_bookings: int = Field(
+        ...,
+        ge=0,
+        description="Confirmed bookings",
+    )
+
     # Reviews
-    average_rating: Decimal
-    total_reviews: int
-    
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total reviews",
+    )
+
     # Last updated
-    updated_at: datetime
+    updated_at: datetime = Field(..., description="Last update timestamp")
