@@ -1,174 +1,332 @@
 """
-Complaint resolution schemas with comprehensive validation.
+Complaint resolution and closure schemas.
+
+Handles complaint resolution workflow including marking as resolved,
+reopening, and final closure with comprehensive validation.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import List, Optional
-from uuid import UUID
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "ResolutionRequest",
+    "ResolutionResponse",
+    "ResolutionUpdate",
+    "ReopenRequest",
+    "CloseRequest",
+]
 
 
 class ResolutionRequest(BaseCreateSchema):
-    """Mark complaint as resolved with detailed information."""
+    """
+    Request to mark complaint as resolved.
     
-    complaint_id: UUID = Field(..., description="Complaint ID")
-    
+    Requires detailed resolution notes and supports
+    optional proof attachments and follow-up scheduling.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to resolve",
+    )
+
     resolution_notes: str = Field(
         ...,
         min_length=20,
         max_length=2000,
-        description="Resolution details"
+        description="Detailed resolution description",
     )
-    
-    # Attachments (proof of resolution)
+
     resolution_attachments: List[HttpUrl] = Field(
         default_factory=list,
-        max_items=10,
-        description="Photos/documents of resolved issue"
+        max_length=10,
+        description="Proof of resolution (photos/documents)",
     )
-    
-    # Time tracking
+
     actual_resolution_time: Optional[datetime] = Field(
         None,
-        description="Actual time taken to resolve"
+        description="Actual time resolution was completed",
     )
-    
-    # Follow-up required
-    follow_up_required: bool = Field(False)
-    follow_up_date: Optional[date] = None
-    follow_up_notes: Optional[str] = Field(None, max_length=500)
+
+    # Follow-up tracking
+    follow_up_required: bool = Field(
+        default=False,
+        description="Whether follow-up check is needed",
+    )
+    follow_up_date: Optional[date] = Field(
+        None,
+        description="Scheduled follow-up date",
+    )
+    follow_up_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Follow-up instructions",
+    )
 
     @field_validator("resolution_notes")
     @classmethod
     def validate_resolution_notes(cls, v: str) -> str:
-        """Ensure resolution notes are detailed."""
+        """Validate resolution notes quality."""
         v = v.strip()
-        if len(v.split()) < 5:
-            raise ValueError("Resolution notes must contain at least 5 words")
+        if not v:
+            raise ValueError("Resolution notes cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 10:
+            raise ValueError(
+                "Resolution notes must contain at least 10 words "
+                "for proper documentation"
+            )
+        
+        return v
+
+    @field_validator("resolution_attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError(
+                "Maximum 10 resolution attachments allowed"
+            )
+        return v
+
+    @field_validator("follow_up_date")
+    @classmethod
+    def validate_follow_up_date(cls, v: Optional[date]) -> Optional[date]:
+        """Ensure follow-up date is in the future."""
+        if v is not None and v <= date.today():
+            raise ValueError(
+                "Follow-up date must be in the future"
+            )
         return v
 
     @model_validator(mode="after")
     def validate_follow_up_consistency(self) -> "ResolutionRequest":
-        """Validate follow-up fields consistency."""
-        if self.follow_up_required:
-            if not self.follow_up_date:
-                raise ValueError("Follow-up date is required when follow-up is needed")
-            if self.follow_up_date <= date.today():
-                raise ValueError("Follow-up date must be in the future")
-        elif self.follow_up_date or self.follow_up_notes:
-            raise ValueError("Follow-up details provided but follow-up not required")
+        """
+        Validate follow-up fields are consistent.
+        
+        If follow_up_required is True, follow_up_date must be provided.
+        """
+        if self.follow_up_required and not self.follow_up_date:
+            raise ValueError(
+                "Follow-up date is required when follow-up is marked as needed"
+            )
+        
         return self
 
 
 class ResolutionResponse(BaseSchema):
-    """Resolution response with calculated metrics."""
+    """
+    Response after successful complaint resolution.
     
-    complaint_id: UUID
-    complaint_number: str
-    
-    resolved: bool
-    resolved_at: datetime
-    resolved_by: UUID
-    resolved_by_name: str
-    
-    resolution_notes: str
-    
-    # Time taken
-    time_to_resolve_hours: int
-    sla_met: bool
-    
-    message: str
+    Provides confirmation and resolution metrics.
+    """
 
-    @classmethod
-    def create(
-        cls,
-        complaint_id: UUID,
-        complaint_number: str,
-        resolved_by: UUID,
-        resolved_by_name: str,
-        resolution_notes: str,
-        opened_at: datetime,
-        priority_sla_hours: int
-    ) -> "ResolutionResponse":
-        """Factory method to create resolution response with calculations."""
-        resolved_at = datetime.utcnow()
-        time_to_resolve = int((resolved_at - opened_at).total_seconds() / 3600)
-        
-        return cls(
-            complaint_id=complaint_id,
-            complaint_number=complaint_number,
-            resolved=True,
-            resolved_at=resolved_at,
-            resolved_by=resolved_by,
-            resolved_by_name=resolved_by_name,
-            resolution_notes=resolution_notes,
-            time_to_resolve_hours=time_to_resolve,
-            sla_met=time_to_resolve <= priority_sla_hours,
-            message=f"Complaint {complaint_number} resolved successfully"
-        )
+    complaint_id: str = Field(..., description="Resolved complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    resolved: bool = Field(..., description="Resolution confirmation flag")
+    resolved_at: datetime = Field(..., description="Resolution timestamp")
+    resolved_by: str = Field(..., description="Resolver user ID")
+    resolved_by_name: str = Field(..., description="Resolver name")
+
+    resolution_notes: str = Field(..., description="Resolution description")
+
+    # Performance metrics
+    time_to_resolve_hours: int = Field(
+        ge=0,
+        description="Total resolution time in hours",
+    )
+    sla_met: bool = Field(
+        ...,
+        description="Whether SLA was met for this resolution",
+    )
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Complaint resolved successfully"],
+    )
 
 
 class ResolutionUpdate(BaseCreateSchema):
-    """Update resolution details after initial resolution."""
+    """
+    Update resolution details for already resolved complaint.
     
-    complaint_id: UUID
-    
-    resolution_notes: Optional[str] = Field(None, min_length=20, max_length=2000)
-    resolution_attachments: Optional[List[HttpUrl]] = Field(None, max_items=10)
-    follow_up_notes: Optional[str] = Field(None, max_length=500)
+    Allows modification of resolution notes and attachments.
+    """
 
-    @field_validator("resolution_notes", "follow_up_notes")
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier",
+    )
+
+    resolution_notes: Optional[str] = Field(
+        None,
+        min_length=20,
+        max_length=2000,
+        description="Updated resolution notes",
+    )
+    resolution_attachments: Optional[List[HttpUrl]] = Field(
+        None,
+        max_length=10,
+        description="Updated resolution attachments",
+    )
+    follow_up_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated follow-up notes",
+    )
+
+    @field_validator("resolution_notes")
     @classmethod
-    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        """Validate text fields are not empty."""
+    def validate_resolution_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Validate resolution notes if provided."""
         if v is not None:
             v = v.strip()
             if not v:
-                raise ValueError("Field cannot be empty or whitespace")
+                raise ValueError("Resolution notes cannot be empty")
+            
+            word_count = len(v.split())
+            if word_count < 10:
+                raise ValueError(
+                    "Resolution notes must contain at least 10 words"
+                )
+        
         return v
+
+    @field_validator("resolution_attachments")
+    @classmethod
+    def validate_attachments_limit(
+        cls,
+        v: Optional[List[HttpUrl]]
+    ) -> Optional[List[HttpUrl]]:
+        """Ensure attachment count doesn't exceed limit."""
+        if v is not None and len(v) > 10:
+            raise ValueError(
+                "Maximum 10 resolution attachments allowed"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_has_updates(self) -> "ResolutionUpdate":
+        """Ensure at least one field is being updated."""
+        update_fields = {
+            k: v for k, v in self.model_dump(exclude_unset=True).items()
+            if v is not None and k != "complaint_id"
+        }
+        
+        if not update_fields:
+            raise ValueError(
+                "At least one field must be provided for update"
+            )
+        
+        return self
 
 
 class ReopenRequest(BaseCreateSchema):
-    """Reopen resolved complaint with validation."""
+    """
+    Request to reopen a resolved/closed complaint.
     
-    complaint_id: UUID
-    
-    reopen_reason: str = Field(..., min_length=20, max_length=500)
-    
-    # Additional details
-    additional_issues: Optional[str] = Field(None, max_length=1000)
-    new_attachments: List[HttpUrl] = Field(default_factory=list, max_items=5)
+    Requires detailed reason and supports additional information.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to reopen",
+    )
+
+    reopen_reason: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="Detailed reason for reopening",
+    )
+
+    additional_issues: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Additional issues discovered",
+    )
+    new_attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="New supporting attachments",
+    )
 
     @field_validator("reopen_reason")
     @classmethod
     def validate_reopen_reason(cls, v: str) -> str:
-        """Ensure reopen reason is detailed."""
+        """Validate reopen reason quality."""
         v = v.strip()
-        if len(v.split()) < 5:
-            raise ValueError("Reopen reason must contain at least 5 words")
+        if not v:
+            raise ValueError("Reopen reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Reopen reason must contain at least 5 words "
+                "for proper documentation"
+            )
+        
+        return v
+
+    @field_validator("additional_issues")
+    @classmethod
+    def validate_additional_issues(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize additional issues if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("new_attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError(
+                "Maximum 10 new attachments allowed"
+            )
         return v
 
 
 class CloseRequest(BaseCreateSchema):
-    """Close complaint (final) with optional confirmation."""
+    """
+    Request to close complaint (final state).
     
-    complaint_id: UUID
-    
-    closure_notes: Optional[str] = Field(None, max_length=500)
-    
-    # Require student confirmation
-    student_confirmed: bool = Field(False, description="Student confirmed resolution")
+    Optional closure notes and student confirmation.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to close",
+    )
+
+    closure_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Final closure notes",
+    )
+
+    student_confirmed: bool = Field(
+        default=False,
+        description="Student confirmed resolution satisfaction",
+    )
 
     @field_validator("closure_notes")
     @classmethod
     def validate_closure_notes(cls, v: Optional[str]) -> Optional[str]:
-        """Validate closure notes if provided."""
-        if v:
+        """Normalize closure notes if provided."""
+        if v is not None:
             v = v.strip()
-            if len(v) < 10:
-                raise ValueError("Closure notes must be at least 10 characters")
+            if not v:
+                return None
         return v

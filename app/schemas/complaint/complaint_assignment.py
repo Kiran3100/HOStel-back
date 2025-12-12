@@ -1,143 +1,257 @@
 """
-Complaint assignment schemas with enhanced validation and business logic.
+Complaint assignment and reassignment schemas.
+
+Handles complaint assignment to staff members, reassignments,
+bulk operations, and unassignment flows.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Optional
-from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "AssignmentRequest",
+    "AssignmentResponse",
+    "ReassignmentRequest",
+    "BulkAssignment",
+    "UnassignRequest",
+    "AssignmentHistory",
+]
 
 
 class AssignmentRequest(BaseCreateSchema):
-    """Assign complaint to staff member with validation."""
+    """
+    Request to assign complaint to a staff member.
     
-    complaint_id: UUID = Field(..., description="Complaint ID")
-    assigned_to: UUID = Field(..., description="User ID to assign to (supervisor/staff)")
-    
-    # Optional
+    Supports optional estimated resolution time and notes
+    for assignment context.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to assign",
+    )
+    assigned_to: str = Field(
+        ...,
+        description="User ID of assignee (supervisor/staff)",
+    )
+
     estimated_resolution_time: Optional[datetime] = Field(
         None,
-        description="Estimated resolution time"
+        description="Estimated resolution timestamp",
     )
-    
-    assignment_notes: Optional[str] = Field(None, min_length=5, max_length=500)
+
+    assignment_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Assignment context or instructions",
+    )
+
+    @field_validator("assignment_notes")
+    @classmethod
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize assignment notes."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
 
     @field_validator("estimated_resolution_time")
     @classmethod
-    def validate_future_time(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """Ensure estimated time is in the future."""
-        if v and v <= datetime.utcnow():
-            raise ValueError("Estimated resolution time must be in the future")
+    def validate_estimated_time(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure estimated resolution time is in the future."""
+        if v is not None and v <= datetime.utcnow():
+            raise ValueError(
+                "Estimated resolution time must be in the future"
+            )
+        return v
+
+
+class AssignmentResponse(BaseSchema):
+    """
+    Response after successful complaint assignment.
+    
+    Provides confirmation details and assignment metadata.
+    """
+
+    complaint_id: str = Field(..., description="Assigned complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    assigned_to: str = Field(..., description="Assignee user ID")
+    assigned_to_name: str = Field(..., description="Assignee name")
+    assigned_by: str = Field(..., description="User who performed assignment")
+    assigned_by_name: str = Field(..., description="Assigner name")
+
+    assigned_at: datetime = Field(..., description="Assignment timestamp")
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Complaint assigned successfully"],
+    )
+
+
+class ReassignmentRequest(BaseCreateSchema):
+    """
+    Request to reassign complaint to different staff member.
+    
+    Requires reason for reassignment to maintain audit trail.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to reassign",
+    )
+    new_assigned_to: str = Field(
+        ...,
+        description="New assignee user ID",
+    )
+
+    reassignment_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for reassignment (mandatory)",
+    )
+
+    notify_previous_assignee: bool = Field(
+        default=True,
+        description="Send notification to previous assignee",
+    )
+
+    @field_validator("reassignment_reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate reassignment reason."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Reassignment reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 3:
+            raise ValueError(
+                "Reassignment reason must be at least 3 words"
+            )
+        
+        return v
+
+
+class BulkAssignment(BaseCreateSchema):
+    """
+    Bulk assignment of multiple complaints to one assignee.
+    
+    Useful for distributing workload efficiently.
+    """
+
+    complaint_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="List of complaint IDs to assign (max 50)",
+    )
+    assigned_to: str = Field(
+        ...,
+        description="User ID of assignee for all complaints",
+    )
+
+    assignment_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common assignment notes",
+    )
+
+    @field_validator("complaint_ids")
+    @classmethod
+    def validate_complaint_ids_unique(cls, v: List[str]) -> List[str]:
+        """Ensure complaint IDs are unique."""
+        if len(v) != len(set(v)):
+            raise ValueError("Complaint IDs must be unique")
+        
+        if len(v) > 50:
+            raise ValueError("Cannot assign more than 50 complaints at once")
+        
         return v
 
     @field_validator("assignment_notes")
     @classmethod
     def validate_notes(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize assignment notes."""
-        if v:
+        """Normalize assignment notes."""
+        if v is not None:
             v = v.strip()
-            if len(v) < 5:
-                raise ValueError("Assignment notes must be at least 5 characters")
-        return v
-
-
-class AssignmentResponse(BaseSchema):
-    """Assignment response with complete information."""
-    
-    complaint_id: UUID
-    complaint_number: str
-    
-    assigned_to: UUID
-    assigned_to_name: str
-    assigned_by: UUID
-    assigned_by_name: str
-    
-    assigned_at: datetime
-    
-    message: str
-
-    @classmethod
-    def create(
-        cls,
-        complaint_id: UUID,
-        complaint_number: str,
-        assigned_to: UUID,
-        assigned_to_name: str,
-        assigned_by: UUID,
-        assigned_by_name: str
-    ) -> "AssignmentResponse":
-        """Factory method to create assignment response."""
-        return cls(
-            complaint_id=complaint_id,
-            complaint_number=complaint_number,
-            assigned_to=assigned_to,
-            assigned_to_name=assigned_to_name,
-            assigned_by=assigned_by,
-            assigned_by_name=assigned_by_name,
-            assigned_at=datetime.utcnow(),
-            message=f"Complaint {complaint_number} assigned to {assigned_to_name}"
-        )
-
-
-class ReassignmentRequest(BaseCreateSchema):
-    """Reassign complaint to different staff with validation."""
-    
-    complaint_id: UUID
-    new_assigned_to: UUID = Field(..., description="New assignee")
-    
-    reassignment_reason: str = Field(..., min_length=10, max_length=500)
-    
-    # Notify previous assignee
-    notify_previous_assignee: bool = Field(True)
-
-    @field_validator("reassignment_reason")
-    @classmethod
-    def validate_reason(cls, v: str) -> str:
-        """Validate reassignment reason is meaningful."""
-        v = v.strip()
-        if len(v.split()) < 3:
-            raise ValueError("Reassignment reason must contain at least 3 words")
-        return v
-
-    @model_validator(mode="after")
-    def validate_not_self_assignment(self) -> "ReassignmentRequest":
-        """Ensure not reassigning to same person (would need current assignee info)."""
-        # This validation would be done at the service level with database access
-        return self
-
-
-class BulkAssignment(BaseCreateSchema):
-    """Assign multiple complaints with validation."""
-    
-    complaint_ids: List[UUID] = Field(..., min_items=1, max_items=50)
-    assigned_to: UUID
-    
-    assignment_notes: Optional[str] = Field(None, max_length=500)
-
-    @field_validator("complaint_ids")
-    @classmethod
-    def validate_unique_ids(cls, v: List[UUID]) -> List[UUID]:
-        """Ensure complaint IDs are unique."""
-        if len(v) != len(set(v)):
-            raise ValueError("Duplicate complaint IDs not allowed")
+            if not v:
+                return None
         return v
 
 
 class UnassignRequest(BaseCreateSchema):
-    """Unassign complaint with reason."""
+    """
+    Request to unassign complaint from current assignee.
     
-    complaint_id: UUID
-    reason: str = Field(..., min_length=10, max_length=500)
+    Requires reason for accountability.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to unassign",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for unassignment",
+    )
 
     @field_validator("reason")
     @classmethod
-    def validate_unassign_reason(cls, v: str) -> str:
+    def validate_reason(cls, v: str) -> str:
         """Validate unassignment reason."""
         v = v.strip()
-        if len(v.split()) < 3:
-            raise ValueError("Unassignment reason must contain at least 3 words")
+        if not v:
+            raise ValueError("Unassignment reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 3:
+            raise ValueError(
+                "Unassignment reason must be at least 3 words"
+            )
+        
         return v
+
+
+class AssignmentHistory(BaseSchema):
+    """
+    Assignment history entry for audit trail.
+    
+    Tracks all assignment changes for a complaint.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    
+    assigned_to: str = Field(..., description="Assignee user ID")
+    assigned_to_name: str = Field(..., description="Assignee name")
+    
+    assigned_by: str = Field(..., description="Assigner user ID")
+    assigned_by_name: str = Field(..., description="Assigner name")
+    
+    assigned_at: datetime = Field(..., description="Assignment timestamp")
+    unassigned_at: Optional[datetime] = Field(
+        None,
+        description="Unassignment timestamp",
+    )
+    
+    reason: Optional[str] = Field(
+        None,
+        description="Assignment/reassignment reason",
+    )
+    
+    duration_hours: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Duration assigned (hours)",
+    )

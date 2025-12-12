@@ -1,65 +1,393 @@
 """
-File information and listing schemas
+File information and listing schemas.
+
+Provides comprehensive file metadata and listing capabilities
+with filtering and pagination support.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List, Optional, Dict
-from pydantic import Field, HttpUrl
-from uuid import UUID
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, computed_field, field_validator
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
+__all__ = [
+    "FileMetadata",
+    "FileInfo",
+    "FileURL",
+    "FileListResponse",
+    "FileStats",
+    "FileAccessLog",
+]
+
 
 class FileMetadata(BaseSchema):
-    """Additional metadata attached to a file"""
+    """
+    Comprehensive file metadata.
+    
+    Stores technical and business metadata for files.
+    """
+
+    # Technical metadata
     content_type: str = Field(..., description="MIME type")
     size_bytes: int = Field(..., ge=0, description="File size in bytes")
+    checksum: Optional[str] = Field(
+        None,
+        description="File checksum (MD5/SHA256)",
+    )
 
-    # Optional metadata
-    original_filename: Optional[str] = Field(None, description="Original filename")
-    tags: List[str] = Field(default_factory=list)
-    category: Optional[str] = Field(None, description="Logical category")
+    # Original file information
+    original_filename: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Original uploaded filename",
+    )
+    extension: Optional[str] = Field(
+        None,
+        max_length=20,
+        description="File extension (without dot)",
+    )
+
+    # Dimensions (for images/videos)
+    width: Optional[int] = Field(None, ge=1, description="Width in pixels")
+    height: Optional[int] = Field(None, ge=1, description="Height in pixels")
+    duration_seconds: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Duration for audio/video files",
+    )
+
+    # Classification
+    category: Optional[str] = Field(None, description="File category")
+    tags: List[str] = Field(default_factory=list, description="Searchable tags")
+
+    # Custom metadata
     custom_metadata: Dict[str, str] = Field(
         default_factory=dict,
-        description="Free-form key/value metadata (e.g. 'room_id', 'hostel_id')",
+        description="Custom key-value metadata",
     )
+
+    # Processing information
+    is_processed: bool = Field(
+        default=False,
+        description="Whether post-upload processing is complete",
+    )
+    processing_error: Optional[str] = Field(
+        None,
+        description="Processing error message if failed",
+    )
+
+    @computed_field
+    @property
+    def size_mb(self) -> Decimal:
+        """Get file size in megabytes."""
+        return Decimal(str(round(self.size_bytes / (1024 * 1024), 2)))
+
+    @computed_field
+    @property
+    def is_image(self) -> bool:
+        """Check if file is an image."""
+        return self.content_type.startswith("image/")
+
+    @computed_field
+    @property
+    def is_video(self) -> bool:
+        """Check if file is a video."""
+        return self.content_type.startswith("video/")
+
+    @computed_field
+    @property
+    def is_audio(self) -> bool:
+        """Check if file is audio."""
+        return self.content_type.startswith("audio/")
+
+    @computed_field
+    @property
+    def is_document(self) -> bool:
+        """Check if file is a document."""
+        document_types = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument",
+            "application/vnd.ms-excel",
+        ]
+        return any(self.content_type.startswith(dt) for dt in document_types)
 
 
 class FileInfo(BaseResponseSchema):
-    """Full file information as stored in the system"""
-    storage_key: str = Field(..., description="Storage path/key (unique)")
+    """
+    Complete file information record.
+    
+    Represents a stored file with all associated metadata.
+    """
 
-    # Ownership / context
-    uploaded_by_user_id: UUID
-    hostel_id: Optional[UUID] = None
+    file_id: str = Field(..., description="Unique file identifier")
+    storage_key: str = Field(..., description="Storage path/key")
 
-    # Access
-    is_public: bool = Field(False, description="Publicly accessible or not")
-    public_url: Optional[HttpUrl] = Field(None, description="Public CDN URL if is_public=True")
-    signed_url: Optional[HttpUrl] = Field(
+    # Ownership
+    uploaded_by_user_id: str = Field(..., description="Uploader user ID")
+    uploaded_by_name: Optional[str] = Field(None, description="Uploader name")
+
+    hostel_id: Optional[str] = Field(None, description="Associated hostel")
+    student_id: Optional[str] = Field(None, description="Associated student")
+
+    # Access control
+    is_public: bool = Field(default=False, description="Public access flag")
+    is_deleted: bool = Field(default=False, description="Soft delete flag")
+
+    # URLs
+    url: HttpUrl = Field(..., description="Primary access URL")
+    public_url: Optional[HttpUrl] = Field(
         None,
-        description="Signed temporary URL for private access (optional)",
+        description="Public CDN URL (if is_public=True)",
+    )
+    thumbnail_url: Optional[HttpUrl] = Field(
+        None,
+        description="Thumbnail URL (for images)",
     )
 
     # Metadata
-    metadata: FileMetadata
+    metadata: FileMetadata = Field(..., description="File metadata")
 
-    # Audit
-    created_at: datetime
-    updated_at: datetime
+    # Security
+    virus_scan_status: str = Field(
+        default="pending",
+        description="Antivirus scan status",
+        examples=["pending", "clean", "infected", "error", "skipped"],
+    )
+    virus_scan_timestamp: Optional[datetime] = Field(
+        None,
+        description="Virus scan completion timestamp",
+    )
+
+    # Access tracking
+    access_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of times file was accessed",
+    )
+    last_accessed_at: Optional[datetime] = Field(
+        None,
+        description="Last access timestamp",
+    )
+
+    # Audit timestamps
+    created_at: datetime = Field(..., description="Upload timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Get file age in days."""
+        delta = datetime.utcnow() - self.created_at
+        return delta.days
+
+    @computed_field
+    @property
+    def is_recent(self) -> bool:
+        """Check if file was uploaded within last 7 days."""
+        return self.age_days <= 7
 
 
 class FileURL(BaseSchema):
-    """Simple container for a file URL"""
-    url: HttpUrl
+    """
+    File access URL with expiration information.
+    
+    Used for temporary signed URLs.
+    """
+
+    url: HttpUrl = Field(..., description="Access URL")
+    url_type: str = Field(
+        default="signed",
+        description="URL type",
+        examples=["public", "signed", "cdn"],
+    )
+
     expires_at: Optional[datetime] = Field(
         None,
-        description="If signed URL, when it will expire",
+        description="URL expiration timestamp (for signed URLs)",
     )
+    is_permanent: bool = Field(
+        default=False,
+        description="Whether URL is permanent (public URLs)",
+    )
+
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        """Check if URL has expired."""
+        if self.is_permanent or self.expires_at is None:
+            return False
+        return datetime.utcnow() >= self.expires_at
+
+    @computed_field
+    @property
+    def time_until_expiry_minutes(self) -> Optional[int]:
+        """Get minutes until URL expires."""
+        if self.is_permanent or self.expires_at is None:
+            return None
+        
+        delta = self.expires_at - datetime.utcnow()
+        return max(0, int(delta.total_seconds() / 60))
 
 
 class FileListResponse(BaseSchema):
-    """Paginated list of files"""
-    items: List[FileInfo] = Field(default_factory=list)
-    total_items: int
-    page: int
-    page_size: int
+    """
+    Paginated file listing response.
+    
+    Provides filtered and sorted file listings.
+    """
+
+    items: List[FileInfo] = Field(
+        default_factory=list,
+        description="List of files",
+    )
+
+    # Pagination
+    total_items: int = Field(ge=0, description="Total matching files")
+    page: int = Field(ge=1, description="Current page number")
+    page_size: int = Field(ge=1, le=100, description="Items per page")
+    total_pages: int = Field(ge=0, description="Total pages")
+
+    # Summary statistics
+    total_size_bytes: int = Field(
+        default=0,
+        ge=0,
+        description="Total size of all files in list",
+    )
+
+    @computed_field
+    @property
+    def has_next(self) -> bool:
+        """Check if there are more pages."""
+        return self.page < self.total_pages
+
+    @computed_field
+    @property
+    def has_previous(self) -> bool:
+        """Check if there are previous pages."""
+        return self.page > 1
+
+    @computed_field
+    @property
+    def total_size_mb(self) -> Decimal:
+        """Get total size in megabytes."""
+        return Decimal(str(round(self.total_size_bytes / (1024 * 1024), 2)))
+
+
+class FileStats(BaseSchema):
+    """
+    File storage statistics.
+    
+    Provides aggregate statistics for a user, hostel, or system.
+    """
+
+    entity_id: Optional[str] = Field(
+        None,
+        description="Entity ID (user/hostel) or None for system-wide",
+    )
+    entity_type: str = Field(
+        default="system",
+        description="Entity type",
+        examples=["user", "hostel", "system"],
+    )
+
+    # Counts
+    total_files: int = Field(ge=0, description="Total file count")
+    public_files: int = Field(ge=0, description="Public file count")
+    private_files: int = Field(ge=0, description="Private file count")
+
+    # By type
+    images_count: int = Field(ge=0, description="Image file count")
+    videos_count: int = Field(ge=0, description="Video file count")
+    documents_count: int = Field(ge=0, description="Document file count")
+    other_count: int = Field(ge=0, description="Other file count")
+
+    # Storage usage
+    total_size_bytes: int = Field(ge=0, description="Total storage used (bytes)")
+    storage_quota_bytes: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Storage quota (bytes)",
+    )
+
+    # Time-based
+    files_uploaded_today: int = Field(ge=0, description="Files uploaded today")
+    files_uploaded_this_week: int = Field(ge=0, description="Files uploaded this week")
+    files_uploaded_this_month: int = Field(ge=0, description="Files uploaded this month")
+
+    @computed_field
+    @property
+    def total_size_gb(self) -> Decimal:
+        """Get total size in gigabytes."""
+        return Decimal(str(round(self.total_size_bytes / (1024 ** 3), 2)))
+
+    @computed_field
+    @property
+    def storage_used_percentage(self) -> Optional[Decimal]:
+        """Get storage usage percentage."""
+        if self.storage_quota_bytes is None or self.storage_quota_bytes == 0:
+            return None
+        
+        percentage = (self.total_size_bytes / self.storage_quota_bytes) * 100
+        return Decimal(str(round(percentage, 2)))
+
+    @computed_field
+    @property
+    def is_near_quota(self) -> bool:
+        """Check if storage is near quota (>80%)."""
+        usage = self.storage_used_percentage
+        return usage is not None and usage >= 80
+
+
+class FileAccessLog(BaseSchema):
+    """
+    File access audit log entry.
+    
+    Tracks file access for security and analytics.
+    """
+
+    log_id: str = Field(..., description="Log entry identifier")
+    file_id: str = Field(..., description="Accessed file ID")
+    storage_key: str = Field(..., description="File storage key")
+
+    # Access details
+    accessed_by_user_id: Optional[str] = Field(
+        None,
+        description="User who accessed (None for public access)",
+    )
+    accessed_by_name: Optional[str] = Field(None, description="User name")
+
+    access_type: str = Field(
+        ...,
+        description="Type of access",
+        examples=["download", "view", "preview", "api"],
+    )
+    access_method: str = Field(
+        ...,
+        description="Access method",
+        examples=["direct_url", "signed_url", "api", "cdn"],
+    )
+
+    # Request metadata
+    ip_address: Optional[str] = Field(None, description="Client IP address")
+    user_agent: Optional[str] = Field(None, description="Client user agent")
+    referrer: Optional[str] = Field(None, description="HTTP referrer")
+
+    # Geo-location
+    country: Optional[str] = Field(None, description="Country code")
+    city: Optional[str] = Field(None, description="City")
+
+    accessed_at: datetime = Field(..., description="Access timestamp")
+
+    # Response
+    success: bool = Field(..., description="Whether access was successful")
+    error_message: Optional[str] = Field(
+        None,
+        description="Error message if access failed",
+    )

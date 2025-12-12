@@ -1,161 +1,214 @@
 """
-Complaint comments/discussion schemas with threading support.
+Complaint discussion and comments schemas.
+
+Handles internal notes and public comments on complaints
+with support for attachments and mentions.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Optional
-from uuid import UUID
 
-from pydantic import Field, HttpUrl, field_validator, computed_field
+from pydantic import Field, HttpUrl, field_validator
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+
+__all__ = [
+    "CommentCreate",
+    "CommentResponse",
+    "CommentList",
+    "CommentUpdate",
+    "CommentDelete",
+    "MentionNotification",
+]
 
 
 class CommentCreate(BaseCreateSchema):
-    """Create comment on complaint with validation."""
+    """
+    Create comment on complaint.
     
-    complaint_id: UUID = Field(..., description="Complaint ID")
-    
-    comment_text: str = Field(..., min_length=5, max_length=1000, description="Comment text")
-    
-    # Internal or public
-    is_internal: bool = Field(False, description="Internal note vs public comment")
-    
-    # Attachments
-    attachments: List[HttpUrl] = Field(default_factory=list, max_items=5)
+    Supports both public comments and internal notes
+    with optional attachments.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to comment on",
+    )
+
+    comment_text: str = Field(
+        ...,
+        min_length=5,
+        max_length=1000,
+        description="Comment text content",
+    )
+
+    is_internal: bool = Field(
+        default=False,
+        description="Internal note (staff only) vs public comment",
+    )
+
+    attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Comment attachments (max 5)",
+    )
 
     @field_validator("comment_text")
     @classmethod
     def validate_comment_text(cls, v: str) -> str:
-        """Validate comment text is meaningful."""
+        """Validate comment text quality."""
         v = v.strip()
-        if len(v.split()) < 2:
-            raise ValueError("Comment must contain at least 2 words")
+        if not v:
+            raise ValueError("Comment text cannot be empty")
+        
+        # Ensure meaningful content
+        if len(v) < 5:
+            raise ValueError("Comment must be at least 5 characters")
+        
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 5:
+            raise ValueError("Maximum 5 attachments allowed per comment")
         return v
 
 
 class CommentResponse(BaseResponseSchema):
-    """Comment response with user information."""
+    """
+    Comment response with author information.
     
-    complaint_id: UUID
-    
-    commented_by: UUID
-    commented_by_name: str
-    commented_by_role: str
-    
-    comment_text: str
-    is_internal: bool
-    
-    attachments: List[str]
-    
-    created_at: datetime
-    updated_at: datetime
+    Includes metadata about comment author and timing.
+    """
 
-    @computed_field
-    @property
-    def is_edited(self) -> bool:
-        """Check if comment was edited."""
-        return self.updated_at > self.created_at
+    complaint_id: str = Field(..., description="Associated complaint ID")
 
-    @computed_field
-    @property
-    def time_ago(self) -> str:
-        """Get human-readable time since comment."""
-        delta = datetime.utcnow() - self.created_at
-        
-        if delta.days > 365:
-            return f"{delta.days // 365} year{'s' if delta.days // 365 > 1 else ''} ago"
-        elif delta.days > 30:
-            return f"{delta.days // 30} month{'s' if delta.days // 30 > 1 else ''} ago"
-        elif delta.days > 0:
-            return f"{delta.days} day{'s' if delta.days > 1 else ''} ago"
-        elif delta.seconds > 3600:
-            hours = delta.seconds // 3600
-            return f"{hours} hour{'s' if hours > 1 else ''} ago"
-        elif delta.seconds > 60:
-            minutes = delta.seconds // 60
-            return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
-        else:
-            return "just now"
+    commented_by: str = Field(..., description="Commenter user ID")
+    commented_by_name: str = Field(..., description="Commenter name")
+    commented_by_role: str = Field(..., description="Commenter role")
+
+    comment_text: str = Field(..., description="Comment content")
+    is_internal: bool = Field(..., description="Internal note flag")
+
+    attachments: List[str] = Field(
+        default_factory=list,
+        description="Attachment URLs",
+    )
+
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+
+    is_edited: bool = Field(
+        default=False,
+        description="Whether comment was edited",
+    )
 
 
 class CommentList(BaseSchema):
-    """List of comments with metadata."""
+    """
+    List of comments for a complaint.
     
-    complaint_id: UUID
-    complaint_number: str
-    
-    total_comments: int = Field(..., ge=0)
-    public_comments: int = Field(..., ge=0)
-    internal_notes: int = Field(..., ge=0)
-    
-    comments: List[CommentResponse]
+    Provides summary statistics and comment thread.
+    """
 
-    @computed_field
-    @property
-    def has_internal_notes(self) -> bool:
-        """Check if there are any internal notes."""
-        return self.internal_notes > 0
+    complaint_id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
 
-    @computed_field
-    @property
-    def last_comment_at(self) -> Optional[datetime]:
-        """Get timestamp of last comment."""
-        if self.comments:
-            return max(comment.created_at for comment in self.comments)
-        return None
+    total_comments: int = Field(ge=0, description="Total comment count")
+    public_comments: int = Field(ge=0, description="Public comment count")
+    internal_notes: int = Field(ge=0, description="Internal note count")
+
+    comments: List[CommentResponse] = Field(
+        default_factory=list,
+        description="List of comments (sorted by creation time)",
+    )
 
 
 class CommentUpdate(BaseCreateSchema):
-    """Update comment with validation."""
+    """
+    Update existing comment.
     
-    comment_id: UUID
-    comment_text: str = Field(..., min_length=5, max_length=1000)
+    Allows modification of comment text only.
+    """
+
+    comment_id: str = Field(
+        ...,
+        description="Comment identifier to update",
+    )
+    comment_text: str = Field(
+        ...,
+        min_length=5,
+        max_length=1000,
+        description="Updated comment text",
+    )
 
     @field_validator("comment_text")
     @classmethod
-    def validate_updated_text(cls, v: str) -> str:
-        """Validate updated comment text."""
+    def validate_comment_text(cls, v: str) -> str:
+        """Validate comment text quality."""
         v = v.strip()
-        if len(v.split()) < 2:
-            raise ValueError("Updated comment must contain at least 2 words")
+        if not v:
+            raise ValueError("Comment text cannot be empty")
+        
+        if len(v) < 5:
+            raise ValueError("Comment must be at least 5 characters")
+        
         return v
 
 
 class CommentDelete(BaseCreateSchema):
-    """Delete comment with optional reason."""
+    """
+    Delete comment request.
     
-    comment_id: UUID
-    reason: Optional[str] = Field(None, max_length=200)
+    Optional reason for deletion audit trail.
+    """
+
+    comment_id: str = Field(
+        ...,
+        description="Comment identifier to delete",
+    )
+    reason: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Deletion reason (optional)",
+    )
 
     @field_validator("reason")
     @classmethod
-    def validate_deletion_reason(cls, v: Optional[str]) -> Optional[str]:
-        """Validate deletion reason if provided."""
-        if v:
+    def validate_reason(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize deletion reason if provided."""
+        if v is not None:
             v = v.strip()
-            if len(v) < 5:
-                raise ValueError("Deletion reason must be at least 5 characters")
+            if not v:
+                return None
         return v
 
 
 class MentionNotification(BaseSchema):
-    """Notification when mentioned in comment."""
+    """
+    Notification when user is mentioned in comment.
     
-    comment_id: UUID
-    complaint_id: UUID
-    complaint_number: str
-    
-    mentioned_by: UUID
-    mentioned_by_name: str
-    
-    comment_excerpt: str
-    
-    comment_url: str
+    Supports @mention functionality in comments.
+    """
 
-    @computed_field
-    @property
-    def notification_title(self) -> str:
-        """Generate notification title."""
-        return f"{self.mentioned_by_name} mentioned you in complaint {self.complaint_number}"
+    comment_id: str = Field(..., description="Comment ID with mention")
+    complaint_id: str = Field(..., description="Associated complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    mentioned_by: str = Field(..., description="User who mentioned")
+    mentioned_by_name: str = Field(..., description="Mentioner name")
+
+    comment_excerpt: str = Field(
+        ...,
+        max_length=200,
+        description="Comment excerpt (first 200 chars)",
+    )
+
+    comment_url: str = Field(
+        ...,
+        description="Direct URL to comment",
+    )

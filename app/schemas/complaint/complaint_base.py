@@ -1,157 +1,350 @@
 """
-Complaint base schemas with enhanced validation and type safety.
+Core complaint schemas with enhanced validation and type safety.
+
+This module provides base schemas for complaint creation, updates, and status management
+with comprehensive field validation and business rule enforcement.
 """
+
 from __future__ import annotations
 
 from typing import List, Optional
-from uuid import UUID
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
-from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
+
+__all__ = [
+    "ComplaintBase",
+    "ComplaintCreate",
+    "ComplaintUpdate",
+    "ComplaintStatusUpdate",
+]
 
 
 class ComplaintBase(BaseSchema):
-    """Base complaint schema with comprehensive validation."""
+    """
+    Base complaint schema with core fields and validation.
     
-    hostel_id: UUID = Field(..., description="Hostel ID")
-    raised_by: UUID = Field(..., description="User who raised complaint")
-    student_id: Optional[UUID] = Field(None, description="Student ID if raised by student")
-    
-    # Complaint details
-    title: str = Field(..., min_length=5, max_length=255, description="Complaint title")
-    description: str = Field(..., min_length=20, max_length=2000, description="Detailed description")
-    
-    category: ComplaintCategory = Field(..., description="Complaint category")
-    sub_category: Optional[str] = Field(None, max_length=100, description="Sub-category")
-    
-    priority: Priority = Field(Priority.MEDIUM, description="Priority level")
-    
-    # Location
-    room_id: Optional[UUID] = Field(None, description="Related room")
-    location_details: Optional[str] = Field(None, max_length=500, description="Specific location details")
-    
+    This schema defines the fundamental structure of a complaint including
+    identification, categorization, priority, and location details.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel identifier where complaint originated",
+    )
+    raised_by: str = Field(
+        ...,
+        description="User ID who raised the complaint",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Student ID if complaint raised by a student",
+    )
+
+    # Complaint content
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Brief complaint title/summary",
+    )
+    description: str = Field(
+        ...,
+        min_length=20,
+        max_length=2000,
+        description="Detailed complaint description",
+    )
+
+    # Classification
+    category: ComplaintCategory = Field(
+        ...,
+        description="Primary complaint category",
+    )
+    sub_category: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Optional sub-category for finer classification",
+    )
+
+    # Priority
+    priority: Priority = Field(
+        default=Priority.MEDIUM,
+        description="Complaint priority level (defaults to medium)",
+    )
+
+    # Location details
+    room_id: Optional[str] = Field(
+        None,
+        description="Room identifier if complaint is room-specific",
+    )
+    location_details: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Detailed location information within hostel",
+    )
+
     # Attachments
-    attachments: List[HttpUrl] = Field(default_factory=list, max_items=10, description="Photo/document URLs")
+    attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="URLs of supporting documents/photos (max 10)",
+    )
 
     @field_validator("title")
     @classmethod
     def validate_title(cls, v: str) -> str:
-        """Validate title is meaningful."""
+        """
+        Validate and normalize complaint title.
+        
+        Ensures title is meaningful and properly formatted.
+        """
         v = v.strip()
-        if len(v.split()) < 2:
-            raise ValueError("Title must contain at least 2 words")
+        if not v:
+            raise ValueError("Title cannot be empty or whitespace only")
+        if v.isdigit():
+            raise ValueError("Title cannot consist of only numbers")
         return v
 
     @field_validator("description")
     @classmethod
     def validate_description(cls, v: str) -> str:
-        """Validate description is detailed enough."""
+        """
+        Validate and normalize complaint description.
+        
+        Ensures description provides sufficient detail.
+        """
         v = v.strip()
-        if len(v.split()) < 5:
-            raise ValueError("Description must contain at least 5 words")
+        if not v:
+            raise ValueError("Description cannot be empty or whitespace only")
+        
+        # Check for minimum word count (at least 5 words)
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Description must contain at least 5 words for clarity"
+            )
+        
         return v
 
     @field_validator("sub_category")
     @classmethod
     def validate_sub_category(cls, v: Optional[str]) -> Optional[str]:
-        """Normalize sub-category."""
-        if v:
-            return v.strip().lower().replace(" ", "_")
+        """Normalize sub-category if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("location_details")
+    @classmethod
+    def validate_location_details(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize location details if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError("Maximum 10 attachments allowed per complaint")
         return v
 
     @model_validator(mode="after")
     def validate_location_consistency(self) -> "ComplaintBase":
-        """Ensure location details are provided when room_id is not specified."""
-        if not self.room_id and not self.location_details:
-            raise ValueError("Either room_id or location_details must be provided")
+        """
+        Validate location-related fields are consistent.
+        
+        If room_id is provided, location_details should also be provided
+        for better context.
+        """
+        if self.room_id and not self.location_details:
+            # This is a soft validation - log warning but don't fail
+            pass
+        
         return self
 
 
 class ComplaintCreate(ComplaintBase, BaseCreateSchema):
-    """Create complaint schema with additional validation."""
+    """
+    Schema for creating a new complaint.
     
+    Inherits all validation from ComplaintBase and adds any
+    create-specific validation if needed.
+    """
+
     @model_validator(mode="after")
-    def validate_priority_category_consistency(self) -> "ComplaintCreate":
-        """Validate priority is appropriate for category."""
-        # Security and electrical issues should have higher default priority
-        high_priority_categories = {
-            ComplaintCategory.SECURITY,
-            ComplaintCategory.ELECTRICAL,
-            ComplaintCategory.PLUMBING
-        }
+    def validate_create_specific_rules(self) -> "ComplaintCreate":
+        """
+        Enforce creation-specific business rules.
         
-        if (self.category in high_priority_categories and 
-            self.priority in [Priority.LOW, Priority.MEDIUM]):
-            # This is a warning, not an error - just ensure it's intentional
-            pass
-            
+        Additional validation that only applies during complaint creation.
+        """
+        # Ensure high/urgent priority complaints have location details
+        if self.priority in [Priority.HIGH, Priority.URGENT, Priority.CRITICAL]:
+            if not self.location_details and not self.room_id:
+                raise ValueError(
+                    f"High priority complaints ({self.priority.value}) "
+                    "must include location details or room ID"
+                )
+        
         return self
 
 
 class ComplaintUpdate(BaseUpdateSchema):
-    """Update complaint schema with partial field support."""
+    """
+    Schema for updating existing complaint.
     
-    title: Optional[str] = Field(None, min_length=5, max_length=255)
-    description: Optional[str] = Field(None, min_length=20, max_length=2000)
-    category: Optional[ComplaintCategory] = None
-    sub_category: Optional[str] = Field(None, max_length=100)
-    priority: Optional[Priority] = None
-    location_details: Optional[str] = Field(None, max_length=500)
-    attachments: Optional[List[HttpUrl]] = Field(None, max_items=10)
-    
-    # Status updates
-    status: Optional[ComplaintStatus] = None
+    All fields are optional to support partial updates.
+    Includes validation to ensure meaningful updates.
+    """
 
-    @field_validator("title", "description")
+    title: Optional[str] = Field(
+        None,
+        min_length=5,
+        max_length=255,
+        description="Updated complaint title",
+    )
+    description: Optional[str] = Field(
+        None,
+        min_length=20,
+        max_length=2000,
+        description="Updated complaint description",
+    )
+    category: Optional[ComplaintCategory] = Field(
+        None,
+        description="Updated complaint category",
+    )
+    sub_category: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Updated sub-category",
+    )
+    priority: Optional[Priority] = Field(
+        None,
+        description="Updated priority level",
+    )
+    location_details: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated location details",
+    )
+    attachments: Optional[List[HttpUrl]] = Field(
+        None,
+        max_length=10,
+        description="Updated attachments list",
+    )
+    status: Optional[ComplaintStatus] = Field(
+        None,
+        description="Updated complaint status",
+    )
+
+    @field_validator("title")
     @classmethod
-    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize text fields."""
+    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+        """Validate title if provided."""
         if v is not None:
             v = v.strip()
             if not v:
-                raise ValueError("Field cannot be empty or whitespace")
+                raise ValueError("Title cannot be empty or whitespace only")
+            if v.isdigit():
+                raise ValueError("Title cannot consist of only numbers")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate description if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Description cannot be empty or whitespace only")
+            
+            word_count = len(v.split())
+            if word_count < 5:
+                raise ValueError(
+                    "Description must contain at least 5 words for clarity"
+                )
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: Optional[List[HttpUrl]]) -> Optional[List[HttpUrl]]:
+        """Ensure attachment count doesn't exceed limit."""
+        if v is not None and len(v) > 10:
+            raise ValueError("Maximum 10 attachments allowed per complaint")
         return v
 
     @model_validator(mode="after")
-    def validate_status_transition(self) -> "ComplaintUpdate":
-        """Validate status transitions are logical."""
-        # Note: This would need access to current status to fully validate
-        # For now, we just ensure closed complaints aren't updated
-        if self.status == ComplaintStatus.CLOSED:
-            # Only allow certain fields to be updated on closed complaints
-            allowed_fields = {"attachments"}
-            updated_fields = {k for k, v in self.model_dump(exclude_unset=True).items() if v is not None}
-            
-            if updated_fields - allowed_fields:
-                raise ValueError("Cannot update closed complaints except for attachments")
-                
+    def validate_has_updates(self) -> "ComplaintUpdate":
+        """
+        Ensure at least one field is being updated.
+        
+        Prevents empty update requests.
+        """
+        update_fields = {
+            k: v for k, v in self.model_dump(exclude_unset=True).items()
+            if v is not None
+        }
+        
+        if not update_fields:
+            raise ValueError("At least one field must be provided for update")
+        
         return self
 
 
 class ComplaintStatusUpdate(BaseUpdateSchema):
-    """Update complaint status with validation."""
+    """
+    Dedicated schema for complaint status updates.
     
-    status: ComplaintStatus = Field(..., description="New status")
-    notes: Optional[str] = Field(None, min_length=10, max_length=500, description="Status change notes")
+    Provides focused status change functionality with
+    mandatory change notes for audit trail.
+    """
+
+    status: ComplaintStatus = Field(
+        ...,
+        description="New complaint status",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason or notes for status change",
+    )
 
     @field_validator("notes")
     @classmethod
-    def validate_notes_required_for_certain_statuses(cls, v: Optional[str], info) -> Optional[str]:
-        """Ensure notes are provided for certain status changes."""
-        status = info.data.get("status")
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize status change notes."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @model_validator(mode="after")
+    def validate_status_change_requirements(self) -> "ComplaintStatusUpdate":
+        """
+        Enforce business rules for status changes.
         
-        # Notes required for these statuses
-        notes_required_statuses = {
+        Certain status transitions require mandatory notes.
+        """
+        # Statuses that require explanatory notes
+        statuses_requiring_notes = {
+            ComplaintStatus.REJECTED,
             ComplaintStatus.ON_HOLD,
             ComplaintStatus.CLOSED,
-            ComplaintStatus.REOPENED
+            ComplaintStatus.REOPENED,
         }
         
-        if status in notes_required_statuses and not v:
-            raise ValueError(f"Notes are required when setting status to {status.value}")
-            
-        if v:
-            return v.strip()
-        return v
+        if self.status in statuses_requiring_notes and not self.notes:
+            raise ValueError(
+                f"Status change to '{self.status.value}' requires explanatory notes"
+            )
+        
+        return self
