@@ -8,7 +8,7 @@ and availability tracking across dates.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+import datetime as dt
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -106,7 +106,7 @@ class DayBookings(BaseSchema):
     for a single calendar day.
     """
 
-    date: date = Field(
+    day_date: dt.date = Field(
         ...,
         description="Date for this day's bookings",
     )
@@ -204,7 +204,7 @@ class CalendarView(BaseSchema):
         ge=0,
         description="Total check-outs scheduled this month",
     )
-    peak_occupancy_date: Optional[date] = Field(
+    peak_occupancy_date: Optional[dt.date] = Field(
         None,
         description="Date with highest occupancy this month",
     )
@@ -277,11 +277,11 @@ class CalendarEvent(BaseSchema):
         max_length=255,
         description="Event title",
     )
-    start_date: date = Field(
+    start_date: dt.date = Field(
         ...,
         description="Event start date",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[dt.date] = Field(
         None,
         description="Event end date (for multi-day events)",
     )
@@ -332,7 +332,7 @@ class CalendarEvent(BaseSchema):
     def is_past_event(self) -> bool:
         """Check if event is in the past."""
         event_end = self.end_date or self.start_date
-        return event_end < date.today()
+        return event_end < dt.date.today()
 
 
 class DayAvailability(BaseSchema):
@@ -342,7 +342,7 @@ class DayAvailability(BaseSchema):
     Tracks available and booked beds for capacity planning.
     """
 
-    date: date = Field(
+    day_date: dt.date = Field(
         ...,
         description="Date for this availability snapshot",
     )
@@ -505,3 +505,11 @@ class AvailabilityCalendar(BaseSchema):
             key=lambda x: x[1].occupancy_rate
         )
         return peak_day[0]
+    
+class BookingInfo(BaseSchema):
+    """Basic booking information for availability calendar."""
+    
+    booking_id: UUID = Field(..., description="Booking identifier")
+    student_name: str = Field(..., description="Student/guest name")
+    check_in_date: dt.date = Field(..., description="Check-in date")
+    check_out_date: dt.date = Field(..., description="Check-out date")

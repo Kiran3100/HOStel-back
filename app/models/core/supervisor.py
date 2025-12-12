@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, Date, Enum as SAEnum, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import SupervisorStatus, EmploymentType
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Supervisor(BaseEntity):

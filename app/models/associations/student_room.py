@@ -1,4 +1,4 @@
-# models/associations/student_room.py
+# app.models/associations/student_room.py
 from __future__ import annotations
 
 from datetime import date
@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import Date, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class StudentRoomAssignment(BaseEntity):

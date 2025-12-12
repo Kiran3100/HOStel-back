@@ -1,4 +1,4 @@
-# models/workflows/approval_workflow.py
+# app.models/workflows/approval_workflow.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class ApprovalWorkflow(BaseItem):

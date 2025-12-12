@@ -8,8 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.associations import AdminHostel
-from models.core import Hostel, Admin
+from app.models.associations import AdminHostel
+from app.models.core import Hostel, Admin
 
 
 class AdminHostelRepository(BaseRepository[AdminHostel]):

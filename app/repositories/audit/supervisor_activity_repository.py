@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.audit import SupervisorActivity
+from app.models.audit import SupervisorActivity
 
 
 class SupervisorActivityRepository(BaseRepository[SupervisorActivity]):

@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.core import Admin
+from app.models.core import Admin
 
 
 class AdminRepository(BaseRepository[Admin]):

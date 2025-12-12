@@ -758,7 +758,7 @@ class CashflowPoint(BaseSchema):
     Represents cash movements for a specific date.
     """
     
-    date: date = Field(
+    cashflow_date: date = Field(
         ...,
         description="Date of cashflow point"
     )

@@ -15,8 +15,8 @@ from app.schemas.booking import (
     BookingEvent,
     AvailabilityCalendar,
     DayAvailability,
-    BookingStatus,
 )
+from app.schemas.common.enums import BookingStatus
 from app.services.common import UnitOfWork, errors
 
 
@@ -76,7 +76,7 @@ class BookingCalendarService:
             d = first_day + timedelta(days=offset)
             key = d.isoformat()
             days_map[key] = DayBookings(
-                date=d,
+                day_date=d,
                 check_ins=[],
                 check_outs=[],
                 pending_bookings=[],
@@ -182,11 +182,12 @@ class BookingCalendarService:
             d = first_day + timedelta(days=offset)
             key = d.isoformat()
             availability[key] = DayAvailability(
-                date=d,
-                available_beds=room.total_beds,
+                day_date=d,
                 total_beds=room.total_beds,
-                is_available=True,
-                bookings=[],
+                available_beds=room.total_beds,
+                booked_beds=0,
+                is_fully_booked=False,
+                active_bookings=[],
             )
 
         from app.schemas.booking.booking_calendar import BookingInfo  # avoid circular imports
@@ -202,17 +203,10 @@ class BookingCalendarService:
                 if key not in availability:
                     continue
                 day_avail = availability[key]
-                # Each booking “uses” one bed
                 day_avail.available_beds = max(0, day_avail.available_beds - 1)
-                day_avail.is_available = day_avail.available_beds > 0
-                day_avail.bookings.append(
-                    BookingInfo(
-                        booking_id=b.id,
-                        student_name=b.guest_name,
-                        check_in_date=ci,
-                        check_out_date=co,
-                    )
-                )
+                day_avail.booked_beds = day_avail.total_beds - day_avail.available_beds
+                day_avail.is_fully_booked = day_avail.available_beds == 0
+                day_avail.active_bookings.append(b.id)
 
         return AvailabilityCalendar(
             room_id=room_id,

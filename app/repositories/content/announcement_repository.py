@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.content import Announcement
+from app.models.content import Announcement
 from app.schemas.common.enums import TargetAudience
 
 

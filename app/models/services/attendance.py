@@ -1,4 +1,4 @@
-# models/services/attendance.py
+# app.models/services/attendance.py
 from __future__ import annotations
 
 from datetime import date, time
@@ -9,7 +9,7 @@ from sqlalchemy import Date, Enum as SAEnum, ForeignKey, String, Time, Boolean, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import AttendanceStatus, AttendanceMode
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Attendance(BaseEntity):

@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, JSON, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class SupervisorActivity(BaseItem):
@@ -25,7 +25,7 @@ class SupervisorActivity(BaseItem):
     entity_id: Mapped[Optional[UUID]] = mapped_column()
 
     action_description: Mapped[str] = mapped_column(String(2000))
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
 
     ip_address: Mapped[Optional[str]] = mapped_column(String(50))
     user_agent: Mapped[Optional[str]] = mapped_column(String(500))

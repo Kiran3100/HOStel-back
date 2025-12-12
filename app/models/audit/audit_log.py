@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, Enum as SAEnum, JSON, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import AuditActionCategory, UserRole
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class AuditLog(BaseItem):

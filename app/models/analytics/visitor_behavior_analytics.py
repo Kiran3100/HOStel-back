@@ -1,4 +1,4 @@
-# models/analytics/visitor_behavior_analytics.py
+# app.models/analytics/visitor_behavior_analytics.py
 # (Move the previously defined VisitorBehaviorAnalytics here)
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, Float, Integer, JSON, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class VisitorBehaviorAnalytics(BaseItem):

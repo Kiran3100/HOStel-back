@@ -8,7 +8,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.analytics import AnalyticsData
+from app.models.analytics import AnalyticsData
 
 
 class AnalyticsDataRepository(BaseRepository[AnalyticsData]):

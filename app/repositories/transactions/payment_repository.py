@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.transactions import Payment
+from app.models.transactions import Payment
 from app.schemas.common.enums import PaymentStatus, PaymentType
 
 

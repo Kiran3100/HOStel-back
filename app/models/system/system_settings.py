@@ -1,4 +1,4 @@
-# models/system/system_settings.py
+# app.models/system/system_settings.py
 from __future__ import annotations
 
 from typing import Dict, Any
@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class SystemSettings(BaseItem):

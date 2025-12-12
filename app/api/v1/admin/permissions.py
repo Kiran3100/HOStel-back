@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,

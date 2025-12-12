@@ -1,63 +1,61 @@
-# api/v1/auth/login.py
+# app/api/v1/auth/login.py
 from __future__ import annotations
 
-from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-
-from api import deps
-from app.schemas.auth.login import (
-    LoginRequest,
-    PhoneLoginRequest,
-    LoginResponse,
-)
+from app.core import get_session
+from app.core.exceptions import AppError, ValidationError, NotFoundError, ConflictError
+from app.schemas.auth import LoginRequest, LoginResponse
+from app.services.common import UnitOfWork
 from app.services.auth import AuthService
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
-async def login_with_email(
+def get_uow(session: Session = Depends(get_session)) -> UnitOfWork:
+    """Provide a UnitOfWork bound to the current DB session."""
+    return UnitOfWork(session)
+
+
+def get_auth_service(uow: UnitOfWork = Depends(get_uow)) -> AuthService:
+    """Provide AuthService instance."""
+    return AuthService(uow)
+
+
+def _handle_service_error(exc: AppError) -> HTTPException:
+    if isinstance(exc, ValidationError):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    if isinstance(exc, NotFoundError):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    if isinstance(exc, ConflictError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Internal server error",
+    )
+
+
+@router.post("/login", response_model=LoginResponse)
+def login(
     payload: LoginRequest,
-    request: Request,
-    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
+    service: AuthService = Depends(get_auth_service),
 ) -> LoginResponse:
     """
-    Email/password login.
-
-    Returns:
-    - access_token
-    - refresh_token
-    - user info
+    Authenticate a user using email/phone + password and return access/refresh tokens
+    plus basic user info.
     """
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("User-Agent")
-
-    return auth_service.login(
-        payload,
-        ip_address=ip_address,
-        user_agent=user_agent,
-    )
-
-
-@router.post(
-    "/login/phone",
-    response_model=LoginResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def login_with_phone(
-    payload: PhoneLoginRequest,
-    request: Request,
-    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
-) -> LoginResponse:
-    """
-    Phone/password login.
-    """
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("User-Agent")
-
-    return auth_service.login_with_phone(
-        payload,
-        ip_address=ip_address,
-        user_agent=user_agent,
-    )
+    try:
+        # Adjust method name/signature if your AuthService differs.
+        return service.login(payload)
+    except AppError as exc:
+        raise _handle_service_error(exc)

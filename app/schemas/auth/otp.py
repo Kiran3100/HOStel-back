@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, model_validator
+from pydantic import EmailStr, Field, model_validator, field_validator
+
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import OTPType

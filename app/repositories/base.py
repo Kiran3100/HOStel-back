@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.orm import Session
 
-from models.base import Base
+from app.models.base import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 

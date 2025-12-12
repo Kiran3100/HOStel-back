@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.services import Maintenance
+from app.models.services import Maintenance
 from app.schemas.common.enums import MaintenanceStatus, MaintenanceCategory, Priority
 
 

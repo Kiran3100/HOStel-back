@@ -1,4 +1,4 @@
-# models/analytics/performance_metrics.py
+# app.models/analytics/performance_metrics.py
 from __future__ import annotations
 
 from datetime import date
@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import Date, Numeric, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class SupervisorPerformanceMetrics(BaseItem):

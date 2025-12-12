@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.content import Review
+from app.models.content import Review
 
 
 class ReviewRepository(BaseRepository[Review]):

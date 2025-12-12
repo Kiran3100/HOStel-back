@@ -9,15 +9,14 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.transactions import BookingRepository
-from app.schemas.booking import (
+from app.schemas.analytics.booking_analytics import (
     BookingAnalyticsSummary,
     BookingKPI,
     BookingTrendPoint,
     BookingFunnel,
     CancellationAnalytics,
-    BookingStatus,
-    BookingSource,
 )
+from app.schemas.common.enums import BookingStatus, BookingSource
 from app.schemas.common.filters import DateRangeFilter
 from app.services.common import UnitOfWork
 

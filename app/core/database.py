@@ -29,7 +29,7 @@ from app.models.base import Base
 # ------------------------------------------------------------------ #
 # Engine & Session
 # ------------------------------------------------------------------ #
-DATABASE_URL = os.getenv(ENV_DATABASE_URL, "sqlite:///./app.db")
+DATABASE_URL = os.getenv(ENV_DATABASE_URL, "postgresql://postgresql:Kiran$123@localhost/HostelDb")
 
 engine = create_engine(
     DATABASE_URL,

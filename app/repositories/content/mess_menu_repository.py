@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.content import MessMenu
+from app.models.content import MessMenu
 
 
 class MessMenuRepository(BaseRepository[MessMenu]):

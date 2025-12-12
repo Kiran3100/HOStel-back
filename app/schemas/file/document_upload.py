@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Dict, List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import IDProofType
@@ -333,6 +333,7 @@ class DocumentInfo(BaseResponseSchema):
     # Timestamps
     uploaded_at: datetime = Field(..., description="Upload timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    
 
     @computed_field
     @property

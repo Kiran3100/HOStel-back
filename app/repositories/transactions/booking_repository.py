@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.transactions import Booking
+from app.models.transactions import Booking
 from app.schemas.common.enums import BookingStatus
 
 

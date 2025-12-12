@@ -213,7 +213,8 @@ class ChannelDeliveryStats(BaseSchema):
         ge=0,
         description="Number sent",
     )
-        delivered: int = Field(
+    
+    delivered: int = Field(
         ...,
         ge=0,
         description="Number successfully delivered",

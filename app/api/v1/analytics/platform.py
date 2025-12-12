@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.analytics.platform_analytics import (
     PlatformMetrics,

@@ -8,7 +8,6 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.audit import UserActivityRepository
-from app.schemas.audit import UserActivityLog  # if you have such a schema; otherwise adjust
 from app.services.common import UnitOfWork, errors
 
 

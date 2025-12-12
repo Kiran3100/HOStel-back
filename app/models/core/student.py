@@ -10,7 +10,7 @@ from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, Enum as SAEnu
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import StudentStatus, IDProofType, DietaryPreference
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Student(BaseEntity):

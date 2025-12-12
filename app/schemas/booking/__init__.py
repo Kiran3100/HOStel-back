@@ -34,6 +34,7 @@ from app.schemas.booking.booking_calendar import (
     BookingEvent,
     CalendarEvent,
     CalendarView,
+    BookingInfo,
     DayAvailability,
     DayBookings,
 )

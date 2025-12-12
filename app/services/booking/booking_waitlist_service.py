@@ -9,7 +9,6 @@ from uuid import UUID
 from app.schemas.booking import (
     WaitlistRequest,
     WaitlistResponse,
-    WaitlistStatus as WaitlistStatusSchema,
     WaitlistNotification,
     WaitlistConversion,
     WaitlistCancellation,
@@ -77,9 +76,8 @@ class BookingWaitlistService:
             contact_email=data.contact_email,
             contact_phone=data.contact_phone,
             priority=created.get("priority", 0),
-            status=WaitlistStatusSchema.WAITING,
+            status=WaitlistStatusEnum.WAITING,
             estimated_availability_date=None,
-            created_at=created["created_at"],
         )
 
     def cancel_waitlist(self, data: WaitlistCancellation) -> None:

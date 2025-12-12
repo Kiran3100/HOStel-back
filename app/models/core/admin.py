@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class Admin(BaseItem):

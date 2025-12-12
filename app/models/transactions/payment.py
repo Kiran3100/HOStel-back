@@ -1,4 +1,4 @@
-# models/transactions/payment.py
+# app.models/transactions/payment.py
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -10,7 +10,7 @@ from sqlalchemy import Date, DateTime, Enum as SAEnum, ForeignKey, Numeric, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import PaymentType, PaymentMethod, PaymentStatus
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Payment(BaseEntity):

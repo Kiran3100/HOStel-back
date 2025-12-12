@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.services import Inquiry
+from app.models.services import Inquiry
 from app.schemas.common.enums import InquiryStatus
 
 

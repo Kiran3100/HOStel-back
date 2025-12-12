@@ -8,7 +8,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.analytics import PlatformMetrics, GrowthMetrics, PlatformUsageAnalytics
+from app.models.analytics import PlatformMetrics, GrowthMetrics, PlatformUsageAnalytics
 
 
 class PlatformMetricsRepository(BaseRepository[PlatformMetrics]):

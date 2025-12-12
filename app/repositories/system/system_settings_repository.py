@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.system import SystemSettings
+from app.models.system import SystemSettings
 
 
 class SystemSettingsRepository(BaseRepository[SystemSettings]):

@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.system import NotificationConfig  # assuming this exists in models/system/notification.py
+from app.models.system import NotificationConfig  # assuming this exists in app.models/system/notification.py
 
 
 class NotificationConfigRepository(BaseRepository[NotificationConfig]):

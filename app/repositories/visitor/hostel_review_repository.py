@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.visitor import HostelReview
+from app.models.visitor import HostelReview
 
 
 class HostelReviewRepository(BaseRepository[HostelReview]):

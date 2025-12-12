@@ -9,7 +9,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.services import Attendance
+from app.models.services import Attendance
 from app.schemas.common.enums import AttendanceStatus
 
 

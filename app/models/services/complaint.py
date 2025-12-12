@@ -1,4 +1,4 @@
-# models/services/complaint.py
+# app.models/services/complaint.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Complaint(BaseEntity):

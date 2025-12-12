@@ -1,672 +1,231 @@
+# --- File: app/schemas/admin/multi_hostel_dashboard.py ---
 """
-Enhanced admin-hostel assignment schemas with comprehensive validation and performance optimizations.
+Multi‑hostel admin dashboard schemas.
 
-Provides robust assignment management with audit trails, bulk operations,
-and detailed permission tracking for multi-hostel administration.
+Provides aggregated portfolio statistics, per‑hostel quick stats,
+and cross‑hostel comparisons for the multi‑hostel admin dashboard.
 
-Key Improvements:
-- Optimized computed properties with caching
-- Enhanced validation with better error messages
-- Improved type hints and documentation
-- Performance optimizations for large datasets
-- Better separation of concerns
+Key points:
+- No assignment CRUD here (that lives in admin_hostel_assignment.py)
+- Focused on read‑only dashboard views and analytics
 """
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field, field_validator, model_validator
 
-from app.schemas.common.base import (
-    BaseCreateSchema,
-    BaseResponseSchema,
-    BaseSchema,
-    BaseUpdateSchema,
-)
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import PermissionLevel
 
 __all__ = [
-    "AdminHostelAssignment",
-    "AssignmentCreate",
-    "AssignmentUpdate",
-    "BulkAssignment",
-    "RevokeAssignment",
-    "AssignmentList",
-    "HostelAdminList",
-    "HostelAdminItem",
+    "MultiHostelDashboard",
+    "AggregatedStats",
+    "HostelQuickStats",
+    "CrossHostelComparison",
+    "TopPerformer",
+    "BottomPerformer",
+    "HostelMetricComparison",
+    "HostelTaskSummary",
 ]
 
 
-# Constants for validation
-VALID_PERMISSION_KEYS: Set[str] = {
-    "can_manage_rooms",
-    "can_manage_students",
-    "can_approve_bookings",
-    "can_manage_fees",
-    "can_view_financials",
-    "can_manage_supervisors",
-    "can_override_decisions",
-    "can_export_data",
-    "can_delete_records",
-    "can_manage_hostel_settings",
-    "can_view_analytics",
-    "can_manage_announcements",
-}
+# ---------------------------------------------------------------------------
+# Helpers / constants
+# ---------------------------------------------------------------------------
 
-MAX_PAST_DAYS_ASSIGNMENT = 365
-MAX_FUTURE_DAYS_ASSIGNMENT = 90
-MAX_PAST_DAYS_REVOCATION = 30
-MAX_FUTURE_DAYS_REVOCATION = 90
-MAX_BULK_HOSTELS = 50
-MAX_FAVORITES = 20
-MAX_RECENT_HISTORY = 20
-
-PERMISSION_LEVEL_DESCRIPTIONS = {
-    PermissionLevel.FULL_ACCESS: "Full Administrative Access",
-    PermissionLevel.LIMITED_ACCESS: "Limited Access with Restrictions",
-    PermissionLevel.VIEW_ONLY: "Read-Only Access",
-}
-
-ACTIVITY_THRESHOLDS = {
-    "no_activity": 0,
-    "low": 10,
-    "moderate": 50,
-    "high": 100,
-}
+def _normalize_hostel_type(value: str) -> str:
+    """Normalize hostel type to canonical values and validate."""
+    valid_types = {"boys", "girls", "co-ed", "coed", "mixed"}
+    normalized = value.strip().lower()
+    if normalized not in valid_types:
+        raise ValueError(
+            f"Invalid hostel type '{value}'. Must be one of: {', '.join(sorted(valid_types))}"
+        )
+    # Normalize co-ed variants
+    return "co-ed" if normalized in {"coed", "mixed"} else normalized
 
 
-class AdminHostelAssignment(BaseResponseSchema):
+ATTENTION_LOW_OCCUPANCY = Decimal("50.00")
+ATTENTION_PENDING_TASKS = 20
+ATTENTION_URGENT_ALERTS = 5
+
+
+# ---------------------------------------------------------------------------
+# Per‑hostel quick stats
+# ---------------------------------------------------------------------------
+
+class HostelQuickStats(BaseSchema):
     """
-    Enhanced admin-hostel assignment with comprehensive tracking and analytics.
-
-    Provides complete assignment information including permissions, activity tracking,
-    and performance metrics for effective multi-hostel management.
+    Quick statistics for a single hostel in the multi‑hostel dashboard.
     """
 
-    # Core assignment identifiers
-    assignment_id: UUID = Field(..., description="Unique assignment identifier")
-    admin_id: UUID = Field(..., description="Admin user ID")
-    admin_name: str = Field(..., min_length=1, description="Admin full name")
-    admin_email: str = Field(..., description="Admin email address")
-
-    # Hostel information
-    hostel_id: UUID = Field(..., description="Assigned hostel ID")
+    hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., min_length=1, description="Hostel name")
-    hostel_city: str = Field(..., min_length=1, description="Hostel city location")
+    hostel_city: str = Field(..., min_length=1, description="Hostel city")
     hostel_type: str = Field(..., description="Hostel type (boys/girls/co-ed)")
 
-    # Assignment metadata
-    assigned_by: Optional[UUID] = Field(
-        None, description="Admin who created this assignment"
-    )
-    assigned_by_name: Optional[str] = Field(None, description="Name of assigning admin")
-    assigned_date: date = Field(..., description="Date assignment was created")
-
-    # Permission configuration
-    permission_level: PermissionLevel = Field(..., description="Overall permission level")
-    permissions: Dict[str, Union[bool, int, str]] = Field(
-        default_factory=dict,
-        description="Granular permissions for this hostel assignment",
-    )
-
-    # Assignment status
-    is_active: bool = Field(True, description="Assignment is currently active")
+    # Assignment / access info for current admin
     is_primary: bool = Field(False, description="Primary hostel for this admin")
-
-    # Revocation tracking
-    revoked_date: Optional[date] = Field(None, description="Date assignment was revoked")
-    revoked_by: Optional[UUID] = Field(None, description="Admin who revoked assignment")
-    revoke_reason: Optional[str] = Field(None, description="Reason for revocation")
-
-    # Activity and performance tracking
-    last_accessed: Optional[datetime] = Field(None, description="Last access timestamp")
-    access_count: int = Field(0, ge=0, description="Total access count")
-    total_session_time_minutes: int = Field(
-        0, ge=0, description="Total time spent in hostel"
+    permission_level: PermissionLevel = Field(
+        ..., description="Admin permission level for this hostel"
+    )
+    has_management_access: bool = Field(
+        True,
+        description="Admin has management-level capabilities for this hostel",
     )
 
-    # Performance metrics
-    decisions_made: int = Field(0, ge=0, description="Total decisions made for this hostel")
-    avg_response_time_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time for this hostel"
+    # Capacity / occupancy
+    total_students: int = Field(0, ge=0, description="Total students currently in hostel")
+    capacity: int = Field(0, ge=0, description="Total bed capacity")
+    occupancy_percentage: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        le=100,
+        description="Current occupancy percentage",
     )
-    satisfaction_score: Optional[Decimal] = Field(
-        None, ge=0, le=5, description="Admin satisfaction score for this hostel"
+    available_beds: int = Field(0, ge=0, description="Available beds count")
+
+    # Operational workload
+    pending_tasks: int = Field(0, ge=0, description="Pending tasks")
+    urgent_alerts: int = Field(0, ge=0, description="Urgent alerts")
+    pending_bookings: int = Field(0, ge=0, description="Pending booking requests")
+    open_complaints: int = Field(0, ge=0, description="Open complaints")
+
+    # Financials
+    revenue_this_month: Decimal = Field(
+        Decimal("0.00"), ge=0, description="Revenue collected this month"
+    )
+    outstanding_payments: Decimal = Field(
+        Decimal("0.00"), ge=0, description="Outstanding (due) amount"
     )
 
-    @computed_field
-    @property
-    def assignment_duration_days(self) -> int:
-        """Calculate total assignment duration in days."""
-        end_date = self.revoked_date or date.today()
-        duration = (end_date - self.assigned_date).days
-        return max(0, duration)
+    # Satisfaction / quality signals
+    avg_student_rating: Optional[Decimal] = Field(
+        None, ge=0, le=5, description="Average student rating for this hostel"
+    )
+    admin_satisfaction_score: Optional[Decimal] = Field(
+        None, ge=0, le=5, description="Internal satisfaction score for this hostel"
+    )
 
-    @computed_field
-    @property
-    def is_recently_accessed(self) -> bool:
-        """Check if hostel was accessed within last 24 hours."""
-        if not self.last_accessed:
-            return False
-        hours_since_access = (datetime.utcnow() - self.last_accessed).total_seconds() / 3600
-        return hours_since_access <= 24
-
-    @computed_field
-    @property
-    def permission_summary(self) -> str:
-        """Generate human-readable permission summary."""
-        return PERMISSION_LEVEL_DESCRIPTIONS.get(
-            self.permission_level, "Unknown Access Level"
-        )
-
-    @computed_field
-    @property
-    def activity_level(self) -> str:
-        """Categorize admin activity level for this hostel."""
-        if self.access_count == 0:
-            return "No Activity"
-        elif self.access_count < ACTIVITY_THRESHOLDS["low"]:
-            return "Low Activity"
-        elif self.access_count < ACTIVITY_THRESHOLDS["moderate"]:
-            return "Moderate Activity"
-        elif self.access_count < ACTIVITY_THRESHOLDS["high"]:
-            return "High Activity"
-        else:
-            return "Very High Activity"
-
-    @computed_field
-    @property
-    def avg_session_duration_minutes(self) -> Decimal:
-        """Calculate average session duration."""
-        if self.access_count == 0:
-            return Decimal("0.00")
-        avg = Decimal(self.total_session_time_minutes) / Decimal(self.access_count)
-        return avg.quantize(Decimal("0.01"))
-
-    @field_validator("admin_email")
-    @classmethod
-    def validate_email_format(cls, v: str) -> str:
-        """Validate email format."""
-        v = v.strip().lower()
-        if "@" not in v or "." not in v.split("@")[1]:
-            raise ValueError("Invalid email format")
-        return v
+    # Activity from this admin
+    last_activity: Optional[datetime] = Field(
+        None, description="Last time this admin interacted with this hostel"
+    )
+    access_count: int = Field(0, ge=0, description="Total accesses by this admin")
 
     @field_validator("hostel_type")
     @classmethod
     def validate_hostel_type(cls, v: str) -> str:
-        """Validate and normalize hostel type."""
-        valid_types = {"boys", "girls", "co-ed", "coed", "mixed"}
-        normalized = v.strip().lower()
-        if normalized not in valid_types:
-            raise ValueError(
-                f"Invalid hostel type. Must be one of: {', '.join(valid_types)}"
-            )
-        # Normalize co-ed variations
-        return "co-ed" if normalized in {"coed", "mixed"} else normalized
-
-
-class AssignmentCreate(BaseCreateSchema):
-    """
-    Enhanced assignment creation with comprehensive validation.
-
-    Supports flexible permission configuration and proper validation
-    for different access levels and assignment scenarios.
-    """
-
-    admin_id: UUID = Field(..., description="Admin user ID to assign")
-    hostel_id: UUID = Field(..., description="Hostel ID for assignment")
-
-    permission_level: PermissionLevel = Field(
-        PermissionLevel.FULL_ACCESS, description="Permission level for this assignment"
-    )
-
-    permissions: Optional[Dict[str, Union[bool, int, str]]] = Field(
-        None, description="Specific permissions (required for LIMITED_ACCESS level)"
-    )
-
-    is_primary: bool = Field(False, description="Set as primary hostel for admin")
-
-    # Assignment metadata
-    assignment_notes: Optional[str] = Field(
-        None, max_length=1000, description="Administrative notes about this assignment"
-    )
-    effective_date: Optional[date] = Field(
-        None, description="Effective date for assignment (defaults to today)"
-    )
-
-    # Notification preferences
-    notify_admin: bool = Field(
-        True, description="Send notification to admin about assignment"
-    )
-    send_welcome_email: bool = Field(
-        True, description="Send welcome email with hostel details"
-    )
-
-    @model_validator(mode="after")
-    def validate_assignment_requirements(self) -> "AssignmentCreate":
-        """Validate assignment-specific business rules."""
-        # Require permissions for limited access
-        if self.permission_level == PermissionLevel.LIMITED_ACCESS:
-            if not self.permissions:
-                raise ValueError(
-                    "Specific permissions are required when permission_level is LIMITED_ACCESS"
-                )
-            if not isinstance(self.permissions, dict) or len(self.permissions) == 0:
-                raise ValueError(
-                    "Permissions must be a non-empty dictionary for LIMITED_ACCESS"
-                )
-
-        # Validate effective date
-        if self.effective_date:
-            today = date.today()
-            if self.effective_date < today:
-                days_past = (today - self.effective_date).days
-                if days_past > MAX_PAST_DAYS_ASSIGNMENT:
-                    raise ValueError(
-                        f"Effective date cannot be more than {MAX_PAST_DAYS_ASSIGNMENT} days in the past"
-                    )
-            elif self.effective_date > today:
-                days_future = (self.effective_date - today).days
-                if days_future > MAX_FUTURE_DAYS_ASSIGNMENT:
-                    raise ValueError(
-                        f"Effective date cannot be more than {MAX_FUTURE_DAYS_ASSIGNMENT} days in the future"
-                    )
-
-        return self
-
-    @field_validator("permissions")
-    @classmethod
-    def validate_permissions_structure(
-        cls, v: Optional[Dict[str, Union[bool, int, str]]]
-    ) -> Optional[Dict[str, Union[bool, int, str]]]:
-        """Validate permissions dictionary structure and values."""
-        if v is None:
-            return None
-
-        # Validate each permission
-        for key, value in v.items():
-            if key not in VALID_PERMISSION_KEYS:
-                raise ValueError(
-                    f"Invalid permission key: '{key}'. Valid keys: {', '.join(sorted(VALID_PERMISSION_KEYS))}"
-                )
-
-            # Validate value types
-            if not isinstance(value, (bool, int, str)):
-                raise ValueError(
-                    f"Invalid permission value type for '{key}': {type(value).__name__}. "
-                    f"Expected bool, int, or str"
-                )
-
-            # Validate specific permission constraints
-            if key.endswith("_threshold") and isinstance(value, (int, float)):
-                if value < 0:
-                    raise ValueError(
-                        f"Threshold values must be non-negative: '{key}' = {value}"
-                    )
-
-        return v
-
-    @field_validator("assignment_notes")
-    @classmethod
-    def validate_assignment_notes(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and clean assignment notes."""
-        if v is not None:
-            v = v.strip()
-            if not v:
-                return None
-            # Remove excessive whitespace
-            v = " ".join(v.split())
-        return v
-
-
-class AssignmentUpdate(BaseUpdateSchema):
-    """
-    Enhanced assignment update with selective field modifications.
-
-    Allows partial updates while maintaining data consistency
-    and proper validation for permission changes.
-    """
-
-    permission_level: Optional[PermissionLevel] = Field(
-        None, description="Updated permission level"
-    )
-    permissions: Optional[Dict[str, Union[bool, int, str]]] = Field(
-        None, description="Updated specific permissions"
-    )
-    is_primary: Optional[bool] = Field(None, description="Update primary hostel status")
-    is_active: Optional[bool] = Field(None, description="Update assignment active status")
-
-    assignment_notes: Optional[str] = Field(
-        None, max_length=1000, description="Updated assignment notes"
-    )
-
-    # Update metadata
-    update_reason: Optional[str] = Field(
-        None, max_length=500, description="Reason for this update"
-    )
-
-    @model_validator(mode="after")
-    def validate_update_consistency(self) -> "AssignmentUpdate":
-        """Validate update field consistency and business rules."""
-        # Ensure permissions are provided for limited access
-        if self.permission_level == PermissionLevel.LIMITED_ACCESS:
-            if self.permissions is None:
-                raise ValueError(
-                    "Permissions must be specified when updating to LIMITED_ACCESS level"
-                )
-
-        # Validate that at least one field is being updated
-        update_fields = [
-            self.permission_level,
-            self.permissions,
-            self.is_primary,
-            self.is_active,
-            self.assignment_notes,
-            self.update_reason,
-        ]
-        if all(field is None for field in update_fields):
-            raise ValueError("At least one field must be specified for update")
-
-        return self
-
-    # Reuse permission validation from AssignmentCreate
-    _validate_permissions = field_validator("permissions")(
-        AssignmentCreate.validate_permissions_structure.__func__
-    )
-
-    @field_validator("assignment_notes", "update_reason")
-    @classmethod
-    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize text fields."""
-        if v is not None:
-            v = v.strip()
-            if not v:
-                return None
-            v = " ".join(v.split())
-        return v
-
-
-class BulkAssignment(BaseCreateSchema):
-    """
-    Enhanced bulk assignment with comprehensive validation and options.
-
-    Supports efficient batch operations while maintaining data integrity
-    and providing flexible assignment strategies.
-    """
-
-    admin_id: UUID = Field(..., description="Admin user ID for all assignments")
-    hostel_ids: List[UUID] = Field(
-        ...,
-        min_length=1,
-        max_length=MAX_BULK_HOSTELS,
-        description=f"List of hostel IDs for bulk assignment (max {MAX_BULK_HOSTELS})",
-    )
-
-    permission_level: PermissionLevel = Field(
-        PermissionLevel.FULL_ACCESS, description="Permission level for all assignments"
-    )
-    permissions: Optional[Dict[str, Union[bool, int, str]]] = Field(
-        None, description="Permissions applied to all assignments"
-    )
-
-    primary_hostel_id: Optional[UUID] = Field(
-        None, description="Which hostel should be set as primary (must be in hostel_ids)"
-    )
-
-    # Bulk operation strategies
-    skip_existing: bool = Field(
-        True, description="Skip hostels where admin already has active assignment"
-    )
-    update_existing: bool = Field(
-        False, description="Update existing assignments with new permissions"
-    )
-    force_primary: bool = Field(
-        False, description="Force primary hostel change even if admin has existing primary"
-    )
-
-    # Metadata and notifications
-    bulk_notes: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Notes applied to all assignments in this bulk operation",
-    )
-    notify_admin: bool = Field(True, description="Send notification about bulk assignment")
-    send_summary_email: bool = Field(
-        True, description="Send summary email after completion"
-    )
-
-    @field_validator("hostel_ids")
-    @classmethod
-    def validate_unique_hostel_ids(cls, v: List[UUID]) -> List[UUID]:
-        """Ensure hostel IDs are unique and validate list size."""
-        if len(v) != len(set(v)):
-            duplicates = [item for item in v if v.count(item) > 1]
-            raise ValueError(
-                f"Hostel IDs must be unique in bulk assignment. Duplicates found: {duplicates}"
-            )
-
-        if len(v) > MAX_BULK_HOSTELS:
-            raise ValueError(
-                f"Cannot assign more than {MAX_BULK_HOSTELS} hostels in a single bulk operation"
-            )
-
-        return v
-
-    @model_validator(mode="after")
-    def validate_bulk_assignment_logic(self) -> "BulkAssignment":
-        """Validate bulk assignment business logic and constraints."""
-        # Validate primary hostel selection
-        if self.primary_hostel_id and self.primary_hostel_id not in self.hostel_ids:
-            raise ValueError(
-                "Primary hostel ID must be included in the hostel_ids list"
-            )
-
-        # Validate operation strategy
-        if self.skip_existing and self.update_existing:
-            raise ValueError(
-                "Cannot both skip_existing and update_existing. Choose one strategy."
-            )
-
-        # Validate permissions for limited access
-        if self.permission_level == PermissionLevel.LIMITED_ACCESS and not self.permissions:
-            raise ValueError(
-                "Permissions must be specified for LIMITED_ACCESS level in bulk assignment"
-            )
-
-        return self
-
-    # Reuse permission validation
-    _validate_permissions = field_validator("permissions")(
-        AssignmentCreate.validate_permissions_structure.__func__
-    )
-
-    @field_validator("bulk_notes")
-    @classmethod
-    def validate_bulk_notes(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize bulk notes."""
-        if v is not None:
-            v = v.strip()
-            if not v:
-                return None
-            v = " ".join(v.split())
-        return v
-
-
-class RevokeAssignment(BaseCreateSchema):
-    """
-    Enhanced assignment revocation with comprehensive audit trail.
-
-    Provides detailed revocation tracking with proper validation
-    and support for different revocation scenarios.
-    """
-
-    assignment_id: UUID = Field(..., description="Assignment ID to revoke")
-    revoke_reason: str = Field(
-        ...,
-        min_length=10,
-        max_length=500,
-        description="Detailed reason for assignment revocation",
-    )
-
-    # Revocation timing and options
-    effective_date: Optional[date] = Field(
-        None, description="Effective revocation date (defaults to today)"
-    )
-    immediate_revocation: bool = Field(
-        True, description="Revoke immediately or schedule for effective_date"
-    )
-
-    # Transition management
-    transfer_to_admin_id: Optional[UUID] = Field(
-        None, description="Transfer responsibilities to another admin"
-    )
-    handover_notes: Optional[str] = Field(
-        None, max_length=1000, description="Handover notes for responsibility transfer"
-    )
-
-    # Notification preferences
-    notify_affected_admin: bool = Field(True, description="Notify admin being revoked")
-    notify_hostel_supervisors: bool = Field(
-        True, description="Notify hostel supervisors"
-    )
-
-    # Data retention
-    retain_access_logs: bool = Field(True, description="Retain access logs for audit")
-    archive_permissions: bool = Field(True, description="Archive permission history")
-
-    @field_validator("revoke_reason")
-    @classmethod
-    def validate_revoke_reason(cls, v: str) -> str:
-        """Validate and normalize revocation reason."""
-        reason = v.strip()
-        if len(reason) < 10:
-            raise ValueError("Revocation reason must be at least 10 characters")
-
-        # Remove excessive whitespace
-        reason = " ".join(reason.split())
-
-        # Check for placeholder text
-        placeholder_phrases = ["test", "no reason", "n/a", "none", "na"]
-        if reason.lower() in placeholder_phrases:
-            raise ValueError(
-                "Please provide a meaningful revocation reason, not a placeholder"
-            )
-
-        return reason
-
-    @field_validator("effective_date")
-    @classmethod
-    def validate_effective_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate revocation effective date."""
-        if v is not None:
-            today = date.today()
-
-            # Allow past dates for historical revocations
-            if v < today:
-                days_past = (today - v).days
-                if days_past > MAX_PAST_DAYS_REVOCATION:
-                    raise ValueError(
-                        f"Effective date cannot be more than {MAX_PAST_DAYS_REVOCATION} days in the past"
-                    )
-
-            # Allow future dates for scheduled revocations
-            elif v > today:
-                days_future = (v - today).days
-                if days_future > MAX_FUTURE_DAYS_REVOCATION:
-                    raise ValueError(
-                        f"Effective date cannot be more than {MAX_FUTURE_DAYS_REVOCATION} days in the future"
-                    )
-
-        return v
-
-    @model_validator(mode="after")
-    def validate_revocation_logic(self) -> "RevokeAssignment":
-        """Validate revocation business logic."""
-        # Validate transfer requirements
-        if self.transfer_to_admin_id:
-            if not self.handover_notes:
-                raise ValueError(
-                    "Handover notes are required when transferring to another admin"
-                )
-            if len(self.handover_notes.strip()) < 20:
-                raise ValueError(
-                    "Handover notes must be at least 20 characters for proper transition"
-                )
-
-        # Validate immediate vs scheduled revocation
-        if not self.immediate_revocation and not self.effective_date:
-            raise ValueError(
-                "Effective date must be specified for non-immediate revocation"
-            )
-
-        if (
-            self.immediate_revocation
-            and self.effective_date
-            and self.effective_date != date.today()
-        ):
-            raise ValueError("Immediate revocation cannot have future effective date")
-
-        return self
-
-    @field_validator("handover_notes")
-    @classmethod
-    def validate_handover_notes(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize handover notes."""
-        if v is not None:
-            v = v.strip()
-            if not v:
-                return None
-            v = " ".join(v.split())
-        return v
-
-
-class AssignmentList(BaseSchema):
-    """
-    Enhanced assignment list with comprehensive admin overview.
-
-    Provides aggregated view of all assignments for an admin
-    with summary statistics and quick access information.
-    """
-
-    admin_id: UUID = Field(..., description="Admin user ID")
-    admin_name: str = Field(..., min_length=1, description="Admin full name")
-    admin_email: str = Field(..., description="Admin email address")
-
-    # Assignment statistics
-    total_hostels: int = Field(..., ge=0, description="Total hostels assigned")
-    active_hostels: int = Field(..., ge=0, description="Currently active assignments")
-    inactive_hostels: int = Field(..., ge=0, description="Inactive assignments")
-
-    # Primary hostel information
-    primary_hostel_id: Optional[UUID] = Field(None, description="Primary hostel ID")
-    primary_hostel_name: Optional[str] = Field(None, description="Primary hostel name")
-
-    # Activity summary
-    last_activity: Optional[datetime] = Field(
-        None, description="Last activity across all hostels"
-    )
-    total_access_count: int = Field(0, ge=0, description="Total access count across hostels")
-
-    # Assignment details
-    assignments: List[AdminHostelAssignment] = Field(
-        default_factory=list, description="Detailed assignment information"
-    )
-
-    # Performance metrics
-    avg_response_time_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time across all hostels"
-    )
-    total_decisions_made: int = Field(0, ge=0, description="Total decisions across hostels")
+        return _normalize_hostel_type(v)
 
     @computed_field
     @property
-    def assignment_utilization_rate(self) -> Decimal:
-        """Calculate assignment utilization rate."""
+    def financial_risk(self) -> bool:
+        """Whether outstanding payments exceed current month revenue."""
+        return self.outstanding_payments > self.revenue_this_month
+
+    @computed_field
+    @property
+    def requires_attention(self) -> bool:
+        """
+        Whether this hostel should be highlighted as needing attention
+        on the multi‑hostel dashboard.
+        """
+        return (
+            self.urgent_alerts > 0
+            or self.pending_tasks > ATTENTION_PENDING_TASKS
+            or self.open_complaints > 10
+            or self.occupancy_percentage < ATTENTION_LOW_OCCUPANCY
+            or self.financial_risk
+        )
+
+    @computed_field
+    @property
+    def status_indicator(self) -> str:
+        """
+        High‑level status indicator for UI (critical/warning/normal).
+        """
+        if self.urgent_alerts > ATTENTION_URGENT_ALERTS or self.open_complaints > 20:
+            return "critical"
+        if (
+            self.urgent_alerts > 0
+            or self.pending_tasks > ATTENTION_PENDING_TASKS
+            or self.open_complaints > 10
+            or self.occupancy_percentage < ATTENTION_LOW_OCCUPANCY
+        ):
+            return "warning"
+        return "normal"
+
+    @computed_field
+    @property
+    def occupancy_status(self) -> str:
+        """Human‑readable occupancy status."""
+        if self.occupancy_percentage < Decimal("40.00"):
+            return "Underutilized"
+        elif self.occupancy_percentage < Decimal("90.00"):
+            return "Healthy"
+        else:
+            return "Near Full"
+
+    @computed_field
+    @property
+    def hours_since_last_activity(self) -> Optional[int]:
+        """Hours since this admin last interacted with this hostel."""
+        if not self.last_activity:
+            return None
+        delta = datetime.utcnow() - self.last_activity
+        return int(delta.total_seconds() // 3600)
+
+
+# ---------------------------------------------------------------------------
+# Aggregated / portfolio stats
+# ---------------------------------------------------------------------------
+
+class AggregatedStats(BaseSchema):
+    """
+    Aggregated statistics across all hostels managed by the admin.
+    """
+
+    admin_id: UUID = Field(..., description="Admin user ID")
+
+    total_hostels: int = Field(..., ge=0, description="Total hostels assigned")
+    active_hostels: int = Field(..., ge=0, description="Hostels with active assignments")
+
+    total_students: int = Field(0, ge=0, description="Total students across hostels")
+    active_students: int = Field(0, ge=0, description="Active/checked‑in students")
+    total_capacity: int = Field(0, ge=0, description="Total bed capacity")
+
+    avg_occupancy_percentage: Decimal = Field(
+        Decimal("0.00"), ge=0, le=100, description="Average occupancy across hostels"
+    )
+
+    total_pending_tasks: int = Field(0, ge=0, description="Total pending tasks")
+    total_urgent_alerts: int = Field(0, ge=0, description="Total urgent alerts")
+    total_open_complaints: int = Field(0, ge=0, description="Total open complaints")
+
+    total_revenue_this_month: Decimal = Field(
+        Decimal("0.00"), ge=0, description="Total revenue this month"
+    )
+    total_outstanding_payments: Decimal = Field(
+        Decimal("0.00"), ge=0, description="Total outstanding payments"
+    )
+
+    avg_student_rating: Optional[Decimal] = Field(
+        None, ge=0, le=5, description="Average student rating across hostels"
+    )
+    avg_admin_satisfaction_score: Optional[Decimal] = Field(
+        None, ge=0, le=5, description="Average internal satisfaction score"
+    )
+
+    @computed_field
+    @property
+    def hostel_utilization_rate(self) -> Decimal:
+        """Percentage of hostels that are actively managed."""
         if self.total_hostels == 0:
             return Decimal("0.00")
         rate = Decimal(self.active_hostels) / Decimal(self.total_hostels) * 100
@@ -674,49 +233,115 @@ class AssignmentList(BaseSchema):
 
     @computed_field
     @property
-    def most_active_hostel(self) -> Optional[str]:
-        """Identify most active hostel by access count."""
-        if not self.assignments:
-            return None
-
-        most_active = max(self.assignments, key=lambda x: x.access_count, default=None)
-        if most_active and most_active.access_count > 0:
-            return most_active.hostel_name
-        return None
+    def student_occupancy_rate(self) -> Decimal:
+        """Overall bed occupancy rate across the portfolio."""
+        if self.total_capacity == 0:
+            return Decimal("0.00")
+        rate = Decimal(self.active_students) / Decimal(self.total_capacity) * 100
+        return rate.quantize(Decimal("0.01"))
 
     @computed_field
     @property
-    def permission_distribution(self) -> Dict[str, int]:
-        """Calculate distribution of permission levels."""
-        distribution = {level.value: 0 for level in PermissionLevel}
+    def has_critical_issues(self) -> bool:
+        """Whether the portfolio has clearly critical issues."""
+        return (
+            self.total_urgent_alerts > 0
+            or self.total_open_complaints > 20
+            or self.total_pending_tasks > 100
+        )
 
-        for assignment in self.assignments:
-            if assignment.is_active:
-                distribution[assignment.permission_level.value] += 1
-
-        return distribution
+    @computed_field
+    @property
+    def financial_health_indicator(self) -> str:
+        """Basic financial health indicator."""
+        if self.total_revenue_this_month == 0 and self.total_outstanding_payments == 0:
+            return "neutral"
+        if self.total_outstanding_payments > self.total_revenue_this_month:
+            return "at_risk"
+        if self.total_outstanding_payments > self.total_revenue_this_month * Decimal("0.5"):
+            return "watch"
+        return "healthy"
 
     @model_validator(mode="after")
-    def validate_statistics_consistency(self) -> "AssignmentList":
-        """Validate that statistics are consistent with assignments."""
-        if self.total_hostels != len(self.assignments):
-            # This is a warning, not an error - could be pagination
+    def validate_consistency(self) -> "AggregatedStats":
+        """Basic consistency checks on aggregated counts."""
+        if self.active_hostels > self.total_hostels:
+            raise ValueError("active_hostels cannot exceed total_hostels")
+        if self.active_students > self.total_students:
+            raise ValueError("active_students cannot exceed total_students")
+        if self.total_students > self.total_capacity and self.total_capacity > 0:
+            # Allow, but this is suspicious; don't raise to avoid breaking clients.
             pass
-
-        active_count = sum(1 for a in self.assignments if a.is_active)
-        if self.active_hostels != active_count:
-            # Log inconsistency but don't raise error
-            pass
-
         return self
 
 
-class HostelAdminList(BaseSchema):
-    """
-    Enhanced hostel admin list with comprehensive hostel overview.
+# ---------------------------------------------------------------------------
+# Task summary
+# ---------------------------------------------------------------------------
 
-    Provides detailed view of all admins assigned to a specific hostel
-    with their permissions and activity levels.
+class HostelTaskSummary(BaseSchema):
+    """
+    Portfolio‑wide task summary for the dashboard.
+    """
+
+    total_tasks: int = Field(0, ge=0, description="Total tasks in the selected period")
+    pending_tasks: int = Field(0, ge=0, description="Currently pending tasks")
+    overdue_tasks: int = Field(0, ge=0, description="Overdue tasks")
+    urgent_tasks: int = Field(0, ge=0, description="Urgent tasks")
+    completed_today: int = Field(0, ge=0, description="Tasks completed today")
+
+    # Optional breakdown by hostel
+    tasks_by_hostel: Dict[UUID, int] = Field(
+        default_factory=dict, description="Total tasks per hostel (optional)"
+    )
+
+    @computed_field
+    @property
+    def pending_ratio(self) -> Decimal:
+        """Percentage of tasks that are pending."""
+        if self.total_tasks == 0:
+            return Decimal("0.00")
+        ratio = Decimal(self.pending_tasks) / Decimal(self.total_tasks) * 100
+        return ratio.quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def overdue_ratio(self) -> Decimal:
+        """Percentage of tasks that are overdue."""
+        if self.total_tasks == 0:
+            return Decimal("0.00")
+        ratio = Decimal(self.overdue_tasks) / Decimal(self.total_tasks) * 100
+        return ratio.quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def health_status(self) -> str:
+        """High‑level health indicator based on task backlog."""
+        if self.urgent_tasks == 0 and self.overdue_tasks == 0:
+            return "good"
+        if self.urgent_tasks > 20 or self.overdue_ratio > Decimal("25.00"):
+            return "critical"
+        if self.urgent_tasks > 0 or self.overdue_ratio > Decimal("10.00"):
+            return "attention"
+        return "good"
+
+    @model_validator(mode="after")
+    def validate_counts(self) -> "HostelTaskSummary":
+        """Ensure basic numeric consistency."""
+        if self.pending_tasks > self.total_tasks:
+            raise ValueError("pending_tasks cannot exceed total_tasks")
+        if self.overdue_tasks > self.total_tasks:
+            raise ValueError("overdue_tasks cannot exceed total_tasks")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Top / bottom performers
+# ---------------------------------------------------------------------------
+
+class TopPerformer(BaseSchema):
+    """
+    Top performing hostel in a given dimension.
     """
 
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -724,212 +349,237 @@ class HostelAdminList(BaseSchema):
     hostel_city: str = Field(..., min_length=1, description="Hostel city")
     hostel_type: str = Field(..., description="Hostel type")
 
-    # Admin statistics
-    total_admins: int = Field(..., ge=0, description="Total assigned admins")
-    active_admins: int = Field(..., ge=0, description="Currently active admin assignments")
-
-    # Primary admin information
-    primary_admin_id: Optional[UUID] = Field(None, description="Primary admin ID")
-    primary_admin_name: Optional[str] = Field(None, description="Primary admin name")
-
-    # Coverage information
-    coverage_24x7: bool = Field(False, description="24x7 admin coverage available")
-    last_admin_activity: Optional[datetime] = Field(
-        None, description="Last admin activity"
+    performance_score: Decimal = Field(
+        ..., ge=0, le=100, description="Composite performance score (0‑100)"
+    )
+    rank: int = Field(..., ge=1, description="Rank among hostels")
+    key_metric: str = Field(..., min_length=1, description="Primary metric driving this ranking")
+    key_metric_value: Optional[Decimal] = Field(
+        None, description="Value of the primary metric (e.g. occupancy %)"
     )
 
-    # Admin details
-    admins: List["HostelAdminItem"] = Field(
-        default_factory=list, description="Detailed admin assignment information"
+    @field_validator("hostel_type")
+    @classmethod
+    def validate_hostel_type(cls, v: str) -> str:
+        return _normalize_hostel_type(v)
+
+    @computed_field
+    @property
+    def label(self) -> str:
+        """Convenient display label."""
+        return f"#{self.rank} {self.hostel_name}"
+
+
+class BottomPerformer(BaseSchema):
+    """
+    Bottom performing hostel in a given dimension.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., min_length=1, description="Hostel name")
+    hostel_city: str = Field(..., min_length=1, description="Hostel city")
+    hostel_type: str = Field(..., description="Hostel type")
+
+    performance_score: Decimal = Field(
+        ..., ge=0, le=100, description="Composite performance score (0‑100)"
+    )
+    rank: int = Field(..., ge=1, description="Rank among hostels (1 = worst)")
+    key_metric: str = Field(..., min_length=1, description="Primary metric driving this ranking")
+    key_metric_value: Optional[Decimal] = Field(
+        None, description="Value of the primary metric (e.g. complaints count)"
+    )
+
+    @field_validator("hostel_type")
+    @classmethod
+    def validate_hostel_type(cls, v: str) -> str:
+        return _normalize_hostel_type(v)
+
+    @computed_field
+    @property
+    def label(self) -> str:
+        """Convenient display label."""
+        return f"#{self.rank} {self.hostel_name}"
+
+
+# ---------------------------------------------------------------------------
+# Metric comparison
+# ---------------------------------------------------------------------------
+
+class HostelMetricComparison(BaseSchema):
+    """
+    Comparison of a single metric across hostels (best/worst vs portfolio average).
+    """
+
+    metric_name: str = Field(..., min_length=1, description="Metric name (e.g. occupancy)")
+    unit: str = Field(..., min_length=1, description="Display unit (%, count, currency, etc.)")
+
+    portfolio_average: Decimal = Field(
+        Decimal("0.00"), description="Portfolio‑wide average for this metric"
+    )
+
+    best_hostel_id: Optional[UUID] = Field(None, description="Best performing hostel ID")
+    best_hostel_name: Optional[str] = Field(None, description="Best performing hostel name")
+    best_value: Optional[Decimal] = Field(
+        None, description="Best value for the metric (direction depends on metric)"
+    )
+
+    worst_hostel_id: Optional[UUID] = Field(None, description="Worst performing hostel ID")
+    worst_hostel_name: Optional[str] = Field(None, description="Worst performing hostel name")
+    worst_value: Optional[Decimal] = Field(
+        None, description="Worst value for the metric (direction depends on metric)"
     )
 
     @computed_field
     @property
-    def admin_coverage_score(self) -> Decimal:
-        """Calculate admin coverage adequacy score."""
-        if self.total_admins == 0:
+    def spread(self) -> Decimal:
+        """Absolute spread between best and worst values."""
+        if self.best_value is None or self.worst_value is None:
             return Decimal("0.00")
-
-        # Base score from admin count (max 50 points)
-        count_score = min(self.total_admins * 25, 50)
-
-        # Activity score (max 30 points)
-        activity_score = 30 if self.active_admins > 0 else 0
-
-        # Coverage score (max 20 points)
-        coverage_score = 20 if self.coverage_24x7 else 10
-
-        total_score = count_score + activity_score + coverage_score
-        return Decimal(str(total_score)).quantize(Decimal("0.01"))
+        diff = abs(Decimal(self.best_value) - Decimal(self.worst_value))
+        return diff.quantize(Decimal("0.01"))
 
     @computed_field
     @property
-    def permission_coverage(self) -> Dict[str, bool]:
-        """Check if all critical permissions are covered by at least one admin."""
-        critical_permissions = [
-            "can_manage_students",
-            "can_approve_bookings",
-            "can_manage_fees",
-            "can_override_decisions",
-            "can_manage_supervisors",
-        ]
+    def variation_index(self) -> Decimal:
+        """
+        Relative variation vs portfolio average (percentage).
+        Higher = more variation between hostels for this metric.
+        """
+        if self.portfolio_average == 0 or self.spread == 0:
+            return Decimal("0.00")
+        ratio = self.spread / abs(self.portfolio_average) * 100
+        return ratio.quantize(Decimal("0.01"))
 
-        coverage = {}
-        for permission in critical_permissions:
-            coverage[permission] = any(
-                admin.permission_level == PermissionLevel.FULL_ACCESS
-                or admin.has_specific_permission(permission)
-                for admin in self.admins
-                if admin.is_active
-            )
 
-        return coverage
+# ---------------------------------------------------------------------------
+# Cross‑hostel comparison wrapper
+# ---------------------------------------------------------------------------
+
+class CrossHostelComparison(BaseSchema):
+    """
+    Cross‑hostel comparison section for the dashboard, containing
+    metric comparisons and top/bottom performers.
+    """
+
+    metrics: List[HostelMetricComparison] = Field(
+        default_factory=list, description="Per‑metric comparisons"
+    )
+    top_performers: List[TopPerformer] = Field(
+        default_factory=list, description="Top performing hostels"
+    )
+    bottom_performers: List[BottomPerformer] = Field(
+        default_factory=list, description="Bottom performing hostels"
+    )
 
     @computed_field
     @property
-    def coverage_gaps(self) -> List[str]:
-        """Identify permission coverage gaps."""
-        coverage = self.permission_coverage
-        return [perm for perm, covered in coverage.items() if not covered]
+    def has_significant_variation(self) -> bool:
+        """
+        Whether any metric shows large variation across hostels.
+        """
+        return any(m.variation_index > Decimal("20.00") for m in self.metrics)
+
+    @computed_field
+    @property
+    def metrics_by_name(self) -> Dict[str, HostelMetricComparison]:
+        """Index metrics by name for quicker lookup in clients."""
+        return {m.metric_name: m for m in self.metrics}
 
 
-class HostelAdminItem(BaseSchema):
+# ---------------------------------------------------------------------------
+# Root multi‑hostel dashboard schema
+# ---------------------------------------------------------------------------
+
+class MultiHostelDashboard(BaseResponseSchema):
     """
-    Enhanced admin item with detailed assignment information.
-
-    Represents individual admin assignment within hostel admin list
-    with comprehensive permission and activity tracking.
+    Root schema for the multi‑hostel admin dashboard response.
     """
 
-    # Admin identification
     admin_id: UUID = Field(..., description="Admin user ID")
     admin_name: str = Field(..., min_length=1, description="Admin full name")
-    admin_email: str = Field(..., description="Admin email address")
 
-    # Assignment details
-    assignment_id: UUID = Field(..., description="Assignment ID")
-    permission_level: PermissionLevel = Field(..., description="Permission level")
-    is_primary: bool = Field(False, description="Primary admin for this hostel")
-    is_active: bool = Field(True, description="Assignment is active")
-
-    # Assignment metadata
-    assigned_date: date = Field(..., description="Assignment creation date")
-    assigned_by_name: Optional[str] = Field(None, description="Name of assigning admin")
-
-    # Activity tracking
-    last_active: Optional[datetime] = Field(None, description="Last activity timestamp")
-    access_count: int = Field(0, ge=0, description="Total access count")
-    avg_session_duration_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average session duration"
+    generated_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Timestamp when dashboard was generated"
     )
 
-    # Performance metrics
-    decisions_made: int = Field(0, ge=0, description="Total decisions made")
-    response_time_avg_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time"
+    period_start: date = Field(..., description="Start of reporting period")
+    period_end: date = Field(..., description="End of reporting period (inclusive)")
+
+    # Portfolio‑level aggregates
+    aggregated_stats: AggregatedStats = Field(
+        ..., description="Aggregated statistics across all hostels"
     )
 
-    # Specific permissions (for limited access)
-    specific_permissions: Dict[str, Union[bool, int, str]] = Field(
-        default_factory=dict, description="Specific permissions for limited access admins"
+    # Per‑hostel quick stats
+    hostels: List[HostelQuickStats] = Field(
+        default_factory=list, description="Quick stats for each hostel"
+    )
+
+    # Tasks / workload
+    task_summary: HostelTaskSummary = Field(
+        ..., description="Portfolio‑wide task summary"
+    )
+
+    # Comparisons / rankings
+    cross_hostel_comparison: Optional[CrossHostelComparison] = Field(
+        None, description="Cross‑hostel comparisons and rankings"
+    )
+
+    # UI helpers
+    active_hostel_id: Optional[UUID] = Field(
+        None, description="Hostel currently focused in UI (optional)"
     )
 
     @computed_field
     @property
-    def assignment_duration_days(self) -> int:
-        """Calculate assignment duration in days."""
-        duration = (date.today() - self.assigned_date).days
-        return max(0, duration)
+    def period_days(self) -> int:
+        """Length of the reporting period in days (at least 1)."""
+        days = (self.period_end - self.period_start).days + 1
+        return max(1, days)
 
     @computed_field
     @property
-    def activity_status(self) -> str:
-        """Determine admin activity status."""
-        if not self.last_active:
-            return "Never Active"
-
-        hours_since_activity = (
-            datetime.utcnow() - self.last_active
-        ).total_seconds() / 3600
-
-        if hours_since_activity <= 1:
-            return "Online"
-        elif hours_since_activity <= 24:
-            return "Recently Active"
-        elif hours_since_activity <= 168:  # 1 week
-            return "Active This Week"
-        else:
-            return "Inactive"
+    def hostels_requiring_attention(self) -> List[UUID]:
+        """IDs of hostels that require attention."""
+        return [h.hostel_id for h in self.hostels if h.requires_attention]
 
     @computed_field
     @property
-    def permission_summary(self) -> str:
-        """Generate human-readable permission summary."""
-        if self.permission_level == PermissionLevel.FULL_ACCESS:
-            return "Full Administrative Access"
-        elif self.permission_level == PermissionLevel.LIMITED_ACCESS:
-            perm_count = sum(
-                1 for p in self.specific_permissions.values() if p is True
-            )
-            return f"Limited Access ({perm_count} permissions)"
-        else:
-            return "View Only Access"
-
-    def has_specific_permission(self, permission_key: str) -> bool:
-        """Check if admin has a specific permission."""
-        if self.permission_level == PermissionLevel.FULL_ACCESS:
-            return True
-        elif self.permission_level == PermissionLevel.LIMITED_ACCESS:
-            return self.specific_permissions.get(permission_key, False) is True
-        else:
-            return False
+    def total_critical_hostels(self) -> int:
+        """Number of hostels in warning/critical state."""
+        return len(self.hostels_requiring_attention)
 
     @computed_field
     @property
-    def performance_score(self) -> Decimal:
-        """Calculate overall performance score for this admin-hostel assignment."""
-        score = Decimal("0.00")
+    def overall_attention_level(self) -> str:
+        """
+        Overall portfolio attention level based on how many hostels
+        are in a concerning state.
+        """
+        n = self.total_critical_hostels
+        if n == 0:
+            return "low"
+        if n <= 2:
+            return "medium"
+        if n <= 5:
+            return "high"
+        return "critical"
 
-        # Activity score (40 points max)
-        if self.access_count > 0:
-            activity_score = min(self.access_count * 2, 40)
-            score += Decimal(str(activity_score))
+    @model_validator(mode="after")
+    def validate_period(self) -> "MultiHostelDashboard":
+        """Validate reporting period and basic consistency."""
+        if self.period_end < self.period_start:
+            raise ValueError("period_end must be on or after period_start")
 
-        # Decision making score (30 points max)
-        if self.decisions_made > 0:
-            decision_score = min(self.decisions_made * 3, 30)
-            score += Decimal(str(decision_score))
+        # Optional soft check: aggregated_stats.total_hostels vs hostels list
+        if self.aggregated_stats.total_hostels and self.hostels:
+            # Don't hard‑fail, but this is a useful invariant to watch.
+            if self.aggregated_stats.total_hostels < len(self.hostels):
+                # Could log a warning in application code.
+                pass
 
-        # Response time score (30 points max)
-        if self.response_time_avg_minutes:
-            response_minutes = float(self.response_time_avg_minutes)
-            if response_minutes <= 30:
-                response_score = 30
-            elif response_minutes >= 120:
-                response_score = 0
-            else:
-                # Linear interpolation
-                response_score = 30 * (1 - (response_minutes - 30) / 90)
-            score += Decimal(str(response_score))
+        if self.aggregated_stats.admin_id != self.admin_id:
+            # Ensure we didn't accidentally mix data for different admins
+            raise ValueError("aggregated_stats.admin_id must match admin_id")
 
-        return score.quantize(Decimal("0.01"))
-
-    @computed_field
-    @property
-    def needs_attention(self) -> bool:
-        """Determine if this admin assignment needs attention."""
-        # Low performance score
-        if self.performance_score < Decimal("30.00"):
-            return True
-
-        # No activity in last 7 days for active assignment
-        if self.is_active and self.last_active:
-            days_inactive = (datetime.utcnow() - self.last_active).days
-            if days_inactive > 7:
-                return True
-
-        # Low activity count for long-term assignment
-        if self.assignment_duration_days > 30 and self.access_count < 10:
-            return True
-
-        return False
+        return self

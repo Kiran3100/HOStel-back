@@ -6,7 +6,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.transactions import SubscriptionPlan as SubscriptionPlanModel
+from app.models.transactions import SubscriptionPlan as SubscriptionPlanModel
 from app.schemas.common.enums import SubscriptionPlan as SubscriptionPlanEnum
 
 

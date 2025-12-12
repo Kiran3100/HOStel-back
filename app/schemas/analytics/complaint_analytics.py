@@ -250,7 +250,7 @@ class ComplaintTrendPoint(BaseSchema):
     enabling time-series visualization.
     """
     
-    date: date = Field(
+    trend_date: date = Field(
         ...,
         description="Date of the data point"
     )

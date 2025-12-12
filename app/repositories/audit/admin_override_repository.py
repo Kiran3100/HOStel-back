@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.audit import AdminOverride
+from app.models.audit import AdminOverride
 
 
 class AdminOverrideRepository(BaseRepository[AdminOverride]):

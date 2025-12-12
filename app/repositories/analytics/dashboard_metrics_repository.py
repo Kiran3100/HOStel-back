@@ -9,7 +9,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.analytics import DashboardMetrics
+from app.models.analytics import DashboardMetrics
 
 
 class DashboardMetricsRepository(BaseRepository[DashboardMetrics]):

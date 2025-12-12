@@ -1,4 +1,4 @@
-# models/services/leave_application.py
+# app.models/services/leave_application.py
 from __future__ import annotations
 
 from datetime import date
@@ -9,7 +9,7 @@ from sqlalchemy import Date, Enum as SAEnum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import LeaveType, LeaveStatus
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class LeaveApplication(BaseEntity):

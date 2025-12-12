@@ -1,21 +1,47 @@
+"""
+Admin API module for hostel management platform.
+
+Provides comprehensive administrative functionality including:
+- Dashboard and analytics
+- Hostel management
+- Admin-hostel assignments
+- Permission matrix management
+- Administrative overrides
+- Multi-hostel dashboard views
+
+All endpoints are designed for administrative users and include
+proper authorization checks, audit logging, and error handling.
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import dashboard
-from . import hostels
-from . import assignments
-from . import permissions
-from . import overrides
-from . import multi_hostel
+from . import (
+    dashboard,
+    hostels,
+    assignments,
+    permissions,
+    overrides,
+    multi_hostel,
+)
 
-router = APIRouter(prefix="/admin")
+# Create main admin router
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
-router.include_router(dashboard.router, tags=["Admin - Dashboard"])
-router.include_router(hostels.router, tags=["Admin - Hostels"])
-router.include_router(assignments.router, tags=["Admin - Assignments"])
-router.include_router(permissions.router, tags=["Admin - Permissions"])
-router.include_router(overrides.router, tags=["Admin - Overrides"])
-router.include_router(multi_hostel.router, tags=["Admin - Multi-Hostel"])
+# Include sub-routers with clear organization
+router.include_router(dashboard.router)
+router.include_router(hostels.router)
+router.include_router(assignments.router)
+router.include_router(permissions.router)
+router.include_router(overrides.router)
+router.include_router(multi_hostel.router)
 
-__all__ = ["router"]
+__all__ = [
+    "router",
+    "dashboard",
+    "hostels",
+    "assignments",
+    "permissions",
+    "overrides",
+    "multi_hostel",
+]

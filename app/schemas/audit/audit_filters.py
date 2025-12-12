@@ -10,7 +10,7 @@ from datetime import datetime, date
 from typing import List, Optional
 from enum import Enum
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseFilterSchema

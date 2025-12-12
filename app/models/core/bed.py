@@ -9,7 +9,7 @@ from sqlalchemy import Date, Enum as SAEnum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import BedStatus
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Bed(BaseEntity):

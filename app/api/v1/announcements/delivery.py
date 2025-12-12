@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api import deps
+from app.api import deps
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.announcement.announcement_delivery import (
     DeliveryConfig,

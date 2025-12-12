@@ -5,11 +5,11 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import Boolean, Integer, Numeric, String, Enum as SAEnum
+from sqlalchemy import Boolean, Integer, Numeric, JSON, String, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import RoomType, RoomStatus
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Room(BaseEntity):

@@ -1,4 +1,4 @@
-# models/services/maintenance.py
+# app.models/services/maintenance.py
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -15,7 +15,7 @@ from app.schemas.common.enums import (
     MaintenanceIssueType,
     Priority,
 )
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Maintenance(BaseEntity):

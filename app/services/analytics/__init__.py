@@ -14,22 +14,21 @@ High-level analytics and reporting over core/service/transaction models:
 - SupervisorAnalyticsService: supervisor performance and comparisons.
 """
 
-from .attendance_analytics_service import AttendanceAnalyticsService
-from .complaint_analytics_service import ComplaintAnalyticsService
 from .custom_report_service import CustomReportService
 from .dashboard_analytics_service import DashboardAnalyticsService
 from .financial_analytics_service import FinancialAnalyticsService
 from .occupancy_analytics_service import OccupancyAnalyticsService
 from .platform_analytics_service import PlatformAnalyticsService
 from .supervisor_analytics_service import SupervisorAnalyticsService
+from .visitor_analytics_service import VisitorAnalyticsService
 
 __all__ = [
-    "AttendanceAnalyticsService",
-    "ComplaintAnalyticsService",
     "CustomReportService",
     "DashboardAnalyticsService",
     "FinancialAnalyticsService",
     "OccupancyAnalyticsService",
     "PlatformAnalyticsService",
     "SupervisorAnalyticsService",
+    "VisitorAnalyticsService",
+
 ]

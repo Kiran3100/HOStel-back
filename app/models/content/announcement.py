@@ -1,4 +1,4 @@
-# models/content/announcement.py
+# app.models/content/announcement.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, JSON, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import AnnouncementCategory, Priority, TargetAudience
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Announcement(BaseEntity):

@@ -367,12 +367,9 @@ class QuickStats(BaseSchema):
 class TimeseriesPoint(BaseSchema):
     """
     Single data point in a time series.
-    
-    Generic structure for representing metrics over time
-    for trend visualization.
     """
-    
-    date: date = Field(
+
+    date_: date = Field(
         ...,
         description="Date of the data point"
     )
@@ -389,12 +386,13 @@ class TimeseriesPoint(BaseSchema):
         None,
         description="Additional metadata for this point"
     )
-    
+
     @computed_field
     @property
     def formatted_date(self) -> str:
         """Get formatted date string."""
-        return self.date.strftime("%Y-%m-%d")
+        return self.date_.strftime("%Y-%m-%d")
+
 
 
 class AlertNotification(BaseSchema):

@@ -1,25 +1,22 @@
-# app/api/__init__.py
+# api/__init__.py
 from __future__ import annotations
 
 """
-Top-level API package.
+Top-level API router package.
 
-This module primarily exists to expose convenient imports for the
-versioned API routers.
+Usage in FastAPI app:
 
-Typical usage from outside:
-
-    from app.api.v1 import api_router as api_v1_router
+    from api import api_router
+    app.include_router(api_router, prefix="/api")
 """
 
 from fastapi import APIRouter
 
-# Re-export the v1 API router for convenience
-from app.api.v1 import api_router as api_v1_router  # noqa: F401
+from .v1 import api_router as v1_router
 
-# If you ever add more versions (v2, etc.), expose them here as well.
+api_router = APIRouter()
 
-__all__ = [
-    "APIRouter",
-    "api_v1_router",
-]
+# All v1 routes will end up under /api/v1 when mounted with prefix="/api"
+api_router.include_router(v1_router, prefix="/v1")
+
+__all__ = ["APIRouter", "api_router"]

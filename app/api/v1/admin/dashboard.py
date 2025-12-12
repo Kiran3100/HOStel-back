@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,

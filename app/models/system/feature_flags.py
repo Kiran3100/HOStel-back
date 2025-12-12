@@ -1,4 +1,4 @@
-# models/system/feature_flags.py
+# app.models/system/feature_flags.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class FeatureFlag(BaseItem):

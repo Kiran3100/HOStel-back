@@ -1,4 +1,4 @@
-# models/visitor/visitor.py
+# app.models/visitor/visitor.py
 from __future__ import annotations
 
 from decimal import Decimal
@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, JSON, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import RoomType
-from models.base import BaseVisitorItem
+from app.models.base import BaseVisitorItem
 
 
 class Visitor(BaseVisitorItem):

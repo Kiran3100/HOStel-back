@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.system import PlatformConfig
+from app.models.system import PlatformConfig
 
 
 class PlatformConfigRepository(BaseRepository[PlatformConfig]):

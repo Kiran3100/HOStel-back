@@ -12,7 +12,7 @@ Provides comprehensive platform metrics including:
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from enum import Enum
 
 from pydantic import Field, field_validator, computed_field, model_validator

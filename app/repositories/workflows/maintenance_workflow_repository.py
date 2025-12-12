@@ -1,5 +1,5 @@
 # app/repositories/workflows/maintenance_workflow_repository.py
-from __future__ annotations
+from __future__ import annotations
 
 from typing import Optional
 from uuid import UUID
@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.workflows import MaintenanceWorkflow
+from app.models.workflows import MaintenanceWorkflow
 
 
 class MaintenanceWorkflowRepository(BaseRepository[MaintenanceWorkflow]):

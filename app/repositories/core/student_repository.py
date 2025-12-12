@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.core import Student
+from app.models.core import Student
 from app.schemas.common.enums import StudentStatus
 
 

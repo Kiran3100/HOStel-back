@@ -1,4 +1,4 @@
-# models/transactions/referral.py
+# app.models/transactions/referral.py
 from __future__ import annotations
 
 from datetime import datetime, date
@@ -10,7 +10,7 @@ from sqlalchemy import Date, DateTime, Enum as SAEnum, ForeignKey, Numeric, Stri
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import ReferralStatus, RewardStatus
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class ReferralProgram(BaseItem):

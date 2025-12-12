@@ -7,7 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.core import Hostel
+from app.models.core import Hostel
 
 
 class HostelRepository(BaseRepository[Hostel]):

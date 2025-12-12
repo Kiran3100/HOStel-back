@@ -219,7 +219,7 @@ class OccupancyTrendPoint(BaseSchema):
     Represents occupancy metrics for a specific date.
     """
     
-    date: date = Field(
+    trend_date: date = Field(
         ...,
         description="Date of the data point"
     )
@@ -400,7 +400,7 @@ class ForecastPoint(BaseSchema):
     Represents predicted occupancy for a future date.
     """
     
-    date: date = Field(
+    forecast_date: date = Field(
         ...,
         description="Forecast date"
     )

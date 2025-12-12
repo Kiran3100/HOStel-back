@@ -10,7 +10,7 @@ from sqlalchemy import Boolean, Float, Integer, JSON, Numeric, String, Time, Enu
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import HostelType, HostelStatus
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Hostel(BaseEntity):

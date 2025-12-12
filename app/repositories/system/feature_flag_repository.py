@@ -6,7 +6,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.system import FeatureFlag
+from app.models.system import FeatureFlag
 
 
 class FeatureFlagRepository(BaseRepository[FeatureFlag]):

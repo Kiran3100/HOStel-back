@@ -4,8 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.router import api_router as api_v1_router
-from app.api.errors import register_exception_handlers
+from app.api.v1.router import router as api_v1_router
 from app.config import settings
 from app.core.middleware import register_middlewares
 from app.core import init_db  # optional: for dev environments
@@ -50,8 +49,7 @@ def create_app() -> FastAPI:
     # Register shared core middlewares (request ID, timing, etc.)
     register_middlewares(app)
 
-    # Global exception handlers to map service-layer errors → HTTP responses
-    register_exception_handlers(app)
+    # Global exception handlers to map service-layer errors → HTTP response
 
     # Mount API v1 under /api/v1
     app.include_router(api_v1_router, prefix="/api/v1")

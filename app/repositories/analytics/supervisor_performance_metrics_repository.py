@@ -9,7 +9,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.analytics import SupervisorPerformanceMetrics
+from app.models.analytics import SupervisorPerformanceMetrics
 
 
 class SupervisorPerformanceMetricsRepository(BaseRepository[SupervisorPerformanceMetrics]):

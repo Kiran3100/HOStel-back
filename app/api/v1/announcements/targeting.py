@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.announcement.announcement_targeting import (
     TargetingConfig,

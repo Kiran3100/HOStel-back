@@ -1,5 +1,5 @@
 # app/repositories/audit/user_activity_repository.py
-from __future__ annotations
+from __future__ import annotations
 
 from typing import List
 from uuid import UUID
@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.audit import UserActivity
+from app.models.audit import UserActivity
 
 
 class UserActivityRepository(BaseRepository[UserActivity]):

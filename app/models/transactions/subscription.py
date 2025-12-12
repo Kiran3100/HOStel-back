@@ -1,4 +1,4 @@
-# models/transactions/subscription.py
+# app.models/transactions/subscription.py
 from __future__ import annotations
 
 from datetime import date
@@ -10,7 +10,7 @@ from sqlalchemy import Date, Enum as SAEnum, JSON, Numeric, String, Boolean, For
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import SubscriptionStatus, BillingCycle, SubscriptionPlan
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class SubscriptionPlan(BaseItem):

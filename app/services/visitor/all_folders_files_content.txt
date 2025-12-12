@@ -1,0 +1,925 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\services\visitor ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\services\visitor =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\favorites_service.py ---
+# app/services/visitor/favorites_service.py
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Callable, Dict, List, Optional
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.core import HostelRepository
+from app.repositories.associations import UserHostelRepository
+from app.repositories.visitor import VisitorRepository
+from app.schemas.visitor.visitor_favorites import (
+    FavoriteRequest,
+    FavoritesList,
+    FavoriteHostelItem,
+    FavoriteUpdate,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class FavoritesService:
+    """
+    Visitor favorites/wishlist management.
+
+    Implementation:
+
+    - Uses assoc_user_hostel as backing store with association_type="favorite".
+    - FavoriteHostelItem.favorite_id is assoc_user_hostel.id.
+    - Extra metadata (notes, price_when_saved, times_viewed, etc.) is stored in
+      UserHostel.metadata_json.
+    """
+
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+    ) -> None:
+        self._session_factory = session_factory
+
+    # Helpers
+    def _get_visitor_repo(self, uow: UnitOfWork) -> VisitorRepository:
+        return uow.get_repo(VisitorRepository)
+
+    def _get_assoc_repo(self, uow: UnitOfWork) -> UserHostelRepository:
+        return uow.get_repo(UserHostelRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Set favorite
+    # ------------------------------------------------------------------ #
+    def set_favorite(
+        self,
+        user_id: UUID,
+        data: FavoriteRequest,
+    ) -> None:
+        """
+        Add or remove a hostel from a user's favorites.
+
+        - If is_favorite=True: upsert assoc_user_hostel.
+        - If is_favorite=False: soft-delete assoc_user_hostel rows.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            assoc_repo = self._get_assoc_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+
+            hostel = hostel_repo.get(data.hostel_id)
+            if hostel is None:
+                raise errors.NotFoundError(f"Hostel {data.hostel_id} not found")
+
+            existing = assoc_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters={
+                    "user_id": user_id,
+                    "hostel_id": data.hostel_id,
+                    "association_type": "favorite",
+                },
+            )
+
+            if data.is_favorite:
+                if existing:
+                    assoc = existing[0]
+                    meta = assoc.metadata_json or {}
+                    meta["notes"] = data.notes
+                    meta.setdefault("price_when_saved", str(hostel.starting_price_monthly or Decimal("0")))
+                    assoc.metadata_json = meta  # type: ignore[attr-defined]
+                    uow.session.flush()  # type: ignore[union-attr]
+                else:
+                    meta = {
+                        "notes": data.notes,
+                        "price_when_saved": str(hostel.starting_price_monthly or Decimal("0")),
+                        "times_viewed": 0,
+                        "last_viewed": None,
+                    }
+                    assoc_repo.create(
+                        {
+                            "user_id": user_id,
+                            "hostel_id": data.hostel_id,
+                            "association_type": "favorite",
+                            "metadata_json": meta,
+                        }
+                    )
+            else:
+                for a in existing:
+                    assoc_repo.delete(a)
+
+            uow.commit()
+
+    # ------------------------------------------------------------------ #
+    # List favorites
+    # ------------------------------------------------------------------ #
+    def get_favorites(self, user_id: UUID) -> FavoritesList:
+        with UnitOfWork(self._session_factory) as uow:
+            assoc_repo = self._get_assoc_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            visitor_repo = self._get_visitor_repo(uow)
+
+            visitor = visitor_repo.get_by_user_id(user_id)
+            if visitor is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            assocs = assoc_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters={
+                    "user_id": user_id,
+                    "association_type": "favorite",
+                },
+            )
+
+            items: List[FavoriteHostelItem] = []
+            now = self._now()
+
+            for a in assocs:
+                hostel = hostel_repo.get(a.hostel_id)
+                if not hostel:
+                    continue
+
+                starting_price = hostel.starting_price_monthly or Decimal("0")
+                current_price = starting_price
+
+                meta = a.metadata_json or {}
+                notes = meta.get("notes")
+                price_when_saved = Decimal(str(meta.get("price_when_saved", starting_price)))
+                times_viewed = int(meta.get("times_viewed", 0))
+                last_viewed = meta.get("last_viewed")
+
+                has_price_drop = current_price < price_when_saved
+                drop_pct: Optional[Decimal] = None
+                if has_price_drop and price_when_saved > 0:
+                    drop_pct = (
+                        (price_when_saved - current_price)
+                        / price_when_saved
+                        * Decimal("100")
+                    )
+
+                available_beds = max(
+                    0, (hostel.total_beds or 0) - (hostel.occupied_beds or 0)
+                )
+                has_availability = available_beds > 0
+
+                items.append(
+                    FavoriteHostelItem(
+                        favorite_id=a.id,
+                        hostel_id=hostel.id,
+                        hostel_name=hostel.name,
+                        hostel_slug=hostel.slug,
+                        hostel_city=hostel.city,
+                        hostel_type=hostel.hostel_type.value
+                        if hasattr(hostel.hostel_type, "value")
+                        else str(hostel.hostel_type),
+                        starting_price_monthly=starting_price,
+                        price_when_saved=price_when_saved,
+                        current_price=current_price,
+                        has_price_drop=has_price_drop,
+                        price_drop_percentage=drop_pct,
+                        available_beds=available_beds,
+                        has_availability=has_availability,
+                        average_rating=Decimal(str(hostel.average_rating or 0.0)),
+                        total_reviews=hostel.total_reviews or 0,
+                        cover_image_url=hostel.cover_image_url,
+                        notes=notes,
+                        added_to_favorites=a.created_date
+                        if getattr(a, "created_date", None)
+                        else now.date(),
+                        times_viewed=times_viewed,
+                        last_viewed=last_viewed,
+                    )
+                )
+
+        return FavoritesList(
+            visitor_id=visitor.id,
+            total_favorites=len(items),
+            favorites=items,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Update favorite metadata (notes)
+    # ------------------------------------------------------------------ #
+    def update_favorite(self, user_id: UUID, data: FavoriteUpdate) -> None:
+        with UnitOfWork(self._session_factory) as uow:
+            assoc_repo = self._get_assoc_repo(uow)
+
+            assoc = assoc_repo.get(data.favorite_id)
+            if assoc is None or assoc.user_id != user_id:
+                raise errors.NotFoundError("Favorite not found or not owned by user")
+
+            meta = assoc.metadata_json or {}
+            meta["notes"] = data.notes
+            assoc.metadata_json = meta  # type: ignore[attr-defined]
+
+            uow.session.flush()  # type: ignore[union-attr]
+            uow.commit()
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\visitor_dashboard_service.py ---
+# app/services/visitor/visitor_dashboard_service.py
+from __future__ import annotations
+
+from datetime import datetime, date
+from decimal import Decimal
+from typing import Callable, Dict, List, Optional
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.visitor import (
+    VisitorRepository,
+    HostelBookingRepository,
+    VisitorBehaviorAnalyticsVisitorRepository,
+)
+from app.repositories.core import HostelRepository, UserRepository
+from app.schemas.visitor.visitor_dashboard import (
+    VisitorDashboard,
+    SavedHostels,
+    SavedHostelItem,
+    BookingHistory,
+    BookingHistoryItem,
+    RecentSearch,
+    RecentlyViewedHostel,
+    RecommendedHostel,
+    PriceDropAlert,
+    AvailabilityAlert,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class VisitorDashboardService:
+    """
+    Visitor dashboard aggregation:
+
+    - Saved hostels summary (from Visitor.favorite_hostel_ids + core_hostel).
+    - Booking history from visitor_hostel_booking.
+    - Simple behavior stats via VisitorBehaviorAnalytics.
+    - Placeholders for searches, recommendations, and alerts.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # Helpers
+    def _get_visitor_repo(self, uow: UnitOfWork) -> VisitorRepository:
+        return uow.get_repo(VisitorRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _get_booking_repo(self, uow: UnitOfWork) -> HostelBookingRepository:
+        return uow.get_repo(HostelBookingRepository)
+
+    def _get_behavior_repo(self, uow: UnitOfWork) -> VisitorBehaviorAnalyticsVisitorRepository:
+        return uow.get_repo(VisitorBehaviorAnalyticsVisitorRepository)
+
+    def _today(self) -> date:
+        return date.today()
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def get_dashboard(self, user_id: UUID) -> VisitorDashboard:
+        now = self._now()
+
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            booking_repo = self._get_booking_repo(uow)
+            behavior_repo = self._get_behavior_repo(uow)
+
+            user = user_repo.get(user_id)
+            if user is None:
+                raise errors.NotFoundError(f"User {user_id} not found")
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            # Saved hostels
+            saved_ids = v.favorite_hostel_ids or []
+            hostels = []
+            for hid in saved_ids:
+                h = hostel_repo.get(hid)
+                if h:
+                    hostels.append(h)
+
+            saved_items: List[SavedHostelItem] = []
+            for h in hostels:
+                starting_price = h.starting_price_monthly or Decimal("0")
+                avg_rating = Decimal(str(h.average_rating or 0.0))
+                available_beds = max(0, (h.total_beds or 0) - (h.occupied_beds or 0))
+                saved_items.append(
+                    SavedHostelItem(
+                        hostel_id=h.id,
+                        hostel_name=h.name,
+                        hostel_city=h.city,
+                        starting_price=starting_price,
+                        average_rating=avg_rating,
+                        available_beds=available_beds,
+                        cover_image_url=h.cover_image_url,
+                        saved_at=now,
+                        notes=None,
+                        price_when_saved=starting_price,
+                        current_price=starting_price,
+                        price_changed=False,
+                        price_change_percentage=None,
+                    )
+                )
+
+            saved_hostels = SavedHostels(
+                total_saved=len(saved_items),
+                hostels=saved_items,
+            )
+
+            # Booking history
+            bookings = booking_repo.list_for_visitor(v.id)
+            bh_items: List[BookingHistoryItem] = []
+            active = completed = cancelled = 0
+            for b in sorted(bookings, key=lambda x: x.created_at, reverse=True):
+                status_str = b.booking_status or ""
+                status_lower = status_str.lower()
+                if status_lower in {"pending", "confirmed", "checked_in"}:
+                    active += 1
+                elif status_lower in {"completed", "checked_out"}:
+                    completed += 1
+                elif status_lower == "cancelled":
+                    cancelled += 1
+
+                # naive duration parsing: expecting strings like "3 months"
+                duration_months = 0
+                if b.duration:
+                    parts = b.duration.split()
+                    if parts and parts[0].isdigit():
+                        duration_months = int(parts[0])
+
+                bh_items.append(
+                    BookingHistoryItem(
+                        booking_id=b.id,
+                        booking_reference=str(b.id),
+                        hostel_id=b.hostel_id,
+                        hostel_name="",  # could be filled via HostelRepository if desired
+                        room_type=b.room_type,
+                        booking_date=b.created_at,
+                        check_in_date=b.check_in_date,
+                        duration_months=duration_months,
+                        status=status_str,
+                        total_amount=b.total_amount,
+                        can_cancel=status_lower in {"pending", "confirmed"},
+                        can_modify=status_lower in {"pending", "confirmed"},
+                        can_review=status_lower in {"completed", "checked_out"},
+                    )
+                )
+
+            booking_history = BookingHistory(
+                total_bookings=len(bookings),
+                active_bookings=active,
+                completed_bookings=completed,
+                cancelled_bookings=cancelled,
+                bookings=bh_items,
+            )
+
+            # Behavior analytics
+            behavior = behavior_repo.get_by_visitor_id(v.id)
+            total_searches = behavior.total_searches if behavior else 0
+            total_hostel_views = behavior.hostels_viewed if behavior else 0
+            total_bookings = behavior.bookings_made if behavior else len(bookings)
+
+        # Placeholders for sections not yet tracked
+        recent_searches: List[RecentSearch] = []
+        recently_viewed: List[RecentlyViewedHostel] = []
+        recommended: List[RecommendedHostel] = []
+        price_alerts: List[PriceDropAlert] = []
+        availability_alerts: List[AvailabilityAlert] = []
+
+        return VisitorDashboard(
+            visitor_id=v.id,
+            visitor_name=user.full_name,
+            saved_hostels=saved_hostels,
+            booking_history=booking_history,
+            recent_searches=recent_searches,
+            recently_viewed=recently_viewed,
+            recommended_hostels=recommended,
+            price_drop_alerts=price_alerts,
+            availability_alerts=availability_alerts,
+            total_searches=total_searches,
+            total_hostel_views=total_hostel_views,
+            total_bookings=total_bookings,
+        )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\visitor_hostel_search_service.py ---
+# app/services/visitor/visitor_hostel_search_service.py
+from __future__ import annotations
+
+from typing import Callable, List, Optional
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.visitor import VisitorHostelRepository, VisitorRepository
+from app.schemas.visitor.visitor_preferences import SearchPreferences
+from app.services.common import UnitOfWork, errors
+
+
+class VisitorHostelSearchService:
+    """
+    Public hostel search facade using visitor_hostel (denormalized search index).
+
+    - search_hostels: direct parameterized search over VisitorHostelRepository.
+    - search_from_preferences: build a query based on a visitor's preferences.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # Helpers
+    def _get_hostel_repo(self, uow: UnitOfWork) -> VisitorHostelRepository:
+        return uow.get_repo(VisitorHostelRepository)
+
+    def _get_visitor_repo(self, uow: UnitOfWork) -> VisitorRepository:
+        return uow.get_repo(VisitorRepository)
+
+    # ------------------------------------------------------------------ #
+    # Direct search
+    # ------------------------------------------------------------------ #
+    def search_hostels(
+        self,
+        *,
+        city: Optional[str] = None,
+        area: Optional[str] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        gender_type: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: int = 50,
+    ):
+        """
+        Directly delegate to VisitorHostelRepository.search.
+
+        Returns:
+            List[VisitorHostel] ORM instances.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            repo = self._get_hostel_repo(uow)
+            results = repo.search(
+                city=city,
+                area=area,
+                min_price=min_price,
+                max_price=max_price,
+                gender_type=gender_type,
+                search=search,
+                limit=limit,
+            )
+        return results
+
+    # ------------------------------------------------------------------ #
+    # Search from preferences
+    # ------------------------------------------------------------------ #
+    def search_from_visitor_preferences(
+        self,
+        user_id: UUID,
+        *,
+        limit: int = 50,
+    ):
+        """
+        Build a search query from a visitor's stored preferences:
+
+        - city: first preferred city if any
+        - min_price/max_price: budget_min/budget_max
+        - other fields left to free-text 'search' or gender_type as provided by caller.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            city = v.preferred_cities[0] if v.preferred_cities else None
+            min_price = float(v.budget_min) if v.budget_min is not None else None
+            max_price = float(v.budget_max) if v.budget_max is not None else None
+
+            results = hostel_repo.search(
+                city=city,
+                area=None,
+                min_price=min_price,
+                max_price=max_price,
+                gender_type=None,
+                search=None,
+                limit=limit,
+            )
+
+        return results
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\visitor_preferences_service.py ---
+# app/services/visitor/visitor_preferences_service.py
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Callable
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.visitor import VisitorRepository
+from app.repositories.core import UserRepository
+from app.schemas.visitor.visitor_preferences import (
+    VisitorPreferences,
+    PreferenceUpdate,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class VisitorPreferencesService:
+    """
+    Visitor preferences management:
+
+    - Map Visitor ORM to VisitorPreferences (with safe defaults).
+    - Update preferences via PreferenceUpdate using overlapping fields.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # Helpers
+    def _get_visitor_repo(self, uow: UnitOfWork) -> VisitorRepository:
+        return uow.get_repo(VisitorRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # Internal mapping
+    def _to_preferences(self, v) -> VisitorPreferences:
+        return VisitorPreferences(
+            preferred_room_type=v.preferred_room_type,
+            preferred_hostel_type=None,
+            budget_min=v.budget_min,
+            budget_max=v.budget_max,
+            preferred_cities=v.preferred_cities or [],
+            preferred_areas=[],
+            max_distance_from_work_km=None,
+            required_amenities=v.preferred_amenities or [],
+            preferred_amenities=v.preferred_amenities or [],
+            need_parking=False,
+            need_gym=False,
+            need_laundry=False,
+            need_mess=False,
+            dietary_preference=None,
+            earliest_move_in_date=None,
+            preferred_lease_duration_months=None,
+            email_notifications=v.email_notifications,
+            sms_notifications=v.sms_notifications,
+            push_notifications=v.push_notifications,
+            notify_on_price_drop=True,
+            notify_on_availability=True,
+            notify_on_new_listings=True,
+        )
+
+    # Public API
+    def get_preferences(self, user_id: UUID) -> VisitorPreferences:
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+        return self._to_preferences(v)
+
+    def update_preferences(
+        self,
+        user_id: UUID,
+        data: PreferenceUpdate,
+    ) -> VisitorPreferences:
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            mapping = data.model_dump(exclude_unset=True)
+            field_map = {
+                "preferred_room_type": "preferred_room_type",
+                "preferred_hostel_type": None,
+                "budget_min": "budget_min",
+                "budget_max": "budget_max",
+                "preferred_cities": "preferred_cities",
+                "required_amenities": "preferred_amenities",
+                "dietary_preference": None,
+                "email_notifications": "email_notifications",
+                "sms_notifications": "sms_notifications",
+                "push_notifications": "push_notifications",
+                "notify_on_price_drop": None,
+                "notify_on_availability": None,
+                "notify_on_new_listings": None,
+            }
+            for key, value in mapping.items():
+                target = field_map.get(key)
+                if target and hasattr(v, target):
+                    setattr(v, target, value)
+
+            uow.session.flush()  # type: ignore[union-attr]
+            uow.commit()
+
+        return self._to_preferences(v)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\visitor_service.py ---
+# app/services/visitor/visitor_service.py
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Callable, Optional, List
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.visitor import (
+    VisitorRepository,
+    HostelBookingRepository,
+    HostelReviewRepository,
+)
+from app.repositories.core import UserRepository
+from app.schemas.visitor import (
+    VisitorUpdate,
+    VisitorResponse,
+    VisitorDetail,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class VisitorService:
+    """
+    Core Visitor service (public-side profile):
+
+    - Get visitor detail (by user_id).
+    - Lightweight summary for header/profile.
+    - Update visitor preferences & notification flags.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_visitor_repo(self, uow: UnitOfWork) -> VisitorRepository:
+        return uow.get_repo(VisitorRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _get_booking_repo(self, uow: UnitOfWork) -> HostelBookingRepository:
+        return uow.get_repo(HostelBookingRepository)
+
+    def _get_review_repo(self, uow: UnitOfWork) -> HostelReviewRepository:
+        return uow.get_repo(HostelReviewRepository)
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Mapping
+    # ------------------------------------------------------------------ #
+    def _to_response(
+        self,
+        v,
+        *,
+        user,
+        total_bookings: int,
+        saved_hostels_count: int,
+    ) -> VisitorResponse:
+        return VisitorResponse(
+            id=v.id,
+            created_at=v.created_at,
+            updated_at=v.updated_at,
+            user_id=v.user_id,
+            full_name=user.full_name,
+            email=user.email,
+            phone=getattr(user, "phone", ""),
+            preferred_room_type=v.preferred_room_type,
+            budget_min=v.budget_min,
+            budget_max=v.budget_max,
+            preferred_cities=v.preferred_cities or [],
+            total_bookings=total_bookings,
+            saved_hostels_count=saved_hostels_count,
+            email_notifications=v.email_notifications,
+            sms_notifications=v.sms_notifications,
+            push_notifications=v.push_notifications,
+        )
+
+    def _to_detail(
+        self,
+        v,
+        *,
+        user,
+        total_bookings: int,
+        completed_bookings: int,
+        cancelled_bookings: int,
+        total_inquiries: int,
+        total_reviews: int,
+        avg_rating_given: Optional[Decimal],
+    ) -> VisitorDetail:
+        return VisitorDetail(
+            id=v.id,
+            created_at=v.created_at,
+            updated_at=v.updated_at,
+            user_id=v.user_id,
+            full_name=user.full_name,
+            email=user.email,
+            phone=getattr(user, "phone", ""),
+            profile_image_url=getattr(user, "profile_image_url", None),
+            preferred_room_type=v.preferred_room_type,
+            budget_min=v.budget_min,
+            budget_max=v.budget_max,
+            preferred_cities=v.preferred_cities or [],
+            preferred_amenities=v.preferred_amenities or [],
+            favorite_hostel_ids=v.favorite_hostel_ids or [],
+            total_saved_hostels=len(v.favorite_hostel_ids or []),
+            total_bookings=total_bookings,
+            completed_bookings=completed_bookings,
+            cancelled_bookings=cancelled_bookings,
+            total_inquiries=total_inquiries,
+            total_reviews_written=total_reviews,
+            average_rating_given=avg_rating_given,
+            email_notifications=v.email_notifications,
+            sms_notifications=v.sms_notifications,
+            push_notifications=v.push_notifications,
+            last_login=user.last_login_at,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def get_visitor_detail(self, user_id: UUID) -> VisitorDetail:
+        """
+        Fetch detailed visitor profile by core_user.id.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            booking_repo = self._get_booking_repo(uow)
+            review_repo = self._get_review_repo(uow)
+
+            user = user_repo.get(user_id)
+            if user is None:
+                raise errors.NotFoundError(f"User {user_id} not found")
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            # Bookings
+            bookings = booking_repo.list_for_visitor(v.id)
+            total_bookings = len(bookings)
+            completed_bookings = sum(
+                1
+                for b in bookings
+                if (b.booking_status or "").lower() in {"completed", "checked_out"}
+            )
+            cancelled_bookings = sum(
+                1 for b in bookings if (b.booking_status or "").lower() == "cancelled"
+            )
+
+            # Inquiries not directly modeled under visitor; placeholder
+            total_inquiries = 0
+
+            # Reviews
+            reviews = review_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters={"visitor_id": v.id},
+            )
+            total_reviews = len(reviews)
+            if total_reviews:
+                total_rating = sum(
+                    (Decimal(str(r.overall_rating)) for r in reviews), Decimal("0")
+                )
+                avg_rating_given: Optional[Decimal] = total_rating / Decimal(
+                    str(total_reviews)
+                )
+            else:
+                avg_rating_given = None
+
+        return self._to_detail(
+            v,
+            user=user,
+            total_bookings=total_bookings,
+            completed_bookings=completed_bookings,
+            cancelled_bookings=cancelled_bookings,
+            total_inquiries=total_inquiries,
+            total_reviews=total_reviews,
+            avg_rating_given=avg_rating_given,
+        )
+
+    def update_visitor(
+        self,
+        user_id: UUID,
+        data: VisitorUpdate,
+    ) -> VisitorDetail:
+        """
+        Update visitor profile fields (preferences & notification flags).
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            mapping = data.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(v, field) and field != "id":
+                    setattr(v, field, value)
+
+            uow.session.flush()  # type: ignore[union-attr]
+
+            # Reuse get_visitor_detail for full mapping
+            uow.commit()
+
+        return self.get_visitor_detail(user_id)
+
+    def get_summary(self, user_id: UUID) -> VisitorResponse:
+        """
+        Lightweight summary for a visitor (e.g., for header/profile).
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            visitor_repo = self._get_visitor_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            booking_repo = self._get_booking_repo(uow)
+
+            user = user_repo.get(user_id)
+            if user is None:
+                raise errors.NotFoundError(f"User {user_id} not found")
+
+            v = visitor_repo.get_by_user_id(user_id)
+            if v is None:
+                raise errors.NotFoundError(f"Visitor profile for user {user_id} not found")
+
+            bookings = booking_repo.list_for_visitor(v.id)
+            total_bookings = len(bookings)
+            saved_hostels_count = len(v.favorite_hostel_ids or [])
+
+        return self._to_response(
+            v,
+            user=user,
+            total_bookings=total_bookings,
+            saved_hostels_count=saved_hostels_count,
+        )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\visitor\__init__.py ---
+# app/services/visitor/__init__.py
+"""
+Visitor-facing services.
+
+- VisitorService:
+    Core profile retrieval and updates for Visitor (public side).
+
+- VisitorDashboardService:
+    Visitor dashboard aggregation (favorites, bookings, stats).
+
+- FavoritesService:
+    Manage favorites/wishlist for hostels.
+
+- VisitorPreferencesService:
+    Manage visitor preferences (budget, room type, notifications, etc.).
+
+- VisitorHostelSearchService:
+    Public hostel search facade (visitor_hostel).
+"""
+
+from .visitor_service import VisitorService
+from .visitor_dashboard_service import VisitorDashboardService
+from .favorites_service import FavoritesService
+from .visitor_preferences_service import VisitorPreferencesService
+from .visitor_hostel_search_service import VisitorHostelSearchService
+
+__all__ = [
+    "VisitorService",
+    "VisitorDashboardService",
+    "FavoritesService",
+    "VisitorPreferencesService",
+    "VisitorHostelSearchService",
+]

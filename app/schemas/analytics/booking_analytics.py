@@ -152,7 +152,7 @@ class BookingTrendPoint(BaseSchema):
     time-series visualization and trend analysis.
     """
     
-    date: date = Field(
+    trend_date: date = Field(
         ...,
         description="Date of the data point"
     )

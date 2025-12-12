@@ -29,8 +29,6 @@ from app.schemas.common.filters import DateRangeFilter
 from app.services.analytics import (
     OccupancyAnalyticsService,
     FinancialAnalyticsService,
-    BookingAnalyticsService,
-    ComplaintAnalyticsService,
 )
 from app.services.common import UnitOfWork, errors
 

@@ -41,7 +41,7 @@ class OccupancyDataPoint(BaseSchema):
     Represents occupancy at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     occupancy_rate: Decimal = Field(
         ...,
         ge=0,
@@ -135,7 +135,7 @@ class RevenueDataPoint(BaseSchema):
     Represents revenue metrics at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     revenue: Decimal = Field(
         ...,
         ge=0,
@@ -235,7 +235,7 @@ class BookingDataPoint(BaseSchema):
     Represents booking metrics at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     total_bookings: int = Field(
         ...,
         ge=0,

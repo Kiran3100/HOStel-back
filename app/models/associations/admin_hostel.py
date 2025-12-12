@@ -1,4 +1,4 @@
-# models/associations/admin_hostel.py
+# app.models/associations/admin_hostel.py
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import PermissionLevel
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class AdminHostel(BaseEntity):

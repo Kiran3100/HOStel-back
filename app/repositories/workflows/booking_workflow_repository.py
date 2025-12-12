@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.workflows import BookingWorkflow
+from app.models.workflows import BookingWorkflow
 
 
 class BookingWorkflowRepository(BaseRepository[BookingWorkflow]):

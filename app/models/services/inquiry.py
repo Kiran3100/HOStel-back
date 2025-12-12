@@ -1,4 +1,4 @@
-# models/services/inquiry.py
+# app.models/services/inquiry.py
 from __future__ import annotations
 
 from datetime import datetime, date
@@ -9,7 +9,7 @@ from sqlalchemy import Date, DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import InquiryStatus, RoomType
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Inquiry(BaseEntity):

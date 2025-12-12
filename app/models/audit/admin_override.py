@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, JSON, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class AdminOverride(BaseItem):

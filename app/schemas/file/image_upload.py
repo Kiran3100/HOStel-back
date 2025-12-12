@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.file.file_upload import FileUploadInitResponse

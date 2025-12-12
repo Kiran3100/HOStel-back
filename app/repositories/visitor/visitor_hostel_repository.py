@@ -7,7 +7,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.visitor import VisitorHostel
+from app.models.visitor import VisitorHostel
 
 
 class VisitorHostelRepository(BaseRepository[VisitorHostel]):

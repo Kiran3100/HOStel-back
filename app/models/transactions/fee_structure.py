@@ -1,4 +1,4 @@
-# models/transactions/fee_structure.py
+# app.models/transactions/fee_structure.py
 from __future__ import annotations
 
 from datetime import date
@@ -10,7 +10,7 @@ from sqlalchemy import Date, Enum as SAEnum, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.schemas.common.enums import RoomType, FeeType, ChargeType
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class FeeStructure(BaseEntity):

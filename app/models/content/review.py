@@ -1,4 +1,4 @@
-# models/content/review.py
+# app.models/content/review.py
 from __future__ import annotations
 
 from datetime import datetime, date
@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import Boolean, DateTime, Float, Integer, JSON, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class Review(BaseEntity):

@@ -1,0 +1,2572 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\utils ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\utils =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\date_utils.py ---
+# app/utils/date_utils.py
+from __future__ import annotations
+
+"""
+Date and time utility functions used across the project.
+
+Notes:
+- All "UTC" helpers use timezone-aware datetimes with `timezone.utc`.
+- `to_utc` assumes naïve datetimes are already in UTC and only attaches tzinfo
+  (it does not perform any timezone conversion for naïve datetimes).
+"""
+
+import logging
+from datetime import date, datetime, time, timedelta, timezone
+from typing import Iterator, Tuple
+
+logger = logging.getLogger(__name__)
+
+UTC = timezone.utc
+
+
+class DateUtilsError(Exception):
+    """Custom exception for date utilities errors."""
+    pass
+
+
+def now_utc() -> datetime:
+    """Return current UTC datetime (timezone-aware)."""
+    try:
+        return datetime.now(UTC)
+    except Exception as e:
+        logger.error(f"Failed to get current UTC time: {e}")
+        raise DateUtilsError("Failed to get current UTC time") from e
+
+
+def today_utc() -> date:
+    """Return today's date in UTC."""
+    try:
+        return now_utc().date()
+    except Exception as e:
+        logger.error(f"Failed to get today's UTC date: {e}")
+        raise DateUtilsError("Failed to get today's UTC date") from e
+
+
+def start_of_day(d: date, tz: timezone | None = UTC) -> datetime:
+    """Return the start (00:00:00) of a given date in the given timezone."""
+    if not isinstance(d, date):
+        raise DateUtilsError("Input must be a date object")
+    
+    try:
+        return datetime.combine(d, time.min).replace(tzinfo=tz)
+    except Exception as e:
+        logger.error(f"Failed to get start of day for {d}: {e}")
+        raise DateUtilsError(f"Failed to get start of day for {d}") from e
+
+
+def end_of_day(d: date, tz: timezone | None = UTC) -> datetime:
+    """Return the end (23:59:59.999999) of a given date in the given timezone."""
+    if not isinstance(d, date):
+        raise DateUtilsError("Input must be a date object")
+    
+    try:
+        return datetime.combine(d, time.max).replace(tzinfo=tz)
+    except Exception as e:
+        logger.error(f"Failed to get end of day for {d}: {e}")
+        raise DateUtilsError(f"Failed to get end of day for {d}") from e
+
+
+def to_utc(dt: datetime) -> datetime:
+    """
+    Convert a datetime to UTC.
+
+    - If naive, assumes it's already in UTC and only attaches tzinfo.
+    - If aware, converts to UTC.
+    """
+    if not isinstance(dt, datetime):
+        raise DateUtilsError("Input must be a datetime object")
+    
+    try:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC)
+        return dt.astimezone(UTC)
+    except Exception as e:
+        logger.error(f"Failed to convert datetime to UTC: {e}")
+        raise DateUtilsError("Failed to convert datetime to UTC") from e
+
+
+def strip_tz(dt: datetime) -> datetime:
+    """Return a naive datetime (drop timezone info) without converting."""
+    if not isinstance(dt, datetime):
+        raise DateUtilsError("Input must be a datetime object")
+    
+    return dt.replace(tzinfo=None)
+
+
+def parse_date(value: str, fmt: str = "%Y-%m-%d") -> date:
+    """Parse a date string with the given format (default 'YYYY-MM-DD')."""
+    if not isinstance(value, str) or not value.strip():
+        raise DateUtilsError("Date string cannot be empty")
+    
+    try:
+        return datetime.strptime(value.strip(), fmt).date()
+    except ValueError as e:
+        logger.error(f"Failed to parse date '{value}' with format '{fmt}': {e}")
+        raise DateUtilsError(f"Invalid date format. Expected format: {fmt}") from e
+
+
+def format_date(d: date, fmt: str = "%Y-%m-%d") -> str:
+    """Format a date as string with the given format."""
+    if not isinstance(d, date):
+        raise DateUtilsError("Input must be a date object")
+    
+    try:
+        return d.strftime(fmt)
+    except Exception as e:
+        logger.error(f"Failed to format date {d} with format '{fmt}': {e}")
+        raise DateUtilsError("Failed to format date") from e
+
+
+def parse_datetime(value: str, fmt: str = "%Y-%m-%dT%H:%M:%S") -> datetime:
+    """Parse a datetime string with the given format."""
+    if not isinstance(value, str) or not value.strip():
+        raise DateUtilsError("Datetime string cannot be empty")
+    
+    try:
+        return datetime.strptime(value.strip(), fmt)
+    except ValueError as e:
+        logger.error(f"Failed to parse datetime '{value}' with format '{fmt}': {e}")
+        raise DateUtilsError(f"Invalid datetime format. Expected format: {fmt}") from e
+
+
+def format_datetime(dt: datetime, fmt: str = "%Y-%m-%dT%H:%M:%S") -> str:
+    """Format a datetime as string with the given format."""
+    if not isinstance(dt, datetime):
+        raise DateUtilsError("Input must be a datetime object")
+    
+    try:
+        return dt.strftime(fmt)
+    except Exception as e:
+        logger.error(f"Failed to format datetime {dt} with format '{fmt}': {e}")
+        raise DateUtilsError("Failed to format datetime") from e
+
+
+def month_range(year: int, month: int) -> Tuple[date, date]:
+    """Return (first_day, last_day) of a given month."""
+    if not (1 <= month <= 12):
+        raise DateUtilsError("Month must be between 1 and 12")
+    
+    if not (1 <= year <= 9999):
+        raise DateUtilsError("Year must be between 1 and 9999")
+    
+    try:
+        from calendar import monthrange as _monthrange
+        first = date(year, month, 1)
+        last = date(year, month, _monthrange(year, month)[1])
+        return first, last
+    except Exception as e:
+        logger.error(f"Failed to get month range for {year}-{month}: {e}")
+        raise DateUtilsError(f"Failed to get month range for {year}-{month}") from e
+
+
+def daterange(start: date, end: date) -> Iterator[date]:
+    """
+    Yield all dates from start to end inclusive.
+    If start > end, yields nothing.
+    """
+    if not isinstance(start, date) or not isinstance(end, date):
+        raise DateUtilsError("Both start and end must be date objects")
+    
+    if start > end:
+        return
+    
+    try:
+        delta = (end - start).days
+        for i in range(delta + 1):
+            yield start + timedelta(days=i)
+    except Exception as e:
+        logger.error(f"Failed to generate date range from {start} to {end}: {e}")
+        raise DateUtilsError("Failed to generate date range") from e
+
+
+def weeks_between(start: date, end: date) -> int:
+    """Return number of full weeks between two dates."""
+    if not isinstance(start, date) or not isinstance(end, date):
+        raise DateUtilsError("Both start and end must be date objects")
+    
+    if start > end:
+        start, end = end, start
+    
+    try:
+        return (end - start).days // 7
+    except Exception as e:
+        logger.error(f"Failed to calculate weeks between {start} and {end}: {e}")
+        raise DateUtilsError("Failed to calculate weeks between dates") from e
+
+
+def is_business_day(d: date) -> bool:
+    """Return True if the date is a business day (Monday-Friday)."""
+    if not isinstance(d, date):
+        raise DateUtilsError("Input must be a date object")
+    
+    return d.weekday() < 5  # 0-4 are Monday-Friday
+
+
+def add_business_days(start: date, days: int) -> date:
+    """Add business days to a date, skipping weekends."""
+    if not isinstance(start, date):
+        raise DateUtilsError("Start must be a date object")
+    
+    if not isinstance(days, int):
+        raise DateUtilsError("Days must be an integer")
+    
+    try:
+        current = start
+        remaining_days = abs(days)
+        direction = 1 if days >= 0 else -1
+        
+        while remaining_days > 0:
+            current += timedelta(days=direction)
+            if is_business_day(current):
+                remaining_days -= 1
+        
+        return current
+    except Exception as e:
+        logger.error(f"Failed to add business days: {e}")
+        raise DateUtilsError("Failed to add business days") from e
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\email.py ---
+# app/utils/email.py
+from __future__ import annotations
+
+"""
+Email utilities: configuration, message structure, and SMTP-based sending.
+
+This module provides:
+- EmailMessage: validated email message dataclass.
+- EmailConfig: configuration loaded from environment variables.
+- build_email: convenience helper to construct EmailMessage.
+- send_email / send_email_async: SMTP-based sending functions.
+"""
+
+import logging
+import os
+import smtplib
+from dataclasses import dataclass
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Iterable, Mapping
+
+from .validators import is_valid_email
+
+logger = logging.getLogger(__name__)
+
+
+class EmailError(Exception):
+    """Custom exception for email operations."""
+    pass
+
+
+@dataclass
+class EmailMessage:
+    """Email message structure with validation."""
+    subject: str
+    to: list[str]
+    body_text: str | None = None
+    body_html: str | None = None
+    from_email: str | None = None
+    cc: list[str] | None = None
+    bcc: list[str] | None = None
+    headers: Mapping[str, str] | None = None
+
+    def __post_init__(self) -> None:
+        """Validate email message after initialization."""
+        if not self.subject.strip():
+            raise EmailError("Subject cannot be empty")
+        
+        if not self.to:
+            raise EmailError("At least one recipient is required")
+        
+        if not self.body_text and not self.body_html:
+            raise EmailError("Either body_text or body_html must be provided")
+        
+        # Validate email addresses
+        for email in self.to:
+            if not is_valid_email(email):
+                raise EmailError(f"Invalid recipient email: {email}")
+        
+        if self.cc:
+            for email in self.cc:
+                if not is_valid_email(email):
+                    raise EmailError(f"Invalid CC email: {email}")
+        
+        if self.bcc:
+            for email in self.bcc:
+                if not is_valid_email(email):
+                    raise EmailError(f"Invalid BCC email: {email}")
+
+
+@dataclass
+class EmailConfig:
+    """Email configuration."""
+    smtp_host: str
+    smtp_port: int
+    username: str
+    password: str
+    use_tls: bool = True
+    from_email: str | None = None
+
+    @classmethod
+    def from_env(cls) -> EmailConfig:
+        """Create email config from environment variables."""
+        return cls(
+            smtp_host=os.getenv("SMTP_HOST", "localhost"),
+            smtp_port=int(os.getenv("SMTP_PORT", "587")),
+            username=os.getenv("SMTP_USERNAME", ""),
+            password=os.getenv("SMTP_PASSWORD", ""),
+            use_tls=os.getenv("SMTP_USE_TLS", "true").lower() == "true",
+            from_email=os.getenv("FROM_EMAIL"),
+        )
+
+
+def build_email(
+    *,
+    subject: str,
+    to: Iterable[str],
+    body_text: str | None = None,
+    body_html: str | None = None,
+    from_email: str | None = None,
+    cc: Iterable[str] | None = None,
+    bcc: Iterable[str] | None = None,
+    headers: Mapping[str, str] | None = None,
+) -> EmailMessage:
+    """Helper to construct EmailMessage from typical arguments."""
+    return EmailMessage(
+        subject=subject,
+        to=list(to),
+        body_text=body_text,
+        body_html=body_html,
+        from_email=from_email,
+        cc=list(cc) if cc else None,
+        bcc=list(bcc) if bcc else None,
+        headers=headers,
+    )
+
+
+def send_email(message: EmailMessage, config: EmailConfig | None = None) -> None:
+    """Send an email using SMTP."""
+    if config is None:
+        config = EmailConfig.from_env()
+    
+    try:
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = message.subject
+        msg['From'] = message.from_email or config.from_email or config.username
+        msg['To'] = ', '.join(message.to)
+        
+        if message.cc:
+            msg['Cc'] = ', '.join(message.cc)
+        
+        # Add custom headers
+        if message.headers:
+            for key, value in message.headers.items():
+                msg[key] = value
+        
+        # Add text part
+        if message.body_text:
+            text_part = MIMEText(message.body_text, 'plain')
+            msg.attach(text_part)
+        
+        # Add HTML part
+        if message.body_html:
+            html_part = MIMEText(message.body_html, 'html')
+            msg.attach(html_part)
+        
+        # Get all recipients
+        recipients = message.to[:]
+        if message.cc:
+            recipients.extend(message.cc)
+        if message.bcc:
+            recipients.extend(message.bcc)
+        
+        # Send email
+        with smtplib.SMTP(config.smtp_host, config.smtp_port) as server:
+            if config.use_tls:
+                server.starttls()
+            
+            if config.username and config.password:
+                server.login(config.username, config.password)
+            
+            server.send_message(msg, to_addrs=recipients)
+        
+        logger.info(f"Email sent successfully to {len(recipients)} recipients")
+        
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        raise EmailError(f"Failed to send email: {e}") from e
+
+
+async def send_email_async(message: EmailMessage, config: EmailConfig | None = None) -> None:
+    """Send email asynchronously using asyncio."""
+    import asyncio
+    
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, send_email, message, config)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\file_handler.py ---
+# app/utils/file_handler.py
+from __future__ import annotations
+
+"""
+File handling utilities:
+- Filename sanitization and unique name generation.
+- Validation of file extensions, sizes, and MIME types.
+- Saving raw bytes or framework upload objects to disk.
+- Safe file deletion.
+"""
+
+import hashlib
+import logging
+import mimetypes
+import os
+import secrets
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# For frameworks like FastAPI
+try:
+    from starlette.datastructures import UploadFile
+except ImportError:
+    UploadFile = object  # type: ignore[misc,assignment]
+
+
+class FileHandlerError(Exception):
+    """Custom exception for file handling errors."""
+    pass
+
+
+# Allowed file extensions and MIME types
+ALLOWED_EXTENSIONS = {
+    'images': {'.jpg', '.jpeg', '.png', '.gif', '.webp'},
+    'documents': {'.pdf', '.doc', '.docx', '.txt', '.rtf'},
+    'spreadsheets': {'.xls', '.xlsx', '.csv'},
+    'archives': {'.zip', '.rar', '.7z'},
+}
+
+ALLOWED_MIME_TYPES = {
+    'images': {'image/jpeg', 'image/png', 'image/gif', 'image/webp'},
+    'documents': {'application/pdf', 'application/msword', 'text/plain'},
+    'spreadsheets': {'application/vnd.ms-excel', 'text/csv'},
+}
+
+# Precomputed unions for performance when no category is specified
+ALL_ALLOWED_EXTENSIONS = {
+    ext for exts in ALLOWED_EXTENSIONS.values() for ext in exts
+}
+ALL_ALLOWED_MIME_TYPES = {
+    mime for mset in ALLOWED_MIME_TYPES.values() for mime in mset
+}
+
+# Maximum file sizes (in bytes)
+MAX_FILE_SIZES = {
+    'images': 10 * 1024 * 1024,      # 10MB
+    'documents': 50 * 1024 * 1024,   # 50MB
+    'default': 5 * 1024 * 1024,      # 5MB
+}
+
+# Filesystem permissions
+DIR_PERMISSIONS = 0o755
+FILE_PERMISSIONS = 0o644
+
+
+def safe_filename(filename: str) -> str:
+    """Generate a safe filename by stripping directory components and unsafe chars."""
+    if not filename or not isinstance(filename, str):
+        raise FileHandlerError("Filename must be a non-empty string")
+    
+    # Get basename to prevent directory traversal
+    name = os.path.basename(filename)
+    
+    # Remove potentially dangerous characters
+    safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._- ")
+    name = "".join(ch for ch in name if ch in safe_chars)
+    
+    # Remove leading dots and dashes
+    name = name.lstrip(".-")
+    
+    if not name:
+        raise FileHandlerError("Filename contains no valid characters")
+    
+    # Limit length
+    if len(name) > 255:
+        stem, ext = os.path.splitext(name)
+        max_stem = 255 - len(ext)
+        name = stem[:max_stem] + ext
+    
+    return name
+
+
+def generate_unique_filename(original_name: str, *, prefix: str | None = None) -> str:
+    """Generate a unique filename with the same extension."""
+    safe_name = safe_filename(original_name)
+    stem, ext = os.path.splitext(safe_name)
+    
+    # Generate unique token
+    token = secrets.token_hex(8)
+    
+    # Build new name
+    if prefix:
+        new_name = f"{prefix}_{stem}_{token}{ext}"
+    else:
+        new_name = f"{stem}_{token}{ext}"
+    
+    return new_name
+
+
+def validate_file_extension(filename: str, category: str | None = None) -> bool:
+    """Validate file extension against allowed types."""
+    ext = os.path.splitext(filename)[1].lower()
+    
+    if category and category in ALLOWED_EXTENSIONS:
+        return ext in ALLOWED_EXTENSIONS[category]
+    
+    # Check all categories if none specified or category not recognized
+    return ext in ALL_ALLOWED_EXTENSIONS
+
+
+def validate_file_size(size: int, category: str | None = None) -> bool:
+    """Validate file size against limits."""
+    max_size = MAX_FILE_SIZES.get(category, MAX_FILE_SIZES['default'])
+    return 0 < size <= max_size
+
+
+def validate_mime_type(mime_type: str, category: str | None = None) -> bool:
+    """Validate MIME type against allowed types."""
+    if category and category in ALLOWED_MIME_TYPES:
+        return mime_type in ALLOWED_MIME_TYPES[category]
+    
+    # Check all categories if none specified or category not recognized
+    return mime_type in ALL_ALLOWED_MIME_TYPES
+
+
+def get_file_hash(data: bytes) -> str:
+    """Generate SHA-256 hash of file content."""
+    return hashlib.sha256(data).hexdigest()
+
+
+def ensure_directory(path: str | Path) -> None:
+    """Ensure directory exists with proper permissions."""
+    try:
+        path_obj = Path(path)
+        path_obj.mkdir(parents=True, exist_ok=True, mode=DIR_PERMISSIONS)
+        logger.debug(f"Ensured directory exists: {path}")
+    except Exception as e:
+        logger.error(f"Failed to create directory {path}: {e}")
+        raise FileHandlerError(f"Failed to create directory: {e}") from e
+
+
+def save_bytes_to_path(
+    data: bytes, 
+    path: str | Path, 
+    *, 
+    validate: bool = True,
+    category: str | None = None
+) -> dict[str, str]:
+    """
+    Save raw bytes to a file with validation.
+    Returns file info including path and hash.
+    """
+    if not isinstance(data, bytes):
+        raise FileHandlerError("Data must be bytes")
+    
+    if not data:
+        raise FileHandlerError("Data cannot be empty")
+    
+    path_obj = Path(path)
+    
+    if validate:
+        # Validate file size
+        if not validate_file_size(len(data), category):
+            max_size = MAX_FILE_SIZES.get(category, MAX_FILE_SIZES['default'])
+            raise FileHandlerError(f"File size exceeds limit of {max_size} bytes")
+        
+        # Validate extension
+        if not validate_file_extension(path_obj.name, category):
+            raise FileHandlerError(f"File extension not allowed for category: {category}")
+        
+        # Validate MIME type
+        mime_type, _ = mimetypes.guess_type(str(path_obj))
+        if mime_type and not validate_mime_type(mime_type, category):
+            raise FileHandlerError(f"MIME type not allowed: {mime_type}")
+    
+    try:
+        ensure_directory(path_obj.parent)
+        
+        # Generate file hash
+        file_hash = get_file_hash(data)
+        
+        # Write file with secure permissions
+        path_obj.write_bytes(data)
+        path_obj.chmod(FILE_PERMISSIONS)
+        
+        logger.info(f"File saved: {path_obj} (hash: {file_hash[:8]}...)")
+        
+        return {
+            'path': str(path_obj),
+            'filename': path_obj.name,
+            'size': str(len(data)),
+            'hash': file_hash,
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to save file {path}: {e}")
+        raise FileHandlerError(f"Failed to save file: {e}") from e
+
+
+async def save_upload_file(
+    upload: UploadFile,  # type: ignore[valid-type]
+    destination_dir: str | Path,
+    *,
+    filename: str | None = None,
+    category: str | None = None,
+    max_size: int | None = None,
+) -> dict[str, str]:
+    """
+    Save an UploadFile with comprehensive validation.
+    Returns file info.
+    """
+    if not hasattr(upload, 'filename') or not upload.filename:
+        raise FileHandlerError("Upload file must have a filename")
+    
+    if not hasattr(upload, 'size'):
+        # Read content to check size
+        content = await upload.read()
+        await upload.seek(0)  # Reset file pointer
+        upload.size = len(content)
+    
+    # Validate file size
+    file_size = getattr(upload, 'size', 0)
+    if max_size and file_size > max_size:
+        raise FileHandlerError(f"File size {file_size} exceeds limit {max_size}")
+    
+    if not validate_file_size(file_size, category):
+        max_allowed = MAX_FILE_SIZES.get(category, MAX_FILE_SIZES['default'])
+        raise FileHandlerError(f"File size exceeds limit of {max_allowed} bytes")
+    
+    # Generate safe filename
+    original_name = upload.filename
+    final_name = filename or generate_unique_filename(original_name)
+    
+    # Validate extension
+    if not validate_file_extension(final_name, category):
+        raise FileHandlerError(f"File extension not allowed for category: {category}")
+    
+    # Validate MIME type if available
+    if hasattr(upload, 'content_type') and upload.content_type:
+        if not validate_mime_type(upload.content_type, category):
+            raise FileHandlerError(f"MIME type not allowed: {upload.content_type}")
+    
+    dest_dir = Path(destination_dir)
+    dest_path = dest_dir / final_name
+    
+    try:
+        ensure_directory(dest_dir)
+        
+        # Read and save content
+        content = await upload.read()
+        
+        if not content:
+            raise FileHandlerError("Upload file is empty")
+        
+        return save_bytes_to_path(content, dest_path, validate=False, category=category)
+        
+    except Exception as e:
+        logger.error(f"Failed to save upload file: {e}")
+        raise FileHandlerError(f"Failed to save upload file: {e}") from e
+
+
+def delete_file(path: str | Path) -> None:
+    """Safely delete a file."""
+    try:
+        path_obj = Path(path)
+        if path_obj.exists() and path_obj.is_file():
+            path_obj.unlink()
+            logger.info(f"File deleted: {path_obj}")
+        else:
+            logger.warning(f"File not found or not a file: {path_obj}")
+    except Exception as e:
+        logger.error(f"Failed to delete file {path}: {e}")
+        raise FileHandlerError(f"Failed to delete file: {e}") from e
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\formatters.py ---
+# app/utils/formatters.py
+from __future__ import annotations
+
+"""
+Formatting utilities:
+- Currency formatting (including Indian system).
+- Conversion of amounts to words (INR-focused).
+- Date and datetime formatting.
+- Duration and percentage humanization.
+- Masking of email/phone/Aadhar/PAN.
+- File size and generic number formatting.
+- Text truncation.
+"""
+
+import logging
+import re
+from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from typing import Any, Literal
+
+logger = logging.getLogger(__name__)
+
+# Constants for formatting
+CURRENCY_SYMBOLS = {
+    "INR": "₹",
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+}
+
+
+class FormatterError(Exception):
+    """Custom exception for formatter errors."""
+    pass
+
+
+def safe_decimal(value: Any, field_name: str = "value") -> Decimal:
+    """
+    Safely convert value to Decimal with error handling.
+
+    Non-numeric characters (except digits, '.' and '-') are removed
+    before parsing when the input is a string.
+    """
+    try:
+        if isinstance(value, Decimal):
+            return value
+        if isinstance(value, (int, float)):
+            return Decimal(str(value))
+        if isinstance(value, str):
+            # Remove currency symbols and spaces and any non-numeric characters
+            cleaned = re.sub(r'[^\d.-]', '', value.strip())
+            if not cleaned:
+                raise FormatterError(f"Invalid {field_name}: empty after cleaning")
+            return Decimal(cleaned)
+        raise FormatterError(f"Invalid {field_name} type: {type(value)}")
+    except (InvalidOperation, ValueError) as e:
+        logger.error(f"Failed to convert {field_name} '{value}' to Decimal: {e}")
+        raise FormatterError(f"Invalid {field_name} format: {value}") from e
+
+
+def format_currency(
+    amount: Decimal | float | int | str, 
+    currency: str = "INR",
+    *,
+    show_symbol: bool = True,
+    show_code: bool = False,
+    decimals: int = 2,
+    indian_format: bool = True,
+) -> str:
+    """
+    Format a numeric amount with currency formatting.
+    
+    Args:
+        amount: The amount to format.
+        currency: Currency code (INR, USD, EUR, etc.).
+        show_symbol: Whether to show currency symbol (₹, $, etc.).
+        show_code: Whether to show currency code (INR, USD, etc.).
+        decimals: Number of decimal places.
+        indian_format: Use Indian number formatting (1,00,000 vs 100,000)
+                       when currency is INR.
+    """
+    try:
+        dec = safe_decimal(amount, "amount")
+        
+        # Validate currency
+        currency = currency.upper().strip()
+        if not currency:
+            raise FormatterError("Currency cannot be empty")
+        
+        # Validate decimals
+        if not isinstance(decimals, int) or decimals < 0:
+            raise FormatterError("Decimals must be a non-negative integer")
+        
+        # Format the number
+        if decimals == 0:
+            formatted_amount = str(int(dec))
+        else:
+            formatted_amount = f"{dec:.{decimals}f}"
+        
+        # Apply number formatting
+        if indian_format and currency == "INR":
+            formatted_amount = format_indian_number(formatted_amount)
+        else:
+            # Standard Western formatting
+            parts = formatted_amount.split('.')
+            parts[0] = f"{int(parts[0]):,}"
+            formatted_amount = '.'.join(parts)
+        
+        # Build result with symbols/codes
+        result_parts = []
+        
+        if show_symbol and currency in CURRENCY_SYMBOLS:
+            result_parts.append(CURRENCY_SYMBOLS[currency])
+        
+        result_parts.append(formatted_amount)
+        
+        if show_code:
+            result_parts.append(currency)
+        
+        # If neither symbol nor code requested, default to code
+        if not show_symbol and not show_code:
+            result_parts.append(currency)
+        
+        return " ".join(result_parts)
+        
+    except Exception as e:
+        logger.error(f"Failed to format currency: {e}")
+        raise FormatterError(f"Failed to format currency: {e}") from e
+
+
+def format_indian_number(number_str: str) -> str:
+    """Format number with Indian numbering system (lakhs, crores)."""
+    try:
+        # Split into integer and decimal parts
+        if '.' in number_str:
+            integer_part, decimal_part = number_str.split('.')
+            decimal_part = '.' + decimal_part
+        else:
+            integer_part = number_str
+            decimal_part = ''
+        
+        # Reverse for easier processing
+        reversed_digits = integer_part[::-1]
+        
+        # Apply Indian grouping: first group of 3, then groups of 2
+        groups = []
+        if len(reversed_digits) > 3:
+            groups.append(reversed_digits[:3])
+            remaining = reversed_digits[3:]
+            while remaining:
+                groups.append(remaining[:2])
+                remaining = remaining[2:]
+        else:
+            groups.append(reversed_digits)
+        
+        # Join groups and reverse back
+        formatted = ','.join(groups)[::-1]
+        return formatted + decimal_part
+        
+    except Exception as e:
+        logger.warning(f"Failed to apply Indian number formatting: {e}")
+        return number_str  # Return original on error
+
+
+def format_currency_words(amount: Decimal | float | int | str, currency: str = "INR") -> str:
+    """Convert amount to words (Indian system for INR, simple units for others)."""
+    try:
+        dec = safe_decimal(amount, "amount")
+        
+        if currency.upper() == "INR":
+            return format_inr_words(dec)
+        else:
+            return format_number_words(dec) + f" {currency.upper()}"
+            
+    except Exception as e:
+        logger.error(f"Failed to format currency words: {e}")
+        return f"{amount} {currency}"
+
+
+def format_inr_words(amount: Decimal) -> str:
+    """Convert INR amount to words using Indian system (Rupees and Paise)."""
+    try:
+        # Split into rupees and paise
+        rupees = int(amount)
+        paise = int((amount - rupees) * 100)
+        
+        def convert_to_words(n: int) -> str:
+            ones = [
+                "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                "seventeen", "eighteen", "nineteen",
+            ]
+            
+            tens = [
+                "", "", "twenty", "thirty", "forty", "fifty",
+                "sixty", "seventy", "eighty", "ninety",
+            ]
+            
+            if n == 0:
+                return ""
+            elif n < 20:
+                return ones[n]
+            elif n < 100:
+                return tens[n // 10] + ("" if n % 10 == 0 else " " + ones[n % 10])
+            elif n < 1000:
+                return ones[n // 100] + " hundred" + ("" if n % 100 == 0 else " " + convert_to_words(n % 100))
+            elif n < 100000:  # thousands
+                return convert_to_words(n // 1000) + " thousand" + ("" if n % 1000 == 0 else " " + convert_to_words(n % 1000))
+            elif n < 10000000:  # lakhs
+                return convert_to_words(n // 100000) + " lakh" + ("" if n % 100000 == 0 else " " + convert_to_words(n % 100000))
+            else:  # crores
+                return convert_to_words(n // 10000000) + " crore" + ("" if n % 10000000 == 0 else " " + convert_to_words(n % 10000000))
+        
+        result: list[str] = []
+        
+        if rupees > 0:
+            result.append(convert_to_words(rupees).strip())
+            result.append("rupee" if rupees == 1 else "rupees")
+        
+        if paise > 0:
+            if result:
+                result.append("and")
+            result.append(convert_to_words(paise).strip())
+            result.append("paisa" if paise == 1 else "paise")
+        
+        if not result:
+            return "zero rupees"
+        
+        return " ".join(result).title()
+        
+    except Exception as e:
+        logger.error(f"Failed to convert INR to words: {e}")
+        return f"₹{amount}"
+
+
+def format_number_words(amount: Decimal) -> str:
+    """Convert number to words (simplified, Western system)."""
+    try:
+        return f"{amount} units"
+    except Exception as e:
+        logger.error(f"Failed to convert number to words: {e}")
+        return str(amount)
+
+
+def format_date_short(d: date | datetime | None, format_type: str = "short") -> str:
+    """
+    Format a date with various format options.
+    
+    Args:
+        d: Date or datetime to format. If datetime, only the date part is used.
+        format_type: 'short', 'medium', 'long', 'iso', 'indian'.
+    """
+    if d is None:
+        return ""
+    
+    try:
+        # Extract date if datetime
+        if isinstance(d, datetime):
+            d = d.date()
+        
+        if not isinstance(d, date):
+            raise FormatterError(f"Expected date or datetime, got {type(d)}")
+        
+        formats = {
+            "short": "%d %b %Y",           # 05 Jan 2025
+            "medium": "%d %B %Y",          # 05 January 2025  
+            "long": "%A, %d %B %Y",        # Sunday, 05 January 2025
+            "iso": "%Y-%m-%d",             # 2025-01-05
+            "indian": "%d/%m/%Y",          # 05/01/2025
+        }
+        
+        fmt = formats.get(format_type, formats["short"])
+        return d.strftime(fmt)
+        
+    except Exception as e:
+        logger.error(f"Failed to format date: {e}")
+        return str(d) if d else ""
+
+
+def format_datetime_short(dt: datetime | None, format_type: str = "short", include_seconds: bool = False) -> str:
+    """
+    Format a datetime with various options.
+    
+    Args:
+        dt: Datetime to format.
+        format_type: 'short', 'medium', 'long', 'iso', 'indian'.
+        include_seconds: Whether to include seconds.
+    """
+    if dt is None:
+        return ""
+    
+    try:
+        if not isinstance(dt, datetime):
+            raise FormatterError(f"Expected datetime, got {type(dt)}")
+        
+        time_format = "%H:%M:%S" if include_seconds else "%H:%M"
+        
+        formats = {
+            "short": f"%d %b %Y {time_format}",           # 05 Jan 2025 14:30
+            "medium": f"%d %B %Y {time_format}",          # 05 January 2025 14:30:45
+            "long": f"%A, %d %B %Y {time_format}",        # Sunday, 05 January 2025 14:30:45
+            "iso": f"%Y-%m-%dT{time_format}",             # 2025-01-05T14:30:45
+            "indian": f"%d/%m/%Y {time_format}",          # 05/01/2025 14:30
+        }
+        
+        fmt = formats.get(format_type, formats["short"])
+        return dt.strftime(fmt)
+        
+    except Exception as e:
+        logger.error(f"Failed to format datetime: {e}")
+        return str(dt) if dt else ""
+
+
+def format_date_range(
+    start: date | datetime | None, 
+    end: date | datetime | None, 
+    format_type: str = "short"
+) -> str:
+    """Return a human-friendly representation of a date range."""
+    try:
+        start_str = format_date_short(start, format_type) if start else None
+        end_str = format_date_short(end, format_type) if end else None
+        
+        if start_str and end_str:
+            # Check if same date
+            if start_str == end_str:
+                return start_str
+            return f"{start_str} – {end_str}"
+        
+        if start_str:
+            return f"from {start_str}"
+        
+        if end_str:
+            return f"until {end_str}"
+        
+        return ""
+        
+    except Exception as e:
+        logger.error(f"Failed to format date range: {e}")
+        return ""
+
+
+def format_duration(
+    start: datetime, 
+    end: datetime | None = None, 
+    precision: Literal["days", "hours", "minutes", "seconds"] = "minutes"
+) -> str:
+    """Format duration between two datetimes."""
+    try:
+        if end is None:
+            end = datetime.now()
+        
+        if not isinstance(start, datetime) or not isinstance(end, datetime):
+            raise FormatterError("Both start and end must be datetime objects")
+        
+        if start > end:
+            start, end = end, start
+        
+        delta = end - start
+        
+        if precision == "days":
+            return f"{delta.days} day{'s' if delta.days != 1 else ''}"
+        
+        total_seconds = int(delta.total_seconds())
+        
+        if precision == "seconds":
+            return f"{total_seconds} second{'s' if total_seconds != 1 else ''}"
+        
+        total_minutes = total_seconds // 60
+        if precision == "minutes":
+            return f"{total_minutes} minute{'s' if total_minutes != 1 else ''}"
+        
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        
+        if hours == 0:
+            return f"{minutes} minute{'s' if minutes != 1 else ''}"
+        elif minutes == 0:
+            return f"{hours} hour{'s' if hours != 1 else ''}"
+        else:
+            return f"{hours}h {minutes}m"
+            
+    except Exception as e:
+        logger.error(f"Failed to format duration: {e}")
+        return "Unknown duration"
+
+
+def mask_email(email: str, mask_char: str = "*", show_domain: bool = True) -> str:
+    """
+    Mask an email address for privacy.
+    
+    Args:
+        email: Email to mask. Will be lowercased.
+        mask_char: Character to use for masking.
+        show_domain: Whether to show the domain part.
+    """
+    try:
+        if not isinstance(email, str) or not email.strip():
+            return email
+        
+        email = email.strip().lower()
+        
+        if "@" not in email:
+            # Not a valid email, mask most of it
+            if len(email) <= 2:
+                return mask_char * len(email)
+            return email[0] + mask_char * (len(email) - 2) + email[-1]
+        
+        name, domain = email.split("@", 1)
+        
+        if not name:
+            return f"{mask_char * 3}@{domain if show_domain else mask_char * len(domain)}"
+        
+        # Mask the name part
+        if len(name) == 1:
+            masked_name = mask_char
+        elif len(name) == 2:
+            masked_name = name[0] + mask_char
+        else:
+            masked_name = name[0] + mask_char * (len(name) - 2) + name[-1]
+        
+        if show_domain:
+            return f"{masked_name}@{domain}"
+        else:
+            return f"{masked_name}@{mask_char * len(domain)}"
+            
+    except Exception as e:
+        logger.error(f"Failed to mask email: {e}")
+        return email
+
+
+def mask_phone(phone: str, mask_char: str = "*", show_last: int = 4) -> str:
+    """
+    Mask a phone number for privacy.
+    
+    Args:
+        phone: Phone number to mask.
+        mask_char: Character to use for masking.
+        show_last: Number of digits to show at the end.
+    """
+    try:
+        if not isinstance(phone, str) or not phone.strip():
+            return phone
+        
+        # Extract only digits
+        digits = "".join(ch for ch in phone if ch.isdigit())
+        
+        if not digits:
+            return phone  # Return original if no digits found
+        
+        if len(digits) <= show_last:
+            return mask_char * len(digits)
+        
+        # Preserve original formatting structure
+        masked = phone
+        digits_replaced = 0
+        digits_to_mask = len(digits) - show_last
+        
+        for i, char in enumerate(phone):
+            if char.isdigit() and digits_replaced < digits_to_mask:
+                masked = masked[:i] + mask_char + masked[i+1:]
+                digits_replaced += 1
+        
+        return masked
+        
+    except Exception as e:
+        logger.error(f"Failed to mask phone: {e}")
+        return phone
+
+
+def mask_aadhar(aadhar: str, mask_char: str = "*") -> str:
+    """Mask Aadhar number showing only last 4 digits."""
+    try:
+        if not isinstance(aadhar, str):
+            return aadhar
+        
+        # Remove spaces and extract digits
+        digits = "".join(ch for ch in aadhar if ch.isdigit())
+        
+        if len(digits) != 12:
+            return aadhar  # Return original if not valid Aadhar format
+        
+        # Format: XXXX XXXX 1234
+        masked_digits = mask_char * 8 + digits[-4:]
+        return f"{masked_digits[:4]} {masked_digits[4:8]} {masked_digits[8:]}"
+        
+    except Exception as e:
+        logger.error(f"Failed to mask Aadhar: {e}")
+        return aadhar
+
+
+def mask_pan(pan: str, mask_char: str = "*") -> str:
+    """Mask PAN number showing only last character."""
+    try:
+        if not isinstance(pan, str) or len(pan) != 10:
+            return pan
+        
+        # Format: ABCD*****Z
+        return pan[:4] + mask_char * 5 + pan[-1:]
+        
+    except Exception as e:
+        logger.error(f"Failed to mask PAN: {e}")
+        return pan
+
+
+def humanize_percentage(
+    value: Decimal | float | int | str, 
+    *, 
+    decimals: int = 2,
+    show_sign: bool = True
+) -> str:
+    """Format a number as percentage with given decimals."""
+    try:
+        dec = safe_decimal(value, "percentage value")
+        
+        if decimals < 0:
+            raise FormatterError("Decimals must be non-negative")
+        
+        formatted = f"{dec:.{decimals}f}"
+        
+        if show_sign:
+            formatted += "%"
+        
+        return formatted
+        
+    except Exception as e:
+        logger.error(f"Failed to format percentage: {e}")
+        return str(value)
+
+
+def format_file_size(size_bytes: int, binary: bool = True) -> str:
+    """
+    Format file size in human readable format.
+    
+    Args:
+        size_bytes: Size in bytes.
+        binary: Use binary (1024) or decimal (1000) units.
+    """
+    try:
+        if not isinstance(size_bytes, int) or size_bytes < 0:
+            raise FormatterError("Size must be a non-negative integer")
+        
+        if size_bytes == 0:
+            return "0 B"
+        
+        base = 1024 if binary else 1000
+        units = (
+            ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+            if binary
+            else ["B", "KB", "MB", "GB", "TB", "PB"]
+        )
+        
+        import math
+        unit_index = min(int(math.log(size_bytes, base)), len(units) - 1)
+        
+        if unit_index == 0:
+            return f"{size_bytes} {units[0]}"
+        
+        size = size_bytes / (base ** unit_index)
+        
+        # Format with appropriate precision
+        if size >= 100:
+            return f"{size:.0f} {units[unit_index]}"
+        elif size >= 10:
+            return f"{size:.1f} {units[unit_index]}"
+        else:
+            return f"{size:.2f} {units[unit_index]}"
+            
+    except Exception as e:
+        logger.error(f"Failed to format file size: {e}")
+        return f"{size_bytes} bytes"
+
+
+def format_number(
+    value: Decimal | float | int | str,
+    *,
+    decimals: int = 2,
+    thousands_separator: str = ",",
+    decimal_separator: str = ".",
+    indian_format: bool = False
+) -> str:
+    """
+    Format a number with custom separators and precision.
+    
+    Args:
+        value: Number to format.
+        decimals: Number of decimal places.
+        thousands_separator: Separator for thousands.
+        decimal_separator: Separator for decimals.
+        indian_format: Use Indian number formatting when True.
+    """
+    try:
+        dec = safe_decimal(value, "number")
+        
+        if decimals < 0:
+            raise FormatterError("Decimals must be non-negative")
+        
+        # Format with specified decimals
+        if decimals == 0:
+            formatted = str(int(dec))
+        else:
+            formatted = f"{dec:.{decimals}f}"
+        
+        # Apply number grouping
+        if indian_format:
+            formatted = format_indian_number(formatted)
+        else:
+            # Standard formatting
+            parts = formatted.split('.')
+            # Add thousands separators
+            integer_part = parts[0]
+            if len(integer_part) > 3:
+                # Reverse, add separators every 3 digits, reverse back
+                reversed_int = integer_part[::-1]
+                grouped = thousands_separator.join(
+                    [reversed_int[i:i+3] for i in range(0, len(reversed_int), 3)]
+                )
+                integer_part = grouped[::-1]
+            
+            formatted = integer_part
+            if len(parts) > 1:
+                formatted += decimal_separator + parts[1]
+        
+        # Replace default separators if different
+        if thousands_separator != "," or decimal_separator != ".":
+            formatted = formatted.replace(",", "TEMP_THOUSANDS")
+            formatted = formatted.replace(".", decimal_separator)
+            formatted = formatted.replace("TEMP_THOUSANDS", thousands_separator)
+        
+        return formatted
+        
+    except Exception as e:
+        logger.error(f"Failed to format number: {e}")
+        return str(value)
+
+
+def truncate_text(
+    text: str, 
+    max_length: int, 
+    suffix: str = "…",
+    word_boundary: bool = True
+) -> str:
+    """
+    Truncate text to specified length with options.
+    
+    Args:
+        text: Text to truncate.
+        max_length: Maximum length including suffix.
+        suffix: Suffix to add when truncating.
+        word_boundary: Whether to break at word boundaries (using spaces).
+    """
+    try:
+        if not isinstance(text, str):
+            text = str(text)
+        
+        if not isinstance(max_length, int) or max_length < 1:
+            raise FormatterError("max_length must be a positive integer")
+        
+        if len(text) <= max_length:
+            return text
+        
+        if max_length <= len(suffix):
+            return suffix[:max_length]
+        
+        available_length = max_length - len(suffix)
+        
+        if word_boundary:
+            # Find the last space within the available length
+            truncated = text[:available_length]
+            last_space = truncated.rfind(' ')
+            
+            if last_space > 0:
+                truncated = text[:last_space]
+            
+            return truncated + suffix
+        else:
+            return text[:available_length] + suffix
+            
+    except Exception as e:
+        logger.error(f"Failed to truncate text: {e}")
+        return text
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\sms.py ---
+# app/utils/sms.py
+from __future__ import annotations
+
+"""
+SMS utilities:
+- Normalization and validation of phone numbers (E.164, Indian focus).
+- SMS provider abstraction (Twilio, MSG91, TextLocal).
+- Rate limiting and retry logic for outbound SMS.
+- OTP generation and standardized OTP message construction.
+"""
+
+import asyncio
+import logging
+import os
+import re
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Mapping
+
+logger = logging.getLogger(__name__)
+
+# Indian mobile number patterns
+INDIAN_MOBILE_PATTERN = re.compile(r'^(\+91|91|0)?[6-9]\d{9}$')
+INTERNATIONAL_PATTERN = re.compile(r'^\+[1-9]\d{6,14}$')
+
+# SMS limits
+MAX_SMS_LENGTH_GSM = 160
+MAX_SMS_LENGTH_UNICODE = 70
+MAX_CONCAT_PARTS = 6
+
+
+class SMSError(Exception):
+    """Base exception for SMS operations."""
+    pass
+
+
+class SMSValidationError(SMSError):
+    """SMS validation error."""
+    pass
+
+
+class SMSDeliveryError(SMSError):
+    """SMS delivery error."""
+    pass
+
+
+class SMSRateLimitError(SMSError):
+    """SMS rate limit exceeded."""
+    pass
+
+
+class SMSStatus(Enum):
+    """SMS delivery status."""
+    PENDING = "pending"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    FAILED = "failed"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class SMSProvider(Enum):
+    """Supported SMS providers."""
+    TWILIO = "twilio"
+    AWS_SNS = "aws_sns"
+    TEXTLOCAL = "textlocal"
+    MSG91 = "msg91"
+    GUPSHUP = "gupshup"
+    FAST2SMS = "fast2sms"
+
+
+@dataclass
+class SMSMessage:
+    """SMS message structure with validation."""
+    phone: str
+    message: str
+    sender_id: str | None = None
+    template_id: str | None = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    priority: int = 1  # 1=high, 2=normal, 3=low
+    schedule_at: datetime | None = None
+    expire_at: datetime | None = None
+    
+    def __post_init__(self) -> None:
+        """Validate SMS message after initialization."""
+        self.phone = normalize_phone_number(self.phone)
+        
+        if not is_valid_phone_number(self.phone):
+            raise SMSValidationError(f"Invalid phone number: {self.phone}")
+        
+        if not self.message or not self.message.strip():
+            raise SMSValidationError("SMS message cannot be empty")
+        
+        # Validate message length
+        if len(self.message) > MAX_SMS_LENGTH_GSM * MAX_CONCAT_PARTS:
+            raise SMSValidationError(
+                f"SMS message too long. Maximum {MAX_SMS_LENGTH_GSM * MAX_CONCAT_PARTS} characters allowed"
+            )
+        
+        # Validate priority
+        if not isinstance(self.priority, int) or not 1 <= self.priority <= 3:
+            raise SMSValidationError("Priority must be 1 (high), 2 (normal), or 3 (low)")
+        
+        # Validate schedule time
+        if self.schedule_at and self.schedule_at < datetime.now():
+            raise SMSValidationError("Schedule time cannot be in the past")
+        
+        # Validate expiry
+        if self.expire_at and self.expire_at < datetime.now():
+            raise SMSValidationError("Expiry time cannot be in the past")
+        
+        if self.schedule_at and self.expire_at and self.schedule_at >= self.expire_at:
+            raise SMSValidationError("Schedule time must be before expiry time")
+
+
+@dataclass
+class SMSResult:
+    """Result of SMS sending operation."""
+    success: bool
+    message_id: str | None = None
+    status: SMSStatus = SMSStatus.PENDING
+    error: str | None = None
+    cost: float | None = None
+    parts: int = 1
+    provider: str | None = None
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class SMSConfig:
+    """SMS provider configuration."""
+    provider: SMSProvider
+    api_key: str
+    api_secret: str | None = None
+    sender_id: str | None = None
+    base_url: str | None = None
+    webhook_url: str | None = None
+    rate_limit_per_minute: int = 100
+    rate_limit_per_hour: int = 1000
+    rate_limit_per_day: int = 10000
+    retry_attempts: int = 3
+    retry_delay: float = 1.0
+    timeout: int = 30
+    
+    @classmethod
+    def from_env(cls, provider: SMSProvider | str | None = None) -> SMSConfig:
+        """Create SMS config from environment variables."""
+        if isinstance(provider, str):
+            provider = SMSProvider(provider)
+        elif provider is None:
+            provider = SMSProvider(os.getenv("SMS_PROVIDER", "twilio"))
+        
+        return cls(
+            provider=provider,
+            api_key=os.getenv("SMS_API_KEY", ""),
+            api_secret=os.getenv("SMS_API_SECRET"),
+            sender_id=os.getenv("SMS_SENDER_ID"),
+            base_url=os.getenv("SMS_BASE_URL"),
+            webhook_url=os.getenv("SMS_WEBHOOK_URL"),
+            rate_limit_per_minute=int(os.getenv("SMS_RATE_LIMIT_PER_MINUTE", "100")),
+            rate_limit_per_hour=int(os.getenv("SMS_RATE_LIMIT_PER_HOUR", "1000")),
+            rate_limit_per_day=int(os.getenv("SMS_RATE_LIMIT_PER_DAY", "10000")),
+            retry_attempts=int(os.getenv("SMS_RETRY_ATTEMPTS", "3")),
+            retry_delay=float(os.getenv("SMS_RETRY_DELAY", "1.0")),
+            timeout=int(os.getenv("SMS_TIMEOUT", "30")),
+        )
+
+
+class SMSProviderInterface(ABC):
+    """Interface for SMS providers."""
+    
+    @abstractmethod
+    def send_sms(self, message: SMSMessage) -> SMSResult:
+        """Send SMS message."""
+        pass
+    
+    @abstractmethod
+    async def send_sms_async(self, message: SMSMessage) -> SMSResult:
+        """Send SMS message asynchronously."""
+        pass
+    
+    @abstractmethod
+    def get_delivery_status(self, message_id: str) -> SMSStatus:
+        """Get delivery status of sent message."""
+        pass
+    
+    @abstractmethod
+    def get_balance(self) -> float | None:
+        """Get account balance if supported."""
+        pass
+
+
+class TwilioProvider(SMSProviderInterface):
+    """Twilio SMS provider implementation."""
+    
+    def __init__(self, config: SMSConfig):
+        self.config = config
+        try:
+            from twilio.rest import Client
+            self.client = Client(config.api_key, config.api_secret)
+        except ImportError:
+            raise SMSError("Twilio SDK not installed. Install with: pip install twilio")
+        except Exception as e:
+            raise SMSError(f"Failed to initialize Twilio client: {e}")
+    
+    def send_sms(self, message: SMSMessage) -> SMSResult:
+        """Send SMS via Twilio."""
+        try:
+            response = self.client.messages.create(
+                body=message.message,
+                from_=message.sender_id or self.config.sender_id,
+                to=message.phone
+            )
+            
+            return SMSResult(
+                success=True,
+                message_id=response.sid,
+                status=SMSStatus.SENT,
+                provider="twilio",
+                parts=response.num_segments or 1
+            )
+            
+        except Exception as e:
+            logger.error(f"Twilio SMS failed: {e}")
+            return SMSResult(
+                success=False,
+                error=str(e),
+                provider="twilio"
+            )
+    
+    async def send_sms_async(self, message: SMSMessage) -> SMSResult:
+        """Send SMS asynchronously."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.send_sms, message)
+    
+    def get_delivery_status(self, message_id: str) -> SMSStatus:
+        """Get delivery status from Twilio."""
+        try:
+            message = self.client.messages(message_id).fetch()
+            status_map = {
+                'queued': SMSStatus.PENDING,
+                'sending': SMSStatus.PENDING,
+                'sent': SMSStatus.SENT,
+                'delivered': SMSStatus.DELIVERED,
+                'failed': SMSStatus.FAILED,
+                'undelivered': SMSStatus.FAILED,
+            }
+            return status_map.get(message.status, SMSStatus.PENDING)
+        except Exception as e:
+            logger.error(f"Failed to get Twilio delivery status: {e}")
+            return SMSStatus.PENDING
+    
+    def get_balance(self) -> float | None:
+        """Get Twilio account balance."""
+        try:
+            account = self.client.api.accounts(self.client.account_sid).fetch()
+            return float(account.balance)
+        except Exception as e:
+            logger.error(f"Failed to get Twilio balance: {e}")
+            return None
+
+
+class MSG91Provider(SMSProviderInterface):
+    """MSG91 SMS provider (popular in India)."""
+    
+    def __init__(self, config: SMSConfig):
+        self.config = config
+        self.base_url = config.base_url or "https://api.msg91.com/api"
+    
+    def send_sms(self, message: SMSMessage) -> SMSResult:
+        """Send SMS via MSG91."""
+        try:
+            import requests
+            
+            url = f"{self.base_url}/sendhttp.php"
+            params = {
+                'authkey': self.config.api_key,
+                'mobiles': message.phone,
+                'message': message.message,
+                'sender': message.sender_id or self.config.sender_id,
+                'route': '4',  # Transactional route
+                'response': 'json'
+            }
+            
+            response = requests.get(url, params=params, timeout=self.config.timeout)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data.get('type') == 'success':
+                return SMSResult(
+                    success=True,
+                    message_id=data.get('message', 'Unknown'),
+                    status=SMSStatus.SENT,
+                    provider="msg91"
+                )
+            else:
+                return SMSResult(
+                    success=False,
+                    error=data.get('message', 'Unknown error'),
+                    provider="msg91"
+                )
+                
+        except Exception as e:
+            logger.error(f"MSG91 SMS failed: {e}")
+            return SMSResult(
+                success=False,
+                error=str(e),
+                provider="msg91"
+            )
+    
+    async def send_sms_async(self, message: SMSMessage) -> SMSResult:
+        """Send SMS asynchronously."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.send_sms, message)
+    
+    def get_delivery_status(self, message_id: str) -> SMSStatus:
+        """Get delivery status from MSG91."""
+        # MSG91 delivery status implementation placeholder
+        return SMSStatus.PENDING
+    
+    def get_balance(self) -> float | None:
+        """Get MSG91 balance."""
+        try:
+            import requests
+            
+            url = f"{self.base_url}/balance.php"
+            params = {
+                'authkey': self.config.api_key,
+                'type': '4'
+            }
+            
+            response = requests.get(url, params=params, timeout=self.config.timeout)
+            data = response.json()
+            
+            return float(data.get('balance', 0))
+            
+        except Exception as e:
+            logger.error(f"Failed to get MSG91 balance: {e}")
+            return None
+
+
+class TextLocalProvider(SMSProviderInterface):
+    """TextLocal SMS provider (popular in India)."""
+    
+    def __init__(self, config: SMSConfig):
+        self.config = config
+        self.base_url = config.base_url or "https://api.textlocal.in"
+    
+    def send_sms(self, message: SMSMessage) -> SMSResult:
+        """Send SMS via TextLocal."""
+        try:
+            import requests
+            
+            url = f"{self.base_url}/send/"
+            
+            data = {
+                'apikey': self.config.api_key,
+                'numbers': message.phone,
+                'message': message.message,
+                'sender': message.sender_id or self.config.sender_id
+            }
+            
+            response = requests.post(url, data=data, timeout=self.config.timeout)
+            response.raise_for_status()
+            
+            result = response.json()
+            
+            if result.get('status') == 'success':
+                return SMSResult(
+                    success=True,
+                    message_id=str(result.get('messages', [{}])[0].get('id', 'Unknown')),
+                    status=SMSStatus.SENT,
+                    provider="textlocal",
+                    cost=result.get('cost')
+                )
+            else:
+                return SMSResult(
+                    success=False,
+                    error='; '.join([error.get('message', 'Unknown') for error in result.get('errors', [])]),
+                    provider="textlocal"
+                )
+                
+        except Exception as e:
+            logger.error(f"TextLocal SMS failed: {e}")
+            return SMSResult(
+                success=False,
+                error=str(e),
+                provider="textlocal"
+            )
+    
+    async def send_sms_async(self, message: SMSMessage) -> SMSResult:
+        """Send SMS asynchronously."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.send_sms, message)
+    
+    def get_delivery_status(self, message_id: str) -> SMSStatus:
+        """Get delivery status from TextLocal."""
+        return SMSStatus.PENDING
+    
+    def get_balance(self) -> float | None:
+        """Get TextLocal balance."""
+        try:
+            import requests
+            
+            url = f"{self.base_url}/balance/"
+            data = {'apikey': self.config.api_key}
+            
+            response = requests.post(url, data=data, timeout=self.config.timeout)
+            result = response.json()
+            
+            return float(result.get('balance', {}).get('sms', 0))
+            
+        except Exception as e:
+            logger.error(f"Failed to get TextLocal balance: {e}")
+            return None
+
+
+class RateLimiter:
+    """Simple rate limiter for SMS sending based on sliding time windows."""
+    
+    def __init__(self, per_minute: int = 100, per_hour: int = 1000, per_day: int = 10000):
+        self.per_minute = per_minute
+        self.per_hour = per_hour
+        self.per_day = per_day
+        self.minute_requests: List[float] = []
+        self.hour_requests: List[float] = []
+        self.day_requests: List[float] = []
+    
+    def can_send(self) -> bool:
+        """Check if we can send SMS based on rate limits."""
+        now = time.time()
+        
+        # Clean old entries
+        self.minute_requests = [t for t in self.minute_requests if now - t < 60]
+        self.hour_requests = [t for t in self.hour_requests if now - t < 3600]
+        self.day_requests = [t for t in self.day_requests if now - t < 86400]
+        
+        # Check limits
+        if len(self.minute_requests) >= self.per_minute:
+            return False
+        if len(self.hour_requests) >= self.per_hour:
+            return False
+        if len(self.day_requests) >= self.per_day:
+            return False
+        
+        return True
+    
+    def record_request(self) -> None:
+        """Record a request timestamp."""
+        now = time.time()
+        self.minute_requests.append(now)
+        self.hour_requests.append(now)
+        self.day_requests.append(now)
+
+
+class SMSService:
+    """Main SMS service with multiple provider support."""
+    
+    def __init__(self, config: SMSConfig | None = None):
+        if config is None:
+            config = SMSConfig.from_env()
+        
+        self.config = config
+        self.provider = self._create_provider(config)
+        self.rate_limiter = RateLimiter(
+            config.rate_limit_per_minute,
+            config.rate_limit_per_hour,
+            config.rate_limit_per_day
+        )
+    
+    def _create_provider(self, config: SMSConfig) -> SMSProviderInterface:
+        """Create SMS provider instance."""
+        providers: Dict[SMSProvider, type[SMSProviderInterface]] = {
+            SMSProvider.TWILIO: TwilioProvider,
+            SMSProvider.MSG91: MSG91Provider,
+            SMSProvider.TEXTLOCAL: TextLocalProvider,
+            # Add other providers as needed
+        }
+        
+        provider_class = providers.get(config.provider)
+        if not provider_class:
+            raise SMSError(f"Unsupported SMS provider: {config.provider}")
+        
+        return provider_class(config)
+    
+    def send_sms(
+        self,
+        phone: str,
+        message: str,
+        *,
+        sender_id: str | None = None,
+        template_id: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        priority: int = 2,
+        schedule_at: datetime | None = None
+    ) -> SMSResult:
+        """Send SMS with rate limiting and retry logic."""
+        try:
+            # Check rate limits
+            if not self.rate_limiter.can_send():
+                raise SMSRateLimitError("Rate limit exceeded")
+            
+            # Create SMS message
+            sms_message = SMSMessage(
+                phone=phone,
+                message=message,
+                sender_id=sender_id,
+                template_id=template_id,
+                metadata=dict(metadata or {}),
+                priority=priority,
+                schedule_at=schedule_at
+            )
+            
+            # Retry logic
+            last_error: str | None = None
+            for attempt in range(self.config.retry_attempts):
+                try:
+                    result = self.provider.send_sms(sms_message)
+                    
+                    if result.success:
+                        self.rate_limiter.record_request()
+                        logger.info(f"SMS sent successfully to {phone}: {result.message_id}")
+                        return result
+                    else:
+                        last_error = result.error
+                        
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"SMS attempt {attempt + 1} failed: {e}")
+                
+                if attempt < self.config.retry_attempts - 1:
+                    time.sleep(self.config.retry_delay * (attempt + 1))
+            
+            # All attempts failed
+            logger.error(f"SMS failed after {self.config.retry_attempts} attempts: {last_error}")
+            return SMSResult(
+                success=False,
+                error=last_error or "Unknown error",
+                provider=self.config.provider.value
+            )
+            
+        except SMSRateLimitError:
+            raise
+        except Exception as e:
+            logger.error(f"SMS service error: {e}")
+            return SMSResult(
+                success=False,
+                error=str(e),
+                provider=self.config.provider.value
+            )
+    
+    async def send_sms_async(
+        self,
+        phone: str,
+        message: str,
+        *,
+        sender_id: str | None = None,
+        template_id: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        priority: int = 2,
+        schedule_at: datetime | None = None
+    ) -> SMSResult:
+        """Send SMS asynchronously."""
+        try:
+            # Check rate limits
+            if not self.rate_limiter.can_send():
+                raise SMSRateLimitError("Rate limit exceeded")
+            
+            # Create SMS message
+            sms_message = SMSMessage(
+                phone=phone,
+                message=message,
+                sender_id=sender_id,
+                template_id=template_id,
+                metadata=dict(metadata or {}),
+                priority=priority,
+                schedule_at=schedule_at
+            )
+            
+            # Async retry logic
+            last_error: str | None = None
+            for attempt in range(self.config.retry_attempts):
+                try:
+                    result = await self.provider.send_sms_async(sms_message)
+                    
+                    if result.success:
+                        self.rate_limiter.record_request()
+                        logger.info(f"SMS sent successfully to {phone}: {result.message_id}")
+                        return result
+                    else:
+                        last_error = result.error
+                        
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"Async SMS attempt {attempt + 1} failed: {e}")
+                
+                if attempt < self.config.retry_attempts - 1:
+                    await asyncio.sleep(self.config.retry_delay * (attempt + 1))
+            
+            # All attempts failed
+            logger.error(f"Async SMS failed after {self.config.retry_attempts} attempts: {last_error}")
+            return SMSResult(
+                success=False,
+                error=last_error or "Unknown error",
+                provider=self.config.provider.value
+            )
+            
+        except SMSRateLimitError:
+            raise
+        except Exception as e:
+            logger.error(f"Async SMS service error: {e}")
+            return SMSResult(
+                success=False,
+                error=str(e),
+                provider=self.config.provider.value
+            )
+    
+    def get_delivery_status(self, message_id: str) -> SMSStatus:
+        """Get delivery status of sent message."""
+        try:
+            return self.provider.get_delivery_status(message_id)
+        except Exception as e:
+            logger.error(f"Failed to get delivery status: {e}")
+            return SMSStatus.PENDING
+    
+    def get_balance(self) -> float | None:
+        """Get account balance."""
+        try:
+            return self.provider.get_balance()
+        except Exception as e:
+            logger.error(f"Failed to get balance: {e}")
+            return None
+
+
+# Utility functions
+def normalize_phone_number(phone: str) -> str:
+    """
+    Normalize phone number to E.164 format.
+    
+    For Indian numbers: +91XXXXXXXXXX
+    For international: +CCXXXXXXXXXX (must start with '+').
+    """
+    if not isinstance(phone, str):
+        raise SMSValidationError("Phone number must be a string")
+    
+    # Remove all non-digit characters except +
+    cleaned = re.sub(r'[^\d+]', '', phone.strip())
+    
+    if not cleaned:
+        raise SMSValidationError("Phone number cannot be empty")
+    
+    # Handle Indian numbers
+    if INDIAN_MOBILE_PATTERN.match(cleaned):
+        # Remove leading 0 if present
+        if cleaned.startswith('0'):
+            cleaned = cleaned[1:]
+        
+        # Add country code if missing
+        if cleaned.startswith('91'):
+            cleaned = '+' + cleaned
+        elif not cleaned.startswith('+91'):
+            cleaned = '+91' + cleaned
+        
+        return cleaned
+    
+    # Handle international numbers
+    if not cleaned.startswith('+'):
+        raise SMSValidationError("International numbers must start with +")
+    
+    if INTERNATIONAL_PATTERN.match(cleaned):
+        return cleaned
+    
+    raise SMSValidationError(f"Invalid phone number format: {phone}")
+
+
+def is_valid_phone_number(phone: str) -> bool:
+    """Check if phone number is valid."""
+    try:
+        normalized = normalize_phone_number(phone)
+        return bool(INDIAN_MOBILE_PATTERN.match(normalized) or INTERNATIONAL_PATTERN.match(normalized))
+    except SMSValidationError:
+        return False
+
+
+def is_valid_indian_mobile(phone: str) -> bool:
+    """Check if phone number is a valid Indian mobile number."""
+    try:
+        normalized = normalize_phone_number(phone)
+        return bool(INDIAN_MOBILE_PATTERN.match(normalized))
+    except SMSValidationError:
+        return False
+
+
+def calculate_sms_parts(message: str) -> int:
+    """Calculate number of SMS parts required based on GSM/Unicode length."""
+    # Check if message contains non-GSM characters
+    gsm_chars = set(
+        "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ "
+        "!\"#¤%&'()*+,-./0123456789:;<=>?¡"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿"
+        "abcdefghijklmnopqrstuvwxyzäöñüà"
+    )
+    
+    if all(char in gsm_chars for char in message):
+        # GSM 7-bit encoding
+        if len(message) <= MAX_SMS_LENGTH_GSM:
+            return 1
+        else:
+            return (len(message) + 152) // 153  # 153 chars per part for concatenated SMS
+    else:
+        # Unicode encoding
+        if len(message) <= MAX_SMS_LENGTH_UNICODE:
+            return 1
+        else:
+            return (len(message) + 66) // 67  # 67 chars per part for concatenated Unicode SMS
+
+
+def generate_otp(length: int = 6) -> str:
+    """Generate numeric OTP."""
+    import secrets
+    
+    if not isinstance(length, int) or length < 4 or length > 10:
+        raise SMSValidationError("OTP length must be between 4 and 10")
+    
+    return ''.join(secrets.choice('0123456789') for _ in range(length))
+
+
+def create_otp_message(otp: str, app_name: str = "App", expiry_minutes: int = 10) -> str:
+    """Create standardized OTP message."""
+    if not otp or not isinstance(otp, str):
+        raise SMSValidationError("OTP must be a non-empty string")
+    
+    if not app_name or not isinstance(app_name, str):
+        raise SMSValidationError("App name must be a non-empty string")
+    
+    return f"Your {app_name} verification code is {otp}. Valid for {expiry_minutes} minutes. Do not share with anyone."
+
+
+# Default SMS service instance
+_default_service: SMSService | None = None
+
+
+def get_sms_service() -> SMSService:
+    """Get default SMS service instance (singleton-style)."""
+    global _default_service
+    if _default_service is None:
+        _default_service = SMSService()
+    return _default_service
+
+
+def send_sms(
+    phone: str,
+    message: str,
+    *,
+    sender_id: str | None = None,
+    template_id: str | None = None,
+    metadata: Mapping[str, str] | None = None,
+) -> SMSResult:
+    """Send SMS using default service."""
+    service = get_sms_service()
+    return service.send_sms(
+        phone=phone,
+        message=message,
+        sender_id=sender_id,
+        template_id=template_id,
+        metadata=metadata
+    )
+
+
+async def send_sms_async(
+    phone: str,
+    message: str,
+    *,
+    sender_id: str | None = None,
+    template_id: str | None = None,
+    metadata: Mapping[str, str] | None = None,
+) -> SMSResult:
+    """Send SMS asynchronously using default service."""
+    service = get_sms_service()
+    return await service.send_sms_async(
+        phone=phone,
+        message=message,
+        sender_id=sender_id,
+        template_id=template_id,
+        metadata=metadata
+    )
+
+
+def send_otp_sms(phone: str, otp_length: int = 6, app_name: str = "App") -> tuple[str, SMSResult]:
+    """
+    Send OTP SMS and return both OTP and result.
+    
+    Returns:
+        tuple: (otp, sms_result)
+    """
+    try:
+        otp = generate_otp(otp_length)
+        message = create_otp_message(otp, app_name)
+        
+        result = send_sms(phone, message)
+        return otp, result
+        
+    except Exception as e:
+        logger.error(f"Failed to send OTP SMS: {e}")
+        return "", SMSResult(success=False, error=str(e))
+
+
+async def send_otp_sms_async(phone: str, otp_length: int = 6, app_name: str = "App") -> tuple[str, SMSResult]:
+    """
+    Send OTP SMS asynchronously and return both OTP and result.
+    
+    Returns:
+        tuple: (otp, sms_result)
+    """
+    try:
+        otp = generate_otp(otp_length)
+        message = create_otp_message(otp, app_name)
+        
+        result = await send_sms_async(phone, message)
+        return otp, result
+        
+    except Exception as e:
+        logger.error(f"Failed to send OTP SMS: {e}")
+        return "", SMSResult(success=False, error=str(e))
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\string_utils.py ---
+# app/utils/string_utils.py
+from __future__ import annotations
+
+"""
+Generic string utilities:
+- Slug generation.
+- Secure random tokens and strings.
+- Whitespace normalization.
+- Simple truncation.
+"""
+
+import re
+import secrets
+import string
+
+_slug_pattern = re.compile(r"[^a-z0-9]+")
+
+
+def slugify(value: str) -> str:
+    """
+    Simple slugify implementation:
+    - Lowercase.
+    - Replace non-alphanumerics (a-z, 0-9) with '-'.
+    - Strip leading/trailing '-'.
+    """
+    value = value.lower()
+    value = _slug_pattern.sub("-", value)
+    return value.strip("-")
+
+
+def generate_token(length: int = 32) -> str:
+    """
+    Generate a random URL-safe token.
+
+    Note:
+        `length` is the number of bytes of randomness; the resulting string
+        will typically be longer than `length` characters.
+    """
+    return secrets.token_urlsafe(length)
+
+
+def random_string(
+    length: int = 12,
+    *,
+    alphabet: str | None = None,
+) -> str:
+    """
+    Generate a random string of given length from the specified alphabet.
+
+    Default alphabet: ascii_letters + digits.
+    """
+    if alphabet is None:
+        alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def normalize_whitespace(value: str) -> str:
+    """Collapse multiple whitespace characters into single spaces and strip."""
+    return " ".join(value.split())
+
+
+def truncate(value: str, max_length: int, suffix: str = "…") -> str:
+    """Truncate a string to max_length characters, including suffix."""
+    if len(value) <= max_length:
+        return value
+    if max_length <= len(suffix):
+        return suffix[:max_length]
+    return value[: max_length - len(suffix)] + suffix
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\validators.py ---
+# app/utils/validators.py
+from __future__ import annotations
+
+"""
+Validation helpers:
+- Email, phone, pincode, Aadhar, PAN format validation.
+- Monetary amount and percentage validation.
+- String non-empty and length checks.
+- Choices membership validation.
+- Safe filename sanitization.
+"""
+
+import re
+from decimal import Decimal, InvalidOperation
+from typing import Any, Iterable
+
+# Compiled regex patterns for better performance
+_email_regex = re.compile(
+    r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+    r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+)
+_phone_regex = re.compile(r"^\+?[1-9]\d{6,14}$")
+_pincode_regex = re.compile(r"^\d{4,10}$")
+_aadhar_regex = re.compile(r"^\d{4}\s?\d{4}\s?\d{4}$")
+_pan_regex = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$")
+
+
+class ValidationError(Exception):
+    """Custom exception for validation errors."""
+    pass
+
+
+def is_valid_email(value: str) -> bool:
+    """Return True if value is a valid email address."""
+    if not isinstance(value, str):
+        return False
+    
+    value = value.strip().lower()
+    if len(value) > 254:  # RFC 5321 limit
+        return False
+    
+    return bool(_email_regex.match(value))
+
+
+def is_valid_phone(value: str) -> bool:
+    """
+    Return True if value is a valid phone number.
+    Supports international format with optional '+' prefix.
+    """
+    if not isinstance(value, str):
+        return False
+    
+    # Remove spaces and dashes and parentheses
+    cleaned = re.sub(r"[\s\-()]", "", value.strip())
+    return bool(_phone_regex.match(cleaned))
+
+
+def is_valid_pincode(value: str) -> bool:
+    """Return True if value is a valid pincode/postal code (4-10 digits)."""
+    if not isinstance(value, str):
+        return False
+    
+    value = value.strip()
+    return bool(_pincode_regex.match(value))
+
+
+def is_valid_aadhar(value: str) -> bool:
+    """Return True if value is a valid Aadhar number format (12 digits)."""
+    if not isinstance(value, str):
+        return False
+    
+    # Remove spaces for validation
+    cleaned = value.replace(" ", "")
+    return bool(_aadhar_regex.match(value)) and len(cleaned) == 12
+
+
+def is_valid_pan(value: str) -> bool:
+    """Return True if value is a valid PAN format."""
+    if not isinstance(value, str):
+        return False
+    
+    return bool(_pan_regex.match(value.upper().strip()))
+
+
+def is_valid_amount(value: Any) -> bool:
+    """Return True if value is a valid non-negative monetary amount."""
+    try:
+        if isinstance(value, (int, float)):
+            return value >= 0
+        
+        if isinstance(value, str):
+            decimal_value = Decimal(value.strip())
+            return decimal_value >= 0
+        
+        if isinstance(value, Decimal):
+            return value >= 0
+        
+        return False
+    except (ValueError, InvalidOperation):
+        return False
+
+
+def is_valid_percentage(value: Any) -> bool:
+    """Return True if value is a valid percentage (0-100)."""
+    try:
+        if isinstance(value, (int, float)):
+            return 0 <= value <= 100
+        
+        if isinstance(value, str):
+            decimal_value = Decimal(value.strip())
+            return Decimal('0') <= decimal_value <= Decimal('100')
+        
+        if isinstance(value, Decimal):
+            return Decimal('0') <= value <= Decimal('100')
+        
+        return False
+    except (ValueError, InvalidOperation):
+        return False
+
+
+def require_non_empty(value: str, field_name: str = "Field") -> str:
+    """Validate and return a non-empty string (stripped)."""
+    if not isinstance(value, str):
+        raise ValidationError(f"{field_name} must be a string")
+    
+    stripped = value.strip()
+    if not stripped:
+        raise ValidationError(f"{field_name} cannot be empty")
+    
+    return stripped
+
+
+def require_valid_email(value: str, field_name: str = "Email") -> str:
+    """Validate and return a valid email (lowercased)."""
+    cleaned = require_non_empty(value, field_name)
+    
+    if not is_valid_email(cleaned):
+        raise ValidationError(f"{field_name} must be a valid email address")
+    
+    return cleaned.lower()
+
+
+def require_valid_phone(value: str, field_name: str = "Phone") -> str:
+    """Validate and return a valid phone number (normalized)."""
+    cleaned = require_non_empty(value, field_name)
+    
+    if not is_valid_phone(cleaned):
+        raise ValidationError(f"{field_name} must be a valid phone number")
+    
+    # Normalize format by removing spaces, dashes and parentheses
+    return re.sub(r"[\s\-()]", "", cleaned)
+
+
+def require_in_choices(
+    value: Any, 
+    choices: Iterable[Any], 
+    field_name: str = "Value"
+) -> Any:
+    """Validate that value is in the allowed choices."""
+    choices_list = list(choices)
+    if value not in choices_list:
+        raise ValidationError(
+            f"{field_name} must be one of: {', '.join(str(c) for c in choices_list)}"
+        )
+    return value
+
+
+def require_valid_amount(
+    value: Any, 
+    field_name: str = "Amount",
+    min_value: Decimal | None = None,
+    max_value: Decimal | None = None,
+) -> Decimal:
+    """Validate and return a valid monetary amount as Decimal."""
+    if not is_valid_amount(value):
+        raise ValidationError(f"{field_name} must be a valid positive amount")
+    
+    # Convert to Decimal
+    if isinstance(value, str):
+        decimal_value = Decimal(value.strip())
+    elif isinstance(value, (int, float)):
+        decimal_value = Decimal(str(value))
+    else:
+        decimal_value = value
+    
+    if min_value is not None and decimal_value < min_value:
+        raise ValidationError(f"{field_name} must be at least {min_value}")
+    
+    if max_value is not None and decimal_value > max_value:
+        raise ValidationError(f"{field_name} must be at most {max_value}")
+    
+    return decimal_value
+
+
+def require_string_length(
+    value: str,
+    min_length: int | None = None,
+    max_length: int | None = None,
+    field_name: str = "Field",
+) -> str:
+    """Validate string length requirements and return the cleaned string."""
+    cleaned = require_non_empty(value, field_name)
+    
+    if min_length is not None and len(cleaned) < min_length:
+        raise ValidationError(f"{field_name} must be at least {min_length} characters")
+    
+    if max_length is not None and len(cleaned) > max_length:
+        raise ValidationError(f"{field_name} must be at most {max_length} characters")
+    
+    return cleaned
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename for safe storage.
+
+    - Removes directory components.
+    - Replaces unsafe characters with '_'.
+    - Collapses multiple underscores.
+    - Trims leading/trailing underscores and dots.
+    - Enforces a maximum length of 255 characters.
+    """
+    if not filename or not isinstance(filename, str):
+        raise ValidationError("Filename must be a non-empty string")
+    
+    # Remove directory components
+    import os
+    name = os.path.basename(filename)
+    
+    # Replace unsafe characters
+    safe_name = re.sub(r'[^a-zA-Z0-9._-]', '_', name)
+    
+    # Remove multiple underscores
+    safe_name = re.sub(r'_{2,}', '_', safe_name)
+    
+    # Remove leading/trailing underscores and dots
+    safe_name = safe_name.strip('_.')
+    
+    if not safe_name:
+        raise ValidationError("Filename contains no valid characters")
+    
+    # Limit length
+    if len(safe_name) > 255:
+        base, ext = os.path.splitext(safe_name)
+        safe_name = base[:250] + ext
+    
+    return safe_name
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\utils\__init__.py ---
+# app/utils/__init__.py
+from __future__ import annotations
+
+"""
+Utility helpers for the hostel management SaaS project.
+
+This package includes:
+- date_utils: date/datetime helpers.
+- email: abstract email sending utilities.
+- sms: abstract SMS sending utilities.
+- file_handler: file saving / naming helpers.
+- formatters: small formatting helpers for dates, currency, etc.
+- string_utils: generic string helpers (slugify, tokens, etc.).
+- validators: basic validation helpers.
+
+Typical usage:
+
+    from app.utils import date_utils, sms
+    now = date_utils.now_utc()
+    sms_result = sms.send_sms(phone="+911234567890", message="Hello")
+"""
+
+from . import date_utils
+from . import email
+from . import file_handler
+from . import formatters
+from . import sms
+from . import string_utils
+from . import validators
+
+__all__ = [
+    "date_utils",
+    "email",
+    "file_handler",
+    "formatters",
+    "sms",
+    "string_utils",
+    "validators",
+]

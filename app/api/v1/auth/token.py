@@ -1,30 +1,48 @@
-# api/v1/auth/token.py
+# app/api/v1/auth/token.py
 from __future__ import annotations
 
-from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Depends, status
-
-from api import deps
-from app.schemas.auth.token import (
-    RefreshTokenRequest,
-    RefreshTokenResponse,
-)
+from app.core import get_session
+from app.core.exceptions import AppError, ValidationError
+from app.schemas.auth import RefreshTokenRequest, RefreshTokenResponse
+from app.services.common import UnitOfWork
 from app.services.auth import AuthService
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post(
-    "/token/refresh",
-    response_model=RefreshTokenResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def refresh_access_token(
+def get_uow(session: Session = Depends(get_session)) -> UnitOfWork:
+    return UnitOfWork(session)
+
+
+def get_auth_service(uow: UnitOfWork = Depends(get_uow)) -> AuthService:
+    return AuthService(uow)
+
+
+def _handle_service_error(exc: AppError) -> HTTPException:
+    if isinstance(exc, ValidationError):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired refresh token",
+    )
+
+
+@router.post("/token/refresh", response_model=RefreshTokenResponse)
+def refresh_token(
     payload: RefreshTokenRequest,
-    auth_service: Annotated[AuthService, Depends(deps.get_auth_service)],
+    service: AuthService = Depends(get_auth_service),
 ) -> RefreshTokenResponse:
     """
-    Exchange a refresh token for a new access (and refresh) token.
+    Exchange a valid refresh token for a new access (and optionally refresh) token.
     """
-    return auth_service.refresh_token(payload)
+    try:
+        # Adjust method name/signature if your AuthService differs.
+        return service.refresh_token(payload)
+    except AppError as exc:
+        raise _handle_service_error(exc)

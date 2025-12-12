@@ -1,4 +1,4 @@
-# models/system/platform_config.py
+# app.models/system/platform_config.py
 from __future__ import annotations
 
 from uuid import UUID
@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseItem
+from app.models.base import BaseItem
 
 
 class PlatformConfig(BaseItem):

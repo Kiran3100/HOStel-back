@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.schemas.common.enums import UserRole, Gender
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class User(BaseEntity):

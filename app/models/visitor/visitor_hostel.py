@@ -1,4 +1,4 @@
-# models/visitor/visitor_hostel.py
+# app.models/visitor/visitor_hostel.py
 from __future__ import annotations
 
 from decimal import Decimal
@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import Float, Integer, JSON, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseVisitorItem
+from app.models.base import BaseVisitorItem
 
 
 class VisitorHostel(BaseVisitorItem):

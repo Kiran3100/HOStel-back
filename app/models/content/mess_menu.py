@@ -1,4 +1,4 @@
-# models/content/mess_menu.py
+# app.models/content/mess_menu.py
 from __future__ import annotations
 
 from datetime import date, time
@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import Boolean, Date, Time, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class MessMenu(BaseEntity):

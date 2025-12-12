@@ -1,4 +1,4 @@
-# models/visitor/hostel_booking.py
+# app.models/visitor/hostel_booking.py
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import Date, DateTime, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import BaseVisitorItem
+from app.models.base import BaseVisitorItem
 
 
 class HostelBooking(BaseVisitorItem):

@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.transactions import Referral
+from app.models.transactions import Referral
 from app.schemas.common.enums import ReferralStatus
 
 

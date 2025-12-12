@@ -1,14 +1,14 @@
-# models/associations/user_hostel.py
+# app.models/associations/user_hostel.py
 from __future__ import annotations
 
 from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, String
+from sqlalchemy import Date, ForeignKey, String, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseEntity
+from app.models.base import BaseEntity
 
 
 class UserHostel(BaseEntity):
@@ -23,4 +23,4 @@ class UserHostel(BaseEntity):
     association_type: Mapped[str] = mapped_column(String(50))  # e.g., 'favorite', 'recent', 'assigned'
     created_date: Mapped[date] = mapped_column(Date, default=date.today)
 
-    metadata_json: Mapped[Optional[dict]] = mapped_column()
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

@@ -9,7 +9,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.services import Complaint
+from app.models.services import Complaint
 from app.schemas.common.enums import ComplaintStatus, ComplaintCategory, Priority
 
 

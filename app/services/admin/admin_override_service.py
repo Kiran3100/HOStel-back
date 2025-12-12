@@ -115,7 +115,6 @@ class AdminOverrideService:
                 reason=request.reason,
                 original_action=request.original_action,
                 override_action=request.override_action,
-                created_at=record.created_at,
             )
 
     # ------------------------------------------------------------------ #
@@ -149,7 +148,6 @@ class AdminOverrideService:
                         entity_type=r.entity_type,
                         entity_id=r.entity_id,
                         reason=r.reason,
-                        created_at=r.created_at,
                     )
                 )
             return results
@@ -193,5 +191,4 @@ class AdminOverrideService:
                 reason=r.reason,
                 original_action=r.original_action,
                 override_action=r.override_action,
-                created_at=r.created_at,
             )

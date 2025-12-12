@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.repositories.base import BaseRepository
-from models.workflows import ApprovalWorkflow
+from app.models.workflows import ApprovalWorkflow
 
 
 class ApprovalWorkflowRepository(BaseRepository[ApprovalWorkflow]):
