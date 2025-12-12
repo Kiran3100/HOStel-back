@@ -1,15 +1,21 @@
 # --- File: app/schemas/inquiry/inquiry_base.py ---
 """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 Base visitor inquiry schemas with comprehensive validation.
 
 This module defines the core inquiry schemas for managing visitor
 inquiries about hostel availability and bookings.
+<<<<<<< Updated upstream
 =======
 Base visitor inquiry schemas for creation and updates.
 
 This module defines the foundational schemas for visitor inquiries,
 including validation rules and business logic constraints.
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 """
 
@@ -19,6 +25,7 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 from pydantic import EmailStr, Field, field_validator, model_validator
 
@@ -38,6 +45,11 @@ from app.schemas.common.base import (
     BaseUpdateSchema,
 )
 >>>>>>> Stashed changes
+=======
+from pydantic import EmailStr, Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+>>>>>>> Stashed changes
 from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
 
 __all__ = [
@@ -45,9 +57,12 @@ __all__ = [
     "InquiryCreate",
     "InquiryUpdate",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
     "InquiryFilter",
     "InquiryContactUpdate",
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 ]
 
@@ -55,6 +70,9 @@ __all__ = [
 class InquiryBase(BaseSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Base visitor inquiry schema with common fields.
     
     Contains all core inquiry information including hostel selection,
@@ -67,6 +85,7 @@ class InquiryBase(BaseSchema):
     )
 
     # Visitor Contact Information
+<<<<<<< Updated upstream
 =======
     Base visitor inquiry fields.
     
@@ -81,16 +100,22 @@ class InquiryBase(BaseSchema):
     
     # Visitor information
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     visitor_name: str = Field(
         ...,
         min_length=2,
         max_length=255,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Full name of the visitor making the inquiry",
     )
     visitor_email: EmailStr = Field(
         ...,
         description="Email address for communication",
+<<<<<<< Updated upstream
 =======
         description="Full name of the visitor",
         examples=["John Doe"],
@@ -100,11 +125,16 @@ class InquiryBase(BaseSchema):
         description="Visitor's email address for communication",
         examples=["john.doe@example.com"],
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     )
     visitor_phone: str = Field(
         ...,
         pattern=r"^\+?[1-9]\d{9,14}$",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Contact phone number (international format supported)",
     )
 
@@ -112,6 +142,7 @@ class InquiryBase(BaseSchema):
     preferred_check_in_date: Optional[date] = Field(
         None,
         description="Preferred or approximate check-in date",
+<<<<<<< Updated upstream
 =======
         description="Visitor's phone number (E.164 format recommended)",
         examples=["+919876543210"],
@@ -122,12 +153,17 @@ class InquiryBase(BaseSchema):
         None,
         description="Preferred check-in date (must be today or future)",
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     )
     stay_duration_months: Optional[int] = Field(
         None,
         ge=1,
         le=36,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Intended stay duration in months (1-36)",
     )
     room_type_preference: Optional[RoomType] = Field(
@@ -143,6 +179,7 @@ class InquiryBase(BaseSchema):
     )
 
     # Metadata
+<<<<<<< Updated upstream
 =======
         description="Expected stay duration in months (1-36)",
     )
@@ -158,11 +195,16 @@ class InquiryBase(BaseSchema):
         description="Additional message or requirements from visitor",
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     inquiry_source: InquirySource = Field(
         InquirySource.WEBSITE,
         description="Source channel of the inquiry",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
     status: InquiryStatus = Field(
         InquiryStatus.NEW,
@@ -260,6 +302,7 @@ class InquiryBase(BaseSchema):
             and self.has_duration_preference
             and self.has_room_preference
         )
+<<<<<<< Updated upstream
 =======
     
     @field_validator("visitor_name")
@@ -298,6 +341,8 @@ class InquiryBase(BaseSchema):
                 return None
         return v
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class InquiryCreate(InquiryBase, BaseCreateSchema):
@@ -305,6 +350,9 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
     Schema for creating a new visitor inquiry.
     
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     All base fields are inherited. Status is automatically set to NEW.
     """
 
@@ -322,6 +370,7 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
             # Force to NEW regardless of input
             return InquiryStatus.NEW
         return v
+<<<<<<< Updated upstream
 =======
     Inherits all fields from InquiryBase with creation-specific
     defaults and validations.
@@ -369,6 +418,8 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
             )
         return self
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class InquiryUpdate(BaseUpdateSchema):
@@ -376,11 +427,15 @@ class InquiryUpdate(BaseUpdateSchema):
     Schema for updating an existing inquiry.
     
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     All fields are optional, allowing partial updates.
     Typically used by admins to add notes or update contact info.
     """
 
     # Visitor Contact (rarely updated, but allowed)
+<<<<<<< Updated upstream
 =======
     All fields are optional to support partial updates.
     Status updates should use InquiryStatusUpdate for audit trail.
@@ -388,16 +443,22 @@ class InquiryUpdate(BaseUpdateSchema):
     
     # Visitor information updates
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     visitor_name: Optional[str] = Field(
         None,
         min_length=2,
         max_length=255,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Update visitor name",
     )
     visitor_email: Optional[EmailStr] = Field(
         None,
         description="Update visitor email",
+<<<<<<< Updated upstream
 =======
         description="Updated visitor name",
     )
@@ -405,11 +466,16 @@ class InquiryUpdate(BaseUpdateSchema):
         None,
         description="Updated visitor email",
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     )
     visitor_phone: Optional[str] = Field(
         None,
         pattern=r"^\+?[1-9]\d{9,14}$",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Update visitor phone",
     )
 
@@ -417,6 +483,7 @@ class InquiryUpdate(BaseUpdateSchema):
     preferred_check_in_date: Optional[date] = Field(
         None,
         description="Update preferred check-in date",
+<<<<<<< Updated upstream
 =======
         description="Updated visitor phone",
     )
@@ -426,12 +493,17 @@ class InquiryUpdate(BaseUpdateSchema):
         None,
         description="Updated preferred check-in date",
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     )
     stay_duration_months: Optional[int] = Field(
         None,
         ge=1,
         le=36,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Update stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
@@ -482,6 +554,7 @@ class InquiryUpdate(BaseUpdateSchema):
             v = v.strip()
             if len(v) == 0:
                 return None
+<<<<<<< Updated upstream
 =======
         description="Updated stay duration",
     )
@@ -707,5 +780,7 @@ class InquiryFilter(BaseFilterSchema):
         check_in_from = info.data.get("check_in_date_from")
         if v and check_in_from and v < check_in_from:
             raise ValueError("check_in_date_to must be after check_in_date_from")
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         return v

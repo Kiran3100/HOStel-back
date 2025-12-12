@@ -1,10 +1,14 @@
 # --- File: app/schemas/inquiry/__init__.py ---
 """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 Visitor inquiry and contact schemas package.
 
 This module exports all inquiry-related schemas for easy importing
 across the application.
+<<<<<<< Updated upstream
 =======
 Visitor inquiry & contact schemas package.
 
@@ -39,20 +43,35 @@ Example Usage:
         updated_by=admin_uuid,
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 """
 
 from __future__ import annotations
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 # Base schemas
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 from app.schemas.inquiry.inquiry_base import (
     InquiryBase,
     InquiryContactUpdate,
     InquiryCreate,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     InquiryUpdate,
+=======
+    InquiryUpdate,
+)
+from app.schemas.inquiry.inquiry_filters import (
+    InquiryExportRequest,
+    InquiryFilterParams,
+    InquirySearchRequest,
+    InquirySortOptions,
+>>>>>>> Stashed changes
 )
 from app.schemas.inquiry.inquiry_filters import (
     InquiryExportRequest,
@@ -68,9 +87,12 @@ from app.schemas.inquiry.inquiry_filters import (
 # Response schemas
 from app.schemas.inquiry.inquiry_response import (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
     HostelInquirySummary,
     InquiryConversionInfo,
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     InquiryDetail,
     InquiryListItem,
@@ -83,16 +105,22 @@ from app.schemas.inquiry.inquiry_status import (
     BulkInquiryStatusUpdate,
     InquiryAssignment,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     InquiryConversion,
     InquiryFollowUp,
     InquiryStatusUpdate,
     InquiryTimelineEntry,
+<<<<<<< Updated upstream
 =======
     InquiryEscalation,
     InquiryStatusTransition,
     InquiryStatusUpdate,
     InquiryTimelineEntry,
     VALID_STATUS_TRANSITIONS,
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 )
 
@@ -102,6 +130,9 @@ __all__ = [
     "InquiryCreate",
     "InquiryUpdate",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     # Response
 =======
     "InquiryFilter",
@@ -114,6 +145,7 @@ __all__ = [
     "InquiryListItem",
     "InquiryStats",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # Status Management
 =======
     "InquiryConversionInfo",
@@ -121,10 +153,16 @@ __all__ = [
     
     # Status and assignment schemas
 >>>>>>> Stashed changes
+=======
+    # Status Management
+>>>>>>> Stashed changes
     "InquiryStatusUpdate",
     "InquiryStatusTransition",
     "InquiryAssignment",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     "InquiryFollowUp",
     "InquiryTimelineEntry",
     "InquiryConversion",
@@ -134,6 +172,7 @@ __all__ = [
     "InquirySearchRequest",
     "InquirySortOptions",
     "InquiryExportRequest",
+<<<<<<< Updated upstream
 ]
 =======
     "InquiryTimelineEntry",
@@ -146,4 +185,7 @@ __all__ = [
 
 # Package version
 __version__ = "1.0.0"
+>>>>>>> Stashed changes
+=======
+]
 >>>>>>> Stashed changes

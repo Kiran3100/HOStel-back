@@ -3,11 +3,16 @@
 Inquiry response schemas for API responses.
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 This module defines response schemas for inquiry data including
 basic responses, detailed information, and list items.
 =======
 This module defines response schemas with varying levels of detail
 for different use cases (list views, detail views, etc.).
+>>>>>>> Stashed changes
+=======
+This module defines response schemas for inquiry data including
+basic responses, detailed information, and list items.
 >>>>>>> Stashed changes
 """
 
@@ -28,9 +33,12 @@ __all__ = [
     "InquiryListItem",
     "InquiryStats",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
     "InquiryConversionInfo",
     "HostelInquirySummary",
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 ]
 
@@ -40,6 +48,9 @@ class InquiryResponse(BaseResponseSchema):
     Standard inquiry response schema.
     
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Contains core inquiry information for API responses.
     """
 
@@ -67,6 +78,7 @@ class InquiryResponse(BaseResponseSchema):
     )
 
     # Preferences
+<<<<<<< Updated upstream
 =======
     Used for basic inquiry information display after creation
     or simple fetch operations.
@@ -98,6 +110,8 @@ class InquiryResponse(BaseResponseSchema):
     
     # Stay preferences
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     preferred_check_in_date: Optional[date] = Field(
         None,
         description="Preferred check-in date",
@@ -105,6 +119,9 @@ class InquiryResponse(BaseResponseSchema):
     stay_duration_months: Optional[int] = Field(
         None,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Intended stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
@@ -113,6 +130,7 @@ class InquiryResponse(BaseResponseSchema):
     )
 
     # Status
+<<<<<<< Updated upstream
 =======
         description="Expected stay duration in months",
     )
@@ -123,11 +141,16 @@ class InquiryResponse(BaseResponseSchema):
     
     # Status and tracking
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     status: InquiryStatus = Field(
         ...,
         description="Current inquiry status",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
     created_at: datetime = Field(
         ...,
@@ -166,6 +189,7 @@ class InquiryResponse(BaseResponseSchema):
             return "medium"
         else:
             return "low"
+<<<<<<< Updated upstream
 =======
     inquiry_source: InquirySource = Field(
         ...,
@@ -188,11 +212,16 @@ class InquiryResponse(BaseResponseSchema):
         """Calculate days since inquiry was created."""
         return (datetime.utcnow() - self.created_at).days
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class InquiryDetail(BaseResponseSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Detailed inquiry information.
     
     Contains complete inquiry details including contact history,
@@ -223,6 +252,7 @@ class InquiryDetail(BaseResponseSchema):
     )
 
     # Preferences
+<<<<<<< Updated upstream
 =======
     Detailed inquiry view with complete information.
     
@@ -256,6 +286,8 @@ class InquiryDetail(BaseResponseSchema):
     
     # Stay preferences
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     preferred_check_in_date: Optional[date] = Field(
         None,
         description="Preferred check-in date",
@@ -263,6 +295,9 @@ class InquiryDetail(BaseResponseSchema):
     stay_duration_months: Optional[int] = Field(
         None,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Stay duration in months",
     )
     room_type_preference: Optional[RoomType] = Field(
@@ -277,6 +312,7 @@ class InquiryDetail(BaseResponseSchema):
     )
 
     # Metadata
+<<<<<<< Updated upstream
 =======
         description="Expected stay duration in months",
     )
@@ -291,6 +327,8 @@ class InquiryDetail(BaseResponseSchema):
         description="Additional message from visitor",
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     inquiry_source: InquirySource = Field(
         ...,
         description="Source of the inquiry",
@@ -298,6 +336,9 @@ class InquiryDetail(BaseResponseSchema):
     status: InquiryStatus = Field(
         ...,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Current status",
     )
 
@@ -381,6 +422,7 @@ class InquiryDetail(BaseResponseSchema):
             return None
         
         return (datetime.utcnow() - self.contacted_at).days
+<<<<<<< Updated upstream
 =======
         description="Current inquiry status",
     )
@@ -499,11 +541,16 @@ class InquiryDetail(BaseResponseSchema):
             return self.follow_up_date <= date.today()
         return False
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class InquiryListItem(BaseSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Inquiry list item for summary views.
     
     Optimized schema for displaying multiple inquiries
@@ -527,6 +574,7 @@ class InquiryListItem(BaseSchema):
         description="Visitor phone",
     )
 
+<<<<<<< Updated upstream
 =======
     Lightweight inquiry schema for list views.
     
@@ -562,6 +610,8 @@ class InquiryListItem(BaseSchema):
     )
     
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     # Preferences
     preferred_check_in_date: Optional[date] = Field(
         None,
@@ -570,6 +620,9 @@ class InquiryListItem(BaseSchema):
     stay_duration_months: Optional[int] = Field(
         None,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
@@ -578,6 +631,7 @@ class InquiryListItem(BaseSchema):
     )
 
     # Status and Timing
+<<<<<<< Updated upstream
 =======
         description="Expected stay duration",
     )
@@ -588,10 +642,13 @@ class InquiryListItem(BaseSchema):
     
     # Status and tracking
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     status: InquiryStatus = Field(
         ...,
         description="Current status",
     )
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 =======
     inquiry_source: InquirySource = Field(
@@ -617,11 +674,16 @@ class InquiryListItem(BaseSchema):
     
     # Timestamps
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     created_at: datetime = Field(
         ...,
         description="Creation timestamp",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
     # Quick Indicators
     is_urgent: bool = Field(
@@ -651,6 +713,7 @@ class InquiryListItem(BaseSchema):
             InquiryStatus.CONVERTED: "#9C27B0",  # Purple
         }
         return color_map.get(self.status, "#000000")
+<<<<<<< Updated upstream
 =======
     updated_at: datetime = Field(
         ...,
@@ -700,17 +763,23 @@ class InquiryListItem(BaseSchema):
         
         return max(score, 0)
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class InquiryStats(BaseSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Inquiry statistics and analytics.
     
     Provides metrics about inquiry performance and conversion.
     """
 
     # Volume Metrics
+<<<<<<< Updated upstream
 =======
     Inquiry statistics for dashboard and reporting.
     
@@ -718,6 +787,8 @@ class InquiryStats(BaseSchema):
     """
     
     # Volume metrics
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     total_inquiries: int = Field(
         ...,
@@ -735,6 +806,7 @@ class InquiryStats(BaseSchema):
         description="Inquiries that have been contacted",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
     interested_inquiries: int = Field(
         ...,
@@ -742,12 +814,17 @@ class InquiryStats(BaseSchema):
         description="Inquiries marked as interested",
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     converted_inquiries: int = Field(
         ...,
         ge=0,
         description="Inquiries converted to bookings",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
     # Response Metrics
     average_response_time_hours: Optional[float] = Field(
@@ -757,6 +834,7 @@ class InquiryStats(BaseSchema):
     )
     
     # Conversion Metrics
+<<<<<<< Updated upstream
 =======
     
     # Performance metrics
@@ -766,11 +844,16 @@ class InquiryStats(BaseSchema):
         description="Average response time in hours",
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     conversion_rate: float = Field(
         ...,
         ge=0,
         le=100,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Inquiry to booking conversion rate (%)",
     )
     interest_rate: float = Field(
@@ -798,6 +881,7 @@ class InquiryStats(BaseSchema):
         """Calculate percentage of inquiries that were contacted."""
         if self.total_inquiries == 0:
             return 0.0
+<<<<<<< Updated upstream
         return round((self.contacted_inquiries / self.total_inquiries) * 100, 2)
 =======
         description="Conversion rate percentage",
@@ -919,4 +1003,7 @@ class HostelInquirySummary(BaseSchema):
         None,
         description="Most recent inquiry timestamp",
     )
+>>>>>>> Stashed changes
+=======
+        return round((self.contacted_inquiries / self.total_inquiries) * 100, 2)
 >>>>>>> Stashed changes

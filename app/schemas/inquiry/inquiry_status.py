@@ -1,15 +1,21 @@
 # --- File: app/schemas/inquiry/inquiry_status.py ---
 """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 Inquiry status management schemas.
 
 This module defines schemas for managing inquiry status changes,
 assignments, timeline tracking, and follow-ups.
+<<<<<<< Updated upstream
 =======
 Inquiry status management, assignment, and timeline schemas.
 
 This module handles all status transitions, assignments, and
 maintains an audit trail of inquiry lifecycle events.
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 """
 
@@ -17,9 +23,13 @@ from __future__ import annotations
 
 from datetime import datetime
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 from typing import List, Optional
 =======
 from typing import Optional
+>>>>>>> Stashed changes
+=======
+from typing import List, Optional
 >>>>>>> Stashed changes
 from uuid import UUID
 
@@ -32,6 +42,9 @@ __all__ = [
     "InquiryStatusUpdate",
     "InquiryAssignment",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     "InquiryFollowUp",
     "InquiryTimelineEntry",
     "InquiryConversion",
@@ -106,6 +119,7 @@ class InquiryStatusUpdate(BaseCreateSchema):
         # This validation would need access to current status
         # In practice, this would be validated at the service layer
         # where we have access to the current inquiry data
+<<<<<<< Updated upstream
 =======
     "InquiryTimelineEntry",
     "InquiryStatusTransition",
@@ -253,6 +267,8 @@ class InquiryStatusUpdate(BaseCreateSchema):
                 f"'{self.new_status.value}'"
             )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
         
         return self
 
@@ -260,6 +276,9 @@ class InquiryStatusUpdate(BaseCreateSchema):
 class InquiryAssignment(BaseCreateSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Assign inquiry to an admin/staff member.
     
     Used for distributing inquiries among team members
@@ -279,6 +298,7 @@ class InquiryAssignment(BaseCreateSchema):
         description="Admin making the assignment",
     )
 
+<<<<<<< Updated upstream
 =======
     Schema for assigning an inquiry to staff member.
     
@@ -298,12 +318,17 @@ class InquiryAssignment(BaseCreateSchema):
         description="UUID of the user making the assignment",
     )
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     assignment_notes: Optional[str] = Field(
         None,
         max_length=500,
         description="Notes about the assignment",
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
     # Due Date for Follow-up
     follow_up_due: Optional[datetime] = Field(
@@ -389,6 +414,7 @@ class InquiryFollowUp(BaseCreateSchema):
         if v is not None:
             if v < datetime.utcnow():
                 raise ValueError("Next follow-up date cannot be in the past")
+<<<<<<< Updated upstream
 =======
     priority: str = Field(
         "normal",
@@ -419,12 +445,17 @@ class InquiryFollowUp(BaseCreateSchema):
         if v and v < datetime.utcnow():
             raise ValueError("Due date must be in the future")
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
         return v
 
 
 class InquiryTimelineEntry(BaseSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Timeline entry for inquiry lifecycle.
     
     Represents a single event in the inquiry's history.
@@ -450,6 +481,7 @@ class InquiryTimelineEntry(BaseSchema):
     changed_by_name: Optional[str] = Field(
         None,
         description="Name of admin who triggered event",
+<<<<<<< Updated upstream
 =======
     Timeline record for tracking inquiry lifecycle events.
     
@@ -489,11 +521,16 @@ class InquiryTimelineEntry(BaseSchema):
         max_length=500,
         description="Human-readable description of the event",
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     )
     notes: Optional[str] = Field(
         None,
         max_length=1000,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         description="Notes about this event",
     )
 
@@ -539,6 +576,7 @@ class InquiryConversion(BaseCreateSchema):
             if len(v) == 0:
                 return None
         return v
+<<<<<<< Updated upstream
 =======
         description="Additional notes",
     )
@@ -613,11 +651,16 @@ class InquiryConversion(BaseCreateSchema):
             "timestamp": datetime.utcnow(),
         }
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 
 class BulkInquiryStatusUpdate(BaseCreateSchema):
     """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
     Update status of multiple inquiries.
     
     Used for batch operations on inquiries.
@@ -667,6 +710,7 @@ class BulkInquiryStatusUpdate(BaseCreateSchema):
             v = v.strip()
             if len(v) == 0:
                 return None
+<<<<<<< Updated upstream
 =======
     Schema for bulk status updates on multiple inquiries.
     
@@ -757,5 +801,7 @@ class InquiryEscalation(BaseCreateSchema):
         """Ensure deadline is in the future."""
         if v and v < datetime.utcnow():
             raise ValueError("Response deadline must be in the future")
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         return v

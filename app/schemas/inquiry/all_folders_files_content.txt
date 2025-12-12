@@ -1,4 +1,7 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 ### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry ###
 
 
@@ -6,6 +9,7 @@
 # ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry =====
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_base.py ---
+<<<<<<< Updated upstream
 =======
 ### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry ###
 
@@ -14,6 +18,8 @@
 # ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry =====
 
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry\inquiry_base.py ---
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 """
 Base visitor inquiry schemas
@@ -55,9 +61,13 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
     pass
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_response.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry\inquiry_response.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_response.py ---
 >>>>>>> Stashed changes
 """
 Inquiry response schemas
@@ -129,9 +139,13 @@ class InquiryListItem(BaseSchema):
     created_at: datetime
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_status.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry\inquiry_status.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_status.py ---
 >>>>>>> Stashed changes
 """
 Inquiry status change & assignment schemas
@@ -169,9 +183,13 @@ class InquiryTimelineEntry(BaseSchema):
     notes: Optional[str]
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\__init__.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\inquiry\__init__.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\__init__.py ---
 >>>>>>> Stashed changes
 """
 Visitor inquiry & contact schemas package

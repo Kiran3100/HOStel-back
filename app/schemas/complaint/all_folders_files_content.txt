@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 ### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint ###
 
 
@@ -7,6 +8,8 @@
 
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_analytics.py ---
 =======
+=======
+>>>>>>> Stashed changes
 ### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint ###
 
 
@@ -14,6 +17,9 @@
 # ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint =====
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_analytics.py ---
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 """
 Complaint analytics schemas
@@ -154,7 +160,11 @@ class RoomComplaintCount(BaseSchema):
     most_common_category: str
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_assignment.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_assignment.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_assignment.py ---
 >>>>>>> Stashed changes
@@ -223,7 +233,11 @@ class UnassignRequest(BaseCreateSchema):
     reason: str = Field(..., min_length=10, max_length=500)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_base.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_base.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_base.py ---
 >>>>>>> Stashed changes
@@ -286,7 +300,11 @@ class ComplaintStatusUpdate(BaseUpdateSchema):
     notes: Optional[str] = Field(None, max_length=500, description="Status change notes")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_comments.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_comments.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_comments.py ---
 >>>>>>> Stashed changes
@@ -369,7 +387,11 @@ class MentionNotification(BaseSchema):
     comment_url: str
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_escalation.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_escalation.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_escalation.py ---
 >>>>>>> Stashed changes
@@ -469,7 +491,11 @@ class AutoEscalationRule(BaseSchema):
     is_active: bool = Field(True)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_feedback.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_feedback.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_feedback.py ---
 >>>>>>> Stashed changes
@@ -576,7 +602,11 @@ class RatingTrendPoint(BaseSchema):
     feedback_count: int
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_filters.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_filters.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_filters.py ---
 >>>>>>> Stashed changes
@@ -682,7 +712,11 @@ class ComplaintExportRequest(BaseFilterSchema):
     include_feedback: bool = Field(True)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_resolution.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_resolution.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_resolution.py ---
 >>>>>>> Stashed changes
@@ -775,7 +809,11 @@ class CloseRequest(BaseCreateSchema):
     student_confirmed: bool = Field(False, description="Student confirmed resolution")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_response.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_response.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_response.py ---
 >>>>>>> Stashed changes
@@ -940,7 +978,11 @@ class ComplaintSummary(BaseSchema):
     average_resolution_time_hours: Decimal
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\__init__.py ---
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\__init__.py ---
+>>>>>>> Stashed changes
 =======
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\__init__.py ---
 >>>>>>> Stashed changes

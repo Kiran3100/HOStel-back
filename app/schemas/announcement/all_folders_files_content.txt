@@ -1,4 +1,7 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 ### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement ###
 
 
@@ -6,6 +9,7 @@
 # ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement =====
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_approval.py ---
+<<<<<<< Updated upstream
 =======
 ### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement ###
 
@@ -14,6 +18,8 @@
 # ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement =====
 
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_approval.py ---
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 """
 Announcement approval schemas
@@ -134,9 +140,13 @@ class BulkApproval(BaseCreateSchema):
     publish_immediately: bool = Field(True)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_base.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_base.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_base.py ---
 >>>>>>> Stashed changes
 """
 Announcement base schemas
@@ -203,9 +213,13 @@ class AnnouncementUpdate(BaseUpdateSchema):
     is_published: Optional[bool] = None
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_delivery.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_delivery.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_delivery.py ---
 >>>>>>> Stashed changes
 """
 Announcement delivery schemas
@@ -357,9 +371,13 @@ class RetryDelivery(BaseCreateSchema):
     recipient_ids: Optional[List[UUID]] = Field(None, description="Retry specific recipients only")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_filters.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_filters.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_filters.py ---
 >>>>>>> Stashed changes
 """
 Announcement filter schemas
@@ -454,9 +472,13 @@ class AnnouncementExportRequest(BaseFilterSchema):
     include_recipient_list: bool = Field(False)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_response.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_response.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_response.py ---
 >>>>>>> Stashed changes
 """
 Announcement response schemas
@@ -580,9 +602,13 @@ class AnnouncementListItem(BaseSchema):
     is_read: bool = Field(False, description="For student view")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_scheduling.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_scheduling.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_scheduling.py ---
 >>>>>>> Stashed changes
 """
 Announcement scheduling schemas
@@ -706,9 +732,13 @@ class ScheduledAnnouncementItem(BaseSchema):
     estimated_recipients: int
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_targeting.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_targeting.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_targeting.py ---
 >>>>>>> Stashed changes
 """
 Announcement targeting schemas
@@ -809,9 +839,13 @@ class BulkTargeting(BaseCreateSchema):
     combine_mode: str = Field("union", pattern="^(union|intersection)$")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_tracking.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\announcement_tracking.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\announcement_tracking.py ---
 >>>>>>> Stashed changes
 """
 Announcement tracking schemas
@@ -950,9 +984,13 @@ class AnnouncementAnalytics(BaseSchema):
     reads_by_device: dict = Field(..., description="Device type -> count")
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\__init__.py ---
 =======
 # --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement\__init__.py ---
+>>>>>>> Stashed changes
+=======
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\announcement\__init__.py ---
 >>>>>>> Stashed changes
 """
 Announcement schemas package
