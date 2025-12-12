@@ -1,0 +1,1201 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\payment ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\payment =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_base.py ---
+"""
+Payment base schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from app.schemas.common.enums import PaymentType, PaymentMethod, PaymentStatus
+
+
+class PaymentBase(BaseSchema):
+    """Base payment schema"""
+    payer_id: UUID = Field(..., description="User making payment")
+    hostel_id: UUID = Field(..., description="Hostel receiving payment")
+    student_id: Optional[UUID] = Field(None, description="Student profile (for recurring fees)")
+    booking_id: Optional[UUID] = Field(None, description="Booking (for booking payments)")
+    
+    # Payment details
+    payment_type: PaymentType = Field(..., description="Type of payment")
+    amount: Decimal = Field(..., ge=0, max_digits=10, decimal_places=2, description="Payment amount")
+    currency: str = Field("INR", min_length=3, max_length=3, description="Currency code")
+    
+    # Period covered (for recurring fees)
+    payment_period_start: Optional[date] = Field(None, description="Period start date")
+    payment_period_end: Optional[date] = Field(None, description="Period end date")
+    
+    # Payment method
+    payment_method: PaymentMethod = Field(..., description="Payment method")
+    payment_gateway: Optional[str] = Field(None, description="Gateway used (razorpay/stripe/paytm)")
+    
+    # Due date (for scheduled payments)
+    due_date: Optional[date] = Field(None, description="Payment due date")
+
+
+class PaymentCreate(PaymentBase, BaseCreateSchema):
+    """Create payment schema"""
+    # Additional creation fields
+    transaction_id: Optional[str] = Field(None, description="External transaction ID")
+    collected_by: Optional[UUID] = Field(None, description="Staff who collected (for cash/cheque)")
+
+
+class PaymentUpdate(BaseUpdateSchema):
+    """Update payment schema"""
+    payment_status: Optional[PaymentStatus] = None
+    transaction_id: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    failed_at: Optional[datetime] = None
+    failure_reason: Optional[str] = None
+    
+    # Receipt
+    receipt_number: Optional[str] = None
+    receipt_url: Optional[str] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_filters.py ---
+"""
+Payment filter and search schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseFilterSchema
+from app.schemas.common.enums import PaymentType, PaymentMethod, PaymentStatus
+
+
+class PaymentFilterParams(BaseFilterSchema):
+    """Payment filter parameters"""
+    # Text search
+    search: Optional[str] = Field(None, description="Search in reference, payer name, transaction ID")
+    
+    # Entity filters
+    hostel_id: Optional[UUID] = None
+    hostel_ids: Optional[List[UUID]] = None
+    student_id: Optional[UUID] = None
+    payer_id: Optional[UUID] = None
+    
+    # Payment type
+    payment_type: Optional[PaymentType] = None
+    payment_types: Optional[List[PaymentType]] = None
+    
+    # Payment method
+    payment_method: Optional[PaymentMethod] = None
+    payment_methods: Optional[List[PaymentMethod]] = None
+    
+    # Status
+    payment_status: Optional[PaymentStatus] = None
+    payment_statuses: Optional[List[PaymentStatus]] = None
+    
+    # Amount range
+    amount_min: Optional[Decimal] = Field(None, ge=0)
+    amount_max: Optional[Decimal] = Field(None, ge=0)
+    
+    # Date filters
+    paid_date_from: Optional[date] = None
+    paid_date_to: Optional[date] = None
+    due_date_from: Optional[date] = None
+    due_date_to: Optional[date] = None
+    created_date_from: Optional[date] = None
+    created_date_to: Optional[date] = None
+    
+    # Overdue filter
+    overdue_only: Optional[bool] = None
+    
+    # Gateway
+    payment_gateway: Optional[str] = None
+
+
+class PaymentSearchRequest(BaseFilterSchema):
+    """Payment search request"""
+    query: str = Field(..., min_length=1, description="Search query")
+    hostel_id: Optional[UUID] = None
+    
+    # Search fields
+    search_in_reference: bool = Field(True)
+    search_in_payer_name: bool = Field(True)
+    search_in_transaction_id: bool = Field(True)
+    
+    # Filters
+    payment_status: Optional[PaymentStatus] = None
+    
+    # Pagination
+    page: int = Field(1, ge=1)
+    page_size: int = Field(20, ge=1, le=100)
+
+
+class PaymentReportRequest(BaseFilterSchema):
+    """Payment report generation request"""
+    hostel_id: Optional[UUID] = None
+    
+    # Date range (required)
+    date_from: date = Field(..., description="Report start date")
+    date_to: date = Field(..., description="Report end date")
+    
+    # Filters
+    payment_types: Optional[List[PaymentType]] = None
+    payment_methods: Optional[List[PaymentMethod]] = None
+    
+    # Grouping
+    group_by: str = Field("day", pattern="^(day|week|month|payment_type|payment_method)$")
+    
+    # Format
+    format: str = Field("pdf", pattern="^(pdf|excel|csv)$")
+    
+    # Include details
+    include_transaction_details: bool = Field(True)
+    include_student_details: bool = Field(True)
+    include_charts: bool = Field(True, description="Include charts/graphs")
+
+
+class PaymentExportRequest(BaseFilterSchema):
+    """Export payments data"""
+    filters: PaymentFilterParams = Field(..., description="Filter criteria")
+    
+    format: str = Field("csv", pattern="^(csv|excel|pdf)$")
+    
+    # Fields to include
+    include_payer_details: bool = Field(True)
+    include_gateway_details: bool = Field(False)
+    include_refund_details: bool = Field(True)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_gateway.py ---
+"""
+Payment gateway integration schemas
+"""
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional, Dict, Any
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class GatewayRequest(BaseSchema):
+    """Payment gateway request"""
+    payment_id: UUID
+    amount: Decimal
+    currency: str
+    
+    # Customer details
+    customer_name: str
+    customer_email: str
+    customer_phone: str
+    
+    # Order details
+    order_id: str
+    description: str
+    
+    # Callback URLs
+    callback_url: str
+    success_url: Optional[str]
+    failure_url: Optional[str]
+    
+    # Additional metadata
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class GatewayResponse(BaseSchema):
+    """Payment gateway response"""
+    payment_id: UUID
+    gateway_order_id: str
+    gateway_payment_id: Optional[str]
+    
+    status: str = Field(..., pattern="^(created|pending|authorized|captured|failed)$")
+    
+    amount: Decimal
+    currency: str
+    
+    # Gateway-specific data
+    gateway_response: Dict[str, Any]
+    
+    # Timestamps
+    created_at: datetime
+    updated_at: datetime
+
+
+class GatewayWebhook(BaseCreateSchema):
+    """Payment gateway webhook payload"""
+    event_type: str = Field(..., description="Event type from gateway")
+    
+    # Gateway identifiers
+    gateway_order_id: str
+    gateway_payment_id: Optional[str]
+    
+    # Payment details
+    amount: Decimal
+    currency: str
+    status: str
+    
+    # Full webhook payload
+    raw_payload: Dict[str, Any] = Field(..., description="Complete webhook payload")
+    
+    # Signature verification
+    signature: str = Field(..., description="Webhook signature")
+    
+    # Timestamp
+    event_timestamp: datetime
+
+
+class GatewayCallback(BaseSchema):
+    """Payment gateway callback processing"""
+    payment_id: UUID
+    gateway_payment_id: str
+    
+    success: bool
+    status: str
+    
+    amount_paid: Decimal
+    
+    # Error details (if failed)
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    
+    # Additional data
+    callback_data: Dict[str, Any]
+
+
+class GatewayRefundRequest(BaseCreateSchema):
+    """Refund request to gateway"""
+    payment_id: UUID
+    gateway_payment_id: str
+    
+    refund_amount: Decimal
+    reason: str = Field(..., min_length=10, max_length=500)
+    
+    # Speed
+    refund_speed: str = Field("normal", pattern="^(normal|instant)$")
+
+
+class GatewayRefundResponse(BaseSchema):
+    """Refund response from gateway"""
+    refund_id: str
+    gateway_refund_id: str
+    
+    status: str
+    amount: Decimal
+    
+    # Estimated timeline
+    estimated_completion_date: Optional[date]
+    
+    gateway_response: Dict[str, Any]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_ledger.py ---
+"""
+Payment ledger and account statement schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseResponseSchema
+
+
+class LedgerEntry(BaseResponseSchema):
+    """Individual ledger entry"""
+    student_id: UUID
+    hostel_id: UUID
+    
+    entry_date: date
+    entry_type: str = Field(..., pattern="^(debit|credit)$")
+    
+    # Transaction details
+    transaction_type: str = Field(..., description="Type of transaction")
+    amount: Decimal
+    
+    # Running balance
+    balance_before: Decimal
+    balance_after: Decimal
+    
+    # Reference
+    payment_id: Optional[UUID] = None
+    payment_reference: Optional[str] = None
+    
+    description: str
+    
+    # Metadata
+    created_by: Optional[UUID] = None
+    notes: Optional[str] = None
+
+
+class LedgerSummary(BaseSchema):
+    """Ledger summary for student"""
+    student_id: UUID
+    student_name: str
+    hostel_id: UUID
+    
+    # Current balance
+    current_balance: Decimal
+    
+    # Breakdown
+    total_charges: Decimal
+    total_payments: Decimal
+    total_refunds: Decimal
+    
+    # Outstanding
+    total_due: Decimal
+    overdue_amount: Decimal
+    
+    # Last transaction
+    last_transaction_date: Optional[date]
+    last_payment_date: Optional[date]
+
+
+class AccountStatement(BaseSchema):
+    """Account statement for period"""
+    student_id: UUID
+    student_name: str
+    hostel_id: UUID
+    hostel_name: str
+    
+    statement_period_start: date
+    statement_period_end: date
+    generated_at: datetime
+    
+    # Opening balance
+    opening_balance: Decimal
+    
+    # Transactions
+    entries: List[LedgerEntry]
+    
+    # Summary
+    total_debits: Decimal
+    total_credits: Decimal
+    
+    # Closing balance
+    closing_balance: Decimal
+    
+    # Download link
+    pdf_url: Optional[str] = None
+
+
+class TransactionHistory(BaseSchema):
+    """Transaction history"""
+    student_id: UUID
+    
+    transactions: List["TransactionItem"]
+    
+    # Pagination
+    total_transactions: int
+    page: int
+    page_size: int
+
+
+class TransactionItem(BaseSchema):
+    """Individual transaction in history"""
+    transaction_id: UUID
+    transaction_date: datetime
+    transaction_type: str
+    
+    amount: Decimal
+    balance_after: Decimal
+    
+    description: str
+    payment_reference: Optional[str]
+    
+    status: str
+
+
+class BalanceAdjustment(BaseSchema):
+    """Manual balance adjustment (admin only)"""
+    student_id: UUID
+    hostel_id: UUID
+    
+    adjustment_type: str = Field(..., pattern="^(debit|credit)$")
+    amount: Decimal = Field(..., ge=0)
+    
+    reason: str = Field(..., min_length=20, max_length=500)
+    
+    adjusted_by: UUID
+    adjustment_date: date
+    
+    notes: Optional[str] = None
+
+
+class WriteOff(BaseSchema):
+    """Write off outstanding amount"""
+    student_id: UUID
+    amount: Decimal = Field(..., ge=0)
+    
+    reason: str = Field(..., min_length=20, max_length=500)
+    
+    approved_by: UUID
+    approval_date: date
+    
+    # Documentation
+    supporting_documents: List[str] = Field(default_factory=list)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_refund.py ---
+"""
+Payment refund schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+
+
+class RefundRequest(BaseCreateSchema):
+    """Request payment refund"""
+    payment_id: UUID = Field(..., description="Payment ID to refund")
+    refund_amount: Decimal = Field(..., ge=0, description="Amount to refund")
+    
+    refund_reason: str = Field(..., min_length=10, max_length=500, description="Reason for refund")
+    
+    # Refund type
+    refund_type: str = Field(
+        "full",
+        pattern="^(full|partial)$",
+        description="Full or partial refund"
+    )
+    
+    # Processing
+    refund_method: str = Field(
+        "original_source",
+        pattern="^(original_source|bank_transfer|cash|cheque)$",
+        description="How to refund"
+    )
+    
+    # Bank details (if bank_transfer)
+    bank_account_number: Optional[str] = Field(None, description="Bank account number")
+    bank_ifsc_code: Optional[str] = Field(None, description="IFSC code")
+    account_holder_name: Optional[str] = Field(None, description="Account holder name")
+    
+    # Additional details
+    admin_notes: Optional[str] = Field(None, max_length=500)
+
+
+class RefundResponse(BaseResponseSchema):
+    """Refund response"""
+    refund_id: UUID
+    payment_id: UUID
+    payment_reference: str
+    
+    refund_amount: Decimal
+    refund_status: str = Field(..., pattern="^(pending|processing|completed|failed)$")
+    
+    # Processing details
+    refund_method: str
+    refund_reference: Optional[str] = Field(None, description="Refund transaction reference")
+    
+    # Timeline
+    requested_at: datetime
+    processed_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    estimated_completion_date: Optional[date]
+    
+    # Refund to
+    refunded_to: str = Field(..., description="Destination of refund")
+    
+    message: str
+
+
+class RefundStatus(BaseSchema):
+    """Refund status tracking"""
+    refund_id: UUID
+    payment_reference: str
+    
+    refund_amount: Decimal
+    currency: str
+    
+    status: str = Field(..., pattern="^(pending|processing|completed|failed|cancelled)$")
+    
+    # Timeline
+    requested_at: datetime
+    processing_started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    
+    # Days elapsed
+    days_since_request: int
+    
+    # Failure details
+    failure_reason: Optional[str] = None
+    
+    # Next steps
+    next_action: Optional[str] = None
+    expected_completion_date: Optional[date] = None
+
+
+class RefundApproval(BaseCreateSchema):
+    """Approve refund request (admin)"""
+    refund_id: UUID
+    approved: bool
+    
+    # If approved
+    processing_notes: Optional[str] = None
+    
+    # If rejected
+    rejection_reason: Optional[str] = None
+
+
+class RefundList(BaseSchema):
+    """List of refunds"""
+    total_refunds: int
+    total_amount_refunded: Decimal
+    
+    refunds: List["RefundListItem"]
+
+
+class RefundListItem(BaseSchema):
+    """Refund list item"""
+    refund_id: UUID
+    payment_reference: str
+    student_name: str
+    
+    refund_amount: Decimal
+    status: str
+    
+    requested_at: datetime
+    completed_at: Optional[datetime]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_reminder.py ---
+"""
+Payment reminder schemas
+"""
+from datetime import datetime, date
+from typing import Optional, List
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+
+
+class ReminderConfig(BaseSchema):
+    """Payment reminder configuration"""
+    hostel_id: UUID
+    
+    # Reminder timing
+    days_before_due: List[int] = Field(
+        default_factory=lambda: [7, 3, 1],
+        description="Days before due date to send reminders"
+    )
+    days_after_due: List[int] = Field(
+        default_factory=lambda: [1, 3, 7, 15],
+        description="Days after due date for overdue reminders"
+    )
+    
+    # Channels
+    send_email: bool = Field(True)
+    send_sms: bool = Field(True)
+    send_push: bool = Field(True)
+    
+    # Escalation
+    escalate_after_days: int = Field(15, description="Escalate to admin after days")
+    
+    # Template
+    email_template_id: Optional[UUID] = None
+    sms_template_id: Optional[UUID] = None
+    
+    is_active: bool = Field(True)
+
+
+class ReminderLog(BaseResponseSchema):
+    """Payment reminder log entry"""
+    payment_id: UUID
+    payment_reference: str
+    
+    student_id: UUID
+    student_name: str
+    student_email: str
+    student_phone: str
+    
+    # Reminder details
+    reminder_type: str = Field(..., pattern="^(due_soon|overdue|final_notice)$")
+    reminder_channel: str = Field(..., pattern="^(email|sms|push)$")
+    
+    # Status
+    sent_at: datetime
+    delivery_status: str = Field(..., pattern="^(sent|delivered|failed|bounced)$")
+    
+    # Content
+    subject: Optional[str] = None
+    message_preview: str
+    
+    # Response
+    opened: bool = Field(False, description="Email opened")
+    clicked: bool = Field(False, description="Link clicked")
+
+
+class SendReminderRequest(BaseCreateSchema):
+    """Send payment reminder manually"""
+    payment_id: Optional[UUID] = Field(None, description="Specific payment")
+    student_id: Optional[UUID] = Field(None, description="All due payments for student")
+    hostel_id: Optional[UUID] = Field(None, description="All due payments for hostel")
+    
+    # Reminder settings
+    reminder_type: str = Field("overdue", pattern="^(due_soon|overdue|final_notice)$")
+    
+    channels: List[str] = Field(
+        default_factory=lambda: ["email", "sms"],
+        description="Channels to use"
+    )
+    
+    # Custom message
+    custom_message: Optional[str] = Field(None, max_length=500)
+
+
+class ReminderBatch(BaseSchema):
+    """Batch reminder sending"""
+    batch_id: UUID
+    
+    total_payments: int
+    reminders_sent: int
+    reminders_failed: int
+    
+    # Breakdown by channel
+    email_sent: int
+    sms_sent: int
+    push_sent: int
+    
+    started_at: datetime
+    completed_at: Optional[datetime]
+    
+    status: str = Field(..., pattern="^(processing|completed|failed)$")
+
+
+class ReminderStats(BaseSchema):
+    """Reminder statistics"""
+    hostel_id: UUID
+    period_start: date
+    period_end: date
+    
+    total_reminders_sent: int
+    
+    # By type
+    due_soon_reminders: int
+    overdue_reminders: int
+    final_notices: int
+    
+    # By channel
+    email_reminders: int
+    sms_reminders: int
+    push_reminders: int
+    
+    # Effectiveness
+    payment_rate_after_reminder: Decimal = Field(..., description="% who paid after reminder")
+    average_days_to_payment: Decimal
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_request.py ---
+"""
+Payment request schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import PaymentType, PaymentMethod
+
+
+class PaymentRequest(BaseCreateSchema):
+    """Online payment request"""
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    student_id: Optional[UUID] = Field(None, description="Student ID (for recurring fees)")
+    booking_id: Optional[UUID] = Field(None, description="Booking ID (for booking payment)")
+    
+    payment_type: PaymentType = Field(..., description="Type of payment")
+    amount: Decimal = Field(..., ge=0, description="Amount to pay")
+    
+    # For recurring fees
+    payment_period_start: Optional[date] = None
+    payment_period_end: Optional[date] = None
+    
+    # Payment method
+    payment_method: PaymentMethod = Field(PaymentMethod.PAYMENT_GATEWAY, description="Payment method")
+    payment_gateway: str = Field("razorpay", pattern="^(razorpay|stripe|paytm)$")
+    
+    # Return URLs
+    success_url: Optional[str] = Field(None, description="URL to redirect on success")
+    failure_url: Optional[str] = Field(None, description="URL to redirect on failure")
+    cancel_url: Optional[str] = Field(None, description="URL if payment cancelled")
+
+
+class PaymentInitiation(BaseSchema):
+    """Payment initiation response"""
+    payment_id: UUID
+    payment_reference: str
+    
+    amount: Decimal
+    currency: str
+    
+    # Gateway details
+    gateway: str
+    gateway_order_id: str
+    gateway_key: str
+    
+    # Checkout info
+    checkout_url: Optional[str] = None
+    checkout_token: Optional[str] = None
+    
+    # For client-side integration
+    gateway_options: dict = Field(..., description="Gateway-specific options")
+
+
+class ManualPaymentRequest(BaseCreateSchema):
+    """Manual payment recording (cash/cheque)"""
+    hostel_id: UUID
+    student_id: UUID
+    
+    payment_type: PaymentType
+    amount: Decimal = Field(..., ge=0)
+    
+    payment_method: PaymentMethod = Field(..., pattern="^(cash|cheque|bank_transfer)$")
+    
+    # For cheque
+    cheque_number: Optional[str] = None
+    cheque_date: Optional[date] = None
+    bank_name: Optional[str] = None
+    
+    # For bank transfer
+    transaction_reference: Optional[str] = None
+    transfer_date: Optional[date] = None
+    
+    # Period
+    payment_period_start: Optional[date] = None
+    payment_period_end: Optional[date] = None
+    
+    # Collection details
+    collected_by: UUID = Field(..., description="Staff member who collected")
+    collection_date: date = Field(..., description="Date of collection")
+    
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class BulkPaymentRequest(BaseCreateSchema):
+    """Record multiple payments"""
+    hostel_id: UUID
+    payments: List["SinglePaymentRecord"] = Field(..., min_items=1, max_items=100)
+    
+    collected_by: UUID
+    collection_date: date
+
+
+class SinglePaymentRecord(BaseSchema):
+    """Single payment in bulk"""
+    student_id: UUID
+    payment_type: PaymentType
+    amount: Decimal
+    payment_method: PaymentMethod
+    
+    # Optional fields
+    transaction_reference: Optional[str] = None
+    notes: Optional[str] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_response.py ---
+"""
+Payment response schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import PaymentType, PaymentMethod, PaymentStatus
+
+
+class PaymentResponse(BaseResponseSchema):
+    """Payment response schema"""
+    payment_reference: str
+    transaction_id: Optional[str]
+    
+    payer_id: UUID
+    payer_name: str
+    hostel_id: UUID
+    hostel_name: str
+    
+    payment_type: PaymentType
+    amount: Decimal
+    currency: str
+    
+    payment_method: PaymentMethod
+    payment_status: PaymentStatus
+    
+    paid_at: Optional[datetime]
+    due_date: Optional[date]
+    is_overdue: bool
+    
+    receipt_number: Optional[str]
+    receipt_url: Optional[str]
+
+
+class PaymentDetail(BaseResponseSchema):
+    """Detailed payment information"""
+    payment_reference: str
+    transaction_id: Optional[str]
+    
+    # Payer details
+    payer_id: UUID
+    payer_name: str
+    payer_email: str
+    payer_phone: str
+    
+    # Payee details
+    hostel_id: UUID
+    hostel_name: str
+    
+    # Related entities
+    student_id: Optional[UUID]
+    student_name: Optional[str]
+    booking_id: Optional[UUID]
+    booking_reference: Optional[str]
+    
+    # Payment details
+    payment_type: PaymentType
+    amount: Decimal
+    currency: str
+    
+    # Period
+    payment_period_start: Optional[date]
+    payment_period_end: Optional[date]
+    
+    # Method
+    payment_method: PaymentMethod
+    payment_gateway: Optional[str]
+    
+    # Status
+    payment_status: PaymentStatus
+    paid_at: Optional[datetime]
+    failed_at: Optional[datetime]
+    failure_reason: Optional[str]
+    
+    # Gateway response
+    gateway_response: Optional[dict]
+    
+    # Receipt
+    receipt_number: Optional[str]
+    receipt_url: Optional[str]
+    receipt_generated_at: Optional[datetime]
+    
+    # Refund
+    refund_amount: Decimal
+    refund_status: str
+    refunded_at: Optional[datetime]
+    refund_transaction_id: Optional[str]
+    refund_reason: Optional[str]
+    
+    # Collection
+    collected_by: Optional[UUID]
+    collected_by_name: Optional[str]
+    collected_at: Optional[datetime]
+    
+    # Due date
+    due_date: Optional[date]
+    is_overdue: bool
+    
+    # Reminders
+    reminder_sent_count: int
+    last_reminder_sent_at: Optional[datetime]
+
+
+class PaymentReceipt(BaseSchema):
+    """Payment receipt"""
+    receipt_number: str
+    payment_reference: str
+    
+    # Payer
+    payer_name: str
+    payer_email: str
+    payer_phone: str
+    
+    # Hostel
+    hostel_name: str
+    hostel_address: str
+    hostel_phone: str
+    
+    # Payment details
+    payment_type: str
+    amount: Decimal
+    amount_in_words: str
+    currency: str
+    
+    payment_method: str
+    transaction_id: Optional[str]
+    
+    # Period
+    payment_for_period: Optional[str] = Field(None, description="e.g., 'January 2024'")
+    
+    # Dates
+    payment_date: datetime
+    due_date: Optional[date]
+    
+    # Receipt metadata
+    receipt_generated_at: datetime
+    receipt_url: str
+    
+    # Tax/GST details (if applicable)
+    tax_details: Optional[dict] = None
+
+
+class PaymentListItem(BaseSchema):
+    """Payment list item"""
+    id: UUID
+    payment_reference: str
+    payer_name: str
+    hostel_name: str
+    
+    payment_type: str
+    amount: Decimal
+    
+    payment_method: str
+    payment_status: PaymentStatus
+    
+    paid_at: Optional[datetime]
+    due_date: Optional[date]
+    is_overdue: bool
+    
+    created_at: datetime
+
+
+class PaymentSummary(BaseSchema):
+    """Payment summary for student/hostel"""
+    entity_id: UUID
+    entity_type: str = Field(..., pattern="^(student|hostel)$")
+    
+    # Totals
+    total_paid: Decimal
+    total_pending: Decimal
+    total_overdue: Decimal
+    
+    # Last payment
+    last_payment_date: Optional[date]
+    last_payment_amount: Optional[Decimal]
+    
+    # Next payment
+    next_payment_due_date: Optional[date]
+    next_payment_amount: Optional[Decimal]
+    
+    # Count
+    total_payments: int
+    completed_payments: int
+    pending_payments: int
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\payment_schedule.py ---
+"""
+Payment schedule schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseUpdateSchema, BaseResponseSchema
+from app.schemas.common.enums import FeeType, PaymentType
+
+
+class PaymentSchedule(BaseResponseSchema):
+    """Payment schedule"""
+    student_id: UUID
+    student_name: str
+    hostel_id: UUID
+    hostel_name: str
+    
+    fee_type: FeeType
+    amount: Decimal
+    
+    start_date: date
+    end_date: Optional[date]
+    next_due_date: date
+    
+    auto_generate_invoice: bool
+    is_active: bool
+
+
+class ScheduleCreate(BaseCreateSchema):
+    """Create payment schedule"""
+    student_id: UUID = Field(..., description="Student ID")
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    
+    fee_type: FeeType = Field(..., description="Fee type (monthly/quarterly/etc)")
+    amount: Decimal = Field(..., ge=0, description="Amount per period")
+    
+    start_date: date = Field(..., description="Schedule start date")
+    end_date: Optional[date] = Field(None, description="Schedule end date (null for indefinite)")
+    
+    # First due date
+    first_due_date: date = Field(..., description="First payment due date")
+    
+    # Settings
+    auto_generate_invoice: bool = Field(True, description="Auto-generate invoices")
+    send_reminders: bool = Field(True, description="Send payment reminders")
+
+
+class ScheduleUpdate(BaseUpdateSchema):
+    """Update payment schedule"""
+    amount: Optional[Decimal] = Field(None, ge=0)
+    next_due_date: Optional[date] = None
+    end_date: Optional[date] = None
+    auto_generate_invoice: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+class ScheduleGeneration(BaseSchema):
+    """Generate scheduled payments"""
+    schedule_id: UUID
+    
+    # Generate for period
+    generate_from_date: date
+    generate_to_date: date
+    
+    # Options
+    skip_if_already_paid: bool = Field(True)
+    send_notifications: bool = Field(True)
+
+
+class ScheduledPaymentGenerated(BaseSchema):
+    """Result of schedule generation"""
+    schedule_id: UUID
+    
+    payments_generated: int
+    payments_skipped: int
+    
+    generated_payment_ids: List[UUID]
+    
+    next_generation_date: date
+
+
+class BulkScheduleCreate(BaseCreateSchema):
+    """Create schedules for multiple students"""
+    hostel_id: UUID
+    student_ids: List[UUID] = Field(..., min_items=1)
+    
+    fee_type: FeeType
+    amount: Decimal = Field(..., ge=0)
+    
+    start_date: date
+    first_due_date: date
+
+
+class ScheduleSuspension(BaseCreateSchema):
+    """Suspend payment schedule temporarily"""
+    schedule_id: UUID
+    suspension_reason: str = Field(..., min_length=10, max_length=500)
+    
+    suspend_from_date: date
+    suspend_to_date: date
+    
+    skip_dues_during_suspension: bool = Field(True, description="Skip generating dues during suspension")
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\payment\__init__.py ---
+"""
+Payment schemas package
+"""
+from app.schemas.payment.payment_base import (
+    PaymentBase,
+    PaymentCreate,
+    PaymentUpdate
+)
+from app.schemas.payment.payment_response import (
+    PaymentResponse,
+    PaymentDetail,
+    PaymentReceipt,
+    PaymentListItem
+)
+from app.schemas.payment.payment_request import (
+    PaymentRequest,
+    PaymentInitiation,
+    ManualPaymentRequest
+)
+from app.schemas.payment.payment_gateway import (
+    GatewayRequest,
+    GatewayResponse,
+    GatewayWebhook,
+    GatewayCallback
+)
+from app.schemas.payment.payment_refund import (
+    RefundRequest,
+    RefundResponse,
+    RefundStatus
+)
+from app.schemas.payment.payment_schedule import (
+    PaymentSchedule,
+    ScheduleCreate,
+    ScheduleUpdate,
+    ScheduleGeneration
+)
+from app.schemas.payment.payment_reminder import (
+    ReminderConfig,
+    ReminderLog,
+    SendReminderRequest
+)
+from app.schemas.payment.payment_ledger import (
+    LedgerEntry,
+    LedgerSummary,
+    AccountStatement
+)
+from app.schemas.payment.payment_filters import (
+    PaymentFilterParams,
+    PaymentSearchRequest,
+    PaymentReportRequest
+)
+
+__all__ = [
+    # Base
+    "PaymentBase",
+    "PaymentCreate",
+    "PaymentUpdate",
+    
+    # Response
+    "PaymentResponse",
+    "PaymentDetail",
+    "PaymentReceipt",
+    "PaymentListItem",
+    
+    # Request
+    "PaymentRequest",
+    "PaymentInitiation",
+    "ManualPaymentRequest",
+    
+    # Gateway
+    "GatewayRequest",
+    "GatewayResponse",
+    "GatewayWebhook",
+    "GatewayCallback",
+    
+    # Refund
+    "RefundRequest",
+    "RefundResponse",
+    "RefundStatus",
+    
+    # Schedule
+    "PaymentSchedule",
+    "ScheduleCreate",
+    "ScheduleUpdate",
+    "ScheduleGeneration",
+    
+    # Reminder
+    "ReminderConfig",
+    "ReminderLog",
+    "SendReminderRequest",
+    
+    # Ledger
+    "LedgerEntry",
+    "LedgerSummary",
+    "AccountStatement",
+    
+    # Filters
+    "PaymentFilterParams",
+    "PaymentSearchRequest",
+    "PaymentReportRequest",
+]

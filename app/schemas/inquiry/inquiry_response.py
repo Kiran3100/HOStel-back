@@ -1,68 +1,407 @@
+# --- File: app/schemas/inquiry/inquiry_response.py ---
 """
-Inquiry response schemas
+Inquiry response schemas for API responses.
+
+This module defines response schemas for inquiry data including
+basic responses, detailed information, and list items.
 """
-from datetime import datetime, date
+
+from __future__ import annotations
+
+from datetime import date, datetime
 from typing import Optional
-from pydantic import Field
 from uuid import UUID
 
+from pydantic import Field, computed_field
+
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import InquiryStatus, RoomType
+from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
+
+__all__ = [
+    "InquiryResponse",
+    "InquiryDetail",
+    "InquiryListItem",
+    "InquiryStats",
+]
 
 
 class InquiryResponse(BaseResponseSchema):
-    """Basic inquiry response"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Standard inquiry response schema.
+    
+    Contains core inquiry information for API responses.
+    """
 
-    visitor_name: str
-    visitor_email: str
-    visitor_phone: str
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Name of the hostel",
+    )
 
-    preferred_check_in_date: Optional[date]
-    stay_duration_months: Optional[int]
-    room_type_preference: Optional[RoomType]
+    # Visitor Information
+    visitor_name: str = Field(
+        ...,
+        description="Visitor full name",
+    )
+    visitor_email: str = Field(
+        ...,
+        description="Visitor email",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
 
-    status: InquiryStatus
-    created_at: datetime
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Intended stay duration",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
+
+    # Status
+    status: InquiryStatus = Field(
+        ...,
+        description="Current inquiry status",
+    )
+
+    created_at: datetime = Field(
+        ...,
+        description="When inquiry was created",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate age of inquiry in days."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def is_new(self) -> bool:
+        """Check if inquiry is new (less than 24 hours old)."""
+        return self.age_days < 1
+
+    @computed_field
+    @property
+    def is_stale(self) -> bool:
+        """Check if inquiry is stale (older than 7 days without contact)."""
+        return self.age_days > 7 and self.status == InquiryStatus.NEW
+
+    @computed_field
+    @property
+    def urgency_level(self) -> str:
+        """
+        Determine urgency level.
+        
+        Returns: "high", "medium", or "low"
+        """
+        if self.status == InquiryStatus.NEW and self.age_days < 1:
+            return "high"
+        elif self.status == InquiryStatus.NEW and self.age_days < 3:
+            return "medium"
+        else:
+            return "low"
 
 
 class InquiryDetail(BaseResponseSchema):
-    """Detailed inquiry view"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Detailed inquiry information.
+    
+    Contains complete inquiry details including contact history,
+    notes, and assignment information.
+    """
 
-    visitor_name: str
-    visitor_email: str
-    visitor_phone: str
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
 
-    preferred_check_in_date: Optional[date]
-    stay_duration_months: Optional[int]
-    room_type_preference: Optional[RoomType]
+    # Visitor Information
+    visitor_name: str = Field(
+        ...,
+        description="Visitor name",
+    )
+    visitor_email: str = Field(
+        ...,
+        description="Visitor email",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
 
-    message: Optional[str]
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Stay duration in months",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
 
-    inquiry_source: str
-    status: InquiryStatus
+    # Inquiry Details
+    message: Optional[str] = Field(
+        None,
+        description="Visitor's message or questions",
+    )
 
-    contacted_by: Optional[UUID]
-    contacted_by_name: Optional[str]
-    contacted_at: Optional[datetime]
+    # Metadata
+    inquiry_source: InquirySource = Field(
+        ...,
+        description="Source of the inquiry",
+    )
+    status: InquiryStatus = Field(
+        ...,
+        description="Current status",
+    )
 
-    notes: Optional[str]
+    # Contact/Follow-up Information
+    contacted_by: Optional[UUID] = Field(
+        None,
+        description="Admin who contacted the visitor",
+    )
+    contacted_by_name: Optional[str] = Field(
+        None,
+        description="Name of admin who made contact",
+    )
+    contacted_at: Optional[datetime] = Field(
+        None,
+        description="When visitor was contacted",
+    )
 
-    created_at: datetime
-    updated_at: datetime
+    # Assignment Information
+    assigned_to: Optional[UUID] = Field(
+        None,
+        description="Admin assigned to handle this inquiry",
+    )
+    assigned_to_name: Optional[str] = Field(
+        None,
+        description="Name of assigned admin",
+    )
+    assigned_at: Optional[datetime] = Field(
+        None,
+        description="When inquiry was assigned",
+    )
+
+    # Internal Notes
+    notes: Optional[str] = Field(
+        None,
+        description="Internal notes about this inquiry",
+    )
+
+    # Timestamps
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+    updated_at: datetime = Field(
+        ...,
+        description="Last update timestamp",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate inquiry age in days."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def has_been_contacted(self) -> bool:
+        """Check if visitor has been contacted."""
+        return self.contacted_at is not None
+
+    @computed_field
+    @property
+    def is_assigned(self) -> bool:
+        """Check if inquiry has been assigned to someone."""
+        return self.assigned_to is not None
+
+    @computed_field
+    @property
+    def response_time_hours(self) -> Optional[float]:
+        """Calculate response time in hours if contacted."""
+        if self.contacted_at is None:
+            return None
+        
+        delta = self.contacted_at - self.created_at
+        return round(delta.total_seconds() / 3600, 2)
+
+    @computed_field
+    @property
+    def days_since_contact(self) -> Optional[int]:
+        """Calculate days since last contact."""
+        if self.contacted_at is None:
+            return None
+        
+        return (datetime.utcnow() - self.contacted_at).days
 
 
 class InquiryListItem(BaseSchema):
-    """List item for inquiries"""
-    id: UUID
-    hostel_name: str
-    visitor_name: str
-    visitor_phone: str
-    preferred_check_in_date: Optional[date]
-    stay_duration_months: Optional[int]
-    room_type_preference: Optional[RoomType]
-    status: InquiryStatus
-    created_at: datetime
+    """
+    Inquiry list item for summary views.
+    
+    Optimized schema for displaying multiple inquiries
+    with essential information only.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="Inquiry ID",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    visitor_name: str = Field(
+        ...,
+        description="Visitor name",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
+
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Stay duration",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
+
+    # Status and Timing
+    status: InquiryStatus = Field(
+        ...,
+        description="Current status",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+
+    # Quick Indicators
+    is_urgent: bool = Field(
+        ...,
+        description="Whether inquiry requires urgent attention",
+    )
+    is_assigned: bool = Field(
+        ...,
+        description="Whether inquiry is assigned to someone",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate inquiry age."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def status_badge_color(self) -> str:
+        """Get color code for status badge."""
+        color_map = {
+            InquiryStatus.NEW: "#FFA500",  # Orange
+            InquiryStatus.CONTACTED: "#2196F3",  # Blue
+            InquiryStatus.INTERESTED: "#4CAF50",  # Green
+            InquiryStatus.NOT_INTERESTED: "#9E9E9E",  # Gray
+            InquiryStatus.CONVERTED: "#9C27B0",  # Purple
+        }
+        return color_map.get(self.status, "#000000")
+
+
+class InquiryStats(BaseSchema):
+    """
+    Inquiry statistics and analytics.
+    
+    Provides metrics about inquiry performance and conversion.
+    """
+
+    # Volume Metrics
+    total_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Total number of inquiries",
+    )
+    new_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries with NEW status",
+    )
+    contacted_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries that have been contacted",
+    )
+    converted_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries converted to bookings",
+    )
+
+    # Response Metrics
+    average_response_time_hours: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Average time to first contact in hours",
+    )
+    
+    # Conversion Metrics
+    conversion_rate: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Inquiry to booking conversion rate (%)",
+    )
+    interest_rate: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Percentage of inquiries showing interest",
+    )
+
+    # Source Breakdown
+    inquiries_by_source: dict = Field(
+        default_factory=dict,
+        description="Breakdown of inquiries by source",
+    )
+
+    @computed_field
+    @property
+    def pending_action_count(self) -> int:
+        """Count inquiries needing action (NEW + CONTACTED)."""
+        return self.new_inquiries + self.contacted_inquiries
+
+    @computed_field
+    @property
+    def response_rate(self) -> float:
+        """Calculate percentage of inquiries that were contacted."""
+        if self.total_inquiries == 0:
+            return 0.0
+        return round((self.contacted_inquiries / self.total_inquiries) * 100, 2)

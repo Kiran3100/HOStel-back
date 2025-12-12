@@ -1,78 +1,107 @@
+# --- File: app/schemas/attendance/__init__.py ---
 """
-Attendance schemas package
+Attendance schemas package.
+
+Comprehensive attendance tracking, reporting, and alerting schemas
+for hostel management system with enhanced validation and type safety.
 """
+
+from __future__ import annotations
+
+from app.schemas.attendance.attendance_alert import (
+    AlertAcknowledgment,
+    AlertConfig,
+    AlertList,
+    AlertSummary,
+    AlertTrigger,
+    AttendanceAlert,
+)
 from app.schemas.attendance.attendance_base import (
     AttendanceBase,
     AttendanceCreate,
     AttendanceUpdate,
-    BulkAttendanceCreate
+    BulkAttendanceCreate,
+    SingleAttendanceRecord,
 )
-from app.schemas.attendance.attendance_response import (
-    AttendanceResponse,
-    AttendanceDetail,
-    AttendanceListItem
-)
-from app.schemas.attendance.attendance_record import (
-    AttendanceRecordRequest,
-    BulkAttendanceRequest,
-    AttendanceCorrection
-)
-from app.schemas.attendance.attendance_report import (
-    AttendanceReport,
-    AttendanceSummary,
-    TrendAnalysis,
-    MonthlyReport
+from app.schemas.attendance.attendance_filters import (
+    AttendanceExportRequest,
+    AttendanceFilterParams,
+    DateRangeRequest,
 )
 from app.schemas.attendance.attendance_policy import (
     AttendancePolicy,
     PolicyConfig,
-    PolicyUpdate
+    PolicyUpdate,
+    PolicyViolation,
 )
-from app.schemas.attendance.attendance_alert import (
-    AttendanceAlert,
-    AlertConfig,
-    AlertTrigger
+from app.schemas.attendance.attendance_record import (
+    AttendanceCorrection,
+    AttendanceRecordRequest,
+    BulkAttendanceRequest,
+    QuickAttendanceMarkAll,
+    StudentAttendanceRecord,
 )
-from app.schemas.attendance.attendance_filters import (
-    AttendanceFilterParams,
-    DateRangeRequest,
-    AttendanceExportRequest
+from app.schemas.attendance.attendance_report import (
+    AttendanceComparison,
+    AttendanceReport,
+    AttendanceSummary,
+    ComparisonItem,
+    DailyAttendanceRecord,
+    MonthlyComparison,
+    MonthlyReport,
+    StudentMonthlySummary,
+    TrendAnalysis,
+    WeeklyAttendance,
+)
+from app.schemas.attendance.attendance_response import (
+    AttendanceDetail,
+    AttendanceListItem,
+    AttendanceResponse,
+    DailyAttendanceSummary,
 )
 
 __all__ = [
-    # Base
+    # Base schemas
     "AttendanceBase",
     "AttendanceCreate",
     "AttendanceUpdate",
     "BulkAttendanceCreate",
-    
-    # Response
+    "SingleAttendanceRecord",
+    # Response schemas
     "AttendanceResponse",
     "AttendanceDetail",
     "AttendanceListItem",
-    
-    # Record
+    "DailyAttendanceSummary",
+    # Recording schemas
     "AttendanceRecordRequest",
     "BulkAttendanceRequest",
+    "StudentAttendanceRecord",
     "AttendanceCorrection",
-    
-    # Report
+    "QuickAttendanceMarkAll",
+    # Report schemas
     "AttendanceReport",
     "AttendanceSummary",
+    "DailyAttendanceRecord",
     "TrendAnalysis",
+    "WeeklyAttendance",
+    "MonthlyComparison",
     "MonthlyReport",
-    
-    # Policy
+    "StudentMonthlySummary",
+    "AttendanceComparison",
+    "ComparisonItem",
+    # Policy schemas
     "AttendancePolicy",
     "PolicyConfig",
     "PolicyUpdate",
-    
-    # Alert
+    "PolicyViolation",
+    # Alert schemas
     "AttendanceAlert",
     "AlertConfig",
     "AlertTrigger",
-    
-    # Filters
+    "AlertAcknowledgment",
+    "AlertList",
+    "AlertSummary",
+    # Filter schemas
     "AttendanceFilterParams",
     "DateRangeRequest",
     "AttendanceExportRequest",

@@ -1,0 +1,204 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_base.py ---
+"""
+Base fee structure schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseUpdateSchema
+from app.schemas.common.enums import RoomType, FeeType, ChargeType
+
+
+class FeeStructureBase(BaseSchema):
+    """Base fee structure per hostel & room type"""
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    room_type: RoomType = Field(..., description="Room type to which this fee applies")
+    fee_type: FeeType = Field(..., description="Billing frequency")
+
+    amount: Decimal = Field(..., ge=0, description="Base rent amount per period")
+    security_deposit: Decimal = Field(Decimal("0.00"), ge=0)
+
+    includes_mess: bool = Field(False, description="Whether mess is included")
+    mess_charges_monthly: Decimal = Field(Decimal("0.00"), ge=0)
+
+    # Utility charges
+    electricity_charges: ChargeType = Field(
+        ChargeType.INCLUDED, description="How electricity is billed"
+    )
+    electricity_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+
+    water_charges: ChargeType = Field(
+        ChargeType.INCLUDED, description="How water is billed"
+    )
+    water_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+
+    effective_from: date = Field(..., description="Fee effective start date")
+    effective_to: Optional[date] = Field(None, description="End date (if any)")
+
+    is_active: bool = Field(True)
+
+
+class FeeStructureCreate(FeeStructureBase, BaseCreateSchema):
+    """Create fee structure entry"""
+    pass
+
+
+class FeeStructureUpdate(BaseUpdateSchema):
+    """Update fee structure"""
+    amount: Optional[Decimal] = Field(None, ge=0)
+    security_deposit: Optional[Decimal] = Field(None, ge=0)
+    includes_mess: Optional[bool] = None
+    mess_charges_monthly: Optional[Decimal] = Field(None, ge=0)
+    electricity_charges: Optional[ChargeType] = None
+    electricity_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+    water_charges: Optional[ChargeType] = None
+    water_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    is_active: Optional[bool] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_config.py ---
+"""
+Fee configuration & breakdown schemas
+"""
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.enums import RoomType, FeeType, ChargeType
+
+
+class ChargesBreakdown(BaseSchema):
+    """Breakdown of all components of a fee"""
+    base_rent: Decimal
+    mess_charges: Decimal
+    electricity_charges: Decimal
+    water_charges: Decimal
+    other_charges: Decimal = Field(Decimal("0.00"))
+
+    total_monthly: Decimal
+    total_first_month: Decimal
+    security_deposit: Decimal
+
+
+class FeeConfiguration(BaseSchema):
+    """Configuration for calculating total fees for a given booking/student"""
+    hostel_id: UUID
+    room_type: RoomType
+    fee_type: FeeType
+
+    # Components
+    base_amount: Decimal
+    security_deposit: Decimal
+    includes_mess: bool
+    mess_charges_monthly: Decimal
+
+    electricity_charges: ChargeType
+    electricity_fixed_amount: Optional[Decimal]
+    water_charges: ChargeType
+    water_fixed_amount: Optional[Decimal]
+
+    # Derived breakdown
+    breakdown: ChargesBreakdown
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_response.py ---
+"""
+Fee structure response schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import RoomType, FeeType, ChargeType
+
+
+class FeeStructureResponse(BaseResponseSchema):
+    """Fee structure response"""
+    hostel_id: UUID
+    hostel_name: str
+
+    room_type: RoomType
+    fee_type: FeeType
+
+    amount: Decimal
+    security_deposit: Decimal
+
+    includes_mess: bool
+    mess_charges_monthly: Decimal
+
+    electricity_charges: ChargeType
+    electricity_fixed_amount: Optional[Decimal]
+
+    water_charges: ChargeType
+    water_fixed_amount: Optional[Decimal]
+
+    effective_from: date
+    effective_to: Optional[date]
+    is_active: bool
+
+
+class FeeDetail(BaseSchema):
+    """Full fee detail for a room type (assembled for UI)"""
+    room_type: RoomType
+    fee_type: FeeType
+    amount: Decimal
+    security_deposit: Decimal
+    includes_mess: bool
+    mess_charges_monthly: Decimal
+    total_first_month_payable: Decimal
+    total_recurring_monthly: Decimal
+
+
+class FeeStructureList(BaseSchema):
+    """List of fee structures for a hostel"""
+    hostel_id: UUID
+    hostel_name: str
+    items: List[FeeStructureResponse] = Field(default_factory=list)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\__init__.py ---
+"""
+Fee structure & configuration schemas package
+"""
+
+from app.schemas.fee_structure.fee_base import (
+    FeeStructureBase,
+    FeeStructureCreate,
+    FeeStructureUpdate,
+)
+from app.schemas.fee_structure.fee_response import (
+    FeeStructureResponse,
+    FeeDetail,
+    FeeStructureList,
+)
+from app.schemas.fee_structure.fee_config import (
+    FeeConfiguration,
+    ChargesBreakdown,
+)
+
+__all__ = [
+    # Base
+    "FeeStructureBase",
+    "FeeStructureCreate",
+    "FeeStructureUpdate",
+    # Response
+    "FeeStructureResponse",
+    "FeeDetail",
+    "FeeStructureList",
+    # Config
+    "FeeConfiguration",
+    "ChargesBreakdown",
+]

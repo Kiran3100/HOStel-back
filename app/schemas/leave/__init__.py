@@ -1,46 +1,60 @@
+# --- File: app/schemas/leave/__init__.py ---
 """
-Leave management schemas package
+Leave management schemas package.
+
+Comprehensive leave application, approval, and balance tracking schemas
+for hostel management system with enhanced validation and type safety.
 """
 
-from app.schemas.leave.leave_base import (
-    LeaveBase,
-    LeaveCreate,
-    LeaveUpdate,
-)
-from app.schemas.leave.leave_response import (
-    LeaveResponse,
-    LeaveDetail,
-    LeaveListItem,
-)
+from __future__ import annotations
+
 from app.schemas.leave.leave_application import (
     LeaveApplicationRequest,
     LeaveCancellationRequest,
 )
 from app.schemas.leave.leave_approval import (
+    LeaveApprovalAction,
     LeaveApprovalRequest,
     LeaveApprovalResponse,
 )
 from app.schemas.leave.leave_balance import (
     LeaveBalance,
     LeaveBalanceSummary,
+    LeaveQuota,
+    LeaveUsageDetail,
+)
+from app.schemas.leave.leave_base import (
+    LeaveBase,
+    LeaveCreate,
+    LeaveUpdate,
+)
+from app.schemas.leave.leave_response import (
+    LeaveDetail,
+    LeaveListItem,
+    LeaveResponse,
+    LeaveSummary,
 )
 
 __all__ = [
-    # Base
+    # Base schemas
     "LeaveBase",
     "LeaveCreate",
     "LeaveUpdate",
-    # Response
+    # Response schemas
     "LeaveResponse",
     "LeaveDetail",
     "LeaveListItem",
-    # Application
+    "LeaveSummary",
+    # Application schemas
     "LeaveApplicationRequest",
     "LeaveCancellationRequest",
-    # Approval
+    # Approval schemas
     "LeaveApprovalRequest",
+    "LeaveApprovalAction",
     "LeaveApprovalResponse",
-    # Balance
+    # Balance schemas
     "LeaveBalance",
     "LeaveBalanceSummary",
+    "LeaveQuota",
+    "LeaveUsageDetail",
 ]

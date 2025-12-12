@@ -1,30 +1,59 @@
+# --- File: app/schemas/inquiry/__init__.py ---
 """
-Visitor inquiry & contact schemas package
+Visitor inquiry and contact schemas package.
+
+This module exports all inquiry-related schemas for easy importing
+across the application.
 """
+
+from __future__ import annotations
 
 from app.schemas.inquiry.inquiry_base import (
     InquiryBase,
     InquiryCreate,
+    InquiryUpdate,
+)
+from app.schemas.inquiry.inquiry_filters import (
+    InquiryExportRequest,
+    InquiryFilterParams,
+    InquirySearchRequest,
+    InquirySortOptions,
 )
 from app.schemas.inquiry.inquiry_response import (
-    InquiryResponse,
     InquiryDetail,
     InquiryListItem,
+    InquiryResponse,
+    InquiryStats,
 )
 from app.schemas.inquiry.inquiry_status import (
-    InquiryStatusUpdate,
+    BulkInquiryStatusUpdate,
     InquiryAssignment,
+    InquiryConversion,
+    InquiryFollowUp,
+    InquiryStatusUpdate,
+    InquiryTimelineEntry,
 )
 
 __all__ = [
     # Base
     "InquiryBase",
     "InquiryCreate",
+    "InquiryUpdate",
     # Response
     "InquiryResponse",
     "InquiryDetail",
     "InquiryListItem",
-    # Status/assignment
+    "InquiryStats",
+    # Status Management
     "InquiryStatusUpdate",
     "InquiryAssignment",
+    "InquiryFollowUp",
+    "InquiryTimelineEntry",
+    "InquiryConversion",
+    "BulkInquiryStatusUpdate",
+    # Filters
+    "InquiryFilterParams",
+    "InquirySearchRequest",
+    "InquirySortOptions",
+    "InquiryExportRequest",
 ]

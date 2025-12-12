@@ -1,145 +1,374 @@
+# --- File: app/schemas/review/review_response.py ---
 """
-Review response schemas
+Review response schemas for API responses.
+
+Provides comprehensive response formats for reviews.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
+
+from pydantic import Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
-
-class ReviewResponse(BaseResponseSchema):
-    """Review response"""
-    hostel_id: UUID
-    hostel_name: str
-    
-    reviewer_id: UUID
-    reviewer_name: str
-    
-    overall_rating: Decimal
-    title: str
-    review_text: str
-    
-    is_verified_stay: bool
-    verified_at: Optional[datetime]
-    
-    is_approved: bool
-    
-    helpful_count: int
-    not_helpful_count: int
-    
-    created_at: datetime
-
-
-class ReviewDetail(BaseResponseSchema):
-    """Detailed review information"""
-    hostel_id: UUID
-    hostel_name: str
-    
-    # Reviewer
-    reviewer_id: UUID
-    reviewer_name: str
-    reviewer_profile_image: Optional[str]
-    
-    student_id: Optional[UUID]
-    booking_id: Optional[UUID]
-    
-    # Ratings
-    overall_rating: Decimal
-    cleanliness_rating: Optional[int]
-    food_quality_rating: Optional[int]
-    staff_behavior_rating: Optional[int]
-    security_rating: Optional[int]
-    value_for_money_rating: Optional[int]
-    amenities_rating: Optional[int]
-    
-    # Content
-    title: str
-    review_text: str
-    
-    # Photos
-    photos: List[str]
-    
-    # Verification
-    is_verified_stay: bool
-    verified_at: Optional[datetime]
-    
-    # Moderation
-    is_approved: bool
-    approved_by: Optional[UUID]
-    approved_at: Optional[datetime]
-    
-    is_flagged: bool
-    flag_reason: Optional[str]
-    flagged_by: Optional[UUID]
-    flagged_at: Optional[datetime]
-    
-    # Engagement
-    helpful_count: int
-    not_helpful_count: int
-    report_count: int
-    
-    # Hostel response
-    hostel_response: Optional["HostelResponseDetail"]
-    
-    # Dates
-    created_at: datetime
-    updated_at: datetime
-    
-    # Visibility
-    is_published: bool
+__all__ = [
+    "ReviewResponse",
+    "ReviewDetail",
+    "ReviewListItem",
+    "ReviewSummary",
+    "HostelResponseDetail",
+]
 
 
 class HostelResponseDetail(BaseSchema):
-    """Hostel's response to review"""
-    response_text: str
-    responded_by: UUID
-    responded_by_name: str
-    responded_at: datetime
+    """
+    Hostel's response to a review.
+    
+    Represents management's reply to customer feedback.
+    """
+    
+    response_id: UUID = Field(..., description="Response ID")
+    response_text: str = Field(
+        ...,
+        min_length=20,
+        max_length=2000,
+        description="Response text from hostel management",
+    )
+    responded_by: UUID = Field(..., description="User who responded")
+    responded_by_name: str = Field(..., description="Responder's name")
+    responded_by_role: str = Field(
+        ...,
+        description="Responder's role (admin, owner, manager)",
+    )
+    responded_at: datetime = Field(..., description="Response timestamp")
+    
+    # Metadata
+    is_edited: bool = Field(
+        default=False,
+        description="Whether response has been edited",
+    )
+    edited_at: Optional[datetime] = Field(
+        None,
+        description="Last edit timestamp",
+    )
+
+
+class ReviewResponse(BaseResponseSchema):
+    """
+    Basic review response.
+    
+    Minimal review information for list views.
+    """
+    
+    # Hostel info
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Reviewer info
+    reviewer_id: UUID = Field(..., description="Reviewer user ID")
+    reviewer_name: str = Field(..., description="Reviewer display name")
+    
+    # Review content
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    title: str = Field(..., description="Review title")
+    review_text: str = Field(..., description="Review text")
+    
+    # Verification
+    is_verified_stay: bool = Field(
+        ...,
+        description="Whether stay is verified",
+    )
+    verified_at: Optional[datetime] = Field(
+        None,
+        description="Verification timestamp",
+    )
+    
+    # Status
+    is_approved: bool = Field(..., description="Approval status")
+    
+    # Engagement
+    helpful_count: int = Field(..., ge=0, description="Helpful votes count")
+    not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
+    
+    # Timestamps
+    created_at: datetime = Field(..., description="Creation timestamp")
+    
+    @computed_field
+    @property
+    def helpfulness_ratio(self) -> Decimal:
+        """Calculate helpfulness ratio."""
+        total_votes = self.helpful_count + self.not_helpful_count
+        if total_votes == 0:
+            return Decimal("0.5")  # Neutral
+        return Decimal(str(round(self.helpful_count / total_votes, 3)))
+
+
+class ReviewDetail(BaseResponseSchema):
+    """
+    Detailed review information.
+    
+    Complete review data including all ratings, media, and metadata.
+    """
+    
+    # Hostel info
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Reviewer info
+    reviewer_id: UUID = Field(..., description="Reviewer ID")
+    reviewer_name: str = Field(..., description="Reviewer name")
+    reviewer_profile_image: Optional[str] = Field(
+        None,
+        description="Reviewer profile image URL",
+    )
+    
+    # References
+    student_id: Optional[UUID] = Field(None, description="Student profile ID")
+    booking_id: Optional[UUID] = Field(None, description="Related booking ID")
+    
+    # Ratings
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
+    food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
+    security_rating: Optional[int] = Field(None, ge=1, le=5)
+    value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
+    amenities_rating: Optional[int] = Field(None, ge=1, le=5)
+    location_rating: Optional[int] = Field(None, ge=1, le=5)
+    wifi_quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    
+    # Content
+    title: str = Field(..., description="Review title")
+    review_text: str = Field(..., description="Full review text")
+    
+    # Media
+    photos: List[str] = Field(
+        default_factory=list,
+        description="Review photo URLs",
+    )
+    
+    # Verification
+    is_verified_stay: bool = Field(..., description="Verification status")
+    verified_at: Optional[datetime] = Field(None, description="Verification time")
+    verification_method: Optional[str] = Field(
+        None,
+        description="How the stay was verified",
+    )
+    
+    # Moderation
+    is_approved: bool = Field(..., description="Approval status")
+    approved_by: Optional[UUID] = Field(None, description="Approver ID")
+    approved_at: Optional[datetime] = Field(None, description="Approval time")
+    
+    is_flagged: bool = Field(default=False, description="Flagged status")
+    flag_reason: Optional[str] = Field(None, description="Flag reason")
+    flagged_by: Optional[UUID] = Field(None, description="Flagger ID")
+    flagged_at: Optional[datetime] = Field(None, description="Flag time")
+    
+    # Engagement
+    helpful_count: int = Field(..., ge=0, description="Helpful votes")
+    not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
+    report_count: int = Field(..., ge=0, description="Report count")
+    
+    # Hostel response
+    hostel_response: Optional[HostelResponseDetail] = Field(
+        None,
+        description="Hostel's response to this review",
+    )
+    
+    # Timestamps
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    
+    # Visibility
+    is_published: bool = Field(..., description="Publication status")
+    
+    # Additional metadata
+    would_recommend: Optional[bool] = Field(
+        None,
+        description="Whether reviewer recommends the hostel",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=24,
+        description="Duration of stay",
+    )
+    
+    @computed_field
+    @property
+    def total_votes(self) -> int:
+        """Total votes on this review."""
+        return self.helpful_count + self.not_helpful_count
+    
+    @computed_field
+    @property
+    def average_detailed_rating(self) -> Optional[Decimal]:
+        """Calculate average of detailed ratings."""
+        ratings = [
+            r for r in [
+                self.cleanliness_rating,
+                self.food_quality_rating,
+                self.staff_behavior_rating,
+                self.security_rating,
+                self.value_for_money_rating,
+                self.amenities_rating,
+                self.location_rating,
+                self.wifi_quality_rating,
+            ]
+            if r is not None
+        ]
+        
+        if not ratings:
+            return None
+        
+        return Decimal(str(round(sum(ratings) / len(ratings), 2)))
 
 
 class ReviewListItem(BaseSchema):
-    """Review list item"""
-    id: UUID
-    reviewer_name: str
-    overall_rating: Decimal
-    title: str
-    review_excerpt: str = Field(..., description="First 150 characters")
+    """
+    Review list item for paginated lists.
     
-    is_verified_stay: bool
-    helpful_count: int
+    Optimized for list views with essential information only.
+    """
     
-    created_at: datetime
+    id: UUID = Field(..., description="Review ID")
+    reviewer_name: str = Field(..., description="Reviewer name")
+    reviewer_image: Optional[str] = Field(None, description="Profile image URL")
     
-    has_hostel_response: bool
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    title: str = Field(..., description="Review title")
+    review_excerpt: str = Field(
+        ...,
+        max_length=150,
+        description="Review text excerpt (first 150 chars)",
+    )
+    
+    is_verified_stay: bool = Field(..., description="Verification status")
+    helpful_count: int = Field(..., ge=0, description="Helpful votes")
+    
+    has_photos: bool = Field(..., description="Has photos attached")
+    photo_count: int = Field(..., ge=0, description="Number of photos")
+    
+    created_at: datetime = Field(..., description="Creation timestamp")
+    
+    has_hostel_response: bool = Field(
+        ...,
+        description="Whether hostel has responded",
+    )
+    
+    @computed_field
+    @property
+    def days_ago(self) -> int:
+        """Days since review was posted."""
+        delta = datetime.utcnow() - self.created_at
+        return delta.days
 
 
 class ReviewSummary(BaseSchema):
-    """Review summary for hostel"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Review summary for a hostel.
     
-    total_reviews: int
-    average_rating: Decimal
+    Aggregated review statistics and recent reviews.
+    """
+    
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Aggregate metrics
+    total_reviews: int = Field(..., ge=0, description="Total reviews count")
+    average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Average overall rating",
+    )
     
     # Rating distribution
-    rating_5_count: int
-    rating_4_count: int
-    rating_3_count: int
-    rating_2_count: int
-    rating_1_count: int
+    rating_5_count: int = Field(..., ge=0)
+    rating_4_count: int = Field(..., ge=0)
+    rating_3_count: int = Field(..., ge=0)
+    rating_2_count: int = Field(..., ge=0)
+    rating_1_count: int = Field(..., ge=0)
     
     # Verified reviews
-    verified_reviews_count: int
-    verified_reviews_percentage: Decimal
+    verified_reviews_count: int = Field(..., ge=0)
+    verified_reviews_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of verified reviews",
+    )
+    
+    # Average detailed ratings
+    average_cleanliness: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_food_quality: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_staff_behavior: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_security: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_value_for_money: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_amenities: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
     
     # Recent reviews
-    recent_reviews: List[ReviewListItem] = Field(default_factory=list, max_items=5)
+    recent_reviews: List[ReviewListItem] = Field(
+        default_factory=list,
+        max_length=5,
+        description="5 most recent reviews",
+    )
     
-    # Recommendation
+    # Recommendation metric
     would_recommend_percentage: Decimal = Field(
         ...,
-        description="% of reviewers who would recommend"
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of reviewers who would recommend",
     )
+    
+    @computed_field
+    @property
+    def positive_review_percentage(self) -> Decimal:
+        """Percentage of 4-5 star reviews."""
+        if self.total_reviews == 0:
+            return Decimal("0")
+        
+        positive = self.rating_5_count + self.rating_4_count
+        return Decimal(str(round((positive / self.total_reviews) * 100, 2)))
+    
+    @computed_field
+    @property
+    def rating_quality_score(self) -> str:
+        """
+        Qualitative rating description.
+        
+        Returns: excellent, very_good, good, average, or poor
+        """
+        rating = float(self.average_rating)
+        if rating >= 4.5:
+            return "excellent"
+        elif rating >= 4.0:
+            return "very_good"
+        elif rating >= 3.5:
+            return "good"
+        elif rating >= 3.0:
+            return "average"
+        else:
+            return "poor"

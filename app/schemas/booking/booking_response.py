@@ -1,170 +1,592 @@
+# --- File: app/schemas/booking/booking_response.py ---
 """
-Booking response schemas
+Booking response schemas for API responses.
+
+This module defines response schemas for booking data including
+basic responses, detailed information, list items, and confirmations.
 """
-from datetime import date, datetime
+
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Optional
-from pydantic import Field
+from typing import List, Optional
 from uuid import UUID
 
+from pydantic import Field, computed_field
+
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import BookingStatus, RoomType, BookingSource
+from app.schemas.common.enums import BookingSource, BookingStatus, RoomType
+
+__all__ = [
+    "BookingResponse",
+    "BookingDetail",
+    "BookingListItem",
+    "BookingConfirmation",
+]
 
 
 class BookingResponse(BaseResponseSchema):
-    """Booking response schema"""
-    booking_reference: str
-    visitor_id: UUID
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Standard booking response schema.
     
-    room_type_requested: RoomType
-    preferred_check_in_date: date
-    stay_duration_months: int
-    expected_check_out_date: date
-    
-    # Guest info
-    guest_name: str
-    guest_email: str
-    guest_phone: str
-    
+    Contains core booking information for API responses.
+    """
+
+    booking_reference: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Unique human-readable booking reference",
+    )
+    visitor_id: UUID = Field(
+        ...,
+        description="Visitor/guest identifier",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Name of the hostel",
+    )
+
+    # Booking Details
+    room_type_requested: RoomType = Field(
+        ...,
+        description="Type of room requested",
+    )
+    preferred_check_in_date: date = Field(
+        ...,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: int = Field(
+        ...,
+        ge=1,
+        description="Stay duration in months",
+    )
+    expected_check_out_date: date = Field(
+        ...,
+        description="Calculated expected check-out date",
+    )
+
+    # Guest Information
+    guest_name: str = Field(
+        ...,
+        description="Guest full name",
+    )
+    guest_email: str = Field(
+        ...,
+        description="Guest email address",
+    )
+    guest_phone: str = Field(
+        ...,
+        description="Guest contact phone",
+    )
+
     # Pricing
-    quoted_rent_monthly: Decimal
-    total_amount: Decimal
-    security_deposit: Decimal
-    advance_amount: Decimal
-    advance_paid: bool
-    
+    quoted_rent_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Monthly rent amount",
+    )
+    total_amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total booking amount",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Security deposit amount",
+    )
+    advance_amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Advance payment amount",
+    )
+    advance_paid: bool = Field(
+        ...,
+        description="Whether advance payment has been made",
+    )
+
     # Status
-    booking_status: BookingStatus
-    
-    # Dates
-    booking_date: datetime
-    expires_at: Optional[datetime]
+    booking_status: BookingStatus = Field(
+        ...,
+        description="Current booking status",
+    )
+
+    # Timestamps
+    booking_date: datetime = Field(
+        ...,
+        description="When booking was created",
+    )
+    expires_at: Optional[datetime] = Field(
+        None,
+        description="When booking expires if not confirmed",
+    )
+
+    @computed_field
+    @property
+    def days_until_check_in(self) -> int:
+        """Calculate days until check-in."""
+        return (self.preferred_check_in_date - date.today()).days
+
+    @computed_field
+    @property
+    def is_expiring_soon(self) -> bool:
+        """Check if booking is expiring within 24 hours."""
+        if self.expires_at is None:
+            return False
+        return (self.expires_at - datetime.utcnow()).total_seconds() < 86400
+
+    @computed_field
+    @property
+    def balance_amount(self) -> Decimal:
+        """Calculate remaining balance after advance."""
+        if self.advance_paid:
+            return (self.total_amount - self.advance_amount).quantize(Decimal("0.01"))
+        return self.total_amount
 
 
 class BookingDetail(BaseResponseSchema):
-    """Detailed booking information"""
-    booking_reference: str
-    visitor_id: UUID
-    visitor_name: str
+    """
+    Detailed booking information schema.
     
-    hostel_id: UUID
-    hostel_name: str
-    hostel_city: str
-    hostel_address: str
-    hostel_phone: str
-    
-    # Requested details
-    room_type_requested: RoomType
-    preferred_check_in_date: date
-    stay_duration_months: int
-    expected_check_out_date: date
-    
-    # Assignment (if approved)
-    room_id: Optional[UUID]
-    room_number: Optional[str]
-    bed_id: Optional[UUID]
-    bed_number: Optional[str]
-    
-    # Guest information
-    guest_name: str
-    guest_email: str
-    guest_phone: str
-    guest_id_proof_type: Optional[str]
-    guest_id_proof_number: Optional[str]
-    
-    # Emergency contact
-    emergency_contact_name: Optional[str]
-    emergency_contact_phone: Optional[str]
-    emergency_contact_relation: Optional[str]
-    
-    # Institutional/employment
-    institution_or_company: Optional[str]
-    designation_or_course: Optional[str]
-    
-    # Special requests
-    special_requests: Optional[str]
-    dietary_preferences: Optional[str]
-    has_vehicle: bool
-    vehicle_details: Optional[str]
-    
+    Contains complete booking information including guest details,
+    assignments, workflow status, and all related metadata.
+    """
+
+    booking_reference: str = Field(
+        ...,
+        description="Unique booking reference",
+    )
+    visitor_id: UUID = Field(
+        ...,
+        description="Visitor identifier",
+    )
+    visitor_name: str = Field(
+        ...,
+        description="Visitor/user name",
+    )
+
+    # Hostel Information
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    hostel_city: str = Field(
+        ...,
+        description="Hostel city",
+    )
+    hostel_address: str = Field(
+        ...,
+        description="Hostel full address",
+    )
+    hostel_phone: str = Field(
+        ...,
+        description="Hostel contact phone",
+    )
+
+    # Booking Details
+    room_type_requested: RoomType = Field(
+        ...,
+        description="Requested room type",
+    )
+    preferred_check_in_date: date = Field(
+        ...,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: int = Field(
+        ...,
+        ge=1,
+        description="Stay duration in months",
+    )
+    expected_check_out_date: date = Field(
+        ...,
+        description="Expected check-out date",
+    )
+
+    # Room Assignment (if approved)
+    room_id: Optional[UUID] = Field(
+        None,
+        description="Assigned room ID (if approved)",
+    )
+    room_number: Optional[str] = Field(
+        None,
+        description="Assigned room number",
+    )
+    bed_id: Optional[UUID] = Field(
+        None,
+        description="Assigned bed ID (if approved)",
+    )
+    bed_number: Optional[str] = Field(
+        None,
+        description="Assigned bed number",
+    )
+
+    # Guest Information
+    guest_name: str = Field(
+        ...,
+        description="Guest full name",
+    )
+    guest_email: str = Field(
+        ...,
+        description="Guest email",
+    )
+    guest_phone: str = Field(
+        ...,
+        description="Guest phone",
+    )
+    guest_id_proof_type: Optional[str] = Field(
+        None,
+        description="ID proof type",
+    )
+    guest_id_proof_number: Optional[str] = Field(
+        None,
+        description="ID proof number",
+    )
+
+    # Emergency Contact
+    emergency_contact_name: Optional[str] = Field(
+        None,
+        description="Emergency contact name",
+    )
+    emergency_contact_phone: Optional[str] = Field(
+        None,
+        description="Emergency contact phone",
+    )
+    emergency_contact_relation: Optional[str] = Field(
+        None,
+        description="Relation to emergency contact",
+    )
+
+    # Institutional/Employment
+    institution_or_company: Optional[str] = Field(
+        None,
+        description="Institution or company name",
+    )
+    designation_or_course: Optional[str] = Field(
+        None,
+        description="Designation or course",
+    )
+
+    # Special Requirements
+    special_requests: Optional[str] = Field(
+        None,
+        description="Special requests",
+    )
+    dietary_preferences: Optional[str] = Field(
+        None,
+        description="Dietary preferences",
+    )
+    has_vehicle: bool = Field(
+        ...,
+        description="Has vehicle",
+    )
+    vehicle_details: Optional[str] = Field(
+        None,
+        description="Vehicle details",
+    )
+
     # Pricing
-    quoted_rent_monthly: Decimal
-    total_amount: Decimal
-    security_deposit: Decimal
-    advance_amount: Decimal
-    advance_paid: bool
-    advance_payment_id: Optional[UUID]
-    
-    # Status workflow
-    booking_status: BookingStatus
-    approved_by: Optional[UUID]
-    approved_by_name: Optional[str]
-    approved_at: Optional[datetime]
-    rejected_by: Optional[UUID]
-    rejected_at: Optional[datetime]
-    rejection_reason: Optional[str]
-    
-    # Cancellation
-    cancelled_by: Optional[UUID]
-    cancelled_at: Optional[datetime]
-    cancellation_reason: Optional[str]
-    
-    # Conversion
-    converted_to_student: bool
-    student_profile_id: Optional[UUID]
-    conversion_date: Optional[date]
-    
+    quoted_rent_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        description="Monthly rent quoted",
+    )
+    total_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        description="Security deposit",
+    )
+    advance_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Advance amount",
+    )
+    advance_paid: bool = Field(
+        ...,
+        description="Advance payment status",
+    )
+    advance_payment_id: Optional[UUID] = Field(
+        None,
+        description="Advance payment transaction ID",
+    )
+
+    # Status Workflow
+    booking_status: BookingStatus = Field(
+        ...,
+        description="Current booking status",
+    )
+
+    # Approval Details
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="Admin who approved booking",
+    )
+    approved_by_name: Optional[str] = Field(
+        None,
+        description="Approver name",
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+
+    # Rejection Details
+    rejected_by: Optional[UUID] = Field(
+        None,
+        description="Admin who rejected booking",
+    )
+    rejected_at: Optional[datetime] = Field(
+        None,
+        description="Rejection timestamp",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejection",
+    )
+
+    # Cancellation Details
+    cancelled_by: Optional[UUID] = Field(
+        None,
+        description="Who cancelled the booking",
+    )
+    cancelled_at: Optional[datetime] = Field(
+        None,
+        description="Cancellation timestamp",
+    )
+    cancellation_reason: Optional[str] = Field(
+        None,
+        description="Reason for cancellation",
+    )
+
+    # Conversion to Student
+    converted_to_student: bool = Field(
+        ...,
+        description="Whether booking was converted to student profile",
+    )
+    student_profile_id: Optional[UUID] = Field(
+        None,
+        description="Student profile ID if converted",
+    )
+    conversion_date: Optional[date] = Field(
+        None,
+        description="Date of conversion to student",
+    )
+
     # Source
-    source: BookingSource
-    referral_code: Optional[str]
-    
+    source: BookingSource = Field(
+        ...,
+        description="Booking source",
+    )
+    referral_code: Optional[str] = Field(
+        None,
+        description="Referral code used",
+    )
+
     # Timestamps
-    booking_date: datetime
-    expires_at: Optional[datetime]
+    booking_date: datetime = Field(
+        ...,
+        description="Booking creation timestamp",
+    )
+    expires_at: Optional[datetime] = Field(
+        None,
+        description="Booking expiry timestamp",
+    )
+
+    @computed_field
+    @property
+    def is_assigned(self) -> bool:
+        """Check if room and bed are assigned."""
+        return self.room_id is not None and self.bed_id is not None
+
+    @computed_field
+    @property
+    def days_until_check_in(self) -> int:
+        """Days remaining until check-in."""
+        return (self.preferred_check_in_date - date.today()).days
+
+    @computed_field
+    @property
+    def balance_amount(self) -> Decimal:
+        """Calculate balance amount."""
+        if self.advance_paid:
+            return (self.total_amount - self.advance_amount).quantize(Decimal("0.01"))
+        return self.total_amount
 
 
 class BookingListItem(BaseSchema):
-    """Booking list item"""
-    id: UUID
-    booking_reference: str
-    guest_name: str
-    guest_phone: str
+    """
+    Booking list item for summary views.
     
-    hostel_name: str
-    room_type_requested: str
-    
-    preferred_check_in_date: date
-    stay_duration_months: int
-    
-    total_amount: Decimal
-    advance_paid: bool
-    
-    booking_status: BookingStatus
-    booking_date: datetime
-    
-    # Quick indicators
-    is_urgent: bool = Field(..., description="Expiring soon")
-    days_until_checkin: Optional[int]
+    Optimized schema for listing multiple bookings with
+    essential information only.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="Booking ID",
+    )
+    booking_reference: str = Field(
+        ...,
+        description="Booking reference",
+    )
+    guest_name: str = Field(
+        ...,
+        description="Guest name",
+    )
+    guest_phone: str = Field(
+        ...,
+        description="Guest phone",
+    )
+
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    room_type_requested: str = Field(
+        ...,
+        description="Requested room type",
+    )
+
+    preferred_check_in_date: date = Field(
+        ...,
+        description="Check-in date",
+    )
+    stay_duration_months: int = Field(
+        ...,
+        ge=1,
+        description="Duration in months",
+    )
+
+    total_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total amount",
+    )
+    advance_paid: bool = Field(
+        ...,
+        description="Advance payment status",
+    )
+
+    booking_status: BookingStatus = Field(
+        ...,
+        description="Booking status",
+    )
+    booking_date: datetime = Field(
+        ...,
+        description="Booking date",
+    )
+
+    # Quick Indicators
+    is_urgent: bool = Field(
+        ...,
+        description="Whether booking is expiring soon or requires urgent attention",
+    )
+    days_until_checkin: Optional[int] = Field(
+        None,
+        description="Days until check-in (if applicable)",
+    )
+
+    @computed_field
+    @property
+    def status_badge_color(self) -> str:
+        """Get color code for status badge."""
+        status_colors = {
+            BookingStatus.PENDING: "warning",
+            BookingStatus.APPROVED: "success",
+            BookingStatus.CONFIRMED: "info",
+            BookingStatus.CHECKED_IN: "primary",
+            BookingStatus.COMPLETED: "secondary",
+            BookingStatus.REJECTED: "danger",
+            BookingStatus.CANCELLED: "dark",
+            BookingStatus.EXPIRED: "muted",
+        }
+        return status_colors.get(self.booking_status, "secondary")
 
 
 class BookingConfirmation(BaseSchema):
-    """Booking confirmation response"""
-    booking_id: UUID
-    booking_reference: str
+    """
+    Booking confirmation response.
     
-    hostel_name: str
-    room_type: str
-    check_in_date: date
-    
-    total_amount: Decimal
-    advance_amount: Decimal
-    balance_amount: Decimal
-    
-    confirmation_message: str
-    next_steps: list[str]
-    
-    # Contact
-    hostel_contact_phone: str
-    hostel_contact_email: Optional[str]
+    Sent to guest after successful booking creation or approval.
+    """
+
+    booking_id: UUID = Field(
+        ...,
+        description="Booking identifier",
+    )
+    booking_reference: str = Field(
+        ...,
+        description="Booking reference number",
+    )
+
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    room_type: str = Field(
+        ...,
+        description="Room type",
+    )
+    check_in_date: date = Field(
+        ...,
+        description="Check-in date",
+    )
+
+    total_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total booking amount",
+    )
+    advance_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Advance payment required",
+    )
+    balance_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Balance amount to be paid",
+    )
+
+    confirmation_message: str = Field(
+        ...,
+        description="Confirmation message for guest",
+    )
+    next_steps: List[str] = Field(
+        ...,
+        description="List of next steps for guest",
+    )
+
+    # Contact Information
+    hostel_contact_phone: str = Field(
+        ...,
+        description="Hostel contact phone",
+    )
+    hostel_contact_email: Optional[str] = Field(
+        None,
+        description="Hostel contact email",
+    )
+
+    @computed_field
+    @property
+    def payment_pending(self) -> bool:
+        """Check if payment is still pending."""
+        return self.balance_amount > Decimal("0")

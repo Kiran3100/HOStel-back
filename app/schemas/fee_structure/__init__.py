@@ -1,20 +1,31 @@
+# --- File: app/schemas/fee_structure/__init__.py ---
 """
-Fee structure & configuration schemas package
+Fee structure and configuration schemas package.
+
+This module exports all fee structure-related schemas for easy importing
+across the application.
 """
+
+from __future__ import annotations
 
 from app.schemas.fee_structure.fee_base import (
     FeeStructureBase,
     FeeStructureCreate,
     FeeStructureUpdate,
 )
-from app.schemas.fee_structure.fee_response import (
-    FeeStructureResponse,
-    FeeDetail,
-    FeeStructureList,
-)
 from app.schemas.fee_structure.fee_config import (
-    FeeConfiguration,
     ChargesBreakdown,
+    DiscountConfiguration,
+    FeeComparison,
+    FeeConfiguration,
+)
+from app.schemas.fee_structure.fee_response import (
+    FeeCalculation,
+    FeeDetail,
+    FeeHistory,
+    FeeHistoryItem,
+    FeeStructureList,
+    FeeStructureResponse,
 )
 
 __all__ = [
@@ -26,7 +37,12 @@ __all__ = [
     "FeeStructureResponse",
     "FeeDetail",
     "FeeStructureList",
-    # Config
+    "FeeHistory",
+    "FeeHistoryItem",
+    "FeeCalculation",
+    # Configuration
     "FeeConfiguration",
     "ChargesBreakdown",
+    "DiscountConfiguration",
+    "FeeComparison",
 ]

@@ -1,0 +1,809 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_alert.py ---
+"""
+Attendance alert schemas
+"""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+
+
+class AttendanceAlert(BaseResponseSchema):
+    """Attendance alert"""
+    alert_id: UUID
+    hostel_id: UUID
+    student_id: UUID
+    student_name: str
+    
+    alert_type: str = Field(
+        ...,
+        pattern="^(low_attendance|consecutive_absences|late_entry|irregular_pattern)$"
+    )
+    
+    severity: str = Field(..., pattern="^(low|medium|high|critical)$")
+    
+    # Alert details
+    message: str
+    details: dict = Field(..., description="Alert-specific details")
+    
+    # Triggered
+    triggered_at: datetime
+    triggered_by_rule: Optional[str] = None
+    
+    # Status
+    acknowledged: bool = Field(False)
+    acknowledged_by: Optional[UUID] = None
+    acknowledged_at: Optional[datetime] = None
+    
+    # Actions taken
+    actions_taken: List[str] = Field(default_factory=list)
+    
+    resolved: bool = Field(False)
+    resolved_at: Optional[datetime] = None
+
+
+class AlertConfig(BaseSchema):
+    """Alert configuration"""
+    hostel_id: UUID
+    
+    # Low attendance alerts
+    enable_low_attendance_alerts: bool = Field(True)
+    low_attendance_threshold: Decimal = Field(Decimal("75.00"), ge=0, le=100)
+    
+    # Consecutive absence alerts
+    enable_consecutive_absence_alerts: bool = Field(True)
+    consecutive_absence_threshold: int = Field(3, ge=1)
+    
+    # Late entry alerts
+    enable_late_entry_alerts: bool = Field(True)
+    late_entry_count_threshold: int = Field(5, description="Alert after N late entries in month")
+    
+    # Pattern detection
+    enable_pattern_detection: bool = Field(False, description="Detect irregular patterns")
+    
+    # Notification settings
+    notify_supervisor: bool = Field(True)
+    notify_admin: bool = Field(True)
+    notify_guardian: bool = Field(True)
+    notify_student: bool = Field(True)
+    
+    # Escalation
+    auto_escalate_after_days: int = Field(7, description="Auto-escalate unacknowledged alerts")
+
+
+class AlertTrigger(BaseSchema):
+    """Manual alert trigger"""
+    student_id: UUID
+    alert_type: str
+    custom_message: str = Field(..., min_length=10, max_length=500)
+    severity: str = Field("medium", pattern="^(low|medium|high|critical)$")
+
+
+class AlertAcknowledgment(BaseCreateSchema):
+    """Acknowledge alert"""
+    alert_id: UUID
+    acknowledged_by: UUID
+    action_taken: str = Field(..., min_length=10, max_length=500)
+
+
+class AlertList(BaseSchema):
+    """List of alerts"""
+    hostel_id: Optional[UUID] = None
+    
+    total_alerts: int
+    unacknowledged_alerts: int
+    critical_alerts: int
+    
+    alerts: List[AttendanceAlert]
+
+
+class AlertSummary(BaseSchema):
+    """Alert summary for dashboard"""
+    hostel_id: UUID
+    period_start: date
+    period_end: date
+    
+    total_alerts: int
+    
+    # By type
+    low_attendance_alerts: int
+    consecutive_absence_alerts: int
+    late_entry_alerts: int
+    pattern_alerts: int
+    
+    # By severity
+    critical_count: int
+    high_count: int
+    medium_count: int
+    low_count: int
+    
+    # Resolution
+    acknowledged_count: int
+    resolved_count: int
+    pending_count: int
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_base.py ---
+"""
+Attendance base schemas
+"""
+from datetime import date, time
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from app.schemas.common.enums import AttendanceStatus, AttendanceMode
+
+
+class AttendanceBase(BaseSchema):
+    """Base attendance schema"""
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    student_id: UUID = Field(..., description="Student ID")
+    attendance_date: date = Field(..., description="Attendance date")
+    
+    check_in_time: Optional[time] = Field(None, description="Check-in time")
+    check_out_time: Optional[time] = Field(None, description="Check-out time")
+    
+    status: AttendanceStatus = Field(AttendanceStatus.PRESENT, description="Attendance status")
+    
+    is_late: bool = Field(False, description="Late arrival")
+    late_minutes: Optional[int] = Field(None, ge=0, description="Minutes late")
+    
+    attendance_mode: AttendanceMode = Field(AttendanceMode.MANUAL, description="How attendance was recorded")
+    
+    marked_by: UUID = Field(..., description="User who marked attendance (supervisor/admin)")
+    supervisor_id: Optional[UUID] = Field(None, description="Supervisor who marked")
+    
+    notes: Optional[str] = Field(None, max_length=500, description="Additional notes")
+
+
+class AttendanceCreate(AttendanceBase, BaseCreateSchema):
+    """Create attendance record"""
+    # Location data (for mobile app check-in)
+    location_lat: Optional[Decimal] = Field(None, ge=-90, le=90)
+    location_lng: Optional[Decimal] = Field(None, ge=-180, le=180)
+    
+    # Device info (for mobile app)
+    device_info: Optional[dict] = None
+
+
+class AttendanceUpdate(BaseUpdateSchema):
+    """Update attendance record"""
+    check_in_time: Optional[time] = None
+    check_out_time: Optional[time] = None
+    status: Optional[AttendanceStatus] = None
+    is_late: Optional[bool] = None
+    late_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class BulkAttendanceCreate(BaseCreateSchema):
+    """Bulk create attendance records"""
+    hostel_id: UUID
+    attendance_date: date
+    
+    records: List["SingleAttendanceRecord"] = Field(..., min_items=1, max_items=500)
+    
+    marked_by: UUID
+    supervisor_id: Optional[UUID] = None
+
+
+class SingleAttendanceRecord(BaseSchema):
+    """Single attendance in bulk"""
+    student_id: UUID
+    status: AttendanceStatus = Field(AttendanceStatus.PRESENT)
+    check_in_time: Optional[time] = None
+    is_late: bool = Field(False)
+    notes: Optional[str] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_filters.py ---
+"""
+Attendance filter schemas
+"""
+from datetime import date
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseFilterSchema
+from app.schemas.common.enums import AttendanceStatus
+from app.schemas.common.filters import DateRangeFilter
+
+
+class AttendanceFilterParams(BaseFilterSchema):
+    """Attendance filter parameters"""
+    # Hostel filter
+    hostel_id: Optional[UUID] = None
+    hostel_ids: Optional[List[UUID]] = None
+    
+    # Student filter
+    student_id: Optional[UUID] = None
+    student_ids: Optional[List[UUID]] = None
+    room_id: Optional[UUID] = None
+    
+    # Date range (required for most queries)
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+    
+    # Status filter
+    status: Optional[AttendanceStatus] = None
+    statuses: Optional[List[AttendanceStatus]] = None
+    
+    # Late filter
+    late_only: Optional[bool] = None
+    
+    # Marked by
+    marked_by: Optional[UUID] = None
+    supervisor_id: Optional[UUID] = None
+    
+    # Attendance mode
+    attendance_mode: Optional[str] = None
+
+
+class DateRangeRequest(BaseFilterSchema):
+    """Simple date range request"""
+    start_date: date = Field(..., description="Start date (inclusive)")
+    end_date: date = Field(..., description="End date (inclusive)")
+    
+    @field_validator('end_date')
+    @classmethod
+    def validate_date_range(cls, v: date, info) -> date:
+        if 'start_date' in info.data and v < info.data['start_date']:
+            raise ValueError('end_date must be after or equal to start_date')
+        return v
+
+
+class AttendanceExportRequest(BaseFilterSchema):
+    """Export attendance data"""
+    hostel_id: UUID
+    date_range: DateRangeFilter
+    
+    # Student filter
+    student_ids: Optional[List[UUID]] = None
+    
+    # Format
+    format: str = Field("csv", pattern="^(csv|excel|pdf)$")
+    
+    # Options
+    include_summary: bool = Field(True)
+    include_percentage: bool = Field(True)
+    include_notes: bool = Field(False)
+    group_by: str = Field("student", pattern="^(student|date|room)$")
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_policy.py ---
+"""
+Attendance policy schemas
+"""
+from datetime import time
+from decimal import Decimal
+from typing import Optional
+from pydantic import Field, field_validator
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseUpdateSchema, BaseResponseSchema
+
+
+class AttendancePolicy(BaseResponseSchema):
+    """Attendance policy configuration"""
+    hostel_id: UUID
+    hostel_name: str
+    
+    # Minimum requirements
+    minimum_attendance_percentage: Decimal = Field(..., ge=0, le=100)
+    
+    # Late entry
+    late_entry_threshold_minutes: int = Field(..., ge=0, description="Minutes after which marked as late")
+    grace_days_per_month: int = Field(..., ge=0, description="Allowed late entries per month")
+    
+    # Absence alerts
+    consecutive_absence_alert_days: int = Field(..., description="Alert after N consecutive absences")
+    
+    # Notifications
+    notify_guardian_on_absence: bool = Field(True)
+    notify_admin_on_low_attendance: bool = Field(True)
+    low_attendance_threshold: Decimal = Field(Decimal("75.00"), ge=0, le=100)
+    
+    # Auto-marking
+    auto_mark_absent_after_time: Optional[time] = Field(None, description="Auto mark absent if not checked in by this time")
+    
+    is_active: bool = Field(True)
+
+
+class PolicyConfig(BaseSchema):
+    """Policy configuration details"""
+    # Attendance calculation
+    calculation_period: str = Field("monthly", pattern="^(weekly|monthly|semester|yearly)$")
+    
+    # Leave handling
+    count_leave_as_absent: bool = Field(False, description="Count approved leaves as absent")
+    max_leaves_per_month: int = Field(3, ge=0)
+    
+    # Weekends
+    include_weekends: bool = Field(False, description="Track attendance on weekends")
+    weekend_days: List[str] = Field(default_factory=lambda: ["Saturday", "Sunday"])
+    
+    # Holidays
+    exclude_holidays: bool = Field(True)
+    
+    # Penalties
+    low_attendance_penalty: Optional[str] = None
+
+
+class PolicyUpdate(BaseUpdateSchema):
+    """Update attendance policy"""
+    minimum_attendance_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+    late_entry_threshold_minutes: Optional[int] = Field(None, ge=0)
+    grace_days_per_month: Optional[int] = Field(None, ge=0)
+    consecutive_absence_alert_days: Optional[int] = None
+    
+    notify_guardian_on_absence: Optional[bool] = None
+    notify_admin_on_low_attendance: Optional[bool] = None
+    low_attendance_threshold: Optional[Decimal] = Field(None, ge=0, le=100)
+    
+    auto_mark_absent_after_time: Optional[time] = None
+    is_active: Optional[bool] = None
+
+
+class PolicyViolation(BaseSchema):
+    """Policy violation record"""
+    student_id: UUID
+    student_name: str
+    hostel_id: UUID
+    
+    violation_type: str = Field(
+        ...,
+        pattern="^(low_attendance|consecutive_absences|excessive_late_entries)$"
+    )
+    
+    # Details
+    current_attendance_percentage: Optional[Decimal] = None
+    consecutive_absences: Optional[int] = None
+    late_entries_this_month: Optional[int] = None
+    
+    violation_date: date
+    
+    # Actions taken
+    guardian_notified: bool
+    admin_notified: bool
+    warning_issued: bool
+    
+    notes: Optional[str] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_record.py ---
+"""
+Attendance recording schemas
+"""
+from datetime import date, time
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.enums import AttendanceStatus
+
+
+class AttendanceRecordRequest(BaseCreateSchema):
+    """Record attendance for single student"""
+    hostel_id: UUID
+    student_id: UUID
+    attendance_date: date
+    
+    status: AttendanceStatus = Field(AttendanceStatus.PRESENT)
+    check_in_time: Optional[time] = None
+    check_out_time: Optional[time] = None
+    
+    is_late: bool = Field(False)
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class BulkAttendanceRequest(BaseCreateSchema):
+    """Mark attendance for multiple students at once"""
+    hostel_id: UUID
+    attendance_date: date
+    
+    # Default status for all (can be overridden per student)
+    default_status: AttendanceStatus = Field(AttendanceStatus.PRESENT)
+    
+    # Student-specific records
+    student_records: List["StudentAttendanceRecord"] = Field(..., min_items=1)
+    
+    # Metadata
+    marked_by: UUID
+    marking_mode: str = Field("manual", pattern="^(manual|biometric|qr_code|mobile_app)$")
+
+
+class StudentAttendanceRecord(BaseSchema):
+    """Individual student attendance in bulk operation"""
+    student_id: UUID
+    status: Optional[AttendanceStatus] = None  # If None, uses default_status
+    check_in_time: Optional[time] = None
+    is_late: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+class AttendanceCorrection(BaseCreateSchema):
+    """Correct previously marked attendance"""
+    attendance_id: UUID
+    
+    # Corrected values
+    corrected_status: AttendanceStatus
+    corrected_check_in_time: Optional[time] = None
+    corrected_check_out_time: Optional[time] = None
+    
+    correction_reason: str = Field(..., min_length=10, max_length=500)
+    corrected_by: UUID
+
+
+class QuickAttendanceMarkAll(BaseCreateSchema):
+    """Quick mark all students as present"""
+    hostel_id: UUID
+    attendance_date: date
+    
+    # Exceptions
+    absent_student_ids: List[UUID] = Field(default_factory=list)
+    on_leave_student_ids: List[UUID] = Field(default_factory=list)
+    
+    marked_by: UUID
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_report.py ---
+"""
+Attendance reporting schemas
+"""
+from datetime import date
+from decimal import Decimal
+from typing import List, Dict, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema
+from app.schemas.common.filters import DateRangeFilter
+
+
+class AttendanceReport(BaseSchema):
+    """Comprehensive attendance report"""
+    hostel_id: Optional[UUID] = None
+    student_id: Optional[UUID] = None
+    
+    report_period: DateRangeFilter
+    generated_at: datetime
+    
+    # Summary
+    summary: "AttendanceSummary"
+    
+    # Detailed records
+    daily_records: List["DailyAttendanceRecord"] = Field(default_factory=list)
+    
+    # Analysis
+    trend_analysis: Optional["TrendAnalysis"] = None
+
+
+class AttendanceSummary(BaseSchema):
+    """Attendance summary statistics"""
+    total_days: int
+    total_present: int
+    total_absent: int
+    total_late: int
+    total_on_leave: int
+    total_half_day: int
+    
+    attendance_percentage: Decimal
+    late_percentage: Decimal
+    
+    # Streaks
+    current_present_streak: int
+    longest_present_streak: int
+    current_absent_streak: int
+    
+    # Status
+    attendance_status: str = Field(
+        ...,
+        pattern="^(excellent|good|warning|critical)$",
+        description="Based on attendance percentage"
+    )
+    
+    meets_minimum_requirement: bool
+
+
+class DailyAttendanceRecord(BaseSchema):
+    """Daily attendance record for report"""
+    date: date
+    day_of_week: str
+    
+    status: str
+    check_in_time: Optional[time]
+    check_out_time: Optional[time]
+    
+    is_late: bool
+    late_minutes: Optional[int]
+    
+    notes: Optional[str]
+
+
+class TrendAnalysis(BaseSchema):
+    """Attendance trend analysis"""
+    period_start: date
+    period_end: date
+    
+    # Weekly trend
+    weekly_attendance: List["WeeklyAttendance"]
+    
+    # Monthly comparison
+    monthly_comparison: Optional[List["MonthlyComparison"]] = None
+    
+    # Patterns
+    most_absent_day: Optional[str] = Field(None, description="Day of week with most absences")
+    attendance_improving: bool
+    improvement_rate: Optional[Decimal] = None
+
+
+class WeeklyAttendance(BaseSchema):
+    """Weekly attendance summary"""
+    week_number: int
+    week_start_date: date
+    week_end_date: date
+    
+    total_days: int
+    present_days: int
+    absent_days: int
+    
+    attendance_percentage: Decimal
+
+
+class MonthlyComparison(BaseSchema):
+    """Monthly attendance comparison"""
+    month: str  # YYYY-MM format
+    attendance_percentage: Decimal
+    total_present: int
+    total_absent: int
+
+
+class MonthlyReport(BaseSchema):
+    """Monthly attendance report"""
+    hostel_id: UUID
+    month: str  # YYYY-MM
+    
+    # Student-wise summary
+    student_summaries: List["StudentMonthlySummary"]
+    
+    # Hostel-wide stats
+    hostel_average_attendance: Decimal
+    total_students: int
+    students_meeting_requirement: int
+    students_below_requirement: int
+
+
+class StudentMonthlySummary(BaseSchema):
+    """Monthly summary for individual student"""
+    student_id: UUID
+    student_name: str
+    room_number: Optional[str]
+    
+    total_days: int
+    present_days: int
+    absent_days: int
+    late_days: int
+    on_leave_days: int
+    
+    attendance_percentage: Decimal
+    meets_requirement: bool
+    
+    # Actions needed
+    requires_attention: bool
+    action_required: Optional[str] = None
+
+
+class AttendanceComparison(BaseSchema):
+    """Compare attendance across students/hostels"""
+    comparison_type: str = Field(..., pattern="^(student|hostel|room)$")
+    period: DateRangeFilter
+    
+    comparisons: List["ComparisonItem"]
+
+
+class ComparisonItem(BaseSchema):
+    """Individual comparison item"""
+    entity_id: UUID
+    entity_name: str
+    
+    attendance_percentage: Decimal
+    total_present: int
+    total_absent: int
+    
+    rank: int
+    percentile: Decimal
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\attendance_response.py ---
+"""
+Attendance response schemas
+"""
+from datetime import date, time, datetime
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import AttendanceStatus, AttendanceMode
+
+
+class AttendanceResponse(BaseResponseSchema):
+    """Attendance response schema"""
+    hostel_id: UUID
+    hostel_name: str
+    
+    student_id: UUID
+    student_name: str
+    room_number: Optional[str]
+    
+    attendance_date: date
+    check_in_time: Optional[time]
+    check_out_time: Optional[time]
+    
+    status: AttendanceStatus
+    is_late: bool
+    late_minutes: Optional[int]
+    
+    marked_by: UUID
+    marked_by_name: str
+
+
+class AttendanceDetail(BaseResponseSchema):
+    """Detailed attendance information"""
+    hostel_id: UUID
+    hostel_name: str
+    
+    student_id: UUID
+    student_name: str
+    student_email: str
+    student_phone: str
+    room_number: Optional[str]
+    
+    attendance_date: date
+    check_in_time: Optional[time]
+    check_out_time: Optional[time]
+    
+    status: AttendanceStatus
+    is_late: bool
+    late_minutes: Optional[int]
+    
+    attendance_mode: AttendanceMode
+    
+    marked_by: UUID
+    marked_by_name: str
+    supervisor_id: Optional[UUID]
+    supervisor_name: Optional[str]
+    
+    notes: Optional[str]
+    
+    # Location (if mobile app)
+    location_lat: Optional[Decimal]
+    location_lng: Optional[Decimal]
+    device_info: Optional[dict]
+    
+    # Metadata
+    created_at: datetime
+    updated_at: datetime
+
+
+class AttendanceListItem(BaseSchema):
+    """Attendance list item"""
+    id: UUID
+    student_name: str
+    room_number: Optional[str]
+    
+    attendance_date: date
+    status: AttendanceStatus
+    
+    check_in_time: Optional[time]
+    is_late: bool
+    
+    marked_by_name: str
+
+
+class DailyAttendanceSummary(BaseSchema):
+    """Daily attendance summary"""
+    hostel_id: UUID
+    hostel_name: str
+    date: date
+    
+    total_students: int
+    total_present: int
+    total_absent: int
+    total_late: int
+    total_on_leave: int
+    
+    attendance_percentage: Decimal
+    
+    marked_by: UUID
+    marked_by_name: str
+    marking_completed: bool
+    marked_at: Optional[datetime]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\attendance\__init__.py ---
+"""
+Attendance schemas package
+"""
+from app.schemas.attendance.attendance_base import (
+    AttendanceBase,
+    AttendanceCreate,
+    AttendanceUpdate,
+    BulkAttendanceCreate
+)
+from app.schemas.attendance.attendance_response import (
+    AttendanceResponse,
+    AttendanceDetail,
+    AttendanceListItem
+)
+from app.schemas.attendance.attendance_record import (
+    AttendanceRecordRequest,
+    BulkAttendanceRequest,
+    AttendanceCorrection
+)
+from app.schemas.attendance.attendance_report import (
+    AttendanceReport,
+    AttendanceSummary,
+    TrendAnalysis,
+    MonthlyReport
+)
+from app.schemas.attendance.attendance_policy import (
+    AttendancePolicy,
+    PolicyConfig,
+    PolicyUpdate
+)
+from app.schemas.attendance.attendance_alert import (
+    AttendanceAlert,
+    AlertConfig,
+    AlertTrigger
+)
+from app.schemas.attendance.attendance_filters import (
+    AttendanceFilterParams,
+    DateRangeRequest,
+    AttendanceExportRequest
+)
+
+__all__ = [
+    # Base
+    "AttendanceBase",
+    "AttendanceCreate",
+    "AttendanceUpdate",
+    "BulkAttendanceCreate",
+    
+    # Response
+    "AttendanceResponse",
+    "AttendanceDetail",
+    "AttendanceListItem",
+    
+    # Record
+    "AttendanceRecordRequest",
+    "BulkAttendanceRequest",
+    "AttendanceCorrection",
+    
+    # Report
+    "AttendanceReport",
+    "AttendanceSummary",
+    "TrendAnalysis",
+    "MonthlyReport",
+    
+    # Policy
+    "AttendancePolicy",
+    "PolicyConfig",
+    "PolicyUpdate",
+    
+    # Alert
+    "AttendanceAlert",
+    "AlertConfig",
+    "AlertTrigger",
+    
+    # Filters
+    "AttendanceFilterParams",
+    "DateRangeRequest",
+    "AttendanceExportRequest",
+]

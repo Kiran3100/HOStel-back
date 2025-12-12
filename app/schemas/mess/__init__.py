@@ -1,77 +1,118 @@
+# --- File: app/schemas/mess/__init__.py ---
 """
-Mess menu schemas package
+Mess management schemas package.
+
+Comprehensive mess/cafeteria menu management schemas including planning,
+feedback, approval workflows, and duplication with enhanced validation.
 """
+
+from __future__ import annotations
+
+from app.schemas.mess.meal_items import (
+    AllergenInfo,
+    DietaryOptions,
+    ItemCategory,
+    ItemMasterList,
+    MealItems,
+    MenuItem,
+    NutritionalInfo,
+)
+from app.schemas.mess.menu_approval import (
+    ApprovalHistory,
+    ApprovalWorkflow,
+    BulkApproval,
+    MenuApprovalRequest,
+    MenuApprovalResponse,
+)
+from app.schemas.mess.menu_duplication import (
+    BulkMenuCreate,
+    CrossHostelDuplication,
+    DuplicateMenuRequest,
+    DuplicateResponse,
+    MenuCloneConfig,
+)
+from app.schemas.mess.menu_feedback import (
+    FeedbackAnalysis,
+    FeedbackRequest,
+    FeedbackResponse,
+    ItemRating,
+    QualityMetrics,
+    RatingsSummary,
+    SentimentAnalysis,
+)
+from app.schemas.mess.menu_planning import (
+    DailyMenuPlan,
+    MenuPlanRequest,
+    MenuSuggestion,
+    MenuTemplate,
+    MonthlyPlan,
+    SpecialDayMenu,
+    SpecialMenu,
+    WeeklyPlan,
+)
 from app.schemas.mess.mess_menu_base import (
     MessMenuBase,
     MessMenuCreate,
-    MessMenuUpdate
+    MessMenuUpdate,
 )
 from app.schemas.mess.mess_menu_response import (
-    MenuResponse,
+    DailyMenuSummary,
     MenuDetail,
+    MenuListItem,
+    MenuResponse,
+    MonthlyMenu,
+    TodayMenu,
     WeeklyMenu,
-    MonthlyMenu
-)
-from app.schemas.mess.meal_items import (
-    MealItems,
-    DietaryOptions,
-    NutritionalInfo
-)
-from app.schemas.mess.menu_planning import (
-    MenuPlanRequest,
-    WeeklyPlan,
-    MonthlyPlan,
-    SpecialMenu
-)
-from app.schemas.mess.menu_feedback import (
-    FeedbackRequest,
-    FeedbackResponse,
-    RatingsSummary,
-    QualityMetrics
-)
-from app.schemas.mess.menu_approval import (
-    MenuApprovalRequest,
-    ApprovalWorkflow
-)
-from app.schemas.mess.menu_duplication import (
-    DuplicateMenuRequest,
-    BulkMenuCreate
 )
 
 __all__ = [
-    # Base
+    # Base schemas
     "MessMenuBase",
     "MessMenuCreate",
     "MessMenuUpdate",
-    
-    # Response
+    # Response schemas
     "MenuResponse",
     "MenuDetail",
+    "MenuListItem",
     "WeeklyMenu",
+    "DailyMenuSummary",
     "MonthlyMenu",
-    
-    # Meal Items
+    "TodayMenu",
+    # Meal items
     "MealItems",
+    "MenuItem",
     "DietaryOptions",
     "NutritionalInfo",
-    
+    "AllergenInfo",
+    "ItemMasterList",
+    "ItemCategory",
     # Planning
     "MenuPlanRequest",
     "WeeklyPlan",
+    "DailyMenuPlan",
     "MonthlyPlan",
     "SpecialMenu",
-    
+    "SpecialDayMenu",
+    "MenuTemplate",
+    "MenuSuggestion",
     # Feedback
     "FeedbackRequest",
     "FeedbackResponse",
     "RatingsSummary",
+    "ItemRating",
     "QualityMetrics",
-    
+    "FeedbackAnalysis",
+    "SentimentAnalysis",
     # Approval
     "MenuApprovalRequest",
+    "MenuApprovalResponse",
     "ApprovalWorkflow",
-    
+    "BulkApproval",
+    "ApprovalHistory",
     # Duplication
     "DuplicateMenuRequest",
     "BulkMenuCreate",
+    "DuplicateResponse",
+    "CrossHostelDuplication",
+    "MenuCloneConfig",
 ]

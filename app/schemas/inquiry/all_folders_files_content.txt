@@ -1,0 +1,183 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_base.py ---
+"""
+Base visitor inquiry schemas
+"""
+from datetime import date, datetime
+from typing import Optional
+from pydantic import Field, EmailStr
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.enums import InquiryStatus, RoomType
+
+
+class InquiryBase(BaseSchema):
+    """Base visitor inquiry fields"""
+    hostel_id: UUID = Field(..., description="Hostel being inquired about")
+
+    visitor_name: str = Field(..., min_length=2, max_length=255)
+    visitor_email: EmailStr = Field(..., description="Visitor email")
+    visitor_phone: str = Field(..., pattern=r"^\+?[1-9]\d{9,14}$")
+
+    preferred_check_in_date: Optional[date] = None
+    stay_duration_months: Optional[int] = Field(None, ge=1, le=36)
+    room_type_preference: Optional[RoomType] = None
+
+    message: Optional[str] = Field(None, max_length=2000)
+
+    inquiry_source: str = Field(
+        "website",
+        pattern=r"^(website|mobile_app|referral|social_media|other)$",
+        description="Source of inquiry",
+    )
+
+    status: InquiryStatus = Field(InquiryStatus.NEW)
+
+
+class InquiryCreate(InquiryBase, BaseCreateSchema):
+    """Create visitor inquiry"""
+    pass
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_response.py ---
+"""
+Inquiry response schemas
+"""
+from datetime import datetime, date
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import InquiryStatus, RoomType
+
+
+class InquiryResponse(BaseResponseSchema):
+    """Basic inquiry response"""
+    hostel_id: UUID
+    hostel_name: str
+
+    visitor_name: str
+    visitor_email: str
+    visitor_phone: str
+
+    preferred_check_in_date: Optional[date]
+    stay_duration_months: Optional[int]
+    room_type_preference: Optional[RoomType]
+
+    status: InquiryStatus
+    created_at: datetime
+
+
+class InquiryDetail(BaseResponseSchema):
+    """Detailed inquiry view"""
+    hostel_id: UUID
+    hostel_name: str
+
+    visitor_name: str
+    visitor_email: str
+    visitor_phone: str
+
+    preferred_check_in_date: Optional[date]
+    stay_duration_months: Optional[int]
+    room_type_preference: Optional[RoomType]
+
+    message: Optional[str]
+
+    inquiry_source: str
+    status: InquiryStatus
+
+    contacted_by: Optional[UUID]
+    contacted_by_name: Optional[str]
+    contacted_at: Optional[datetime]
+
+    notes: Optional[str]
+
+    created_at: datetime
+    updated_at: datetime
+
+
+class InquiryListItem(BaseSchema):
+    """List item for inquiries"""
+    id: UUID
+    hostel_name: str
+    visitor_name: str
+    visitor_phone: str
+    preferred_check_in_date: Optional[date]
+    stay_duration_months: Optional[int]
+    room_type_preference: Optional[RoomType]
+    status: InquiryStatus
+    created_at: datetime
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\inquiry_status.py ---
+"""
+Inquiry status change & assignment schemas
+"""
+from datetime import datetime
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import InquiryStatus
+
+
+class InquiryStatusUpdate(BaseCreateSchema):
+    """Update inquiry status"""
+    inquiry_id: UUID
+    new_status: InquiryStatus
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class InquiryAssignment(BaseCreateSchema):
+    """Assign inquiry to an admin/staff"""
+    inquiry_id: UUID
+    assigned_to: UUID
+    assigned_by: UUID
+
+    assignment_notes: Optional[str] = Field(None, max_length=500)
+
+
+class InquiryTimelineEntry(BaseSchema):
+    """Timeline record for inquiry lifetime"""
+    status: InquiryStatus
+    timestamp: datetime
+    changed_by: Optional[UUID]
+    notes: Optional[str]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\inquiry\__init__.py ---
+"""
+Visitor inquiry & contact schemas package
+"""
+
+from app.schemas.inquiry.inquiry_base import (
+    InquiryBase,
+    InquiryCreate,
+)
+from app.schemas.inquiry.inquiry_response import (
+    InquiryResponse,
+    InquiryDetail,
+    InquiryListItem,
+)
+from app.schemas.inquiry.inquiry_status import (
+    InquiryStatusUpdate,
+    InquiryAssignment,
+)
+
+__all__ = [
+    # Base
+    "InquiryBase",
+    "InquiryCreate",
+    # Response
+    "InquiryResponse",
+    "InquiryDetail",
+    "InquiryListItem",
+    # Status/assignment
+    "InquiryStatusUpdate",
+    "InquiryAssignment",
+]

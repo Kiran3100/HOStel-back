@@ -70,8 +70,13 @@ def combine_all_files(root_folder, output_file):
 
 if __name__ == "__main__":
     # 🔧 Change this path to your main root folder
+<<<<<<< Updated upstream
     root_folder = r"C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\subscription"
 
+=======
+    root_folder = r"D:\Last Github Push\Last\HOStel-back\app\schemas\review"
+    
+>>>>>>> Stashed changes
     # 📄 Output file path (saved inside the same root folder)
     output_file = os.path.join(root_folder, "all_folders_files_content.txt")
 

@@ -1,107 +1,157 @@
+# --- File: app/schemas/maintenance/__init__.py ---
 """
-Maintenance schemas package
+Maintenance management schemas package.
+
+Comprehensive maintenance request, scheduling, cost tracking, and analytics
+schemas for hostel management system with enhanced validation and type safety.
 """
-from app.schemas.maintenance.maintenance_base import (
-    MaintenanceBase,
-    MaintenanceCreate,
-    MaintenanceUpdate
-)
-from app.schemas.maintenance.maintenance_response import (
-    MaintenanceResponse,
-    MaintenanceDetail,
-    RequestListItem
-)
-from app.schemas.maintenance.maintenance_request import (
-    MaintenanceRequest,
-    RequestSubmission,
-    EmergencyRequest
-)
-from app.schemas.maintenance.maintenance_assignment import (
-    TaskAssignment,
-    VendorAssignment,
-    AssignmentUpdate
+
+from __future__ import annotations
+
+from app.schemas.maintenance.maintenance_analytics import (
+    CategoryBreakdown,
+    CostTrendPoint,
+    MaintenanceAnalytics,
+    PerformanceMetrics,
+    ProductivityMetrics,
+    TrendPoint,
+    VendorPerformance,
 )
 from app.schemas.maintenance.maintenance_approval import (
     ApprovalRequest,
     ApprovalResponse,
-    ThresholdConfig
+    ApprovalWorkflow,
+    RejectionRequest,
+    ThresholdConfig,
+)
+from app.schemas.maintenance.maintenance_assignment import (
+    AssignmentEntry,
+    AssignmentHistory,
+    AssignmentUpdate,
+    BulkAssignment,
+    TaskAssignment,
+    VendorAssignment,
+)
+from app.schemas.maintenance.maintenance_base import (
+    MaintenanceBase,
+    MaintenanceCreate,
+    MaintenanceStatusUpdate,
+    MaintenanceUpdate,
 )
 from app.schemas.maintenance.maintenance_completion import (
+    ChecklistItem,
+    CompletionCertificate,
     CompletionRequest,
+    CompletionResponse,
+    MaterialItem,
     QualityCheck,
-    CompletionResponse
-)
-from app.schemas.maintenance.maintenance_schedule import (
-    PreventiveSchedule,
-    ScheduleCreate,
-    RecurrenceConfig,
-    ScheduleExecution
 )
 from app.schemas.maintenance.maintenance_cost import (
-    CostTracking,
     BudgetAllocation,
-    ExpenseReport
+    CategoryBudget,
+    CostAnalysis,
+    CostTracking,
+    ExpenseItem,
+    ExpenseReport,
+    InvoiceLineItem,
+    MonthlyExpense,
+    VendorInvoice,
 )
 from app.schemas.maintenance.maintenance_filters import (
+    AdvancedFilterParams,
+    MaintenanceExportRequest,
     MaintenanceFilterParams,
     SearchRequest,
-    MaintenanceExportRequest
 )
-from app.schemas.maintenance.maintenance_analytics import (
-    MaintenanceAnalytics,
-    CostAnalysis,
-    PerformanceMetrics
+from app.schemas.maintenance.maintenance_request import (
+    EmergencyRequest,
+    MaintenanceRequest,
+    RequestSubmission,
+)
+from app.schemas.maintenance.maintenance_response import (
+    MaintenanceDetail,
+    MaintenanceResponse,
+    MaintenanceSummary,
+    RequestListItem,
+)
+from app.schemas.maintenance.maintenance_schedule import (
+    ChecklistResult,
+    ExecutionHistoryItem,
+    PreventiveSchedule,
+    RecurrenceConfig,
+    ScheduleChecklistItem,
+    ScheduleCreate,
+    ScheduleExecution,
+    ScheduleHistory,
+    ScheduleUpdate,
 )
 
 __all__ = [
-    # Base
+    # Base schemas
     "MaintenanceBase",
     "MaintenanceCreate",
     "MaintenanceUpdate",
-    
-    # Response
-    "MaintenanceResponse",
-    "MaintenanceDetail",
-    "RequestListItem",
-    
-    # Request
+    "MaintenanceStatusUpdate",
+    # Request schemas
     "MaintenanceRequest",
     "RequestSubmission",
     "EmergencyRequest",
-    
-    # Assignment
+    # Response schemas
+    "MaintenanceResponse",
+    "MaintenanceDetail",
+    "RequestListItem",
+    "MaintenanceSummary",
+    # Assignment schemas
     "TaskAssignment",
     "VendorAssignment",
     "AssignmentUpdate",
-    
-    # Approval
+    "BulkAssignment",
+    "AssignmentEntry",
+    "AssignmentHistory",
+    # Approval schemas
     "ApprovalRequest",
     "ApprovalResponse",
+    "ApprovalWorkflow",
+    "RejectionRequest",
     "ThresholdConfig",
-    
-    # Completion
+    # Completion schemas
     "CompletionRequest",
-    "QualityCheck",
     "CompletionResponse",
-    
-    # Schedule
+    "CompletionCertificate",
+    "MaterialItem",
+    "QualityCheck",
+    "ChecklistItem",
+    # Schedule schemas
     "PreventiveSchedule",
     "ScheduleCreate",
+    "ScheduleUpdate",
+    "ScheduleChecklistItem",
     "RecurrenceConfig",
     "ScheduleExecution",
-    
-    # Cost
+    "ChecklistResult",
+    "ScheduleHistory",
+    "ExecutionHistoryItem",
+    # Cost schemas
     "CostTracking",
     "BudgetAllocation",
+    "CategoryBudget",
     "ExpenseReport",
-    
-    # Filters
+    "MonthlyExpense",
+    "ExpenseItem",
+    "VendorInvoice",
+    "InvoiceLineItem",
+    "CostAnalysis",
+    # Filter schemas
     "MaintenanceFilterParams",
+    "AdvancedFilterParams",
     "SearchRequest",
     "MaintenanceExportRequest",
-    
-    # Analytics
+    # Analytics schemas
     "MaintenanceAnalytics",
-    "CostAnalysis",
+    "TrendPoint",
+    "CostTrendPoint",
+    "CategoryBreakdown",
+    "VendorPerformance",
     "PerformanceMetrics",
+    "ProductivityMetrics",
 ]

@@ -1,70 +1,479 @@
+# --- File: app/schemas/mess/menu_duplication.py ---
 """
-Menu duplication schemas
+Menu duplication and bulk creation schemas.
+
+Provides efficient menu replication capabilities for
+recurring patterns and multi-hostel deployment.
 """
+
+from __future__ import annotations
+
 from datetime import date
-from typing import List, Optional
-from pydantic import Field
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator, model_validator
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "DuplicateMenuRequest",
+    "BulkMenuCreate",
+    "DuplicateResponse",
+    "CrossHostelDuplication",
+    "MenuCloneConfig",
+]
 
 
 class DuplicateMenuRequest(BaseCreateSchema):
-    """Duplicate menu to another date"""
-    source_menu_id: UUID = Field(..., description="Menu to duplicate")
-    target_date: date = Field(..., description="Date for duplicated menu")
+    """
+    Duplicate existing menu to another date.
     
-    # Modifications
-    modify_items: bool = Field(False, description="Allow modifications during duplication")
-    modifications: Optional[dict] = None
+    Creates copy of menu with optional modifications for
+    efficient menu planning.
+    """
+
+    source_menu_id: UUID = Field(
+        ...,
+        description="Menu to duplicate",
+    )
+    target_date: date = Field(
+        ...,
+        description="Date for duplicated menu",
+    )
+    
+    # Duplication options
+    copy_all_meals: bool = Field(
+        default=True,
+        description="Copy all meal items",
+    )
+    copy_breakfast: bool = Field(
+        default=True,
+        description="Copy breakfast items",
+    )
+    copy_lunch: bool = Field(
+        default=True,
+        description="Copy lunch items",
+    )
+    copy_snacks: bool = Field(
+        default=True,
+        description="Copy snacks items",
+    )
+    copy_dinner: bool = Field(
+        default=True,
+        description="Copy dinner items",
+    )
+    
+    # Modification options
+    modify_items: bool = Field(
+        False,
+        description="Allow item modifications during duplication",
+    )
+    modifications: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Meal-wise item modifications {meal_type: [items]}",
+    )
+    
+    # Additional settings
+    preserve_special_status: bool = Field(
+        default=True,
+        description="Keep special menu status",
+    )
+    auto_publish: bool = Field(
+        default=False,
+        description="Automatically publish duplicated menu",
+    )
+    created_by: UUID = Field(
+        ...,
+        description="User creating the duplicate",
+    )
+
+    @field_validator("target_date")
+    @classmethod
+    def validate_target_date(cls, v: date) -> date:
+        """Validate target date is appropriate for duplication."""
+        # Can't duplicate to past dates
+        if v < date.today():
+            raise ValueError("Cannot duplicate menu to past dates")
+        
+        # Limit advance duplication
+        days_ahead = (v - date.today()).days
+        if days_ahead > 90:
+            raise ValueError(
+                "Cannot duplicate menu more than 90 days in advance"
+            )
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_meal_selection(self) -> "DuplicateMenuRequest":
+        """Ensure at least one meal is selected for copying."""
+        if not self.copy_all_meals:
+            if not any([
+                self.copy_breakfast,
+                self.copy_lunch,
+                self.copy_snacks,
+                self.copy_dinner,
+            ]):
+                raise ValueError(
+                    "At least one meal must be selected for duplication"
+                )
+        
+        return self
 
 
 class BulkMenuCreate(BaseCreateSchema):
-    """Create menus for multiple dates using template"""
-    hostel_id: UUID
+    """
+    Create menus for multiple dates using template or pattern.
     
-    # Date range
-    start_date: date
-    end_date: date
-    
-    # Source
-    source_type: str = Field(..., pattern="^(template|existing_menu|weekly_pattern)$")
-    
-    # If using template
-    template_id: Optional[UUID] = None
-    
-    # If using existing menu
-    source_menu_id: Optional[UUID] = None
-    
-    # If using weekly pattern
-    weekly_pattern: Optional[dict] = Field(
-        None,
-        description="Day of week -> menu items mapping"
+    Efficiently generates menus for date range using various sources.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
     )
     
-    # Options
-    skip_existing: bool = Field(True, description="Skip dates that already have menus")
-    override_existing: bool = Field(False, description="Override existing menus")
+    # Date range
+    start_date: date = Field(
+        ...,
+        description="Start date for menu creation",
+    )
+    end_date: date = Field(
+        ...,
+        description="End date for menu creation",
+    )
+    
+    # Source configuration
+    source_type: str = Field(
+        ...,
+        pattern=r"^(template|existing_menu|weekly_pattern|daily_rotation)$",
+        description="Source for menu creation",
+    )
+    
+    # Template-based
+    template_id: Optional[UUID] = Field(
+        None,
+        description="Template ID (if source_type is 'template')",
+    )
+    
+    # Existing menu-based
+    source_menu_id: Optional[UUID] = Field(
+        None,
+        description="Source menu ID (if source_type is 'existing_menu')",
+    )
+    
+    # Weekly pattern-based
+    weekly_pattern: Optional[Dict[str, Dict[str, List[str]]]] = Field(
+        None,
+        description="Day of week -> meal_type -> items mapping",
+    )
+    
+    # Daily rotation
+    rotation_items: Optional[List[Dict[str, List[str]]]] = Field(
+        None,
+        description="List of daily menus to rotate through",
+    )
+    rotation_interval_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=30,
+        description="Days before rotation repeats",
+    )
+    
+    # Creation options
+    skip_existing: bool = Field(
+        True,
+        description="Skip dates that already have menus",
+    )
+    override_existing: bool = Field(
+        False,
+        description="Override existing menus",
+    )
+    skip_weekends: bool = Field(
+        False,
+        description="Skip Saturday and Sunday",
+    )
+    skip_holidays: bool = Field(
+        False,
+        description="Skip public holidays",
+    )
+    
+    # Auto-publish
+    auto_publish_all: bool = Field(
+        default=False,
+        description="Automatically publish all created menus",
+    )
+    
+    # Creator
+    created_by: UUID = Field(
+        ...,
+        description="User creating menus",
+    )
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, v: date) -> date:
+        """Validate start date constraints."""
+        # Allow starting from yesterday for convenience
+        if v < date.today() - timedelta(days=1):
+            raise ValueError(
+                "Start date cannot be more than 1 day in the past"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_bulk_create(self) -> "BulkMenuCreate":
+        """Validate bulk creation configuration."""
+        # Validate date range
+        if self.end_date < self.start_date:
+            raise ValueError("End date must be after start date")
+        
+        # Limit bulk creation period
+        days_span = (self.end_date - self.start_date).days + 1
+        if days_span > 90:
+            raise ValueError(
+                "Bulk creation period cannot exceed 90 days"
+            )
+        
+        # Validate source-specific requirements
+        if self.source_type == "template":
+            if not self.template_id:
+                raise ValueError(
+                    "template_id is required when source_type is 'template'"
+                )
+        
+        elif self.source_type == "existing_menu":
+            if not self.source_menu_id:
+                raise ValueError(
+                    "source_menu_id is required when source_type is 'existing_menu'"
+                )
+        
+        elif self.source_type == "weekly_pattern":
+            if not self.weekly_pattern:
+                raise ValueError(
+                    "weekly_pattern is required when source_type is 'weekly_pattern'"
+                )
+        
+        elif self.source_type == "daily_rotation":
+            if not self.rotation_items:
+                raise ValueError(
+                    "rotation_items is required when source_type is 'daily_rotation'"
+                )
+        
+        # Can't both skip and override existing
+        if self.skip_existing and self.override_existing:
+            raise ValueError(
+                "Cannot both skip and override existing menus"
+            )
+        
+        return self
 
 
 class DuplicateResponse(BaseSchema):
-    """Duplication response"""
-    source_menu_id: UUID
-    created_menus: List[UUID]
+    """
+    Menu duplication response with results.
     
-    total_created: int
-    skipped: int
-    
-    message: str
+    Provides summary of duplication operation results.
+    """
+
+    source_menu_id: UUID = Field(
+        ...,
+        description="Source menu ID",
+    )
+    source_menu_date: date = Field(
+        ...,
+        description="Source menu date",
+    )
+    created_menus: List[UUID] = Field(
+        ...,
+        description="IDs of created menus",
+    )
+    created_dates: List[date] = Field(
+        ...,
+        description="Dates for which menus were created",
+    )
+    total_created: int = Field(
+        ...,
+        ge=0,
+        description="Total menus created",
+    )
+    skipped: int = Field(
+        default=0,
+        ge=0,
+        description="Dates skipped (already had menus)",
+    )
+    failed: int = Field(
+        default=0,
+        ge=0,
+        description="Failed creation attempts",
+    )
+    message: str = Field(
+        ...,
+        description="Operation summary message",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Warnings during operation",
+    )
+    errors: List[str] = Field(
+        default_factory=list,
+        description="Errors encountered",
+    )
+
+    @computed_field
+    @property
+    def success_rate(self) -> Decimal:
+        """Calculate success rate percentage."""
+        total_attempted = self.total_created + self.failed
+        
+        if total_attempted == 0:
+            return Decimal("0.00")
+        
+        return round(
+            Decimal(self.total_created) / Decimal(total_attempted) * 100,
+            2,
+        )
 
 
 class CrossHostelDuplication(BaseCreateSchema):
-    """Duplicate menu to other hostels"""
-    source_menu_id: UUID
-    source_hostel_id: UUID
+    """
+    Duplicate menu across multiple hostels.
     
-    target_hostel_ids: List[UUID] = Field(..., min_items=1)
-    target_date: date
+    Replicates menu to other hostels with optional adaptation
+    for hostel-specific preferences.
+    """
+
+    source_menu_id: UUID = Field(
+        ...,
+        description="Source menu unique identifier",
+    )
+    source_hostel_id: UUID = Field(
+        ...,
+        description="Source hostel ID",
+    )
+    target_hostel_ids: List[UUID] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Target hostel IDs",
+    )
+    target_date: date = Field(
+        ...,
+        description="Date for duplicated menus in target hostels",
+    )
     
-    # Adjust for hostel-specific preferences
-    adapt_to_hostel_preferences: bool = Field(True)
+    # Adaptation options
+    adapt_to_hostel_preferences: bool = Field(
+        True,
+        description="Adapt menu to each hostel's dietary preferences",
+    )
+    adapt_dietary_options: bool = Field(
+        default=True,
+        description="Adjust vegetarian/non-veg based on hostel settings",
+    )
+    adapt_regional_preferences: bool = Field(
+        default=True,
+        description="Adapt to regional food preferences",
+    )
+    
+    # Item substitution
+    allow_item_substitution: bool = Field(
+        default=True,
+        description="Allow substituting unavailable items",
+    )
+    substitution_rules: Optional[Dict[str, str]] = Field(
+        None,
+        description="Item substitution mapping {original: substitute}",
+    )
+    
+    # Cost adjustment
+    adjust_for_hostel_budget: bool = Field(
+        default=False,
+        description="Adjust menu to fit hostel budget",
+    )
+    
+    # Creation options
+    skip_existing: bool = Field(
+        default=True,
+        description="Skip hostels that already have menu for date",
+    )
+    created_by: UUID = Field(
+        ...,
+        description="User performing cross-hostel duplication",
+    )
+
+    @field_validator("target_hostel_ids")
+    @classmethod
+    def validate_unique_hostels(cls, v: List[UUID]) -> List[UUID]:
+        """Ensure no duplicate hostel IDs."""
+        if len(v) != len(set(v)):
+            raise ValueError("Duplicate hostel IDs not allowed")
+        return v
+
+    @model_validator(mode="after")
+    def validate_source_not_in_targets(self) -> "CrossHostelDuplication":
+        """Ensure source hostel is not in target list."""
+        if self.source_hostel_id in self.target_hostel_ids:
+            raise ValueError(
+                "Source hostel cannot be in target hostel list"
+            )
+        return self
+
+
+class MenuCloneConfig(BaseSchema):
+    """
+    Configuration for menu cloning operations.
+    
+    Defines rules and preferences for menu duplication.
+    """
+
+    preserve_special_occasions: bool = Field(
+        default=True,
+        description="Keep special menu flags when cloning",
+    )
+    preserve_meal_timings: bool = Field(
+        default=True,
+        description="Copy meal serving times",
+    )
+    preserve_dietary_options: bool = Field(
+        default=True,
+        description="Copy dietary option flags",
+    )
+    
+    # Item handling
+    remove_seasonal_items: bool = Field(
+        default=False,
+        description="Remove seasonal items from cloned menu",
+    )
+    remove_expensive_items: bool = Field(
+        default=False,
+        description="Remove high-cost items",
+    )
+    cost_threshold: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Cost threshold for expensive items",
+    )
+    
+    # Auto-adjustments
+    auto_adjust_portions: bool = Field(
+        default=False,
+        description="Automatically adjust portion sizes",
+    )
+    target_cost_per_person: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Target cost per person for adjustments",
+    )
+    
+    # Naming
+    add_clone_suffix: bool = Field(
+        default=False,
+        description="Add '(Copy)' suffix to cloned menu names",
+    )
+    custom_suffix: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Custom suffix for cloned menus",
+    )

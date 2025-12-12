@@ -1,0 +1,766 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\mess ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\mess =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\meal_items.py ---
+"""
+Meal items and dietary schemas
+"""
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class MealItems(BaseSchema):
+    """Meal items definition"""
+    meal_type: str = Field(..., pattern="^(breakfast|lunch|snacks|dinner)$")
+    items: List["MenuItem"]
+
+
+class MenuItem(BaseSchema):
+    """Individual menu item"""
+    item_name: str = Field(..., min_length=2, max_length=100)
+    item_description: Optional[str] = Field(None, max_length=255)
+    
+    # Dietary classification
+    is_vegetarian: bool = Field(True)
+    is_vegan: bool = Field(False)
+    is_jain: bool = Field(False)
+    is_gluten_free: bool = Field(False)
+    
+    # Allergens
+    contains_dairy: bool = Field(False)
+    contains_nuts: bool = Field(False)
+    contains_soy: bool = Field(False)
+    
+    # Category
+    category: str = Field(..., description="main_course, side_dish, dessert, beverage")
+
+
+class DietaryOptions(BaseSchema):
+    """Dietary options configuration"""
+    hostel_id: UUID
+    
+    # Available options
+    vegetarian_menu: bool = Field(True)
+    non_vegetarian_menu: bool = Field(False)
+    vegan_menu: bool = Field(False)
+    jain_menu: bool = Field(False)
+    gluten_free_options: bool = Field(False)
+    
+    # Customization allowed
+    allow_meal_customization: bool = Field(False)
+    
+    # Allergen warnings
+    display_allergen_warnings: bool = Field(True)
+
+
+class NutritionalInfo(BaseSchema):
+    """Nutritional information for menu item"""
+    item_name: str
+    
+    # Per serving
+    serving_size: str
+    calories: Optional[int] = Field(None, ge=0)
+    
+    # Macros (grams)
+    protein: Optional[Decimal] = Field(None, ge=0)
+    carbohydrates: Optional[Decimal] = Field(None, ge=0)
+    fat: Optional[Decimal] = Field(None, ge=0)
+    fiber: Optional[Decimal] = Field(None, ge=0)
+    
+    # Micros
+    sodium_mg: Optional[Decimal] = Field(None, ge=0)
+    sugar_g: Optional[Decimal] = Field(None, ge=0)
+
+
+class ItemMasterList(BaseSchema):
+    """Master list of menu items"""
+    hostel_id: UUID
+    
+    categories: List["ItemCategory"]
+
+
+class ItemCategory(BaseSchema):
+    """Category of menu items"""
+    category_name: str
+    items: List[str]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_approval.py ---
+"""
+Menu approval schemas
+"""
+from datetime import datetime
+from typing import Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class MenuApprovalRequest(BaseCreateSchema):
+    """Request menu approval (supervisor to admin)"""
+    menu_id: UUID
+    
+    # Submission notes
+    submission_notes: Optional[str] = Field(None, max_length=500)
+    
+    # Budget info
+    estimated_cost_per_person: Optional[Decimal] = None
+
+
+class MenuApprovalResponse(BaseSchema):
+    """Menu approval response"""
+    menu_id: UUID
+    menu_date: date
+    
+    approved: bool
+    approved_by: UUID
+    approved_by_name: str
+    approved_at: datetime
+    
+    # Feedback
+    approval_notes: Optional[str]
+    
+    message: str
+
+
+class ApprovalWorkflow(BaseSchema):
+    """Menu approval workflow status"""
+    menu_id: UUID
+    menu_date: date
+    
+    requires_approval: bool
+    approval_status: str = Field(
+        ...,
+        pattern="^(pending|approved|rejected|not_required)$"
+    )
+    
+    # Timeline
+    submitted_for_approval_at: Optional[datetime]
+    approved_at: Optional[datetime]
+    rejected_at: Optional[datetime]
+    
+    # Approver
+    pending_with: Optional[UUID]
+    pending_with_name: Optional[str]
+
+
+class BulkApproval(BaseCreateSchema):
+    """Approve multiple menus"""
+    menu_ids: List[UUID] = Field(..., min_items=1)
+    
+    approved: bool
+    approval_notes: Optional[str] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_duplication.py ---
+"""
+Menu duplication schemas
+"""
+from datetime import date
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class DuplicateMenuRequest(BaseCreateSchema):
+    """Duplicate menu to another date"""
+    source_menu_id: UUID = Field(..., description="Menu to duplicate")
+    target_date: date = Field(..., description="Date for duplicated menu")
+    
+    # Modifications
+    modify_items: bool = Field(False, description="Allow modifications during duplication")
+    modifications: Optional[dict] = None
+
+
+class BulkMenuCreate(BaseCreateSchema):
+    """Create menus for multiple dates using template"""
+    hostel_id: UUID
+    
+    # Date range
+    start_date: date
+    end_date: date
+    
+    # Source
+    source_type: str = Field(..., pattern="^(template|existing_menu|weekly_pattern)$")
+    
+    # If using template
+    template_id: Optional[UUID] = None
+    
+    # If using existing menu
+    source_menu_id: Optional[UUID] = None
+    
+    # If using weekly pattern
+    weekly_pattern: Optional[dict] = Field(
+        None,
+        description="Day of week -> menu items mapping"
+    )
+    
+    # Options
+    skip_existing: bool = Field(True, description="Skip dates that already have menus")
+    override_existing: bool = Field(False, description="Override existing menus")
+
+
+class DuplicateResponse(BaseSchema):
+    """Duplication response"""
+    source_menu_id: UUID
+    created_menus: List[UUID]
+    
+    total_created: int
+    skipped: int
+    
+    message: str
+
+
+class CrossHostelDuplication(BaseCreateSchema):
+    """Duplicate menu to other hostels"""
+    source_menu_id: UUID
+    source_hostel_id: UUID
+    
+    target_hostel_ids: List[UUID] = Field(..., min_items=1)
+    target_date: date
+    
+    # Adjust for hostel-specific preferences
+    adapt_to_hostel_preferences: bool = Field(True)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_feedback.py ---
+"""
+Mess menu feedback schemas
+"""
+from datetime import datetime, date
+from decimal import Decimal
+from typing import List, Optional, Dict
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from app.schemas.common.enums import MealType
+
+
+class FeedbackRequest(BaseCreateSchema):
+    """Submit menu feedback"""
+    menu_id: UUID = Field(..., description="Menu ID")
+    student_id: UUID = Field(..., description="Student ID")
+    
+    meal_type: MealType = Field(..., description="Which meal")
+    rating: int = Field(..., ge=1, le=5, description="Rating 1-5")
+    
+    comments: Optional[str] = Field(None, max_length=1000)
+    
+    # Specific aspects
+    taste_rating: Optional[int] = Field(None, ge=1, le=5)
+    quantity_rating: Optional[int] = Field(None, ge=1, le=5)
+    quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    hygiene_rating: Optional[int] = Field(None, ge=1, le=5)
+
+
+class FeedbackResponse(BaseResponseSchema):
+    """Feedback response"""
+    menu_id: UUID
+    student_id: UUID
+    student_name: str
+    
+    meal_type: MealType
+    rating: int
+    comments: Optional[str]
+    
+    submitted_at: datetime
+
+
+class RatingsSummary(BaseSchema):
+    """Ratings summary for menu"""
+    menu_id: UUID
+    menu_date: date
+    
+    total_feedbacks: int
+    average_rating: Decimal
+    
+    # By meal
+    breakfast_rating: Optional[Decimal]
+    lunch_rating: Optional[Decimal]
+    snacks_rating: Optional[Decimal]
+    dinner_rating: Optional[Decimal]
+    
+    # Rating distribution
+    rating_5_count: int
+    rating_4_count: int
+    rating_3_count: int
+    rating_2_count: int
+    rating_1_count: int
+    
+    # Aspect ratings
+    average_taste_rating: Decimal
+    average_quantity_rating: Decimal
+    average_quality_rating: Decimal
+    average_hygiene_rating: Decimal
+
+
+class QualityMetrics(BaseSchema):
+    """Menu quality metrics"""
+    hostel_id: UUID
+    period_start: date
+    period_end: date
+    
+    # Overall
+    overall_average_rating: Decimal
+    total_feedbacks: int
+    
+    # Trends
+    rating_trend: str = Field(..., pattern="^(improving|declining|stable)$")
+    trend_percentage: Optional[Decimal]
+    
+    # Best and worst
+    best_rated_items: List["ItemRating"]
+    worst_rated_items: List["ItemRating"]
+    
+    # By day of week
+    ratings_by_day: Dict[str, Decimal]
+
+
+class ItemRating(BaseSchema):
+    """Rating for specific menu item"""
+    item_name: str
+    average_rating: Decimal
+    feedback_count: int
+
+
+class FeedbackAnalysis(BaseSchema):
+    """Feedback analysis and insights"""
+    hostel_id: UUID
+    analysis_period: DateRangeFilter
+    
+    # Sentiment
+    positive_feedback_percentage: Decimal
+    negative_feedback_percentage: Decimal
+    
+    # Common themes
+    common_complaints: List[str]
+    common_compliments: List[str]
+    
+    # Recommendations
+    items_to_keep: List[str]
+    items_to_improve: List[str]
+    items_to_remove: List[str]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_planning.py ---
+"""
+Menu planning schemas
+"""
+from datetime import date
+from typing import List, Optional, Dict
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseSchema, BaseCreateSchema
+
+
+class MenuPlanRequest(BaseCreateSchema):
+    """Request to create menu plan"""
+    hostel_id: UUID
+    
+    # Planning period
+    start_date: date
+    end_date: date
+    
+    # Template to use (if any)
+    use_template: bool = Field(False)
+    template_id: Optional[UUID] = None
+    
+    # Variety preferences
+    ensure_variety: bool = Field(True, description="Avoid repeating items too often")
+    min_days_between_repeat: int = Field(3, ge=1, le=7)
+    
+    # Dietary requirements
+    vegetarian_days_per_week: int = Field(7, ge=0, le=7)
+    
+    # Budget
+    target_cost_per_day: Optional[Decimal] = None
+
+
+class WeeklyPlan(BaseCreateSchema):
+    """Weekly menu plan"""
+    hostel_id: UUID
+    week_start_date: date
+    
+    # Daily menus
+    monday: "DailyMenuPlan"
+    tuesday: "DailyMenuPlan"
+    wednesday: "DailyMenuPlan"
+    thursday: "DailyMenuPlan"
+    friday: "DailyMenuPlan"
+    saturday: "DailyMenuPlan"
+    sunday: "DailyMenuPlan"
+    
+    # Metadata
+    created_by: UUID
+    notes: Optional[str] = None
+
+
+class DailyMenuPlan(BaseSchema):
+    """Daily menu plan"""
+    breakfast: List[str]
+    lunch: List[str]
+    snacks: List[str]
+    dinner: List[str]
+    
+    is_special: bool = Field(False)
+    special_occasion: Optional[str] = None
+
+
+class MonthlyPlan(BaseCreateSchema):
+    """Monthly menu plan"""
+    hostel_id: UUID
+    month: str  # YYYY-MM format
+    
+    # Weekly plans
+    weeks: List[WeeklyPlan]
+    
+    # Special days
+    special_days: List["SpecialDayMenu"] = Field(default_factory=list)
+
+
+class SpecialMenu(BaseCreateSchema):
+    """Special occasion menu"""
+    hostel_id: UUID
+    occasion_date: date
+    occasion_name: str = Field(..., min_length=3, max_length=255)
+    
+    # Enhanced menu
+    breakfast: List[str]
+    lunch: List[str]
+    snacks: List[str]
+    dinner: List[str]
+    
+    # Additional items
+    special_items: List[str] = Field(default_factory=list, description="Extra special items")
+    
+    # Budget
+    budget: Optional[Decimal] = None
+
+
+class SpecialDayMenu(BaseSchema):
+    """Special day in monthly plan"""
+    date: date
+    occasion: str
+    menu: DailyMenuPlan
+
+
+class MenuTemplate(BaseCreateSchema):
+    """Reusable menu template"""
+    hostel_id: UUID
+    template_name: str = Field(..., min_length=3, max_length=100)
+    description: Optional[str] = None
+    
+    # Template type
+    template_type: str = Field(..., pattern="^(weekly|festival|summer|winter)$")
+    
+    # Menu structure
+    daily_menus: Dict[str, DailyMenuPlan] = Field(
+        ...,
+        description="Day name -> menu plan"
+    )
+
+
+class MenuSuggestion(BaseSchema):
+    """AI/System generated menu suggestions"""
+    hostel_id: UUID
+    date: date
+    
+    suggested_breakfast: List[str]
+    suggested_lunch: List[str]
+    suggested_dinner: List[str]
+    
+    reason: str = Field(..., description="Why these items are suggested")
+    
+    # Scores
+    variety_score: Decimal = Field(..., ge=0, le=10)
+    nutrition_score: Decimal = Field(..., ge=0, le=10)
+    cost_score: Decimal = Field(..., ge=0, le=10)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\mess_menu_base.py ---
+"""
+Mess menu base schemas
+"""
+from datetime import date, time
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+
+
+class MessMenuBase(BaseSchema):
+    """Base mess menu schema"""
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    menu_date: date = Field(..., description="Menu date")
+    day_of_week: str = Field(..., description="Day of week")
+    
+    # Meals
+    breakfast_items: List[str] = Field(default_factory=list, description="Breakfast items")
+    lunch_items: List[str] = Field(default_factory=list, description="Lunch items")
+    snacks_items: List[str] = Field(default_factory=list, description="Snacks items")
+    dinner_items: List[str] = Field(default_factory=list, description="Dinner items")
+    
+    # Timings
+    breakfast_time: Optional[time] = Field(None, description="Breakfast serving time")
+    lunch_time: Optional[time] = Field(None, description="Lunch serving time")
+    snacks_time: Optional[time] = Field(None, description="Snacks serving time")
+    dinner_time: Optional[time] = Field(None, description="Dinner serving time")
+    
+    # Special
+    is_special_menu: bool = Field(False, description="Special occasion menu")
+    special_occasion: Optional[str] = Field(None, max_length=255, description="Occasion name")
+    
+    # Dietary options
+    vegetarian_available: bool = Field(True)
+    non_vegetarian_available: bool = Field(False)
+    vegan_available: bool = Field(False)
+    jain_available: bool = Field(False)
+
+
+class MessMenuCreate(MessMenuBase, BaseCreateSchema):
+    """Create mess menu"""
+    created_by: UUID = Field(..., description="Supervisor/Admin who created")
+
+
+class MessMenuUpdate(BaseUpdateSchema):
+    """Update mess menu"""
+    breakfast_items: Optional[List[str]] = None
+    lunch_items: Optional[List[str]] = None
+    snacks_items: Optional[List[str]] = None
+    dinner_items: Optional[List[str]] = None
+    
+    breakfast_time: Optional[time] = None
+    lunch_time: Optional[time] = None
+    snacks_time: Optional[time] = None
+    dinner_time: Optional[time] = None
+    
+    is_special_menu: Optional[bool] = None
+    special_occasion: Optional[str] = None
+    
+    vegetarian_available: Optional[bool] = None
+    non_vegetarian_available: Optional[bool] = None
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\mess_menu_response.py ---
+"""
+Mess menu response schemas
+"""
+from datetime import date, time, datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import Field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+
+
+class MenuResponse(BaseResponseSchema):
+    """Mess menu response"""
+    hostel_id: UUID
+    hostel_name: str
+    menu_date: date
+    day_of_week: str
+    
+    breakfast_items: List[str]
+    lunch_items: List[str]
+    snacks_items: List[str]
+    dinner_items: List[str]
+    
+    is_special_menu: bool
+    special_occasion: Optional[str]
+    
+    is_published: bool
+    average_rating: Decimal
+
+
+class MenuDetail(BaseResponseSchema):
+    """Detailed menu information"""
+    hostel_id: UUID
+    hostel_name: str
+    menu_date: date
+    day_of_week: str
+    
+    # Meals with timings
+    breakfast_items: List[str]
+    breakfast_time: Optional[time]
+    
+    lunch_items: List[str]
+    lunch_time: Optional[time]
+    
+    snacks_items: List[str]
+    snacks_time: Optional[time]
+    
+    dinner_items: List[str]
+    dinner_time: Optional[time]
+    
+    # Dietary options
+    vegetarian_available: bool
+    non_vegetarian_available: bool
+    vegan_available: bool
+    jain_available: bool
+    
+    # Special
+    is_special_menu: bool
+    special_occasion: Optional[str]
+    
+    # Management
+    created_by: UUID
+    created_by_name: str
+    approved_by: Optional[UUID]
+    approved_by_name: Optional[str]
+    approved_at: Optional[datetime]
+    
+    is_published: bool
+    published_at: Optional[datetime]
+    
+    # Feedback
+    average_rating: Decimal
+    total_feedback_count: int
+
+
+class WeeklyMenu(BaseSchema):
+    """Weekly menu display"""
+    hostel_id: UUID
+    hostel_name: str
+    week_start_date: date
+    week_end_date: date
+    
+    menus: List["DailyMenuSummary"]
+
+
+class DailyMenuSummary(BaseSchema):
+    """Daily menu summary for weekly view"""
+    menu_id: UUID
+    date: date
+    day_of_week: str
+    
+    breakfast: List[str]
+    lunch: List[str]
+    dinner: List[str]
+    
+    is_special: bool
+    average_rating: Optional[Decimal]
+
+
+class MonthlyMenu(BaseSchema):
+    """Monthly menu calendar"""
+    hostel_id: UUID
+    hostel_name: str
+    month: str  # YYYY-MM format
+    
+    menus_by_date: dict = Field(..., description="Date -> DailyMenuSummary")
+    
+    # Summary
+    total_days: int
+    special_days: int
+    average_rating: Decimal
+
+
+class TodayMenu(BaseSchema):
+    """Today's menu for student view"""
+    hostel_id: UUID
+    hostel_name: str
+    date: date
+    day_of_week: str
+    
+    breakfast: List[str]
+    breakfast_time: str
+    
+    lunch: List[str]
+    lunch_time: str
+    
+    snacks: List[str]
+    snacks_time: str
+    
+    dinner: List[str]
+    dinner_time: str
+    
+    is_special: bool
+    special_occasion: Optional[str]
+    
+    dietary_note: Optional[str]
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\__init__.py ---
+"""
+Mess menu schemas package
+"""
+from app.schemas.mess.mess_menu_base import (
+    MessMenuBase,
+    MessMenuCreate,
+    MessMenuUpdate
+)
+from app.schemas.mess.mess_menu_response import (
+    MenuResponse,
+    MenuDetail,
+    WeeklyMenu,
+    MonthlyMenu
+)
+from app.schemas.mess.meal_items import (
+    MealItems,
+    DietaryOptions,
+    NutritionalInfo
+)
+from app.schemas.mess.menu_planning import (
+    MenuPlanRequest,
+    WeeklyPlan,
+    MonthlyPlan,
+    SpecialMenu
+)
+from app.schemas.mess.menu_feedback import (
+    FeedbackRequest,
+    FeedbackResponse,
+    RatingsSummary,
+    QualityMetrics
+)
+from app.schemas.mess.menu_approval import (
+    MenuApprovalRequest,
+    ApprovalWorkflow
+)
+from app.schemas.mess.menu_duplication import (
+    DuplicateMenuRequest,
+    BulkMenuCreate
+)
+
+__all__ = [
+    # Base
+    "MessMenuBase",
+    "MessMenuCreate",
+    "MessMenuUpdate",
+    
+    # Response
+    "MenuResponse",
+    "MenuDetail",
+    "WeeklyMenu",
+    "MonthlyMenu",
+    
+    # Meal Items
+    "MealItems",
+    "DietaryOptions",
+    "NutritionalInfo",
+    
+    # Planning
+    "MenuPlanRequest",
+    "WeeklyPlan",
+    "MonthlyPlan",
+    "SpecialMenu",
+    
+    # Feedback
+    "FeedbackRequest",
+    "FeedbackResponse",
+    "RatingsSummary",
+    "QualityMetrics",
+    
+    # Approval
+    "MenuApprovalRequest",
+    "ApprovalWorkflow",
+    
+    # Duplication
+    "DuplicateMenuRequest",
+    "BulkMenuCreate",
+]

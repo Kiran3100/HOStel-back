@@ -1,45 +1,105 @@
+# --- File: app/schemas/review/__init__.py ---
 """
-Review schemas package
+Review schemas package.
+
+Provides comprehensive schemas for:
+- Review creation, update, and submission
+- Review responses and details
+- Moderation and approval workflows
+- Voting and engagement
+- Hostel responses to reviews
+- Filtering, searching, and export
+- Analytics and insights
+
+Example:
+    from app.schemas.review import (
+        ReviewCreate,
+        ReviewResponse,
+        ReviewSubmissionRequest,
+        ModerationRequest,
+        VoteRequest,
+    )
 """
+
+from __future__ import annotations
+
+# Base schemas
 from app.schemas.review.review_base import (
     ReviewBase,
     ReviewCreate,
-    ReviewUpdate
+    ReviewUpdate,
+    DetailedRatings,
 )
+
+# Response schemas
 from app.schemas.review.review_response import (
     ReviewResponse,
     ReviewDetail,
-    ReviewListItem
+    ReviewListItem,
+    ReviewSummary,
+    HostelResponseDetail,
 )
+
+# Submission schemas
 from app.schemas.review.review_submission import (
     ReviewSubmissionRequest,
-    DetailedRatings,
-    VerifiedReview
+    DetailedRatingsInput,
+    VerifiedReview,
+    ReviewGuidelines,
+    ReviewEligibility,
+    ReviewDraft,
 )
+
+# Moderation schemas
 from app.schemas.review.review_moderation import (
     ModerationRequest,
+    ModerationResponse,
     ModerationQueue,
-    ApprovalWorkflow
+    PendingReview,
+    ApprovalWorkflow,
+    BulkModeration,
+    ModerationStats,
+    FlagReview,
 )
+
+# Voting schemas
 from app.schemas.review.review_voting import (
     VoteRequest,
     VoteResponse,
-    HelpfulnessScore
+    HelpfulnessScore,
+    VoteHistory,
+    VoteHistoryItem,
+    RemoveVote,
+    VotingStats,
 )
+
+# Hostel response schemas
 from app.schemas.review.review_response_schema import (
     HostelResponseCreate,
-    OwnerResponse
+    HostelResponseUpdate,
+    OwnerResponse,
+    ResponseGuidelines,
+    ResponseStats,
+    ResponseTemplate,
 )
+
+# Filter schemas
 from app.schemas.review.review_filters import (
     ReviewFilterParams,
-    SearchRequest,
-    SortOptions
+    ReviewSearchRequest,
+    ReviewSortOptions,
+    ReviewExportRequest,
 )
+
+# Analytics schemas
 from app.schemas.review.review_analytics import (
     ReviewAnalytics,
     RatingDistribution,
+    TrendAnalysis,
+    MonthlyRating,
     SentimentAnalysis,
-    TrendAnalysis
+    AspectAnalysis,
+    CompetitorComparison,
 )
 
 __all__ = [
@@ -47,39 +107,62 @@ __all__ = [
     "ReviewBase",
     "ReviewCreate",
     "ReviewUpdate",
+    "DetailedRatings",
     
     # Response
     "ReviewResponse",
     "ReviewDetail",
     "ReviewListItem",
+    "ReviewSummary",
+    "HostelResponseDetail",
     
     # Submission
     "ReviewSubmissionRequest",
-    "DetailedRatings",
+    "DetailedRatingsInput",
     "VerifiedReview",
+    "ReviewGuidelines",
+    "ReviewEligibility",
+    "ReviewDraft",
     
     # Moderation
     "ModerationRequest",
+    "ModerationResponse",
     "ModerationQueue",
+    "PendingReview",
     "ApprovalWorkflow",
+    "BulkModeration",
+    "ModerationStats",
+    "FlagReview",
     
     # Voting
     "VoteRequest",
     "VoteResponse",
     "HelpfulnessScore",
+    "VoteHistory",
+    "VoteHistoryItem",
+    "RemoveVote",
+    "VotingStats",
     
     # Hostel Response
     "HostelResponseCreate",
+    "HostelResponseUpdate",
     "OwnerResponse",
+    "ResponseGuidelines",
+    "ResponseStats",
+    "ResponseTemplate",
     
     # Filters
     "ReviewFilterParams",
-    "SearchRequest",
-    "SortOptions",
+    "ReviewSearchRequest",
+    "ReviewSortOptions",
+    "ReviewExportRequest",
     
     # Analytics
     "ReviewAnalytics",
     "RatingDistribution",
-    "SentimentAnalysis",
     "TrendAnalysis",
+    "MonthlyRating",
+    "SentimentAnalysis",
+    "AspectAnalysis",
+    "CompetitorComparison",
 ]

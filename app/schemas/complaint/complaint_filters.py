@@ -1,23 +1,27 @@
 """
-Complaint filter and search schemas
+Complaint filter and search schemas with optimized query building.
 """
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import List, Optional
-from pydantic import Field
 from uuid import UUID
+
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
 
 
 class ComplaintFilterParams(BaseFilterSchema):
-    """Complaint filter parameters"""
+    """Complaint filter parameters with validation."""
+    
     # Text search
-    search: Optional[str] = Field(None, description="Search in title, description, number")
+    search: Optional[str] = Field(None, max_length=255, description="Search in title, description, number")
     
     # Hostel filter
     hostel_id: Optional[UUID] = None
-    hostel_ids: Optional[List[UUID]] = None
+    hostel_ids: Optional[List[UUID]] = Field(None, max_items=50)
     
     # Raised by
     raised_by: Optional[UUID] = None
@@ -29,15 +33,15 @@ class ComplaintFilterParams(BaseFilterSchema):
     
     # Category
     category: Optional[ComplaintCategory] = None
-    categories: Optional[List[ComplaintCategory]] = None
+    categories: Optional[List[ComplaintCategory]] = Field(None, max_items=10)
     
     # Priority
     priority: Optional[Priority] = None
-    priorities: Optional[List[Priority]] = None
+    priorities: Optional[List[Priority]] = Field(None, max_items=5)
     
     # Status
     status: Optional[ComplaintStatus] = None
-    statuses: Optional[List[ComplaintStatus]] = None
+    statuses: Optional[List[ComplaintStatus]] = Field(None, max_items=7)
     
     # Date filters
     opened_date_from: Optional[date] = None
@@ -55,46 +59,48 @@ class ComplaintFilterParams(BaseFilterSchema):
     room_id: Optional[UUID] = None
     
     # Age
-    age_hours_min: Optional[int] = Field(None, ge=0)
-    age_hours_max: Optional[int] = Field(None, ge=0)
+    age_hours_min: Optional[int] = Field(None, ge=0, le=8760)
+    age_hours_max: Optional[int] = Field(None, ge=0, le=8760)
+
+    @field_validator("search")
+    @classmethod
+    def normalize_search(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize search query."""
+        if v:
+            v = v.strip()
+            if len(v) < 2:
+                raise ValueError("Search query must be at least 2 characters")
+        return v
+
+    @model_validator(mode="after")
+    def validate_date_ranges(self) -> "ComplaintFilterParams":
+        """Validate date ranges are logical."""
+        if self.opened_date_from and self.opened_date_to:
+            if self.opened_date_from > self.opened_date_to:
+                raise ValueError("opened_date_from must be before opened_date_to")
+                
+        if self.resolved_date_from and self.resolved_date_to:
+            if self.resolved_date_from > self.resolved_date_to:
+                raise ValueError("resolved_date_from must be before resolved_date_to")
+                
+        if self.age_hours_min and self.age_hours_max:
+            if self.age_hours_min > self.age_hours_max:
+                raise ValueError("age_hours_min must be less than age_hours_max")
+                
+        return self
+
+    @model_validator(mode="after")
+    def validate_list_filters(self) -> "ComplaintFilterParams":
+        """Ensure single and list filters aren't both specified."""
+        if self.category and self.categories:
+            raise ValueError("Cannot specify both category and categories")
+        if self.priority and self.priorities:
+            raise ValueError("Cannot specify both priority and priorities")
+        if self.status and self.statuses:
+            raise ValueError("Cannot specify both status and statuses")
+        if self.hostel_id and self.hostel_ids:
+            raise ValueError("Cannot specify both hostel_id and hostel_ids")
+        return self
 
 
-class ComplaintSearchRequest(BaseFilterSchema):
-    """Complaint search request"""
-    query: str = Field(..., min_length=1, description="Search query")
-    hostel_id: Optional[UUID] = None
-    
-    # Search fields
-    search_in_title: bool = Field(True)
-    search_in_description: bool = Field(True)
-    search_in_number: bool = Field(True)
-    
-    # Filters
-    status: Optional[ComplaintStatus] = None
-    priority: Optional[Priority] = None
-    
-    # Pagination
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
-
-
-class ComplaintSortOptions(BaseFilterSchema):
-    """Complaint sorting options"""
-    sort_by: str = Field(
-        "opened_at",
-        pattern="^(opened_at|priority|status|category|age)$"
-    )
-    sort_order: str = Field("desc", pattern="^(asc|desc)$")
-
-
-class ComplaintExportRequest(BaseFilterSchema):
-    """Export complaints"""
-    hostel_id: Optional[UUID] = None
-    filters: Optional[ComplaintFilterParams] = None
-    
-    format: str = Field("csv", pattern="^(csv|excel|pdf)$")
-    
-    # Fields to include
-    include_comments: bool = Field(False)
-    include_resolution_details: bool = Field(True)
-    include_feedback: bool = Field(True)
+class
