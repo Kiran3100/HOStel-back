@@ -71,7 +71,11 @@ def combine_all_files(root_folder, output_file):
 if __name__ == "__main__":
     # 🔧 Change this path to your main root folder
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     root_folder = r"C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\subscription"
+=======
+    root_folder = r"C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\announcement"
+>>>>>>> Stashed changes
 
 =======
     root_folder = r"D:\Last Github Push\Last\HOStel-back\app\schemas\review"

@@ -1,44 +1,284 @@
+# --- File: app/schemas/subscription/subscription_upgrade.py ---
 """
-Subscription upgrade/downgrade schemas
+Subscription upgrade/downgrade schemas.
+
+Handles plan change requests, previews, and confirmations
+for subscription modifications.
 """
+
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
-from typing import Optional
-from pydantic import Field
+from enum import Enum
+from typing import List, Optional
 from uuid import UUID
+
+from pydantic import Field, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import BillingCycle
 
+__all__ = [
+    "PlanChangeType",
+    "PlanChangeRequest",
+    "PlanChangePreview",
+    "PlanChangeConfirmation",
+]
 
-class UpgradeRequest(BaseCreateSchema):
-    """Request to change subscription plan"""
-    hostel_id: UUID
-    current_plan_id: UUID
-    new_plan_id: UUID
-    billing_cycle: BillingCycle = Field(...)
+
+class PlanChangeType(str, Enum):
+    """Type of plan change."""
+
+    UPGRADE = "upgrade"
+    DOWNGRADE = "downgrade"
+    LATERAL = "lateral"  # Same tier, different billing cycle
+
+
+class PlanChangeRequest(BaseCreateSchema):
+    """
+    Request to change subscription plan.
+
+    Supports upgrades, downgrades, and billing cycle changes
+    with configurable timing and proration.
+    """
+
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    current_plan_id: UUID = Field(
+        ..., description="Current subscription plan ID"
+    )
+    new_plan_id: UUID = Field(..., description="Target plan ID")
+    billing_cycle: BillingCycle = Field(
+        ..., description="Billing cycle for new plan"
+    )
 
     # Timing
-    effective_from: date = Field(..., description="When new plan takes effect")
-    prorate: bool = Field(True, description="Prorate charges/refunds")
+    effective_from: date = Field(
+        ..., description="When new plan takes effect"
+    )
+    prorate: bool = Field(
+        default=True,
+        description="Apply proration for partial periods",
+    )
+
+    # Options
+    apply_credit: bool = Field(
+        default=True,
+        description="Apply unused balance as credit",
+    )
+    preserve_trial: bool = Field(
+        default=False,
+        description="Preserve remaining trial days if applicable",
+    )
+
+    # Reason tracking
+    change_reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason for plan change",
+    )
+
+    @model_validator(mode="after")
+    def validate_plan_change(self) -> "PlanChangeRequest":
+        """Validate plan change request."""
+        if self.current_plan_id == self.new_plan_id:
+            raise ValueError(
+                "new_plan_id must be different from current_plan_id"
+            )
+
+        today = date.today()
+        if self.effective_from < today:
+            raise ValueError("effective_from cannot be in the past")
+
+        return self
 
 
-class UpgradePreview(BaseSchema):
-    """Preview cost impact of upgrade/downgrade"""
-    current_plan_name: str
-    new_plan_name: str
+class PlanChangePreview(BaseSchema):
+    """
+    Preview cost impact of plan change.
 
-    current_amount: Decimal
-    new_amount: Decimal
+    Shows detailed financial impact including prorations,
+    credits, and final amounts before confirming the change.
+    """
 
-    # For current period
-    prorated_charge: Decimal = Field(..., description="Additional amount to charge")
-    prorated_refund: Decimal = Field(..., description="If downgrade, refund amount")
+    # Plan info
+    current_plan_id: UUID = Field(..., description="Current plan ID")
+    current_plan_name: str = Field(..., description="Current plan name")
+    current_plan_display: str = Field(
+        ..., description="Current plan display name"
+    )
 
-    effective_from: date
-    message: str
+    new_plan_id: UUID = Field(..., description="New plan ID")
+    new_plan_name: str = Field(..., description="New plan name")
+    new_plan_display: str = Field(..., description="New plan display name")
+
+    # Change type
+    change_type: PlanChangeType = Field(
+        ..., description="Type of plan change"
+    )
+
+    # Pricing
+    current_amount: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Current plan amount",
+    )
+    new_amount: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="New plan amount",
+    )
+    currency: str = Field(default="INR", description="Currency code")
+
+    # Current period info
+    current_period_start: date = Field(
+        ..., description="Current billing period start"
+    )
+    current_period_end: date = Field(
+        ..., description="Current billing period end"
+    )
+    days_remaining: int = Field(
+        ...,
+        ge=0,
+        description="Days remaining in current period",
+    )
+
+    # Proration calculations
+    prorated_credit: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Credit for unused portion of current plan",
+    )
+    prorated_charge: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Charge for new plan (prorated if applicable)",
+    )
+
+    # Final amounts
+    amount_due_now: Decimal = Field(
+        ...,
+        decimal_places=2,
+        description="Net amount due now (can be negative for credit)",
+    )
+    next_billing_amount: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Amount on next regular billing",
+    )
+
+    # Dates
+    effective_from: date = Field(
+        ..., description="When change takes effect"
+    )
+    next_billing_date: date = Field(
+        ..., description="Next billing date after change"
+    )
+
+    # Additional info
+    message: str = Field(..., description="Summary message")
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Warnings about the plan change",
+    )
+    benefits: List[str] = Field(
+        default_factory=list,
+        description="Benefits of the new plan",
+    )
+
+    @computed_field
+    @property
+    def is_upgrade(self) -> bool:
+        """Check if this is an upgrade."""
+        return self.change_type == PlanChangeType.UPGRADE
+
+    @computed_field
+    @property
+    def is_downgrade(self) -> bool:
+        """Check if this is a downgrade."""
+        return self.change_type == PlanChangeType.DOWNGRADE
+
+    @computed_field
+    @property
+    def monthly_difference(self) -> Decimal:
+        """Calculate monthly price difference."""
+        return (self.new_amount - self.current_amount).quantize(
+            Decimal("0.01")
+        )
+
+    @computed_field
+    @property
+    def savings_or_increase(self) -> str:
+        """Format savings or increase message."""
+        diff = self.monthly_difference
+        if diff > Decimal("0"):
+            return f"+{self.currency} {diff:,.2f}/period"
+        elif diff < Decimal("0"):
+            return f"-{self.currency} {abs(diff):,.2f}/period"
+        return "No change"
 
 
-class DowngradeRequest(UpgradeRequest):
-    """Same payload, semantics are downgrade if new plan is smaller"""
-    pass
+# Import computed_field for PlanChangePreview
+from pydantic import computed_field
+
+
+class PlanChangeConfirmation(BaseSchema):
+    """
+    Confirmation of completed plan change.
+
+    Returned after a plan change is successfully processed.
+    """
+
+    subscription_id: UUID = Field(..., description="Updated subscription ID")
+    hostel_id: UUID = Field(..., description="Hostel ID")
+
+    # Change details
+    previous_plan_id: UUID = Field(..., description="Previous plan ID")
+    previous_plan_name: str = Field(..., description="Previous plan name")
+    new_plan_id: UUID = Field(..., description="New plan ID")
+    new_plan_name: str = Field(..., description="New plan name")
+    change_type: PlanChangeType = Field(..., description="Type of change")
+
+    # Financial
+    amount_charged: Decimal = Field(
+        default=Decimal("0.00"),
+        decimal_places=2,
+        description="Amount charged for the change",
+    )
+    credit_applied: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Credit applied from previous plan",
+    )
+    currency: str = Field(default="INR")
+
+    # Dates
+    effective_from: date = Field(
+        ..., description="When change took effect"
+    )
+    next_billing_date: date = Field(..., description="Next billing date")
+    new_billing_amount: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="New regular billing amount",
+    )
+
+    # Confirmation
+    processed_at: datetime = Field(
+        ..., description="When change was processed"
+    )
+    confirmation_number: str = Field(
+        ..., description="Change confirmation reference"
+    )
+    message: str = Field(..., description="Confirmation message")
+
+
+# Import datetime for PlanChangeConfirmation
+from datetime import datetime

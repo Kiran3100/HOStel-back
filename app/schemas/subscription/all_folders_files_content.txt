@@ -386,7 +386,7 @@ class UpgradeRequest(BaseCreateSchema):
     current_plan_id: UUID
     new_plan_id: UUID
     billing_cycle: BillingCycle = Field(...)
-
+ 
     # Timing
     effective_from: date = Field(..., description="When new plan takes effect")
     prorate: bool = Field(True, description="Prorate charges/refunds")

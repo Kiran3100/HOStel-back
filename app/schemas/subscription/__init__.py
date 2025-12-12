@@ -2,113 +2,108 @@
 """
 Subscription schemas package.
 
-Provides comprehensive schemas for subscription management including
-plans, billing, upgrades, cancellations, and commissions.
+This module provides comprehensive schemas for:
+- Subscription plans (definition, pricing, features)
+- Hostel subscriptions (lifecycle management)
+- Billing and invoicing
+- Plan upgrades/downgrades
+- Commission tracking
 """
 
 from __future__ import annotations
 
-# Plan schemas
-from app.schemas.subscription.subscription_plan_base import (
-    FeatureDefinition,
-    PlanComparison,
-    PlanCreate,
-    PlanFeatures,
-    PlanResponse,
-    PlanUpdate,
-    PlanUsageMetrics,
-    SubscriptionPlanBase,
+# Commission schemas
+from app.schemas.subscription.commission import (
+    BookingCommissionResponse,
+    CommissionConfig,
+    CommissionStatus,
+    CommissionSummary,
 )
 
-# Subscription base schemas
+# Base subscription schemas
 from app.schemas.subscription.subscription_base import (
     SubscriptionBase,
     SubscriptionCreate,
-    SubscriptionResponse,
     SubscriptionUpdate,
 )
 
 # Billing schemas
 from app.schemas.subscription.subscription_billing import (
     BillingCycleInfo,
-    BillingHistory,
-    BillingHistoryItem,
     GenerateInvoiceRequest,
     InvoiceInfo,
-    InvoiceLineItem,
-    PaymentRecord,
-    UpcomingBilling,
-)
-
-# Upgrade/downgrade schemas
-from app.schemas.subscription.subscription_upgrade import (
-    DowngradeRequest,
-    PlanChangeRequest,
-    PlanChangeResult,
-    ProrationCalculation,
-    UpgradePreview,
-    UpgradeRequest,
+    InvoiceStatus,
 )
 
 # Cancellation schemas
 from app.schemas.subscription.subscription_cancellation import (
-    CancellationFeedback,
-    CancellationPreview,
     CancellationRequest,
     CancellationResponse,
 )
 
-# Commission schemas
-from app.schemas.subscription.commission import (
-    BookingCommissionResponse,
-    CommissionConfig,
-    CommissionPayoutRequest,
-    CommissionPayoutResponse,
-    CommissionRate,
-    CommissionSummary,
+# Plan definition schemas
+from app.schemas.subscription.subscription_plan_base import (
+    PlanCreate,
+    PlanUpdate,
+    SubscriptionPlanBase,
+)
+
+# Plan response schemas
+from app.schemas.subscription.subscription_plan_response import (
+    PlanComparison,
+    PlanFeatures,
+    PlanResponse,
+)
+
+# Subscription response schemas
+from app.schemas.subscription.subscription_response import (
+    BillingHistory,
+    BillingHistoryItem,
+    SubscriptionResponse,
+    SubscriptionSummary,
+)
+
+# Upgrade/downgrade schemas
+from app.schemas.subscription.subscription_upgrade import (
+    PlanChangeRequest,
+    PlanChangePreview,
+    PlanChangeType,
 )
 
 __all__ = [
-    # Plan
-    "SubscriptionPlanBase",
-    "PlanCreate",
-    "PlanUpdate",
-    "PlanResponse",
-    "PlanFeatures",
-    "PlanComparison",
-    "FeatureDefinition",
-    "PlanUsageMetrics",
-    # Subscription
+    # Enums
+    "CommissionStatus",
+    "InvoiceStatus",
+    "PlanChangeType",
+    # Commission
+    "CommissionConfig",
+    "BookingCommissionResponse",
+    "CommissionSummary",
+    # Subscription base
     "SubscriptionBase",
     "SubscriptionCreate",
     "SubscriptionUpdate",
-    "SubscriptionResponse",
     # Billing
     "BillingCycleInfo",
     "GenerateInvoiceRequest",
     "InvoiceInfo",
-    "InvoiceLineItem",
-    "PaymentRecord",
-    "BillingHistory",
-    "BillingHistoryItem",
-    "UpcomingBilling",
-    # Upgrade/Downgrade
-    "UpgradeRequest",
-    "DowngradeRequest",
-    "PlanChangeRequest",
-    "UpgradePreview",
-    "PlanChangeResult",
-    "ProrationCalculation",
     # Cancellation
     "CancellationRequest",
     "CancellationResponse",
-    "CancellationPreview",
-    "CancellationFeedback",
-    # Commission
-    "CommissionConfig",
-    "CommissionRate",
-    "BookingCommissionResponse",
-    "CommissionSummary",
-    "CommissionPayoutRequest",
-    "CommissionPayoutResponse",
+    # Plan base
+    "SubscriptionPlanBase",
+    "PlanCreate",
+    "PlanUpdate",
+    # Plan response
+    "PlanResponse",
+    "PlanFeatures",
+    "PlanComparison",
+    # Subscription response
+    "SubscriptionResponse",
+    "SubscriptionSummary",
+    "BillingHistoryItem",
+    "BillingHistory",
+    # Upgrade/downgrade
+    "PlanChangeRequest",
+    "PlanChangePreview",
 ]
