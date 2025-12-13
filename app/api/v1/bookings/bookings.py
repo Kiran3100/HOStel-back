@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.booking.booking_base import BookingCreate, BookingUpdate
 from app.schemas.booking.booking_response import (
@@ -36,7 +36,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=PaginatedResponse[BookingListItem],
     summary="List bookings",
 )
@@ -56,7 +56,7 @@ async def list_bookings(
 
 
 @router.post(
-    "",
+    "/",
     response_model=BookingDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new booking",

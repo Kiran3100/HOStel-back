@@ -118,7 +118,6 @@ class MaintenanceService:
             assigned_to_name=assigned_to_user.full_name if assigned_to_user else None,
             estimated_cost=m.estimated_cost,
             actual_cost=m.actual_cost,
-            created_at=m.created_at,
             estimated_completion_date=m.estimated_completion_date,
             completed_at=m.completed_at,
         )

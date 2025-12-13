@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,

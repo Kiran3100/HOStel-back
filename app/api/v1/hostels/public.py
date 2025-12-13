@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.hostel.hostel_public import (
     PublicHostelCard,

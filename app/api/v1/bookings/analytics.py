@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.analytics.booking_analytics import BookingAnalyticsSummary
 from app.services.common.unit_of_work import UnitOfWork

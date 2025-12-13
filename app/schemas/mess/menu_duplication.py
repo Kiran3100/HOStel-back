@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator,computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema

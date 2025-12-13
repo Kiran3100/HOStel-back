@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,
@@ -49,7 +49,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=InquiryDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new inquiry",
@@ -90,7 +90,7 @@ async def get_inquiry(
 
 
 @router.get(
-    "",
+    "/",
     response_model=List[InquiryListItem],
     summary="List inquiries for a hostel",
 )

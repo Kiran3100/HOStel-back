@@ -20,6 +20,8 @@ from .booking_modification_service import BookingModificationService
 from .booking_waitlist_service import BookingWaitlistService
 from .booking_workflow_service import BookingWorkflowService
 from .booking_analytics_service import BookingAnalyticsService
+from .booking_approval_service import BookingApprovalService
+
 
 __all__ = [
     "BookingService",
@@ -30,4 +32,6 @@ __all__ = [
     "BookingWaitlistService",
     "BookingWorkflowService",
     "BookingAnalyticsService",
+    "BookingApprovalService",
+
 ]

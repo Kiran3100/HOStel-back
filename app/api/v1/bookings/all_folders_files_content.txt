@@ -1,1 +1,1024 @@
-D:\Last Github Push\Last\HOStel-back\app\api\v1\bookings
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings ###
+
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings =====
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\analytics.py ---
+# api/v1/bookings/analytics.py
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.analytics.booking_analytics import BookingAnalyticsSummary
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingAnalyticsService
+
+router = APIRouter(prefix="/analytics")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/summary",
+    response_model=BookingAnalyticsSummary,
+    summary="Get booking analytics summary for a hostel",
+)
+async def get_booking_analytics_summary(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingAnalyticsSummary:
+    """
+    Produce booking analytics for a hostel: KPIs, daily trends, funnel, cancellations,
+    and source conversions.
+    """
+    service = BookingAnalyticsService(uow)
+    try:
+        return service.get_booking_analytics(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\approval.py ---
+# api/v1/bookings/approval.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from app.api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_approval import (
+    BookingApprovalRequest,
+    ApprovalResponse,
+    RejectionRequest,
+    BulkApprovalRequest,
+    ApprovalSettings,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingApprovalService
+
+router = APIRouter(prefix="/approval")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/bookings/{booking_id}/approve",
+    response_model=ApprovalResponse,
+    summary="Approve a booking",
+)
+async def approve_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: BookingApprovalRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ApprovalResponse:
+    """
+    Approve a booking, confirm pricing, and optionally require advance payment.
+    """
+    service = BookingApprovalService(uow)
+    try:
+        return service.approve_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bookings/{booking_id}/reject",
+    response_model=ApprovalResponse,
+    summary="Reject a booking",
+)
+async def reject_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: RejectionRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ApprovalResponse:
+    """
+    Reject a booking with structured rejection reasons and potential alternatives.
+    """
+    service = BookingApprovalService(uow)
+    try:
+        return service.reject_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bulk",
+    response_model=List[ApprovalResponse],
+    summary="Bulk approve/reject bookings",
+)
+async def bulk_approve_bookings(
+    payload: BulkApprovalRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[ApprovalResponse]:
+    """
+    Bulk approve or reject multiple bookings in a single request.
+    """
+    service = BookingApprovalService(uow)
+    try:
+        return service.bulk_approve(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/settings",
+    response_model=ApprovalSettings,
+    summary="Get booking approval settings",
+)
+async def get_approval_settings(
+    uow: UnitOfWork = Depends(get_uow),
+) -> ApprovalSettings:
+    """
+    Get automated approval settings (thresholds, rules).
+    """
+    service = BookingApprovalService(uow)
+    try:
+        return service.get_settings()
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.put(
+    "/settings",
+    response_model=ApprovalSettings,
+    summary="Update booking approval settings",
+)
+async def update_approval_settings(
+    payload: ApprovalSettings,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ApprovalSettings:
+    """
+    Update automated approval settings.
+    """
+    service = BookingApprovalService(uow)
+    try:
+        return service.update_settings(settings=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\assignment.py ---
+# api/v1/bookings/assignment.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_assignment import (
+    AssignmentRequest,
+    BulkAssignmentRequest,
+    ReassignmentRequest,
+    AssignmentResponse,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingService
+
+router = APIRouter(prefix="/assignments")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/{booking_id}",
+    response_model=AssignmentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Assign room/bed for a booking",
+)
+async def assign_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: AssignmentRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> AssignmentResponse:
+    """
+    Assign a room and optionally a bed to a booking.
+    """
+    service = BookingService(uow)
+    try:
+        return service.assign_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bulk",
+    response_model=List[AssignmentResponse],
+    summary="Bulk assign rooms/beds for bookings",
+)
+async def bulk_assign_bookings(
+    payload: BulkAssignmentRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[AssignmentResponse]:
+    """
+    Bulk assign rooms/beds to multiple bookings.
+    """
+    service = BookingService(uow)
+    try:
+        return service.bulk_assign_bookings(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/{booking_id}/reassign",
+    response_model=AssignmentResponse,
+    summary="Reassign room/bed for a booking",
+)
+async def reassign_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: ReassignmentRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> AssignmentResponse:
+    """
+    Reassign a booking to a new room/bed.
+    """
+    service = BookingService(uow)
+    try:
+        return service.reassign_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\bookings.py ---
+# api/v1/bookings/bookings.py
+from __future__ import annotations
+
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from app.api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_base import BookingCreate, BookingUpdate
+from app.schemas.booking.booking_response import (
+    BookingDetail,
+    BookingListItem,
+    BookingConfirmation,
+)
+from app.schemas.booking.booking_filters import (
+    BookingFilterParams,
+    BookingSearchRequest,
+)
+from app.schemas.common.pagination import PaginatedResponse
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingService
+
+router = APIRouter()
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[BookingListItem],
+    summary="List bookings",
+)
+async def list_bookings(
+    filters: BookingFilterParams = Depends(),
+    uow: UnitOfWork = Depends(get_uow),
+) -> PaginatedResponse[BookingListItem]:
+    """
+    List bookings using flexible filters (hostel, status, date range, source, etc.)
+    with pagination and sorting.
+    """
+    service = BookingService(uow)
+    try:
+        return service.list_bookings(filters=filters)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "",
+    response_model=BookingDetail,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new booking",
+)
+async def create_booking(
+    payload: BookingCreate,
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingDetail:
+    """
+    Create a new booking (internal/admin or system-side).
+
+    Validates amounts and requested room type using BookingCreate.
+    """
+    service = BookingService(uow)
+    try:
+        return service.create_booking(data=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/{booking_id}",
+    response_model=BookingDetail,
+    summary="Get booking details",
+)
+async def get_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingDetail:
+    """
+    Retrieve detailed booking information including hostel, amounts, status history,
+    and assignment (if any).
+    """
+    service = BookingService(uow)
+    try:
+        return service.get_booking(booking_id=booking_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.patch(
+    "/{booking_id}",
+    response_model=BookingDetail,
+    summary="Update a booking",
+)
+async def update_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: BookingUpdate = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingDetail:
+    """
+    Partially update a booking (dates, duration, notes, status, etc.).
+    """
+    service = BookingService(uow)
+    try:
+        return service.update_booking(
+            booking_id=booking_id,
+            data=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/search",
+    response_model=PaginatedResponse[BookingListItem],
+    summary="Search bookings",
+)
+async def search_bookings(
+    payload: BookingSearchRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> PaginatedResponse[BookingListItem]:
+    """
+    Structured booking search endpoint (richer than simple filters),
+    e.g. multi-field search, complex status/date logic.
+    """
+    service = BookingService(uow)
+    try:
+        return service.search_bookings(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/{booking_id}/confirmation",
+    response_model=BookingConfirmation,
+    summary="Get booking confirmation payload",
+)
+async def get_booking_confirmation(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> BookingConfirmation:
+    """
+    Retrieve a confirmation payload for the booking (for emails/PDF, guest view).
+    """
+    service = BookingService(uow)
+    try:
+        return service.get_confirmation(booking_id=booking_id)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\calendar.py ---
+# api/v1/bookings/calendar.py
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_calendar import (
+    CalendarView,
+    AvailabilityCalendar,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingCalendarService
+
+router = APIRouter(prefix="/calendar")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get(
+    "/hostels/{hostel_id}",
+    response_model=CalendarView,
+    summary="Get hostel booking calendar",
+)
+async def get_hostel_calendar(
+    hostel_id: UUID = Path(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> CalendarView:
+    """
+    Build a booking calendar view for a hostel (check-in/out events per day).
+    """
+    service = BookingCalendarService(uow)
+    try:
+        return service.get_hostel_calendar(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/rooms/{room_id}",
+    response_model=CalendarView,
+    summary="Get room booking calendar",
+)
+async def get_room_calendar(
+    room_id: UUID = Path(..., description="Room ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> CalendarView:
+    """
+    Build a booking calendar view for a specific room.
+    """
+    service = BookingCalendarService(uow)
+    try:
+        return service.get_room_calendar(
+            room_id=room_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/hostels/{hostel_id}/availability",
+    response_model=AvailabilityCalendar,
+    summary="Get hostel availability calendar",
+)
+async def get_hostel_availability_calendar(
+    hostel_id: UUID = Path(..., description="Hostel ID"),
+    period_start: date = Query(..., description="Start date (inclusive)"),
+    period_end: date = Query(..., description="End date (inclusive)"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> AvailabilityCalendar:
+    """
+    Return an availability calendar for a hostel, showing available beds per day.
+    """
+    service = BookingCalendarService(uow)
+    try:
+        return service.get_availability_calendar(
+            hostel_id=hostel_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\cancellation.py ---
+# api/v1/bookings/cancellation.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_cancellation import (
+    CancellationRequest,
+    CancellationResponse,
+    RefundCalculation,
+    BulkCancellation,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingCancellationService
+
+router = APIRouter(prefix="/cancellation")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/bookings/{booking_id}/preview",
+    response_model=RefundCalculation,
+    summary="Preview cancellation refund for a booking",
+)
+async def preview_cancellation(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: CancellationRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> RefundCalculation:
+    """
+    Preview refund and charges for a potential cancellation without applying it.
+    """
+    service = BookingCancellationService(uow)
+    try:
+        return service.preview_cancellation(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bookings/{booking_id}",
+    response_model=CancellationResponse,
+    summary="Cancel a booking",
+)
+async def cancel_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: CancellationRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> CancellationResponse:
+    """
+    Cancel a booking and optionally trigger refund execution.
+    """
+    service = BookingCancellationService(uow)
+    try:
+        return service.cancel_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bulk",
+    response_model=List[CancellationResponse],
+    summary="Bulk cancel bookings",
+)
+async def bulk_cancel_bookings(
+    payload: BulkCancellation,
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[CancellationResponse]:
+    """
+    Bulk cancel multiple bookings and compute/apply refunds.
+    """
+    service = BookingCancellationService(uow)
+    try:
+        return service.bulk_cancel(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\conversion.py ---
+# api/v1/bookings/conversion.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_conversion import (
+    ConvertToStudentRequest,
+    ConversionResponse,
+    BulkConversion,
+    ConversionRollback,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingConversionService
+
+router = APIRouter(prefix="/conversion")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/bookings/{booking_id}",
+    response_model=ConversionResponse,
+    summary="Convert booking into student",
+)
+async def convert_booking(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: ConvertToStudentRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ConversionResponse:
+    """
+    Convert a confirmed booking into a student profile and assign a bed.
+    """
+    service = BookingConversionService(uow)
+    try:
+        return service.convert_booking(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bulk",
+    response_model=List[ConversionResponse],
+    summary="Bulk convert bookings into students",
+)
+async def bulk_convert_bookings(
+    payload: BulkConversion,
+    uow: UnitOfWork = Depends(get_uow),
+) -> List[ConversionResponse]:
+    """
+    Bulk convert multiple bookings into students.
+    """
+    service = BookingConversionService(uow)
+    try:
+        return service.bulk_convert(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/rollback",
+    response_model=ConversionResponse,
+    summary="Rollback a booking conversion",
+)
+async def rollback_conversion(
+    payload: ConversionRollback,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ConversionResponse:
+    """
+    Rollback a prior conversion (if allowed), reverting student/bed assignment.
+    """
+    service = BookingConversionService(uow)
+    try:
+        return service.rollback_conversion(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\modification.py ---
+# api/v1/bookings/modification.py
+from __future__ import annotations
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_modification import (
+    ModificationRequest,
+    ModificationResponse,
+)
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingModificationService
+
+router = APIRouter(prefix="/modification")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/bookings/{booking_id}/preview",
+    response_model=ModificationResponse,
+    summary="Preview booking modification",
+)
+async def preview_modification(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: ModificationRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ModificationResponse:
+    """
+    Preview the impact (price, duration) of modifying a booking.
+    """
+    service = BookingModificationService(uow)
+    try:
+        return service.preview_modification(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/bookings/{booking_id}/apply",
+    response_model=ModificationResponse,
+    summary="Apply booking modification",
+)
+async def apply_modification(
+    booking_id: UUID = Path(..., description="Booking ID"),
+    payload: ModificationRequest = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> ModificationResponse:
+    """
+    Apply a modification to a booking (after optional approval).
+    """
+    service = BookingModificationService(uow)
+    try:
+        return service.apply_modification(
+            booking_id=booking_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\waitlist.py ---
+# api/v1/bookings/waitlist.py
+from __future__ import annotations
+
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+
+from api.deps import get_uow
+from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
+from app.schemas.booking.booking_waitlist import (
+    WaitlistRequest,
+    WaitlistResponse,
+    WaitlistStatus,
+    WaitlistNotification,
+    WaitlistConversion,
+    WaitlistCancellation,
+    WaitlistManagement,
+)
+from app.schemas.common.enums import RoomType
+from app.services.common.unit_of_work import UnitOfWork
+from app.services.booking import BookingWaitlistService
+
+router = APIRouter(prefix="/waitlist")
+
+
+def _map_service_error(exc: ServiceError) -> HTTPException:
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, ValidationError):
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "",
+    response_model=WaitlistResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add visitor to booking waitlist",
+)
+async def add_to_waitlist(
+    payload: WaitlistRequest,
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistResponse:
+    """
+    Add a visitor to the waitlist for a hostel/room type.
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.add_to_waitlist(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/cancel",
+    response_model=WaitlistResponse,
+    summary="Cancel a waitlist entry",
+)
+async def cancel_waitlist_entry(
+    payload: WaitlistCancellation,
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistResponse:
+    """
+    Cancel an existing waitlist entry.
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.cancel_waitlist(request=payload)
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "",
+    response_model=WaitlistManagement,
+    summary="List waitlist entries for a hostel",
+)
+async def list_waitlist_for_hostel(
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    room_type: Optional[RoomType] = Query(None, description="Optional room type filter"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistManagement:
+    """
+    List waitlist entries for a hostel (optionally filtered by room type).
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.list_waitlist_for_hostel(
+            hostel_id=hostel_id,
+            room_type=room_type,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/{entry_id}/notify",
+    response_model=WaitlistResponse,
+    summary="Notify a waitlist entry about availability",
+)
+async def notify_waitlist_entry(
+    entry_id: UUID = Path(..., description="Waitlist entry ID"),
+    payload: WaitlistNotification = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistResponse:
+    """
+    Mark that a waitlisted visitor has been notified of availability.
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.notify_availability(
+            entry_id=entry_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.post(
+    "/{entry_id}/convert",
+    response_model=WaitlistResponse,
+    summary="Convert a waitlist entry into a booking",
+)
+async def convert_waitlist_entry(
+    entry_id: UUID = Path(..., description="Waitlist entry ID"),
+    payload: WaitlistConversion = ...,
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistResponse:
+    """
+    Mark a waitlist entry as converted (booking created) or declined.
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.mark_converted(
+            entry_id=entry_id,
+            request=payload,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+
+@router.get(
+    "/status",
+    response_model=WaitlistStatus,
+    summary="Get waitlist status for a visitor",
+)
+async def get_waitlist_status(
+    visitor_id: UUID = Query(..., description="Visitor ID"),
+    hostel_id: UUID = Query(..., description="Hostel ID"),
+    room_type: Optional[RoomType] = Query(None, description="Optional room type filter"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> WaitlistStatus:
+    """
+    Get current waitlist status for a visitor at a hostel (and optional room type).
+    """
+    service = BookingWaitlistService(uow)
+    try:
+        return service.get_status(
+            visitor_id=visitor_id,
+            hostel_id=hostel_id,
+            room_type=room_type,
+        )
+    except ServiceError as exc:
+        raise _map_service_error(exc)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\__init__.py ---
+# api/v1/bookings/__init__.py
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from . import bookings
+from . import approval
+from . import calendar
+from . import assignment
+from . import cancellation
+from . import modification
+from . import waitlist
+from . import conversion
+from . import analytics
+
+router = APIRouter(prefix="/bookings")
+
+router.include_router(bookings.router, tags=["Bookings - Core"])
+router.include_router(approval.router, tags=["Bookings - Approval"])
+router.include_router(calendar.router, tags=["Bookings - Calendar"])
+router.include_router(assignment.router, tags=["Bookings - Assignment"])
+router.include_router(cancellation.router, tags=["Bookings - Cancellation"])
+router.include_router(modification.router, tags=["Bookings - Modification"])
+router.include_router(waitlist.router, tags=["Bookings - Waitlist"])
+router.include_router(conversion.router, tags=["Bookings - Conversion"])
+router.include_router(analytics.router, tags=["Bookings - Analytics"])
+
+__all__ = ["router"]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\api\v1\bookings\__pycache__ =====

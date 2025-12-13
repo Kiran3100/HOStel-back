@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from api import deps
+from app.api import deps
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,
@@ -45,39 +45,15 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "/init",
-    response_model=DocumentUploadInitResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Initialize a document upload",
-)
-async def init_document_upload(
-    payload: DocumentUploadInitRequest,
-    document_service: Annotated[DocumentService, Depends(deps.get_document_service)],
-) -> DocumentUploadInitResponse:
-    """
-    Initialize a document upload (KYC, ID proofs, etc.) with appropriate
-    folder and metadata.
-    """
-    try:
-        return document_service.init_upload(payload)
-    except ServiceError as exc:
-        raise _map_service_error(exc)
-
-
-@router.post(
     "/{document_id}/validate",
     response_model=DocumentValidationResult,
     status_code=status.HTTP_200_OK,
     summary="Validate an uploaded document",
 )
 async def validate_document(
-    document_id: UUID = Path(..., description="Document ID"),
     document_service: Annotated[DocumentService, Depends(deps.get_document_service)],
+    document_id: UUID = Path(..., description="Document ID"),
 ) -> DocumentValidationResult:
-    """
-    Trigger backend validation for an uploaded document (format checks,
-    content validation, expiry checks, etc.).
-    """
     try:
         return document_service.validate_document(document_id=document_id)
     except ServiceError as exc:
@@ -85,11 +61,12 @@ async def validate_document(
 
 
 @router.get(
-    "",
+    "/",
     response_model=DocumentList,
     summary="List documents",
 )
 async def list_documents(
+    document_service: Annotated[DocumentService, Depends(deps.get_document_service)],
     owner_id: Optional[UUID] = Query(
         None,
         description="Optional owner/user ID filter",
@@ -102,11 +79,7 @@ async def list_documents(
         None,
         description="Optional document type filter",
     ),
-    document_service: Annotated[DocumentService, Depends(deps.get_document_service)],
 ) -> DocumentList:
-    """
-    List documents, optionally filtered by owner, hostel, or document type.
-    """
     try:
         return document_service.list_documents(
             owner_id=owner_id,
@@ -123,12 +96,9 @@ async def list_documents(
     summary="Get document details",
 )
 async def get_document(
-    document_id: UUID = Path(..., description="Document ID"),
     document_service: Annotated[DocumentService, Depends(deps.get_document_service)],
+    document_id: UUID = Path(..., description="Document ID"),
 ) -> DocumentInfo:
-    """
-    Retrieve detailed document information including URLs and verification status.
-    """
     try:
         return document_service.get_document(document_id=document_id)
     except ServiceError as exc:

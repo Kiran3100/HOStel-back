@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from api import deps
+from app.api import deps
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,
@@ -70,12 +70,9 @@ async def init_image_upload(
     summary="Get image file metadata",
 )
 async def get_image_info(
-    image_id: UUID = Path(..., description="Image file ID"),
     image_service: Annotated[ImageService, Depends(deps.get_image_service)],
+    image_id: UUID = Path(..., description="Image file ID"),
 ) -> FileInfo:
-    """
-    Retrieve metadata for an uploaded image.
-    """
     try:
         return image_service.get_image(image_id=image_id)
     except ServiceError as exc:
@@ -88,13 +85,11 @@ async def get_image_info(
     summary="Get image processing/variants information",
 )
 async def get_image_processing_result(
-    image_id: UUID = Path(..., description="Image file ID"),
     image_service: Annotated[ImageService, Depends(deps.get_image_service)],
+    image_id: UUID = Path(..., description="Image file ID"),
 ) -> ImageProcessingResult:
-    """
-    Return information about generated image variants and processing status.
-    """
     try:
         return image_service.get_processing_result(image_id=image_id)
     except ServiceError as exc:
+        raise _map_service_error(exc)
         raise _map_service_error(exc)

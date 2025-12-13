@@ -125,7 +125,6 @@ class AdminOverrideAuditService:
                     entity_type=r.entity_type,
                     entity_id=r.entity_id,
                     reason=r.reason,
-                    created_at=r.created_at,
                 )
                 for r in recs
             ]
@@ -169,7 +168,6 @@ class AdminOverrideAuditService:
                 reason=r.reason,
                 original_action=r.original_action,
                 override_action=r.override_action,
-                created_at=r.created_at,
             )
 
     # ------------------------------------------------------------------ #

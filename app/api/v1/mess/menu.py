@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from api.deps import get_uow
+from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.mess.mess_menu_base import MessMenuCreate, MessMenuUpdate
 from app.schemas.mess.mess_menu_response import (
@@ -34,7 +34,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=MenuDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a mess menu entry",

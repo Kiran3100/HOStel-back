@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from api import deps
+from app.api import deps
 from app.core.exceptions import (
     ServiceError,
     NotFoundError,
@@ -90,30 +90,30 @@ async def complete_file_upload(
         raise _map_service_error(exc)
 
 
+# Get file metadata
 @router.get(
     "/{file_id}",
     response_model=FileInfo,
     summary="Get file metadata",
 )
 async def get_file(
-    file_id: UUID = Path(..., description="File ID"),
     file_service: Annotated[FileService, Depends(deps.get_file_service)],
+    file_id: UUID = Path(..., description="File ID"),
 ) -> FileInfo:
-    """
-    Retrieve metadata for a single file.
-    """
     try:
         return file_service.get_file(file_id=file_id)
     except ServiceError as exc:
         raise _map_service_error(exc)
 
 
+# List files
 @router.get(
-    "",
+    "/",
     response_model=FileListResponse,
     summary="List files",
 )
 async def list_files(
+    file_service: Annotated[FileService, Depends(deps.get_file_service)],
     owner_id: Optional[UUID] = Query(
         None,
         description="Optional owner/user ID filter",
@@ -126,11 +126,7 @@ async def list_files(
         None,
         description="Optional tag filter",
     ),
-    file_service: Annotated[FileService, Depends(deps.get_file_service)],
 ) -> FileListResponse:
-    """
-    List files, optionally filtered by owner, folder, or tag.
-    """
     try:
         return file_service.list_files(
             owner_id=owner_id,
@@ -141,18 +137,16 @@ async def list_files(
         raise _map_service_error(exc)
 
 
+# Get file URL
 @router.get(
     "/{file_id}/url",
     response_model=FileURL,
     summary="Get a file URL",
 )
 async def get_file_url(
-    file_id: UUID = Path(..., description="File ID"),
     file_service: Annotated[FileService, Depends(deps.get_file_service)],
+    file_id: UUID = Path(..., description="File ID"),
 ) -> FileURL:
-    """
-    Get a direct URL (possibly signed/expiring) for downloading/using the file.
-    """
     try:
         return file_service.get_file_url(file_id=file_id)
     except ServiceError as exc:
