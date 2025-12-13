@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import Field, field_validator, computed_field, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseFilterSchema, BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import AuditActionCategory
@@ -695,10 +695,11 @@ permission management, and transfer handling.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
+from datetime import date as Date
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import PermissionLevel
@@ -729,7 +730,7 @@ class SupervisorAssignment(BaseResponseSchema):
     
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment date")
     
     is_active: bool = Field(..., description="Assignment is active")
     
@@ -780,7 +781,7 @@ class AssignmentRequest(BaseCreateSchema):
         max_length=100,
         description="Employee/Staff ID",
     )
-    join_date: date = Field(
+    join_date: Date = Field(
         ...,
         description="Joining date",
     )
@@ -807,7 +808,7 @@ class AssignmentRequest(BaseCreateSchema):
 
     @field_validator("join_date")
     @classmethod
-    def validate_join_date(cls, v: date) -> date:
+    def validate_join_date(cls, v: Date) -> Date:
         """Validate join date is reasonable."""
         today = date.today()
         
@@ -1899,7 +1900,8 @@ task management, and actionable insights.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import datetime, time
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -2189,7 +2191,7 @@ class RecentMaintenanceItem(BaseSchema):
         description="Estimated cost",
     )
     created_at: datetime = Field(..., description="Request creation time")
-    scheduled_date: Optional[date] = Field(
+    scheduled_date: Optional[Date] = Field(
         default=None,
         description="Scheduled completion date",
     )
@@ -2206,7 +2208,7 @@ class RecentMaintenanceItem(BaseSchema):
         """Check if maintenance is overdue."""
         if not self.scheduled_date:
             return False
-        return date.today() > self.scheduled_date
+        return Date.today() > self.scheduled_date
 
     @computed_field
     @property
@@ -2224,8 +2226,8 @@ class PendingLeaveItem(BaseSchema):
     
     # Leave details
     leave_type: str = Field(..., description="Type of leave")
-    from_date: date = Field(..., description="Leave start date")
-    to_date: date = Field(..., description="Leave end date")
+    from_date: Date = Field(..., description="Leave start date")
+    to_date: Date = Field(..., description="Leave end date")
     total_days: int = Field(..., ge=1, description="Total leave days")
     reason: str = Field(..., description="Leave reason")
     
@@ -2245,7 +2247,7 @@ class PendingLeaveItem(BaseSchema):
     def is_urgent(self) -> bool:
         """Check if leave approval is urgent."""
         # Urgent if leave starts within 2 days
-        return (self.from_date - date.today()).days <= 2
+        return (self.from_date - Date.today()).days <= 2
 
     @computed_field
     @property
@@ -2289,7 +2291,7 @@ class ScheduledMeeting(BaseSchema):
 class TodaySchedule(BaseSchema):
     """Today's schedule and planned activities."""
     
-    date: date = Field(..., description="Schedule date")
+    date: Date = Field(..., description="Schedule date")
     
     # Routine tasks
     attendance_marking_time: time = Field(
@@ -3939,7 +3941,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional, Set
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 
@@ -6313,3 +6315,6 @@ __all__ = [
     "PerformanceReport",
     "PerformanceReview",
 ]
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\__pycache__ =====

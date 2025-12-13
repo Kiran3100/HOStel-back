@@ -31,7 +31,7 @@ def _get_service(session: Session) -> SupervisorService:
     return SupervisorService(uow)
 
 
-@router.get("", response_model=List[SupervisorListItem])
+@router.get("/", response_model=List[SupervisorListItem])
 def list_supervisors(
     hostel_id: Optional[UUID] = Query(
         None,

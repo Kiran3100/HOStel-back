@@ -18,7 +18,7 @@ def _get_service(session: Session) -> SupervisorDashboardService:
     return SupervisorDashboardService(uow)
 
 
-@router.get("", response_model=SupervisorDashboard)
+@router.get("/", response_model=SupervisorDashboard)
 def get_my_dashboard(
     current_user: CurrentUser = Depends(get_current_supervisor),
     session: Session = Depends(get_session),

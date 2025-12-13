@@ -1,3 +1,4 @@
+# app/schemas/supervisor/__init__.py
 """
 Supervisor schemas package
 """
@@ -37,12 +38,24 @@ from app.schemas.supervisor.supervisor_activity import (
 from app.schemas.supervisor.supervisor_dashboard import (
     SupervisorDashboard,
     DashboardMetrics,
-    TaskSummary
+    TaskSummary,
+    RecentComplaintItem,
+    RecentMaintenanceItem,
+    PendingLeaveItem,
+    TodaySchedule,
+    ScheduledMaintenanceItem,
+    ScheduledMeeting,
+    DashboardAlert,
+    QuickActions,
+    PerformanceIndicators
 )
 from app.schemas.supervisor.supervisor_performance import (
     PerformanceMetrics,
     PerformanceReport,
-    PerformanceReview
+    PerformanceReview,
+    ComplaintPerformance,
+    AttendancePerformance,
+    MaintenancePerformance
 )
 
 __all__ = [
@@ -83,9 +96,21 @@ __all__ = [
     "SupervisorDashboard",
     "DashboardMetrics",
     "TaskSummary",
+    "RecentComplaintItem",
+    "RecentMaintenanceItem",
+    "PendingLeaveItem",
+    "TodaySchedule",
+    "ScheduledMaintenanceItem",
+    "ScheduledMeeting",
+    "DashboardAlert",
+    "QuickActions",
+    "PerformanceIndicators",
     
     # Performance
     "PerformanceMetrics",
     "PerformanceReport",
     "PerformanceReview",
+    "ComplaintPerformance",
+    "AttendancePerformance",
+    "MaintenancePerformance",
 ]
