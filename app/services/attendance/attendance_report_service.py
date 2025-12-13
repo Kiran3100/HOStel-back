@@ -16,7 +16,7 @@ from app.schemas.attendance.attendance_report import (
     StudentMonthlySummary,
 )
 from app.schemas.common.filters import DateRangeFilter
-from app.services.analytics import AttendanceAnalyticsService
+from app.services.analytics.attendance_analytics_service import AttendanceAnalyticsService
 from app.services.common import UnitOfWork, errors
 
 

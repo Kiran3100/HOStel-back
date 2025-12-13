@@ -95,7 +95,6 @@ class AdminOverrideAuditService:
                 reason=rec.reason,
                 original_action=rec.original_action,
                 override_action=rec.override_action,
-                created_at=rec.created_at,
             )
 
     # ------------------------------------------------------------------ #

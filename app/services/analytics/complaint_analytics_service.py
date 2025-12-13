@@ -1,306 +1,205 @@
-# app/services/analytics/attendance_analytics_service.py
+# app/services/analytics/complaint_analytics_service.py
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
-from typing import Callable, List, Dict, Optional
+from datetime import date
+from decimal import Decimal
+from typing import Callable, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.repositories.services import AttendanceRepository
-from app.schemas.attendance.attendance_report import (
-    AttendanceReport,
-    AttendanceSummary,
-    DailyAttendanceRecord,
-    TrendAnalysis,
-    WeeklyAttendance,
-    MonthlyComparison,
+from app.repositories.services import ComplaintRepository
+from app.repositories.core import HostelRepository
+from app.schemas.analytics.complaint_analytics import (
+    ComplaintKPI,
+    ComplaintTrend,
+    ComplaintTrendPoint,
+    CategoryBreakdown,
+    ComplaintDashboard,
 )
-from app.schemas.common.enums import AttendanceStatus
+from app.schemas.common.enums import ComplaintStatus, Priority
 from app.schemas.common.filters import DateRangeFilter
 from app.services.common import UnitOfWork
 
 
-class AttendanceAnalyticsService:
+class ComplaintAnalyticsService:
     """
-    Attendance analytics from svc_attendance:
+    Dashboard-level complaint analytics using analytics.complaint_analytics schemas.
 
-    - Student-level attendance report (summary + daily + trend)
-    - Can be extended later for hostel-level analytics
+    For more detailed per-complaint analytics, see services/complaint.
     """
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self._session_factory = session_factory
 
-    def _get_repo(self, uow: UnitOfWork) -> AttendanceRepository:
-        return uow.get_repo(AttendanceRepository)
+    def _get_complaint_repo(self, uow: UnitOfWork) -> ComplaintRepository:
+        return uow.get_repo(ComplaintRepository)
 
-    def _today(self) -> date:
-        return date.today()
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
 
     # ------------------------------------------------------------------ #
-    # Student-level report
+    # Dashboard
     # ------------------------------------------------------------------ #
-    def get_student_report(
+    def get_dashboard_for_hostel(
         self,
-        student_id: UUID,
+        hostel_id: UUID,
         period: DateRangeFilter,
-    ) -> AttendanceReport:
-        """
-        Build an AttendanceReport for a single student over a period.
-
-        If period.start_date / end_date are omitted, defaults to last 30 days.
-        """
-        # Determine period bounds
-        end = period.end_date or self._today()
-        start = period.start_date or (end - timedelta(days=29))
-        if start > end:
-            start, end = end, start
-
+    ) -> ComplaintDashboard:
         with UnitOfWork(self._session_factory) as uow:
-            repo = self._get_repo(uow)
-            records = repo.list_for_student_range(student_id, start_date=start, end_date=end)
+            complaint_repo = self._get_complaint_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
 
-        # Index by date for easy lookup
-        by_date: Dict[date, List] = {}
-        for r in records:
-            by_date.setdefault(r.attendance_date, []).append(r)
+            hostel = hostel_repo.get(hostel_id)
+            hostel_name = hostel.name if hostel else ""
 
-        total_days = (end - start).days + 1
-        total_present = total_absent = total_late = total_on_leave = total_half_day = 0
+            complaints = complaint_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters={"hostel_id": hostel_id},
+            )
 
-        daily_records: List[DailyAttendanceRecord] = []
+        # Filter by opened_at within period
+        start = period.start_date or date.min
+        end = period.end_date or date.max
 
-        cur = start
-        while cur <= end:
-            recs = by_date.get(cur, [])
-            # If multiple records exist for same day (edge cases), pick the one
-            # with latest check_in_time; otherwise the first.
-            rec = None
-            if recs:
-                rec = sorted(
-                    recs,
-                    key=lambda x: (x.check_in_time or datetime.min.time()),
-                    reverse=True,
-                )[0]
+        filtered = []
+        for c in complaints:
+            opened_date = c.opened_at.date() if c.opened_at else None
+            if opened_date is None:
+                continue
+            if opened_date < start or opened_date > end:
+                continue
+            filtered.append(c)
 
-            if rec is None:
-                # No record; treat as ABSENT (or leave as None if you prefer)
-                status_str = AttendanceStatus.ABSENT.value
-                status_enum = AttendanceStatus.ABSENT
-                is_late = False
-                late_minutes = None
-                notes = None
-                check_in = None
-                check_out = None
+        total = len(filtered)
+        open_count = resolved_count = closed_count = 0
+
+        total_resolved_hours = 0.0
+        resolved_with_time = 0
+        sla_breached = 0
+
+        # Category + priority aggregation
+        category_counts: Dict[str, int] = {}
+        total_resolution_time_by_cat: Dict[str, float] = {}
+        priority_counts: Dict[str, int] = {}
+
+        for c in filtered:
+            if c.status == ComplaintStatus.OPEN:
+                open_count += 1
+            if c.status == ComplaintStatus.RESOLVED:
+                resolved_count += 1
+            if c.status == ComplaintStatus.CLOSED:
+                closed_count += 1
+            if c.sla_breach:
+                sla_breached += 1
+
+            cat_key = c.category.value if hasattr(c.category, "value") else str(c.category)
+            category_counts[cat_key] = category_counts.get(cat_key, 0) + 1
+
+            if c.priority in (Priority.URGENT, Priority.CRITICAL):
+                prio_key = "urgent"
             else:
-                status_enum = rec.status
-                status_str = status_enum.value if hasattr(status_enum, "value") else str(status_enum)
-                is_late = rec.is_late
-                late_minutes = rec.late_minutes
-                notes = rec.notes
-                check_in = rec.check_in_time
-                check_out = rec.check_out_time
+                prio_key = (c.priority.value if hasattr(c.priority, "value") else str(c.priority))
+            priority_counts[prio_key] = priority_counts.get(prio_key, 0) + 1
 
-            if status_enum == AttendanceStatus.PRESENT:
-                total_present += 1
-            elif status_enum == AttendanceStatus.ABSENT:
-                total_absent += 1
-            elif status_enum == AttendanceStatus.LATE:
-                total_late += 1
-            elif status_enum == AttendanceStatus.ON_LEAVE:
-                total_on_leave += 1
-            elif status_enum == AttendanceStatus.HALF_DAY:
-                total_half_day += 1
+            if c.resolved_at and c.opened_at:
+                diff_hours = (c.resolved_at - c.opened_at).total_seconds() / 3600.0
+                total_resolved_hours += diff_hours
+                resolved_with_time += 1
+                total_resolution_time_by_cat[cat_key] = total_resolution_time_by_cat.get(cat_key, 0.0) + diff_hours
 
-            daily_records.append(
-                DailyAttendanceRecord(
-                    date=cur,
-                    day_of_week=cur.strftime("%A"),
-                    status=status_str,
-                    check_in_time=check_in,
-                    check_out_time=check_out,
-                    is_late=is_late,
-                    late_minutes=late_minutes,
-                    notes=notes,
+        avg_resolution = (
+            Decimal(str(total_resolved_hours / resolved_with_time))
+            if resolved_with_time > 0
+            else Decimal("0")
+        )
+
+        sla_compliance_rate = (
+            Decimal(str((total - sla_breached) / total * 100)) if total > 0 else Decimal("0")
+        )
+        escalation_rate = Decimal("0")  # not tracked in Complaint model
+        reopen_rate = Decimal("0")  # also not tracked here
+
+        kpi = ComplaintKPI(
+            hostel_id=hostel_id,
+            hostel_name=hostel_name,
+            total_complaints=total,
+            open_complaints=open_count,
+            resolved_complaints=resolved_count,
+            closed_complaints=closed_count,
+            average_resolution_time_hours=avg_resolution,
+            sla_compliance_rate=sla_compliance_rate,
+            escalation_rate=escalation_rate,
+            reopen_rate=reopen_rate,
+        )
+
+        # Trend
+        trend_by_date: Dict[str, Dict[str, int]] = {}
+        for c in filtered:
+            if not c.opened_at:
+                continue
+            d = c.opened_at.date().isoformat()
+            bucket = trend_by_date.setdefault(
+                d,
+                {
+                    "total": 0,
+                    "open": 0,
+                    "resolved": 0,
+                    "escalated": 0,
+                    "sla_breached": 0,
+                },
+            )
+            bucket["total"] += 1
+            if c.status == ComplaintStatus.OPEN:
+                bucket["open"] += 1
+            if c.status == ComplaintStatus.RESOLVED:
+                bucket["resolved"] += 1
+            # escalate / SLA not explicitly modeled; sla_breach used
+            if c.sla_breach:
+                bucket["sla_breached"] += 1
+
+        points: List[ComplaintTrendPoint] = []
+        for d, vals in sorted(trend_by_date.items()):
+            points.append(
+                ComplaintTrendPoint(
+                    date=date.fromisoformat(d),
+                    total_complaints=vals["total"],
+                    open_complaints=vals["open"],
+                    resolved_complaints=vals["resolved"],
+                    escalated=vals["escalated"],
+                    sla_breached=vals["sla_breached"],
                 )
             )
-            cur += timedelta(days=1)
 
-        attendance_percentage = (
-            (Decimal(str(total_present + total_half_day * 0.5)) / Decimal(str(total_days)) * 100)
-            if total_days > 0
-            else Decimal("0")
-        )
-        late_percentage = (
-            (Decimal(str(total_late)) / Decimal(str(total_days)) * 100)
-            if total_days > 0
-            else Decimal("0")
+        trend = ComplaintTrend(
+            period=period,
+            points=points,
         )
 
-        # Streaks (simple forward pass using daily_records)
-        current_present_streak = 0
-        longest_present_streak = 0
-        current_absent_streak = 0
+        # Category breakdown
+        cat_breakdown: List[CategoryBreakdown] = []
+        for cat, count in category_counts.items():
+            pct = Decimal(str(count / total * 100)) if total > 0 else Decimal("0")
+            avg_cat_res = Decimal(
+                str(total_resolution_time_by_cat.get(cat, 0.0) / count if count > 0 else 0.0)
+            )
+            cat_breakdown.append(
+                CategoryBreakdown(
+                    category=cat,
+                    count=count,
+                    percentage_of_total=pct,
+                    average_resolution_time_hours=avg_cat_res,
+                )
+            )
 
-        for day in daily_records:
-            if day.status in (
-                AttendanceStatus.PRESENT.value,
-                AttendanceStatus.LATE.value,
-                AttendanceStatus.HALF_DAY.value,
-            ):
-                current_present_streak += 1
-                longest_present_streak = max(longest_present_streak, current_present_streak)
-                current_absent_streak = 0
-            elif day.status == AttendanceStatus.ABSENT.value:
-                current_absent_streak += 1
-                current_present_streak = 0
-            else:
-                current_present_streak = 0
-                current_absent_streak = 0
-
-        # Attendance status classification
-        if attendance_percentage >= Decimal("90"):
-            status_label = "excellent"
-        elif attendance_percentage >= Decimal("75"):
-            status_label = "good"
-        elif attendance_percentage >= Decimal("60"):
-            status_label = "warning"
-        else:
-            status_label = "critical"
-
-        summary = AttendanceSummary(
-            total_days=total_days,
-            total_present=total_present,
-            total_absent=total_absent,
-            total_late=total_late,
-            total_on_leave=total_on_leave,
-            total_half_day=total_half_day,
-            attendance_percentage=attendance_percentage,
-            late_percentage=late_percentage,
-            current_present_streak=current_present_streak,
-            longest_present_streak=longest_present_streak,
-            current_absent_streak=current_absent_streak,
-            attendance_status=status_label,
-            meets_minimum_requirement=attendance_percentage >= Decimal("75"),
-        )
-
-        trend = self._build_trend_analysis(start, end, daily_records)
-
-        return AttendanceReport(
-            hostel_id=None,
-            student_id=student_id,
-            report_period=DateRangeFilter(start_date=start, end_date=end),
+        return ComplaintDashboard(
+            hostel_id=hostel_id,
+            hostel_name=hostel_name,
+            period=period,
             generated_at=datetime.utcnow(),
-            summary=summary,
-            daily_records=daily_records,
-            trend_analysis=trend,
-        )
-
-    # ------------------------------------------------------------------ #
-    # Trend helpers
-    # ------------------------------------------------------------------ #
-    def _build_trend_analysis(
-        self,
-        start: date,
-        end: date,
-        daily_records: List[DailyAttendanceRecord],
-    ) -> TrendAnalysis:
-        # Weekly rollup
-        weekly_map: Dict[int, Dict[str, int]] = {}
-        for rec in daily_records:
-            week_num = rec.date.isocalendar()[1]
-            bucket = weekly_map.setdefault(
-                week_num,
-                {"start": rec.date, "end": rec.date, "present": 0, "absent": 0, "total": 0},
-            )
-            bucket["start"] = min(bucket["start"], rec.date)
-            bucket["end"] = max(bucket["end"], rec.date)
-            bucket["total"] += 1
-            if rec.status in (
-                AttendanceStatus.PRESENT.value,
-                AttendanceStatus.LATE.value,
-                AttendanceStatus.HALF_DAY.value,
-            ):
-                bucket["present"] += 1
-            elif rec.status == AttendanceStatus.ABSENT.value:
-                bucket["absent"] += 1
-
-        weekly_attendance: List[WeeklyAttendance] = []
-        for week, vals in sorted(weekly_map.items(), key=lambda kv: kv[0]):
-            total = vals["total"] or 1
-            pct = (Decimal(str(vals["present"])) / Decimal(str(total)) * 100)
-            weekly_attendance.append(
-                WeeklyAttendance(
-                    week_number=week,
-                    week_start_date=vals["start"],
-                    week_end_date=vals["end"],
-                    total_days=vals["total"],
-                    present_days=vals["present"],
-                    absent_days=vals["absent"],
-                    attendance_percentage=pct,
-                )
-            )
-
-        # Monthly comparison (simple: group by YYYY-MM)
-        monthly_map: Dict[str, Dict[str, int]] = {}
-        for rec in daily_records:
-            key = rec.date.strftime("%Y-%m")
-            bucket = monthly_map.setdefault(key, {"present": 0, "absent": 0, "total": 0})
-            bucket["total"] += 1
-            if rec.status in (
-                AttendanceStatus.PRESENT.value,
-                AttendanceStatus.LATE.value,
-                AttendanceStatus.HALF_DAY.value,
-            ):
-                bucket["present"] += 1
-            elif rec.status == AttendanceStatus.ABSENT.value:
-                bucket["absent"] += 1
-
-        monthly_comparison: List[MonthlyComparison] = []
-        for month, vals in sorted(monthly_map.items()):
-            total = vals["total"] or 1
-            pct = Decimal(str(vals["present"])) / Decimal(str(total)) * 100
-            monthly_comparison.append(
-                MonthlyComparison(
-                    month=month,
-                    attendance_percentage=pct,
-                    total_present=vals["present"],
-                    total_absent=vals["absent"],
-                )
-            )
-
-        # Simple trend direction based on first vs last month
-        trend_direction = "stable"
-        improvement_rate: Optional[Decimal] = None
-        if len(monthly_comparison) >= 2:
-            first = monthly_comparison[0].attendance_percentage
-            last = monthly_comparison[-1].attendance_percentage
-            if first > 0:
-                change = (last - first) / first * 100
-                improvement_rate = change
-                if change > Decimal("5"):
-                    trend_direction = "attendance_improving"
-                elif change < Decimal("-5"):
-                    trend_direction = "attendance_declining"
-                else:
-                    trend_direction = "attendance_stable"
-            else:
-                trend_direction = "attendance_stable"
-
-        # Map into expected pattern (improving|declining|stable)
-        mapped_trend = "stable"
-        if trend_direction == "attendance_improving":
-            mapped_trend = "improving"
-        elif trend_direction == "attendance_declining":
-            mapped_trend = "declining"
-
-        return TrendAnalysis(
-            period_start=start,
-            period_end=end,
-            weekly_attendance=weekly_attendance,
-            monthly_comparison=monthly_comparison or None,
-            most_absent_day=None,
-            attendance_improving=(mapped_trend == "improving"),
-            improvement_rate=improvement_rate,
+            kpi=kpi,
+            trend=trend,
+            by_category=cat_breakdown,
+            by_priority=priority_counts,
         )

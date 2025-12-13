@@ -90,7 +90,6 @@ class AuditLogService:
             ip_address=log.ip_address,
             user_agent=log.user_agent,
             request_id=log.request_id,
-            created_at=log.created_at,
         )
 
     # ------------------------------------------------------------------ #

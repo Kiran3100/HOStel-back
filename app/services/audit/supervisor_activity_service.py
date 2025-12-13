@@ -70,7 +70,6 @@ class SupervisorActivityService:
             entity_type=rec.entity_type,
             entity_id=rec.entity_id,
             action_description=rec.action_description,
-            created_at=rec.created_at,
             ip_address=rec.ip_address,
             user_agent=rec.user_agent,
         )
@@ -98,7 +97,6 @@ class SupervisorActivityService:
             metadata=rec.metadata or {},
             ip_address=rec.ip_address,
             user_agent=rec.user_agent,
-            created_at=rec.created_at,
         )
 
     # ------------------------------------------------------------------ #

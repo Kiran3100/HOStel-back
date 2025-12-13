@@ -9,7 +9,7 @@ from app.api.deps import get_uow
 from app.core.exceptions import ServiceError, NotFoundError, ValidationError, ConflictError
 from app.schemas.analytics.complaint_analytics import ComplaintDashboard
 from app.services.common.unit_of_work import UnitOfWork
-from app.services.analytics.attendance_analytics_service import ComplaintAnalyticsService
+from app.services.analytics.complaint_analytics_service import ComplaintAnalyticsService
 
 router = APIRouter(prefix="/complaints")
 
