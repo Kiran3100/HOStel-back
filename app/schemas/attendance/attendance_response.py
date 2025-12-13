@@ -8,7 +8,7 @@ detailed, summary, and list views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime as DateTime, time as Time
 from decimal import Decimal
 from typing import Optional
 
@@ -53,15 +53,15 @@ class AttendanceResponse(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance",
     )
-    check_in_time: Optional[time] = Field(
+    check_in_time: Optional[Time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[time] = Field(
+    check_out_time: Optional[Time] = Field(
         None,
         description="Check-out time",
     )
@@ -136,15 +136,15 @@ class AttendanceDetail(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance",
     )
-    check_in_time: Optional[time] = Field(
+    check_in_time: Optional[Time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[time] = Field(
+    check_out_time: Optional[Time] = Field(
         None,
         description="Check-out time",
     )
@@ -196,11 +196,11 @@ class AttendanceDetail(BaseResponseSchema):
         None,
         description="Device information (for mobile check-in)",
     )
-    created_at: datetime = Field(
+    created_at: DateTime = Field(
         ...,
         description="Record creation timestamp",
     )
-    updated_at: datetime = Field(
+    updated_at: DateTime = Field(
         ...,
         description="Last update timestamp",
     )
@@ -247,7 +247,7 @@ class AttendanceListItem(BaseSchema):
         None,
         description="Room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Attendance date",
     )
@@ -255,7 +255,7 @@ class AttendanceListItem(BaseSchema):
         ...,
         description="Attendance status",
     )
-    check_in_time: Optional[time] = Field(
+    check_in_time: Optional[Time] = Field(
         None,
         description="Check-in time",
     )
@@ -302,7 +302,7 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    date: date = Field(
+    date: Date = Field(
         ...,
         description="Attendance date",
     )
@@ -354,7 +354,7 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Whether attendance marking is complete",
     )
-    marked_at: Optional[datetime] = Field(
+    marked_at: Optional[DateTime] = Field(
         None,
         description="Timestamp when marking was completed",
     )

@@ -8,7 +8,8 @@ trends, comparisons, and multi-level aggregations.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+
+from datetime import date as Date, datetime as DateTime, time as Time
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -158,7 +159,7 @@ class DailyAttendanceRecord(BaseSchema):
     for timeline views and detailed reports.
     """
 
-    date: date = Field(
+    date: Date = Field(
         ...,
         description="Attendance date",
     )
@@ -170,11 +171,11 @@ class DailyAttendanceRecord(BaseSchema):
         ...,
         description="Attendance status",
     )
-    check_in_time: Optional[time] = Field(
+    check_in_time: Optional[Time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[time] = Field(
+    check_out_time: Optional[Time] = Field(
         None,
         description="Check-out time",
     )
@@ -225,11 +226,11 @@ class WeeklyAttendance(BaseSchema):
         ge=2000,
         description="Year for the week",
     )
-    week_start_date: date = Field(
+    week_start_date: Date = Field(
         ...,
         description="Monday of the week",
     )
-    week_end_date: date = Field(
+    week_end_date: Date = Field(
         ...,
         description="Sunday of the week",
     )
@@ -399,7 +400,7 @@ class TrendAnalysis(BaseSchema):
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period dates are logical."""
         if "period_start" in info.data:
             if v < info.data["period_start"]:
@@ -676,7 +677,7 @@ class MonthlyReport(BaseSchema):
     )
     
     # Report metadata
-    generated_at: datetime = Field(
+    generated_at: DateTime = Field(
         ...,
         description="Report generation timestamp",
     )
@@ -828,7 +829,7 @@ class AttendanceComparison(BaseSchema):
     )
     
     # Report metadata
-    generated_at: datetime = Field(
+    generated_at: DateTime = Field(
         ...,
         description="Comparison generation timestamp",
     )

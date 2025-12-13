@@ -8,9 +8,9 @@ for identifying and responding to attendance issues.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator
 from uuid import UUID
@@ -84,7 +84,7 @@ class AttendanceAlert(BaseResponseSchema):
         max_length=500,
         description="Alert message for display",
     )
-    details: Dict[str, any] = Field(
+    details: Dict[str, Any] = Field(
         ...,
         description="Alert-specific details (JSON)",
     )
@@ -183,7 +183,7 @@ class AttendanceAlert(BaseResponseSchema):
     )
 
     # Notification tracking
-    notifications_sent: List[Dict[str, any]] = Field(
+    notifications_sent: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Record of notifications sent",
     )
@@ -454,7 +454,7 @@ class AlertTrigger(BaseCreateSchema):
         max_length=500,
         description="Custom alert message",
     )
-    details: Optional[Dict[str, any]] = Field(
+    details: Optional[Dict[str, Any]] = Field(
         None,
         description="Additional alert details",
     )
@@ -516,16 +516,17 @@ class AlertAcknowledgment(BaseCreateSchema):
         description="Additional notes",
     )
 
-    @field_validator("action_taken", "additional_notes")
+
+    @field_validator("action_taken", "additional_notes")    
     @classmethod
-    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        """Normalize text fields."""
-        if v is not None:
-            v = v.strip()
-            if isinstance(v, str) and len(v) < 10 and v == cls.model_fields.get("action_taken"):
-                raise ValueError("action_taken must be at least 10 characters")
-            return v if v else None
-        return None
+    def validate_text_fields(cls, v: Optional[str], info: FieldValidationInfo) -> Optional[str]:
+                
+        if v is None:
+            return None
+        v = v.strip() or None
+        if v and info.field_name == "action_taken" and len(v) < 10:
+            raise ValueError("action_taken must be at least 10 characters")
+        return v
 
 
 class AlertList(BaseSchema):

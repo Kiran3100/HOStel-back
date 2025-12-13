@@ -20,7 +20,7 @@ from app.schemas.common.response import BulkOperationResponse
 from app.services.common.unit_of_work import UnitOfWork
 from app.services.announcement import AnnouncementService
 
-router = APIRouter()
+router = APIRouter(prefix="/announcements")
 
 
 def _map_service_error(exc: ServiceError) -> HTTPException:
@@ -37,7 +37,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=AnnouncementList,
     summary="List announcements",
 )

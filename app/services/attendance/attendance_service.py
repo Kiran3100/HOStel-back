@@ -143,8 +143,6 @@ class AttendanceService:
             location_lat=None,
             location_lng=None,
             device_info=None,
-            created_at=a.created_at,
-            updated_at=a.updated_at,
         )
 
     def _to_list_item(

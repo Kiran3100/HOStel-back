@@ -20,6 +20,7 @@ from app.schemas.common.filters import DateRangeFilter
 from app.services.common import UnitOfWork
 
 
+
 class SupervisorAnalyticsService:
     """
     Supervisor performance analytics based on analytics_supervisor_performance.
