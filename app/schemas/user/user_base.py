@@ -5,7 +5,7 @@ User base schemas with enhanced validation and type safety.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -62,7 +62,7 @@ class UserBase(BaseSchema):
         default=None,
         description="Gender (optional)",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -103,7 +103,7 @@ class UserBase(BaseSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """
         Validate user age constraints.
         
@@ -112,7 +112,7 @@ class UserBase(BaseSchema):
         if v is None:
             return v
 
-        today = date.today()
+        today = Date.today()
         
         # Check if date is in the future
         if v >= today:
@@ -202,7 +202,7 @@ class UserUpdate(BaseUpdateSchema):
         default=None,
         description="Gender",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -246,7 +246,7 @@ class UserUpdate(BaseUpdateSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate user age constraints."""
         if v is not None:
             today = date.today()

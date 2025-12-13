@@ -5,7 +5,7 @@ User response schemas with comprehensive user information.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -81,7 +81,7 @@ class UserDetail(BaseResponseSchema):
     full_name: str = Field(..., description="Full name")
     user_role: UserRole = Field(..., description="User role")
     gender: Optional[Gender] = Field(default=None, description="Gender")
-    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    date_of_birth: Optional[Date] = Field(default=None, description="Date of birth")
     profile_image_url: Optional[str] = Field(
         default=None,
         description="Profile image URL",

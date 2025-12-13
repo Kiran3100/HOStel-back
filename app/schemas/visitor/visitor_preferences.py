@@ -9,7 +9,8 @@ and saved search criteria.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import  datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -119,7 +120,7 @@ class VisitorPreferences(BaseSchema):
     )
 
     # Move-in Details
-    earliest_move_in_date: Optional[date] = Field(
+    earliest_move_in_date: Optional[Date] = Field(
         None,
         description="Earliest date willing to move in",
     )
@@ -182,9 +183,9 @@ class VisitorPreferences(BaseSchema):
 
     @field_validator("earliest_move_in_date")
     @classmethod
-    def validate_move_in_date(cls, v: Optional[date]) -> Optional[date]:
+    def validate_move_in_date(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate move-in date is not in the past."""
-        if v is not None and v < date.today():
+        if v is not None and v < Date.today():
             raise ValueError("Move-in date cannot be in the past")
         return v
 

@@ -1,7 +1,7 @@
 # app/services/payment/payment_schedule_service.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Callable, Dict, List, Optional, Protocol
 from uuid import UUID, uuid4
@@ -69,7 +69,7 @@ class PaymentScheduleService:
         }
         return mapping.get(fee_type, 1)
 
-    def _add_months(self, d: date, months: int) -> date:
+    def _add_months(self, d: Date, months: int) -> Date:
         month = d.month - 1 + months
         year = d.year + month // 12
         month = month % 12 + 1
@@ -78,7 +78,7 @@ class PaymentScheduleService:
             [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
              31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1],
         )
-        return date(year, month, day)
+        return Date(year, month, day)
 
     # ------------------------------------------------------------------ #
     # CRUD

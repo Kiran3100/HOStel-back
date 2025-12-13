@@ -8,7 +8,8 @@ booking history, recent activity, recommendations, and alerts.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import  datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -203,7 +204,7 @@ class BookingHistoryItem(BaseSchema):
         ...,
         description="When booking was made",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
         description="Check-in date",
     )
@@ -241,7 +242,7 @@ class BookingHistoryItem(BaseSchema):
 
     @computed_field
     @property
-    def check_out_date(self) -> date:
+    def check_out_date(self) -> Date:
         """Calculate check-out date based on duration."""
         from dateutil.relativedelta import relativedelta
 
@@ -251,13 +252,13 @@ class BookingHistoryItem(BaseSchema):
     @property
     def days_until_checkin(self) -> int:
         """Calculate days until check-in."""
-        return (self.check_in_date - date.today()).days
+        return (self.check_in_date - Date.today()).days
 
     @computed_field
     @property
     def is_upcoming(self) -> bool:
         """Check if booking is upcoming."""
-        return self.check_in_date > date.today()
+        return self.check_in_date > Date.today()
 
 
 class BookingHistory(BaseSchema):

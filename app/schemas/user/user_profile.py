@@ -5,7 +5,7 @@ User profile update schemas with comprehensive field validation.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 
 from pydantic import EmailStr, Field, HttpUrl, field_validator
@@ -39,7 +39,7 @@ class ProfileUpdate(BaseUpdateSchema):
         default=None,
         description="Gender",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -94,10 +94,10 @@ class ProfileUpdate(BaseUpdateSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate date of birth for reasonable age constraints."""
         if v is not None:
-            today = date.today()
+            today = Date.today()
             if v >= today:
                 raise ValueError("Date of birth cannot be in the future")
 
