@@ -25,7 +25,7 @@ def _get_service(session: Session) -> BedAssignmentService:
     return BedAssignmentService(uow)
 
 
-@router.post("", response_model=BedAssignment)
+@router.post("/", response_model=BedAssignment)
 def assign_bed(
     payload: BedAssignmentRequest,
     session: Session = Depends(get_session),

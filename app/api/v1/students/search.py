@@ -24,7 +24,7 @@ def _get_service(session: Session) -> StudentSearchService:
     return StudentSearchService(uow)
 
 
-@router.post("", response_model=List[StudentListItem])
+@router.post("/", response_model=List[StudentListItem])
 def search_students(
     payload: StudentSearchRequest,
     session: Session = Depends(get_session),

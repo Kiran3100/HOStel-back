@@ -20,7 +20,7 @@ def _get_service(session: Session) -> RoomAvailabilityService:
     return RoomAvailabilityService(uow)
 
 
-@router.post("", response_model=AvailabilityResponse)
+@router.post("/", response_model=AvailabilityResponse)
 def get_room_availability(
     payload: RoomAvailabilityRequest,
     session: Session = Depends(get_session),

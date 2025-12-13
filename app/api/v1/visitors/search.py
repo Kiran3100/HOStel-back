@@ -21,7 +21,7 @@ def _get_service(session: Session) -> VisitorHostelSearchService:
     return VisitorHostelSearchService(uow)
 
 
-@router.post("", response_model=HostelSearchResponse)
+@router.post("/", response_model=HostelSearchResponse)
 def search_hostels(
     payload: HostelSearchRequest,
     session: Session = Depends(get_session),

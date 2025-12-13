@@ -20,7 +20,7 @@ def _get_service(session: Session) -> AutocompleteService:
     return AutocompleteService(uow)
 
 
-@router.post("", response_model=AutocompleteResponse)
+@router.post("/", response_model=AutocompleteResponse)
 def autocomplete(
     payload: AutocompleteRequest,
     session: Session = Depends(get_session),
