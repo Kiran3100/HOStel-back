@@ -1,766 +1,4601 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\mess ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\mess =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\meal_items.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\meal_items.py ---
+# --- File: app/schemas/mess/meal_items.py ---
 """
-Meal items and dietary schemas
+Meal items, dietary preferences, and nutritional information schemas.
+
+Provides comprehensive schemas for menu item definitions, dietary classifications,
+allergen tracking, and nutritional data management.
 """
+
+from __future__ import annotations
+
+from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
+
+from pydantic import Field, field_validator, model_validator
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import DietaryPreference, MealType
 
-
-class MealItems(BaseSchema):
-    """Meal items definition"""
-    meal_type: str = Field(..., pattern="^(breakfast|lunch|snacks|dinner)$")
-    items: List["MenuItem"]
+__all__ = [
+    "MealItems",
+    "MenuItem",
+    "DietaryOptions",
+    "NutritionalInfo",
+    "ItemMasterList",
+    "ItemCategory",
+    "AllergenInfo",
+]
 
 
 class MenuItem(BaseSchema):
-    """Individual menu item"""
-    item_name: str = Field(..., min_length=2, max_length=100)
-    item_description: Optional[str] = Field(None, max_length=255)
+    """
+    Individual menu item with dietary and allergen information.
     
+    Represents a single dish/food item with complete classification
+    for dietary preferences and allergen warnings.
+    """
+
+    item_id: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Unique item identifier/code",
+    )
+    item_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Menu item name",
+    )
+    item_name_local: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Item name in local language",
+    )
+    item_description: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Brief item description",
+    )
+
+    # Category and type
+    category: str = Field(
+        ...,
+        pattern=r"^(main_course|side_dish|bread|rice|dal|curry|dessert|beverage|salad|soup|starter)$",
+        description="Item category",
+    )
+    meal_type: Optional[MealType] = Field(
+        None,
+        description="Typical meal type for this item",
+    )
+
     # Dietary classification
-    is_vegetarian: bool = Field(True)
-    is_vegan: bool = Field(False)
-    is_jain: bool = Field(False)
-    is_gluten_free: bool = Field(False)
+    is_vegetarian: bool = Field(
+        True,
+        description="Suitable for vegetarians",
+    )
+    is_vegan: bool = Field(
+        False,
+        description="Suitable for vegans (no animal products)",
+    )
+    is_jain: bool = Field(
+        False,
+        description="Suitable for Jain diet (no root vegetables, etc.)",
+    )
+    is_gluten_free: bool = Field(
+        False,
+        description="Gluten-free item",
+    )
+    is_lactose_free: bool = Field(
+        False,
+        description="Lactose-free item",
+    )
+
+    # Common allergen flags
+    contains_dairy: bool = Field(
+        False,
+        description="Contains dairy products",
+    )
+    contains_nuts: bool = Field(
+        False,
+        description="Contains tree nuts or peanuts",
+    )
+    contains_soy: bool = Field(
+        False,
+        description="Contains soy",
+    )
+    contains_gluten: bool = Field(
+        False,
+        description="Contains gluten (wheat, barley, rye)",
+    )
+    contains_eggs: bool = Field(
+        False,
+        description="Contains eggs",
+    )
+    contains_shellfish: bool = Field(
+        False,
+        description="Contains shellfish",
+    )
+
+    # Additional properties
+    is_spicy: bool = Field(
+        False,
+        description="Spicy food item",
+    )
+    spice_level: Optional[int] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Spice level (0-5, 0=mild, 5=very spicy)",
+    )
+    is_popular: bool = Field(
+        False,
+        description="Popular/frequently requested item",
+    )
+    is_seasonal: bool = Field(
+        False,
+        description="Seasonal availability",
+    )
+    serving_size: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Standard serving size description",
+    )
+
+    @field_validator("item_name", "item_name_local", "item_description")
+    @classmethod
+    def normalize_text(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+    @model_validator(mode="after")
+    def validate_dietary_consistency(self) -> "MenuItem":
+        """
+        Validate dietary classification consistency.
+        
+        Ensures logical consistency between dietary flags and allergen flags.
+        """
+        # Vegan items must be vegetarian
+        if self.is_vegan and not self.is_vegetarian:
+            raise ValueError("Vegan items must also be vegetarian")
+        
+        # Vegan items cannot contain dairy or eggs
+        if self.is_vegan:
+            if self.contains_dairy:
+                raise ValueError("Vegan items cannot contain dairy")
+            if self.contains_eggs:
+                raise ValueError("Vegan items cannot contain eggs")
+        
+        # Jain items must be vegetarian
+        if self.is_jain and not self.is_vegetarian:
+            raise ValueError("Jain items must be vegetarian")
+        
+        # Gluten-free items shouldn't contain gluten
+        if self.is_gluten_free and self.contains_gluten:
+            raise ValueError(
+                "Item marked as gluten-free cannot contain gluten"
+            )
+        
+        # Lactose-free items shouldn't contain dairy
+        if self.is_lactose_free and self.contains_dairy:
+            raise ValueError(
+                "Lactose-free items should not contain dairy"
+            )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_spice_level(self) -> "MenuItem":
+        """Validate spice level consistency."""
+        if self.is_spicy and self.spice_level is None:
+            # Default to medium spice if marked as spicy
+            self.spice_level = 3
+        
+        if not self.is_spicy and self.spice_level and self.spice_level > 0:
+            # If spice level is set, item should be marked as spicy
+            self.is_spicy = True
+        
+        return self
+
+
+class MealItems(BaseSchema):
+    """
+    Collection of menu items for a specific meal type.
     
-    # Allergens
-    contains_dairy: bool = Field(False)
-    contains_nuts: bool = Field(False)
-    contains_soy: bool = Field(False)
-    
-    # Category
-    category: str = Field(..., description="main_course, side_dish, dessert, beverage")
+    Groups items by meal with complete item information.
+    """
+
+    meal_type: MealType = Field(
+        ...,
+        description="Type of meal",
+    )
+    meal_name: Optional[str] = Field(
+        None,
+        description="Custom meal name (e.g., 'Continental Breakfast')",
+    )
+    items: List[MenuItem] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="List of menu items for this meal",
+    )
+    serving_start_time: Optional[time] = Field(
+        None,
+        description="Meal serving start time",
+    )
+    serving_end_time: Optional[time] = Field(
+        None,
+        description="Meal serving end time",
+    )
+
+    @field_validator("items")
+    @classmethod
+    def validate_unique_items(cls, v: List[MenuItem]) -> List[MenuItem]:
+        """Ensure no duplicate item names in the meal."""
+        item_names = [item.item_name.lower() for item in v]
+        
+        if len(item_names) != len(set(item_names)):
+            raise ValueError("Duplicate items found in meal")
+        
+        return v
 
 
 class DietaryOptions(BaseSchema):
-    """Dietary options configuration"""
-    hostel_id: UUID
+    """
+    Dietary options configuration for hostel mess.
     
-    # Available options
-    vegetarian_menu: bool = Field(True)
-    non_vegetarian_menu: bool = Field(False)
-    vegan_menu: bool = Field(False)
-    jain_menu: bool = Field(False)
-    gluten_free_options: bool = Field(False)
+    Defines available dietary preferences and customization settings.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+
+    # Available dietary options
+    vegetarian_menu: bool = Field(
+        True,
+        description="Vegetarian menu available",
+    )
+    non_vegetarian_menu: bool = Field(
+        False,
+        description="Non-vegetarian menu available",
+    )
+    vegan_menu: bool = Field(
+        False,
+        description="Vegan menu available",
+    )
+    jain_menu: bool = Field(
+        False,
+        description="Jain dietary menu available",
+    )
+    gluten_free_options: bool = Field(
+        False,
+        description="Gluten-free options available",
+    )
+    lactose_free_options: bool = Field(
+        False,
+        description="Lactose-free options available",
+    )
+
+    # Customization settings
+    allow_meal_customization: bool = Field(
+        False,
+        description="Allow students to customize meals",
+    )
+    allow_special_requests: bool = Field(
+        False,
+        description="Accept special dietary requests",
+    )
+    advance_notice_required_days: int = Field(
+        default=1,
+        ge=0,
+        le=7,
+        description="Days advance notice required for special requests",
+    )
+
+    # Allergen management
+    display_allergen_warnings: bool = Field(
+        True,
+        description="Display allergen information on menus",
+    )
+    mandatory_allergen_declaration: bool = Field(
+        True,
+        description="Require allergen declaration for all items",
+    )
+
+    # Dietary preference tracking
+    track_student_preferences: bool = Field(
+        default=True,
+        description="Track and remember student dietary preferences",
+    )
+    auto_suggest_menu: bool = Field(
+        default=False,
+        description="Auto-suggest menu based on preferences",
+    )
+
+    @model_validator(mode="after")
+    def validate_menu_availability(self) -> "DietaryOptions":
+        """Ensure at least one menu type is available."""
+        if not any([
+            self.vegetarian_menu,
+            self.non_vegetarian_menu,
+            self.vegan_menu,
+            self.jain_menu,
+        ]):
+            raise ValueError("At least one menu type must be available")
+        
+        return self
+
+
+class AllergenInfo(BaseSchema):
+    """
+    Detailed allergen information for menu item.
     
-    # Customization allowed
-    allow_meal_customization: bool = Field(False)
-    
-    # Allergen warnings
-    display_allergen_warnings: bool = Field(True)
+    Provides comprehensive allergen tracking with severity levels.
+    """
+
+    item_name: str = Field(
+        ...,
+        description="Menu item name",
+    )
+    allergen_name: str = Field(
+        ...,
+        description="Allergen name",
+    )
+    allergen_type: str = Field(
+        ...,
+        pattern=r"^(dairy|nuts|soy|gluten|eggs|shellfish|fish|sesame|mustard|celery|other)$",
+        description="Allergen category",
+    )
+    severity: str = Field(
+        ...,
+        pattern=r"^(trace|contains|may_contain)$",
+        description="Allergen presence level",
+    )
+    details: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Additional allergen details",
+    )
 
 
 class NutritionalInfo(BaseSchema):
-    """Nutritional information for menu item"""
-    item_name: str
+    """
+    Nutritional information for menu item.
     
-    # Per serving
-    serving_size: str
-    calories: Optional[int] = Field(None, ge=0)
-    
-    # Macros (grams)
-    protein: Optional[Decimal] = Field(None, ge=0)
-    carbohydrates: Optional[Decimal] = Field(None, ge=0)
-    fat: Optional[Decimal] = Field(None, ge=0)
-    fiber: Optional[Decimal] = Field(None, ge=0)
-    
-    # Micros
-    sodium_mg: Optional[Decimal] = Field(None, ge=0)
-    sugar_g: Optional[Decimal] = Field(None, ge=0)
+    Provides macros, micros, and calorie information per serving.
+    """
 
+    item_name: str = Field(
+        ...,
+        description="Menu item name",
+    )
+    item_id: Optional[str] = Field(
+        None,
+        description="Item identifier",
+    )
 
-class ItemMasterList(BaseSchema):
-    """Master list of menu items"""
-    hostel_id: UUID
-    
-    categories: List["ItemCategory"]
+    # Serving information
+    serving_size: str = Field(
+        ...,
+        max_length=50,
+        description="Serving size description (e.g., '1 cup', '150g')",
+    )
+    servings_per_container: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Number of servings in container",
+    )
+
+    # Calories
+    calories: Optional[int] = Field(
+        None,
+        ge=0,
+        le=10000,
+        description="Calories per serving",
+    )
+    calories_from_fat: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Calories from fat",
+    )
+
+    # Macronutrients (grams)
+    protein_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        decimal_places=2,
+        description="Protein in grams",
+    )
+    carbohydrates_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        decimal_places=2,
+        description="Carbohydrates in grams",
+    )
+    fat_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        decimal_places=2,
+        description="Total fat in grams",
+    )
+    saturated_fat_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Saturated fat in grams",
+    )
+    trans_fat_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Trans fat in grams",
+    )
+    fiber_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Dietary fiber in grams",
+    )
+
+    # Micronutrients
+    sodium_mg: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Sodium in milligrams",
+    )
+    sugar_g: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Total sugars in grams",
+    )
+    cholesterol_mg: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Cholesterol in milligrams",
+    )
+    potassium_mg: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Potassium in milligrams",
+    )
+
+    # Vitamins and minerals (% daily value)
+    vitamin_a_percent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        description="Vitamin A % daily value",
+    )
+    vitamin_c_percent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        description="Vitamin C % daily value",
+    )
+    calcium_percent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        description="Calcium % daily value",
+    )
+    iron_percent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1000,
+        description="Iron % daily value",
+    )
+
+    # Additional info
+    ingredients: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="List of ingredients",
+    )
+    preparation_method: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Preparation method",
+    )
+
+    @field_validator("serving_size")
+    @classmethod
+    def normalize_serving_size(cls, v: str) -> str:
+        """Normalize serving size description."""
+        return v.strip()
+
+    @model_validator(mode="after")
+    def validate_nutritional_data(self) -> "NutritionalInfo":
+        """Validate nutritional data consistency."""
+        # Calories from fat shouldn't exceed total calories
+        if self.calories and self.calories_from_fat:
+            if self.calories_from_fat > self.calories:
+                raise ValueError(
+                    "Calories from fat cannot exceed total calories"
+                )
+        
+        # Saturated and trans fat shouldn't exceed total fat
+        if self.fat_g:
+            total_specific_fats = Decimal("0.00")
+            
+            if self.saturated_fat_g:
+                total_specific_fats += self.saturated_fat_g
+            if self.trans_fat_g:
+                total_specific_fats += self.trans_fat_g
+            
+            if total_specific_fats > self.fat_g:
+                raise ValueError(
+                    "Saturated + trans fat cannot exceed total fat"
+                )
+        
+        return self
 
 
 class ItemCategory(BaseSchema):
-    """Category of menu items"""
-    category_name: str
-    items: List[str]
+    """
+    Category of menu items for organization.
+    
+    Groups related items for easier menu planning.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_approval.py ---
+    category_id: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Category identifier",
+    )
+    category_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Category name",
+    )
+    category_description: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Category description",
+    )
+    items: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Item names in this category",
+    )
+    display_order: int = Field(
+        default=0,
+        ge=0,
+        description="Display order for category",
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether category is active",
+    )
+
+
+class ItemMasterList(BaseSchema):
+    """
+    Master list of all available menu items.
+    
+    Central repository of items organized by categories for
+    a hostel's menu planning.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    list_name: Optional[str] = Field(
+        None,
+        description="Master list name/version",
+    )
+    categories: List[ItemCategory] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Item categories",
+    )
+    total_items: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of items across all categories",
+    )
+    last_updated: Optional[datetime] = Field(
+        None,
+        description="Last update timestamp",
+    )
+
+    @model_validator(mode="after")
+    def calculate_total_items(self) -> "ItemMasterList":
+        """Calculate total items across all categories."""
+        total = sum(len(category.items) for category in self.categories)
+        self.total_items = total
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\menu_approval.py ---
+# --- File: app/schemas/mess/menu_approval.py ---
 """
-Menu approval schemas
+Menu approval workflow schemas.
+
+Provides schemas for menu approval requests, responses,
+and workflow tracking with comprehensive validation.
 """
-from datetime import datetime
-from typing import Optional
-from pydantic import Field
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, field_validator, model_validator,computed_field
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "MenuApprovalRequest",
+    "MenuApprovalResponse",
+    "ApprovalWorkflow",
+    "BulkApproval",
+    "ApprovalHistory",
+]
 
 
 class MenuApprovalRequest(BaseCreateSchema):
-    """Request menu approval (supervisor to admin)"""
-    menu_id: UUID
+    """
+    Request menu approval from supervisor to admin.
     
-    # Submission notes
-    submission_notes: Optional[str] = Field(None, max_length=500)
+    Submits menu for review with cost estimates and justification.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    requested_by: UUID = Field(
+        ...,
+        description="Supervisor requesting approval",
+    )
     
-    # Budget info
-    estimated_cost_per_person: Optional[Decimal] = None
+    # Submission details
+    submission_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notes for approver",
+    )
+    urgency: str = Field(
+        default="normal",
+        pattern=r"^(low|normal|high|urgent)$",
+        description="Approval urgency level",
+    )
+    
+    # Budget information
+    estimated_cost_per_person: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Estimated cost per person",
+    )
+    total_estimated_cost: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+        description="Total estimated cost",
+    )
+    expected_students: Optional[int] = Field(
+        None,
+        ge=1,
+        le=10000,
+        description="Expected number of students",
+    )
+    
+    # Special requirements
+    requires_special_procurement: bool = Field(
+        default=False,
+        description="Requires special ingredient procurement",
+    )
+    special_items: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Special items requiring approval",
+    )
+    
+    # Justification
+    reason_for_special_menu: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Justification for special/expensive menu",
+    )
+
+    @field_validator("submission_notes", "reason_for_special_menu")
+    @classmethod
+    def normalize_text(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+    @model_validator(mode="after")
+    def validate_cost_information(self) -> "MenuApprovalRequest":
+        """
+        Validate cost information consistency.
+        
+        If per-person cost is high, justification should be provided.
+        """
+        if self.estimated_cost_per_person:
+            # If cost is above threshold (e.g., ₹100), require justification
+            if self.estimated_cost_per_person > Decimal("100.00"):
+                if not self.reason_for_special_menu:
+                    raise ValueError(
+                        "Justification required for high per-person cost"
+                    )
+        
+        # Validate total cost calculation
+        if (
+            self.estimated_cost_per_person
+            and self.expected_students
+            and self.total_estimated_cost
+        ):
+            calculated_total = (
+                self.estimated_cost_per_person * Decimal(self.expected_students)
+            )
+            
+            # Allow 10% variance
+            variance = abs(calculated_total - self.total_estimated_cost)
+            max_variance = calculated_total * Decimal("0.1")
+            
+            if variance > max_variance:
+                raise ValueError(
+                    "Total estimated cost doesn't match per-person cost calculation"
+                )
+        
+        return self
 
 
 class MenuApprovalResponse(BaseSchema):
-    """Menu approval response"""
-    menu_id: UUID
-    menu_date: date
+    """
+    Menu approval decision response.
     
-    approved: bool
-    approved_by: UUID
-    approved_by_name: str
-    approved_at: datetime
+    Provides complete information about approval or rejection decision.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
     
-    # Feedback
-    approval_notes: Optional[str]
+    # Decision
+    approved: bool = Field(
+        ...,
+        description="Whether menu was approved",
+    )
+    approval_status: str = Field(
+        ...,
+        pattern=r"^(approved|rejected|approved_with_conditions|pending_revision)$",
+        description="Approval status",
+    )
     
-    message: str
+    # Approver details
+    approved_by: UUID = Field(
+        ...,
+        description="Approver user ID",
+    )
+    approved_by_name: str = Field(
+        ...,
+        description="Approver full name",
+    )
+    approved_by_role: str = Field(
+        ...,
+        description="Approver role",
+    )
+    approved_at: datetime = Field(
+        ...,
+        description="Approval timestamp",
+    )
+    
+    # Feedback and conditions
+    approval_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Approver's notes",
+    )
+    conditions: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Conditions for approval (if any)",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason for rejection",
+    )
+    suggested_changes: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Suggested modifications",
+    )
+    
+    # Cost approval
+    approved_budget: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Approved budget amount",
+    )
+    budget_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notes about budget approval",
+    )
+    
+    # Response message
+    message: str = Field(
+        ...,
+        description="Human-readable response message",
+    )
+    
+    # Next steps
+    requires_resubmission: bool = Field(
+        default=False,
+        description="Whether resubmission is required",
+    )
+    can_publish: bool = Field(
+        ...,
+        description="Whether menu can be published",
+    )
+
+    @model_validator(mode="after")
+    def validate_response_consistency(self) -> "MenuApprovalResponse":
+        """Validate approval response consistency."""
+        if self.approved:
+            # Approved menus shouldn't have rejection reason
+            if self.rejection_reason:
+                raise ValueError(
+                    "Rejection reason should not be present for approved menus"
+                )
+        else:
+            # Rejected menus must have rejection reason
+            if not self.rejection_reason:
+                raise ValueError(
+                    "Rejection reason is required for rejected menus"
+                )
+        
+        return self
 
 
 class ApprovalWorkflow(BaseSchema):
-    """Menu approval workflow status"""
-    menu_id: UUID
-    menu_date: date
+    """
+    Menu approval workflow status tracking.
     
-    requires_approval: bool
+    Tracks current state of approval process with timeline.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    
+    # Workflow status
+    requires_approval: bool = Field(
+        ...,
+        description="Whether approval is required",
+    )
     approval_status: str = Field(
         ...,
-        pattern="^(pending|approved|rejected|not_required)$"
+        pattern=r"^(pending|approved|rejected|not_required|revision_requested)$",
+        description="Current approval status",
+    )
+    
+    # Workflow stage
+    current_stage: str = Field(
+        ...,
+        pattern=r"^(draft|submitted|under_review|approved|rejected|published)$",
+        description="Current workflow stage",
     )
     
     # Timeline
-    submitted_for_approval_at: Optional[datetime]
-    approved_at: Optional[datetime]
-    rejected_at: Optional[datetime]
+    created_at: datetime = Field(
+        ...,
+        description="Menu creation timestamp",
+    )
+    submitted_for_approval_at: Optional[datetime] = Field(
+        None,
+        description="Submission timestamp",
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+    rejected_at: Optional[datetime] = Field(
+        None,
+        description="Rejection timestamp",
+    )
+    published_at: Optional[datetime] = Field(
+        None,
+        description="Publication timestamp",
+    )
     
-    # Approver
-    pending_with: Optional[UUID]
-    pending_with_name: Optional[str]
+    # Current approver
+    pending_with: Optional[UUID] = Field(
+        None,
+        description="User ID of current approver",
+    )
+    pending_with_name: Optional[str] = Field(
+        None,
+        description="Name of current approver",
+    )
+    pending_with_role: Optional[str] = Field(
+        None,
+        description="Role of current approver",
+    )
+    
+    # Deadlines
+    approval_deadline: Optional[datetime] = Field(
+        None,
+        description="Approval deadline",
+    )
+    is_overdue: bool = Field(
+        default=False,
+        description="Whether approval is overdue",
+    )
+    
+    # Revision tracking
+    revision_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of revisions made",
+    )
+    last_revision_at: Optional[datetime] = Field(
+        None,
+        description="Last revision timestamp",
+    )
+
+    @computed_field
+    @property
+    def days_pending(self) -> Optional[int]:
+        """Calculate days approval has been pending."""
+        if self.submitted_for_approval_at and self.approval_status == "pending":
+            return (datetime.now() - self.submitted_for_approval_at).days
+        return None
+
+    @computed_field
+    @property
+    def time_to_approval_hours(self) -> Optional[Decimal]:
+        """Calculate hours taken for approval."""
+        if self.submitted_for_approval_at and self.approved_at:
+            hours = (self.approved_at - self.submitted_for_approval_at).total_seconds() / 3600
+            return round(Decimal(str(hours)), 2)
+        return None
 
 
 class BulkApproval(BaseCreateSchema):
-    """Approve multiple menus"""
-    menu_ids: List[UUID] = Field(..., min_items=1)
+    """
+    Approve or reject multiple menus in bulk.
     
-    approved: bool
-    approval_notes: Optional[str] = None
+    Efficient bulk approval for routine or similar menus.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_duplication.py ---
+    menu_ids: List[UUID] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="List of menu IDs to approve/reject",
+    )
+    approved: bool = Field(
+        ...,
+        description="True to approve all, False to reject all",
+    )
+    approver_id: UUID = Field(
+        ...,
+        description="Approver user ID",
+    )
+    approval_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common notes for all menus",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common rejection reason (if rejecting)",
+    )
+    apply_conditions: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common conditions to apply",
+    )
+    
+    # Budget approval
+    approved_budget_per_menu: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Approved budget for each menu",
+    )
+
+    @model_validator(mode="after")
+    def validate_bulk_approval(self) -> "BulkApproval":
+        """Validate bulk approval request."""
+        # Rejection requires reason
+        if not self.approved and not self.rejection_reason:
+            raise ValueError(
+                "Rejection reason is required for bulk rejection"
+            )
+        
+        # Can't have both approval notes and rejection reason
+        if self.approved and self.rejection_reason:
+            raise ValueError(
+                "Rejection reason should not be provided when approving"
+            )
+        
+        return self
+
+
+class ApprovalHistory(BaseSchema):
+    """
+    Complete approval history for menu.
+    
+    Tracks all approval attempts and decisions for audit trail.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    total_submissions: int = Field(
+        ...,
+        ge=0,
+        description="Total approval submissions",
+    )
+    approval_attempts: List["ApprovalAttempt"] = Field(
+        ...,
+        description="Chronological list of approval attempts",
+    )
+    current_status: str = Field(
+        ...,
+        description="Current approval status",
+    )
+    final_approver: Optional[str] = Field(
+        None,
+        description="Final approver name",
+    )
+
+
+class ApprovalAttempt(BaseSchema):
+    """
+    Individual approval attempt record.
+    
+    Represents single submission in approval workflow.
+    """
+
+    attempt_number: int = Field(
+        ...,
+        ge=1,
+        description="Attempt sequence number",
+    )
+    submitted_by: UUID = Field(
+        ...,
+        description="Submitter user ID",
+    )
+    submitted_by_name: str = Field(
+        ...,
+        description="Submitter name",
+    )
+    submitted_at: datetime = Field(
+        ...,
+        description="Submission timestamp",
+    )
+    reviewed_by: Optional[UUID] = Field(
+        None,
+        description="Reviewer user ID",
+    )
+    reviewed_by_name: Optional[str] = Field(
+        None,
+        description="Reviewer name",
+    )
+    reviewed_at: Optional[datetime] = Field(
+        None,
+        description="Review timestamp",
+    )
+    decision: Optional[str] = Field(
+        None,
+        pattern=r"^(approved|rejected|revision_requested|pending)$",
+        description="Approval decision",
+    )
+    feedback: Optional[str] = Field(
+        None,
+        description="Reviewer feedback",
+    )
+    changes_made: Optional[str] = Field(
+        None,
+        description="Changes made in this revision",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\menu_duplication.py ---
+# --- File: app/schemas/mess/menu_duplication.py ---
 """
-Menu duplication schemas
+Menu duplication and bulk creation schemas.
+
+Provides efficient menu replication capabilities for
+recurring patterns and multi-hostel deployment.
 """
+
+from __future__ import annotations
+
 from datetime import date
-from typing import List, Optional
-from pydantic import Field
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator, model_validator,computed_field
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "DuplicateMenuRequest",
+    "BulkMenuCreate",
+    "DuplicateResponse",
+    "CrossHostelDuplication",
+    "MenuCloneConfig",
+]
 
 
 class DuplicateMenuRequest(BaseCreateSchema):
-    """Duplicate menu to another date"""
-    source_menu_id: UUID = Field(..., description="Menu to duplicate")
-    target_date: date = Field(..., description="Date for duplicated menu")
+    """
+    Duplicate existing menu to another date.
     
-    # Modifications
-    modify_items: bool = Field(False, description="Allow modifications during duplication")
-    modifications: Optional[dict] = None
+    Creates copy of menu with optional modifications for
+    efficient menu planning.
+    """
+
+    source_menu_id: UUID = Field(
+        ...,
+        description="Menu to duplicate",
+    )
+    target_date: date = Field(
+        ...,
+        description="Date for duplicated menu",
+    )
+    
+    # Duplication options
+    copy_all_meals: bool = Field(
+        default=True,
+        description="Copy all meal items",
+    )
+    copy_breakfast: bool = Field(
+        default=True,
+        description="Copy breakfast items",
+    )
+    copy_lunch: bool = Field(
+        default=True,
+        description="Copy lunch items",
+    )
+    copy_snacks: bool = Field(
+        default=True,
+        description="Copy snacks items",
+    )
+    copy_dinner: bool = Field(
+        default=True,
+        description="Copy dinner items",
+    )
+    
+    # Modification options
+    modify_items: bool = Field(
+        False,
+        description="Allow item modifications during duplication",
+    )
+    modifications: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Meal-wise item modifications {meal_type: [items]}",
+    )
+    
+    # Additional settings
+    preserve_special_status: bool = Field(
+        default=True,
+        description="Keep special menu status",
+    )
+    auto_publish: bool = Field(
+        default=False,
+        description="Automatically publish duplicated menu",
+    )
+    created_by: UUID = Field(
+        ...,
+        description="User creating the duplicate",
+    )
+
+    @field_validator("target_date")
+    @classmethod
+    def validate_target_date(cls, v: date) -> date:
+        """Validate target date is appropriate for duplication."""
+        # Can't duplicate to past dates
+        if v < date.today():
+            raise ValueError("Cannot duplicate menu to past dates")
+        
+        # Limit advance duplication
+        days_ahead = (v - date.today()).days
+        if days_ahead > 90:
+            raise ValueError(
+                "Cannot duplicate menu more than 90 days in advance"
+            )
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_meal_selection(self) -> "DuplicateMenuRequest":
+        """Ensure at least one meal is selected for copying."""
+        if not self.copy_all_meals:
+            if not any([
+                self.copy_breakfast,
+                self.copy_lunch,
+                self.copy_snacks,
+                self.copy_dinner,
+            ]):
+                raise ValueError(
+                    "At least one meal must be selected for duplication"
+                )
+        
+        return self
 
 
 class BulkMenuCreate(BaseCreateSchema):
-    """Create menus for multiple dates using template"""
-    hostel_id: UUID
+    """
+    Create menus for multiple dates using template or pattern.
     
-    # Date range
-    start_date: date
-    end_date: date
-    
-    # Source
-    source_type: str = Field(..., pattern="^(template|existing_menu|weekly_pattern)$")
-    
-    # If using template
-    template_id: Optional[UUID] = None
-    
-    # If using existing menu
-    source_menu_id: Optional[UUID] = None
-    
-    # If using weekly pattern
-    weekly_pattern: Optional[dict] = Field(
-        None,
-        description="Day of week -> menu items mapping"
+    Efficiently generates menus for date range using various sources.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
     )
     
-    # Options
-    skip_existing: bool = Field(True, description="Skip dates that already have menus")
-    override_existing: bool = Field(False, description="Override existing menus")
+    # Date range
+    start_date: date = Field(
+        ...,
+        description="Start date for menu creation",
+    )
+    end_date: date = Field(
+        ...,
+        description="End date for menu creation",
+    )
+    
+    # Source configuration
+    source_type: str = Field(
+        ...,
+        pattern=r"^(template|existing_menu|weekly_pattern|daily_rotation)$",
+        description="Source for menu creation",
+    )
+    
+    # Template-based
+    template_id: Optional[UUID] = Field(
+        None,
+        description="Template ID (if source_type is 'template')",
+    )
+    
+    # Existing menu-based
+    source_menu_id: Optional[UUID] = Field(
+        None,
+        description="Source menu ID (if source_type is 'existing_menu')",
+    )
+    
+    # Weekly pattern-based
+    weekly_pattern: Optional[Dict[str, Dict[str, List[str]]]] = Field(
+        None,
+        description="Day of week -> meal_type -> items mapping",
+    )
+    
+    # Daily rotation
+    rotation_items: Optional[List[Dict[str, List[str]]]] = Field(
+        None,
+        description="List of daily menus to rotate through",
+    )
+    rotation_interval_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=30,
+        description="Days before rotation repeats",
+    )
+    
+    # Creation options
+    skip_existing: bool = Field(
+        True,
+        description="Skip dates that already have menus",
+    )
+    override_existing: bool = Field(
+        False,
+        description="Override existing menus",
+    )
+    skip_weekends: bool = Field(
+        False,
+        description="Skip Saturday and Sunday",
+    )
+    skip_holidays: bool = Field(
+        False,
+        description="Skip public holidays",
+    )
+    
+    # Auto-publish
+    auto_publish_all: bool = Field(
+        default=False,
+        description="Automatically publish all created menus",
+    )
+    
+    # Creator
+    created_by: UUID = Field(
+        ...,
+        description="User creating menus",
+    )
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, v: date) -> date:
+        """Validate start date constraints."""
+        # Allow starting from yesterday for convenience
+        if v < date.today() - timedelta(days=1):
+            raise ValueError(
+                "Start date cannot be more than 1 day in the past"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_bulk_create(self) -> "BulkMenuCreate":
+        """Validate bulk creation configuration."""
+        # Validate date range
+        if self.end_date < self.start_date:
+            raise ValueError("End date must be after start date")
+        
+        # Limit bulk creation period
+        days_span = (self.end_date - self.start_date).days + 1
+        if days_span > 90:
+            raise ValueError(
+                "Bulk creation period cannot exceed 90 days"
+            )
+        
+        # Validate source-specific requirements
+        if self.source_type == "template":
+            if not self.template_id:
+                raise ValueError(
+                    "template_id is required when source_type is 'template'"
+                )
+        
+        elif self.source_type == "existing_menu":
+            if not self.source_menu_id:
+                raise ValueError(
+                    "source_menu_id is required when source_type is 'existing_menu'"
+                )
+        
+        elif self.source_type == "weekly_pattern":
+            if not self.weekly_pattern:
+                raise ValueError(
+                    "weekly_pattern is required when source_type is 'weekly_pattern'"
+                )
+        
+        elif self.source_type == "daily_rotation":
+            if not self.rotation_items:
+                raise ValueError(
+                    "rotation_items is required when source_type is 'daily_rotation'"
+                )
+        
+        # Can't both skip and override existing
+        if self.skip_existing and self.override_existing:
+            raise ValueError(
+                "Cannot both skip and override existing menus"
+            )
+        
+        return self
 
 
 class DuplicateResponse(BaseSchema):
-    """Duplication response"""
-    source_menu_id: UUID
-    created_menus: List[UUID]
+    """
+    Menu duplication response with results.
     
-    total_created: int
-    skipped: int
-    
-    message: str
+    Provides summary of duplication operation results.
+    """
+
+    source_menu_id: UUID = Field(
+        ...,
+        description="Source menu ID",
+    )
+    source_menu_date: date = Field(
+        ...,
+        description="Source menu date",
+    )
+    created_menus: List[UUID] = Field(
+        ...,
+        description="IDs of created menus",
+    )
+    created_dates: List[date] = Field(
+        ...,
+        description="Dates for which menus were created",
+    )
+    total_created: int = Field(
+        ...,
+        ge=0,
+        description="Total menus created",
+    )
+    skipped: int = Field(
+        default=0,
+        ge=0,
+        description="Dates skipped (already had menus)",
+    )
+    failed: int = Field(
+        default=0,
+        ge=0,
+        description="Failed creation attempts",
+    )
+    message: str = Field(
+        ...,
+        description="Operation summary message",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Warnings during operation",
+    )
+    errors: List[str] = Field(
+        default_factory=list,
+        description="Errors encountered",
+    )
+
+    @computed_field
+    @property
+    def success_rate(self) -> Decimal:
+        """Calculate success rate percentage."""
+        total_attempted = self.total_created + self.failed
+        
+        if total_attempted == 0:
+            return Decimal("0.00")
+        
+        return round(
+            Decimal(self.total_created) / Decimal(total_attempted) * 100,
+            2,
+        )
 
 
 class CrossHostelDuplication(BaseCreateSchema):
-    """Duplicate menu to other hostels"""
-    source_menu_id: UUID
-    source_hostel_id: UUID
+    """
+    Duplicate menu across multiple hostels.
     
-    target_hostel_ids: List[UUID] = Field(..., min_items=1)
-    target_date: date
-    
-    # Adjust for hostel-specific preferences
-    adapt_to_hostel_preferences: bool = Field(True)
+    Replicates menu to other hostels with optional adaptation
+    for hostel-specific preferences.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_feedback.py ---
-"""
-Mess menu feedback schemas
-"""
-from datetime import datetime, date
-from decimal import Decimal
-from typing import List, Optional, Dict
-from pydantic import Field
-from uuid import UUID
-
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
-from app.schemas.common.enums import MealType
-
-
-class FeedbackRequest(BaseCreateSchema):
-    """Submit menu feedback"""
-    menu_id: UUID = Field(..., description="Menu ID")
-    student_id: UUID = Field(..., description="Student ID")
-    
-    meal_type: MealType = Field(..., description="Which meal")
-    rating: int = Field(..., ge=1, le=5, description="Rating 1-5")
-    
-    comments: Optional[str] = Field(None, max_length=1000)
-    
-    # Specific aspects
-    taste_rating: Optional[int] = Field(None, ge=1, le=5)
-    quantity_rating: Optional[int] = Field(None, ge=1, le=5)
-    quality_rating: Optional[int] = Field(None, ge=1, le=5)
-    hygiene_rating: Optional[int] = Field(None, ge=1, le=5)
-
-
-class FeedbackResponse(BaseResponseSchema):
-    """Feedback response"""
-    menu_id: UUID
-    student_id: UUID
-    student_name: str
-    
-    meal_type: MealType
-    rating: int
-    comments: Optional[str]
-    
-    submitted_at: datetime
-
-
-class RatingsSummary(BaseSchema):
-    """Ratings summary for menu"""
-    menu_id: UUID
-    menu_date: date
-    
-    total_feedbacks: int
-    average_rating: Decimal
-    
-    # By meal
-    breakfast_rating: Optional[Decimal]
-    lunch_rating: Optional[Decimal]
-    snacks_rating: Optional[Decimal]
-    dinner_rating: Optional[Decimal]
-    
-    # Rating distribution
-    rating_5_count: int
-    rating_4_count: int
-    rating_3_count: int
-    rating_2_count: int
-    rating_1_count: int
-    
-    # Aspect ratings
-    average_taste_rating: Decimal
-    average_quantity_rating: Decimal
-    average_quality_rating: Decimal
-    average_hygiene_rating: Decimal
-
-
-class QualityMetrics(BaseSchema):
-    """Menu quality metrics"""
-    hostel_id: UUID
-    period_start: date
-    period_end: date
-    
-    # Overall
-    overall_average_rating: Decimal
-    total_feedbacks: int
-    
-    # Trends
-    rating_trend: str = Field(..., pattern="^(improving|declining|stable)$")
-    trend_percentage: Optional[Decimal]
-    
-    # Best and worst
-    best_rated_items: List["ItemRating"]
-    worst_rated_items: List["ItemRating"]
-    
-    # By day of week
-    ratings_by_day: Dict[str, Decimal]
-
-
-class ItemRating(BaseSchema):
-    """Rating for specific menu item"""
-    item_name: str
-    average_rating: Decimal
-    feedback_count: int
-
-
-class FeedbackAnalysis(BaseSchema):
-    """Feedback analysis and insights"""
-    hostel_id: UUID
-    analysis_period: DateRangeFilter
-    
-    # Sentiment
-    positive_feedback_percentage: Decimal
-    negative_feedback_percentage: Decimal
-    
-    # Common themes
-    common_complaints: List[str]
-    common_compliments: List[str]
-    
-    # Recommendations
-    items_to_keep: List[str]
-    items_to_improve: List[str]
-    items_to_remove: List[str]
-
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\menu_planning.py ---
-"""
-Menu planning schemas
-"""
-from datetime import date
-from typing import List, Optional, Dict
-from pydantic import Field
-from uuid import UUID
-
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
-
-
-class MenuPlanRequest(BaseCreateSchema):
-    """Request to create menu plan"""
-    hostel_id: UUID
-    
-    # Planning period
-    start_date: date
-    end_date: date
-    
-    # Template to use (if any)
-    use_template: bool = Field(False)
-    template_id: Optional[UUID] = None
-    
-    # Variety preferences
-    ensure_variety: bool = Field(True, description="Avoid repeating items too often")
-    min_days_between_repeat: int = Field(3, ge=1, le=7)
-    
-    # Dietary requirements
-    vegetarian_days_per_week: int = Field(7, ge=0, le=7)
-    
-    # Budget
-    target_cost_per_day: Optional[Decimal] = None
-
-
-class WeeklyPlan(BaseCreateSchema):
-    """Weekly menu plan"""
-    hostel_id: UUID
-    week_start_date: date
-    
-    # Daily menus
-    monday: "DailyMenuPlan"
-    tuesday: "DailyMenuPlan"
-    wednesday: "DailyMenuPlan"
-    thursday: "DailyMenuPlan"
-    friday: "DailyMenuPlan"
-    saturday: "DailyMenuPlan"
-    sunday: "DailyMenuPlan"
-    
-    # Metadata
-    created_by: UUID
-    notes: Optional[str] = None
-
-
-class DailyMenuPlan(BaseSchema):
-    """Daily menu plan"""
-    breakfast: List[str]
-    lunch: List[str]
-    snacks: List[str]
-    dinner: List[str]
-    
-    is_special: bool = Field(False)
-    special_occasion: Optional[str] = None
-
-
-class MonthlyPlan(BaseCreateSchema):
-    """Monthly menu plan"""
-    hostel_id: UUID
-    month: str  # YYYY-MM format
-    
-    # Weekly plans
-    weeks: List[WeeklyPlan]
-    
-    # Special days
-    special_days: List["SpecialDayMenu"] = Field(default_factory=list)
-
-
-class SpecialMenu(BaseCreateSchema):
-    """Special occasion menu"""
-    hostel_id: UUID
-    occasion_date: date
-    occasion_name: str = Field(..., min_length=3, max_length=255)
-    
-    # Enhanced menu
-    breakfast: List[str]
-    lunch: List[str]
-    snacks: List[str]
-    dinner: List[str]
-    
-    # Additional items
-    special_items: List[str] = Field(default_factory=list, description="Extra special items")
-    
-    # Budget
-    budget: Optional[Decimal] = None
-
-
-class SpecialDayMenu(BaseSchema):
-    """Special day in monthly plan"""
-    date: date
-    occasion: str
-    menu: DailyMenuPlan
-
-
-class MenuTemplate(BaseCreateSchema):
-    """Reusable menu template"""
-    hostel_id: UUID
-    template_name: str = Field(..., min_length=3, max_length=100)
-    description: Optional[str] = None
-    
-    # Template type
-    template_type: str = Field(..., pattern="^(weekly|festival|summer|winter)$")
-    
-    # Menu structure
-    daily_menus: Dict[str, DailyMenuPlan] = Field(
+    source_menu_id: UUID = Field(
         ...,
-        description="Day name -> menu plan"
+        description="Source menu unique identifier",
+    )
+    source_hostel_id: UUID = Field(
+        ...,
+        description="Source hostel ID",
+    )
+    target_hostel_ids: List[UUID] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Target hostel IDs",
+    )
+    target_date: date = Field(
+        ...,
+        description="Date for duplicated menus in target hostels",
+    )
+    
+    # Adaptation options
+    adapt_to_hostel_preferences: bool = Field(
+        True,
+        description="Adapt menu to each hostel's dietary preferences",
+    )
+    adapt_dietary_options: bool = Field(
+        default=True,
+        description="Adjust vegetarian/non-veg based on hostel settings",
+    )
+    adapt_regional_preferences: bool = Field(
+        default=True,
+        description="Adapt to regional food preferences",
+    )
+    
+    # Item substitution
+    allow_item_substitution: bool = Field(
+        default=True,
+        description="Allow substituting unavailable items",
+    )
+    substitution_rules: Optional[Dict[str, str]] = Field(
+        None,
+        description="Item substitution mapping {original: substitute}",
+    )
+    
+    # Cost adjustment
+    adjust_for_hostel_budget: bool = Field(
+        default=False,
+        description="Adjust menu to fit hostel budget",
+    )
+    
+    # Creation options
+    skip_existing: bool = Field(
+        default=True,
+        description="Skip hostels that already have menu for date",
+    )
+    created_by: UUID = Field(
+        ...,
+        description="User performing cross-hostel duplication",
     )
 
+    @field_validator("target_hostel_ids")
+    @classmethod
+    def validate_unique_hostels(cls, v: List[UUID]) -> List[UUID]:
+        """Ensure no duplicate hostel IDs."""
+        if len(v) != len(set(v)):
+            raise ValueError("Duplicate hostel IDs not allowed")
+        return v
 
-class MenuSuggestion(BaseSchema):
-    """AI/System generated menu suggestions"""
-    hostel_id: UUID
-    date: date
-    
-    suggested_breakfast: List[str]
-    suggested_lunch: List[str]
-    suggested_dinner: List[str]
-    
-    reason: str = Field(..., description="Why these items are suggested")
-    
-    # Scores
-    variety_score: Decimal = Field(..., ge=0, le=10)
-    nutrition_score: Decimal = Field(..., ge=0, le=10)
-    cost_score: Decimal = Field(..., ge=0, le=10)
+    @model_validator(mode="after")
+    def validate_source_not_in_targets(self) -> "CrossHostelDuplication":
+        """Ensure source hostel is not in target list."""
+        if self.source_hostel_id in self.target_hostel_ids:
+            raise ValueError(
+                "Source hostel cannot be in target hostel list"
+            )
+        return self
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\mess_menu_base.py ---
+
+class MenuCloneConfig(BaseSchema):
+    """
+    Configuration for menu cloning operations.
+    
+    Defines rules and preferences for menu duplication.
+    """
+
+    preserve_special_occasions: bool = Field(
+        default=True,
+        description="Keep special menu flags when cloning",
+    )
+    preserve_meal_timings: bool = Field(
+        default=True,
+        description="Copy meal serving times",
+    )
+    preserve_dietary_options: bool = Field(
+        default=True,
+        description="Copy dietary option flags",
+    )
+    
+    # Item handling
+    remove_seasonal_items: bool = Field(
+        default=False,
+        description="Remove seasonal items from cloned menu",
+    )
+    remove_expensive_items: bool = Field(
+        default=False,
+        description="Remove high-cost items",
+    )
+    cost_threshold: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Cost threshold for expensive items",
+    )
+    
+    # Auto-adjustments
+    auto_adjust_portions: bool = Field(
+        default=False,
+        description="Automatically adjust portion sizes",
+    )
+    target_cost_per_person: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Target cost per person for adjustments",
+    )
+    
+    # Naming
+    add_clone_suffix: bool = Field(
+        default=False,
+        description="Add '(Copy)' suffix to cloned menu names",
+    )
+    custom_suffix: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Custom suffix for cloned menus",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\menu_feedback.py ---
+# --- File: app/schemas/mess/menu_feedback.py ---
 """
-Mess menu base schemas
+Mess menu feedback and rating schemas.
+
+Provides comprehensive feedback collection, rating analysis,
+and quality metrics for menu improvement.
 """
-from datetime import date, time
-from typing import List, Optional
-from pydantic import Field
-from uuid import UUID
 
-from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from __future__ import annotations
 
-
-class MessMenuBase(BaseSchema):
-    """Base mess menu schema"""
-    hostel_id: UUID = Field(..., description="Hostel ID")
-    menu_date: date = Field(..., description="Menu date")
-    day_of_week: str = Field(..., description="Day of week")
-    
-    # Meals
-    breakfast_items: List[str] = Field(default_factory=list, description="Breakfast items")
-    lunch_items: List[str] = Field(default_factory=list, description="Lunch items")
-    snacks_items: List[str] = Field(default_factory=list, description="Snacks items")
-    dinner_items: List[str] = Field(default_factory=list, description="Dinner items")
-    
-    # Timings
-    breakfast_time: Optional[time] = Field(None, description="Breakfast serving time")
-    lunch_time: Optional[time] = Field(None, description="Lunch serving time")
-    snacks_time: Optional[time] = Field(None, description="Snacks serving time")
-    dinner_time: Optional[time] = Field(None, description="Dinner serving time")
-    
-    # Special
-    is_special_menu: bool = Field(False, description="Special occasion menu")
-    special_occasion: Optional[str] = Field(None, max_length=255, description="Occasion name")
-    
-    # Dietary options
-    vegetarian_available: bool = Field(True)
-    non_vegetarian_available: bool = Field(False)
-    vegan_available: bool = Field(False)
-    jain_available: bool = Field(False)
-
-
-class MessMenuCreate(MessMenuBase, BaseCreateSchema):
-    """Create mess menu"""
-    created_by: UUID = Field(..., description="Supervisor/Admin who created")
-
-
-class MessMenuUpdate(BaseUpdateSchema):
-    """Update mess menu"""
-    breakfast_items: Optional[List[str]] = None
-    lunch_items: Optional[List[str]] = None
-    snacks_items: Optional[List[str]] = None
-    dinner_items: Optional[List[str]] = None
-    
-    breakfast_time: Optional[time] = None
-    lunch_time: Optional[time] = None
-    snacks_time: Optional[time] = None
-    dinner_time: Optional[time] = None
-    
-    is_special_menu: Optional[bool] = None
-    special_occasion: Optional[str] = None
-    
-    vegetarian_available: Optional[bool] = None
-    non_vegetarian_available: Optional[bool] = None
-
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\mess_menu_response.py ---
-"""
-Mess menu response schemas
-"""
-from datetime import date, time, datetime
+from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
-from pydantic import Field
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
-from app.schemas.common.base import BaseResponseSchema, BaseSchema
-
-
-class MenuResponse(BaseResponseSchema):
-    """Mess menu response"""
-    hostel_id: UUID
-    hostel_name: str
-    menu_date: date
-    day_of_week: str
-    
-    breakfast_items: List[str]
-    lunch_items: List[str]
-    snacks_items: List[str]
-    dinner_items: List[str]
-    
-    is_special_menu: bool
-    special_occasion: Optional[str]
-    
-    is_published: bool
-    average_rating: Decimal
-
-
-class MenuDetail(BaseResponseSchema):
-    """Detailed menu information"""
-    hostel_id: UUID
-    hostel_name: str
-    menu_date: date
-    day_of_week: str
-    
-    # Meals with timings
-    breakfast_items: List[str]
-    breakfast_time: Optional[time]
-    
-    lunch_items: List[str]
-    lunch_time: Optional[time]
-    
-    snacks_items: List[str]
-    snacks_time: Optional[time]
-    
-    dinner_items: List[str]
-    dinner_time: Optional[time]
-    
-    # Dietary options
-    vegetarian_available: bool
-    non_vegetarian_available: bool
-    vegan_available: bool
-    jain_available: bool
-    
-    # Special
-    is_special_menu: bool
-    special_occasion: Optional[str]
-    
-    # Management
-    created_by: UUID
-    created_by_name: str
-    approved_by: Optional[UUID]
-    approved_by_name: Optional[str]
-    approved_at: Optional[datetime]
-    
-    is_published: bool
-    published_at: Optional[datetime]
-    
-    # Feedback
-    average_rating: Decimal
-    total_feedback_count: int
-
-
-class WeeklyMenu(BaseSchema):
-    """Weekly menu display"""
-    hostel_id: UUID
-    hostel_name: str
-    week_start_date: date
-    week_end_date: date
-    
-    menus: List["DailyMenuSummary"]
-
-
-class DailyMenuSummary(BaseSchema):
-    """Daily menu summary for weekly view"""
-    menu_id: UUID
-    date: date
-    day_of_week: str
-    
-    breakfast: List[str]
-    lunch: List[str]
-    dinner: List[str]
-    
-    is_special: bool
-    average_rating: Optional[Decimal]
-
-
-class MonthlyMenu(BaseSchema):
-    """Monthly menu calendar"""
-    hostel_id: UUID
-    hostel_name: str
-    month: str  # YYYY-MM format
-    
-    menus_by_date: dict = Field(..., description="Date -> DailyMenuSummary")
-    
-    # Summary
-    total_days: int
-    special_days: int
-    average_rating: Decimal
-
-
-class TodayMenu(BaseSchema):
-    """Today's menu for student view"""
-    hostel_id: UUID
-    hostel_name: str
-    date: date
-    day_of_week: str
-    
-    breakfast: List[str]
-    breakfast_time: str
-    
-    lunch: List[str]
-    lunch_time: str
-    
-    snacks: List[str]
-    snacks_time: str
-    
-    dinner: List[str]
-    dinner_time: str
-    
-    is_special: bool
-    special_occasion: Optional[str]
-    
-    dietary_note: Optional[str]
-
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\mess\__init__.py ---
-"""
-Mess menu schemas package
-"""
-from app.schemas.mess.mess_menu_base import (
-    MessMenuBase,
-    MessMenuCreate,
-    MessMenuUpdate
-)
-from app.schemas.mess.mess_menu_response import (
-    MenuResponse,
-    MenuDetail,
-    WeeklyMenu,
-    MonthlyMenu
-)
-from app.schemas.mess.meal_items import (
-    MealItems,
-    DietaryOptions,
-    NutritionalInfo
-)
-from app.schemas.mess.menu_planning import (
-    MenuPlanRequest,
-    WeeklyPlan,
-    MonthlyPlan,
-    SpecialMenu
-)
-from app.schemas.mess.menu_feedback import (
-    FeedbackRequest,
-    FeedbackResponse,
-    RatingsSummary,
-    QualityMetrics
-)
-from app.schemas.mess.menu_approval import (
-    MenuApprovalRequest,
-    ApprovalWorkflow
-)
-from app.schemas.mess.menu_duplication import (
-    DuplicateMenuRequest,
-    BulkMenuCreate
-)
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import MealType
+from app.schemas.common.filters import DateRangeFilter
 
 __all__ = [
-    # Base
-    "MessMenuBase",
-    "MessMenuCreate",
-    "MessMenuUpdate",
-    
-    # Response
-    "MenuResponse",
-    "MenuDetail",
-    "WeeklyMenu",
-    "MonthlyMenu",
-    
-    # Meal Items
-    "MealItems",
-    "DietaryOptions",
-    "NutritionalInfo",
-    
-    # Planning
-    "MenuPlanRequest",
-    "WeeklyPlan",
-    "MonthlyPlan",
-    "SpecialMenu",
-    
-    # Feedback
     "FeedbackRequest",
     "FeedbackResponse",
     "RatingsSummary",
     "QualityMetrics",
+    "ItemRating",
+    "FeedbackAnalysis",
+    "SentimentAnalysis",
+]
+
+
+class FeedbackRequest(BaseCreateSchema):
+    """
+    Submit menu feedback and ratings.
     
+    Allows students to rate menu quality and provide detailed feedback
+    with multi-dimensional ratings.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    meal_type: MealType = Field(
+        ...,
+        description="Which meal is being rated",
+    )
+    
+    # Overall rating
+    rating: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Overall rating (1-5 stars)",
+    )
+    
+    # Detailed feedback
+    comments: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Detailed comments and feedback",
+    )
+    
+    # Aspect-specific ratings
+    taste_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Taste rating (1-5)",
+    )
+    quantity_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Portion size rating (1-5)",
+    )
+    quality_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Food quality rating (1-5)",
+    )
+    hygiene_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Hygiene and cleanliness rating (1-5)",
+    )
+    presentation_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Food presentation rating (1-5)",
+    )
+    service_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Service quality rating (1-5)",
+    )
+    
+    # Item-specific feedback
+    liked_items: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Items student liked",
+    )
+    disliked_items: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Items student disliked",
+    )
+    
+    # Suggestions
+    improvement_suggestions: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Suggestions for improvement",
+    )
+    
+    # Would recommend
+    would_recommend: Optional[bool] = Field(
+        None,
+        description="Would recommend this menu to others",
+    )
+
+    @field_validator("comments", "improvement_suggestions")
+    @classmethod
+    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            
+            # Check for meaningful content
+            if len(v) > 0 and len(set(v.lower().replace(" ", ""))) < 3:
+                raise ValueError("Please provide meaningful feedback")
+            
+            return v if v else None
+        return None
+
+    @field_validator("liked_items", "disliked_items")
+    @classmethod
+    def validate_item_lists(cls, v: List[str]) -> List[str]:
+        """Validate and normalize item lists."""
+        if not v:
+            return v
+        
+        # Normalize and deduplicate
+        normalized = []
+        seen = set()
+        
+        for item in v:
+            item = item.strip()
+            if item and len(item) >= 2:
+                item_lower = item.lower()
+                if item_lower not in seen:
+                    seen.add(item_lower)
+                    normalized.append(item)
+        
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_feedback_completeness(self) -> "FeedbackRequest":
+        """
+        Validate feedback has sufficient information.
+        
+        Low ratings should have comments explaining the issue.
+        """
+        # If overall rating is low, encourage detailed feedback
+        if self.rating <= 2:
+            if not self.comments and not self.improvement_suggestions:
+                raise ValueError(
+                    "Please provide comments or suggestions for low ratings"
+                )
+        
+        return self
+
+
+class FeedbackResponse(BaseResponseSchema):
+    """
+    Feedback submission response.
+    
+    Provides confirmation of feedback submission with context.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    student_name: str = Field(
+        ...,
+        description="Student full name",
+    )
+    meal_type: MealType = Field(
+        ...,
+        description="Meal type rated",
+    )
+    rating: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Overall rating",
+    )
+    comments: Optional[str] = Field(
+        None,
+        description="Feedback comments",
+    )
+    submitted_at: datetime = Field(
+        ...,
+        description="Submission timestamp",
+    )
+    is_verified: bool = Field(
+        default=False,
+        description="Whether feedback is verified",
+    )
+    helpful_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of users who found this helpful",
+    )
+
+    @computed_field
+    @property
+    def rating_display(self) -> str:
+        """Get star rating display."""
+        return "★" * self.rating + "☆" * (5 - self.rating)
+
+
+class ItemRating(BaseSchema):
+    """
+    Rating for specific menu item.
+    
+    Aggregates ratings for individual food items.
+    """
+
+    item_name: str = Field(
+        ...,
+        description="Menu item name",
+    )
+    item_category: Optional[str] = Field(
+        None,
+        description="Item category",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average rating for this item",
+    )
+    feedback_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of feedbacks received",
+    )
+    liked_count: int = Field(
+        default=0,
+        ge=0,
+        description="Times marked as liked",
+    )
+    disliked_count: int = Field(
+        default=0,
+        ge=0,
+        description="Times marked as disliked",
+    )
+    popularity_score: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=100,
+        description="Popularity score (0-100)",
+    )
+    last_served: Optional[date] = Field(
+        None,
+        description="Last date item was served",
+    )
+
+    @computed_field
+    @property
+    def sentiment(self) -> str:
+        """Calculate overall sentiment for item."""
+        if self.feedback_count == 0:
+            return "neutral"
+        
+        rating = float(self.average_rating)
+        
+        if rating >= 4.0:
+            return "positive"
+        elif rating >= 3.0:
+            return "neutral"
+        else:
+            return "negative"
+
+    @computed_field
+    @property
+    def like_ratio(self) -> Decimal:
+        """Calculate like to dislike ratio."""
+        total = self.liked_count + self.disliked_count
+        
+        if total == 0:
+            return Decimal("0.00")
+        
+        return round(
+            Decimal(self.liked_count) / Decimal(total) * 100,
+            2,
+        )
+
+
+class RatingsSummary(BaseSchema):
+    """
+    Comprehensive ratings summary for menu.
+    
+    Provides aggregated statistics and distribution of ratings.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    
+    # Overall statistics
+    total_feedbacks: int = Field(
+        ...,
+        ge=0,
+        description="Total feedback count",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Overall average rating",
+    )
+    median_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Median rating",
+    )
+    
+    # Meal-specific ratings
+    breakfast_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Breakfast average rating",
+    )
+    breakfast_feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Breakfast feedback count",
+    )
+    
+    lunch_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Lunch average rating",
+    )
+    lunch_feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Lunch feedback count",
+    )
+    
+    snacks_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Snacks average rating",
+    )
+    snacks_feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Snacks feedback count",
+    )
+    
+    dinner_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Dinner average rating",
+    )
+    dinner_feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Dinner feedback count",
+    )
+    
+    # Rating distribution
+    rating_5_count: int = Field(
+        ...,
+        ge=0,
+        description="5-star ratings count",
+    )
+    rating_4_count: int = Field(
+        ...,
+        ge=0,
+        description="4-star ratings count",
+    )
+    rating_3_count: int = Field(
+        ...,
+        ge=0,
+        description="3-star ratings count",
+    )
+    rating_2_count: int = Field(
+        ...,
+        ge=0,
+        description="2-star ratings count",
+    )
+    rating_1_count: int = Field(
+        ...,
+        ge=0,
+        description="1-star ratings count",
+    )
+    
+    # Aspect ratings
+    average_taste_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average taste rating",
+    )
+    average_quantity_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average quantity rating",
+    )
+    average_quality_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average quality rating",
+    )
+    average_hygiene_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average hygiene rating",
+    )
+    average_presentation_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average presentation rating",
+    )
+    average_service_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average service rating",
+    )
+    
+    # Recommendation
+    would_recommend_percentage: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Percentage who would recommend",
+    )
+
+    @computed_field
+    @property
+    def participation_rate(self) -> Decimal:
+        """Calculate feedback participation rate (if total students known)."""
+        # This would need total students count from context
+        # Placeholder for illustration
+        return Decimal("0.00")
+
+    @computed_field
+    @property
+    def satisfaction_level(self) -> str:
+        """Determine overall satisfaction level."""
+        rating = float(self.average_rating)
+        
+        if rating >= 4.5:
+            return "excellent"
+        elif rating >= 4.0:
+            return "very_good"
+        elif rating >= 3.5:
+            return "good"
+        elif rating >= 3.0:
+            return "satisfactory"
+        elif rating >= 2.0:
+            return "needs_improvement"
+        else:
+            return "poor"
+
+
+class SentimentAnalysis(BaseSchema):
+    """
+    Sentiment analysis of feedback comments.
+    
+    Analyzes text feedback for sentiment and themes.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    total_comments: int = Field(
+        ...,
+        ge=0,
+        description="Total comments analyzed",
+    )
+    
+    # Sentiment distribution
+    positive_count: int = Field(
+        ...,
+        ge=0,
+        description="Positive sentiment count",
+    )
+    neutral_count: int = Field(
+        ...,
+        ge=0,
+        description="Neutral sentiment count",
+    )
+    negative_count: int = Field(
+        ...,
+        ge=0,
+        description="Negative sentiment count",
+    )
+    
+    # Percentages
+    positive_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Positive sentiment percentage",
+    )
+    negative_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Negative sentiment percentage",
+    )
+    
+    # Common themes
+    common_positive_keywords: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Most frequent positive keywords",
+    )
+    common_negative_keywords: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Most frequent negative keywords",
+    )
+
+
+class QualityMetrics(BaseSchema):
+    """
+    Menu quality metrics and trends.
+    
+    Provides insights into menu quality over time with
+    comparative analysis.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    period_start: date = Field(
+        ...,
+        description="Analysis period start",
+    )
+    period_end: date = Field(
+        ...,
+        description="Analysis period end",
+    )
+    
+    # Overall metrics
+    overall_average_rating: Decimal = Field(
+        ...,
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Overall average rating for period",
+    )
+    total_feedbacks: int = Field(
+        ...,
+        ge=0,
+        description="Total feedback count",
+    )
+    total_menus_rated: int = Field(
+        ...,
+        ge=0,
+        description="Number of menus that received ratings",
+    )
+    
+    # Trends
+    rating_trend: str = Field(
+        ...,
+        pattern=r"^(improving|declining|stable)$",
+        description="Rating trend direction",
+    )
+    trend_percentage: Optional[Decimal] = Field(
+        None,
+        decimal_places=2,
+        description="Trend change percentage",
+    )
+    
+    # Best and worst performers
+    best_rated_items: List[ItemRating] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Top rated items",
+    )
+    worst_rated_items: List[ItemRating] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Lowest rated items",
+    )
+    most_popular_items: List[ItemRating] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Most popular items by feedback count",
+    )
+    
+    # Day of week analysis
+    ratings_by_day: Dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average rating by day of week",
+    )
+    best_day: Optional[str] = Field(
+        None,
+        description="Day with highest average rating",
+    )
+    worst_day: Optional[str] = Field(
+        None,
+        description="Day with lowest average rating",
+    )
+    
+    # Meal analysis
+    best_meal_type: Optional[str] = Field(
+        None,
+        description="Meal type with highest rating",
+    )
+    worst_meal_type: Optional[str] = Field(
+        None,
+        description="Meal type with lowest rating",
+    )
+    
+    # Satisfaction metrics
+    satisfaction_rate: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=100,
+        description="Percentage of ratings >= 4 stars",
+    )
+    dissatisfaction_rate: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=100,
+        description="Percentage of ratings <= 2 stars",
+    )
+
+    @computed_field
+    @property
+    def quality_score(self) -> Decimal:
+        """
+        Calculate overall quality score (0-100).
+        
+        Composite metric based on ratings and satisfaction.
+        """
+        # Simple formula: (avg_rating / 5) * 100
+        return round(
+            self.overall_average_rating / Decimal("5") * 100,
+            2,
+        )
+
+
+class FeedbackAnalysis(BaseSchema):
+    """
+    Comprehensive feedback analysis with actionable insights.
+    
+    Provides detailed analysis of feedback data with recommendations
+    for menu improvement.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    analysis_period: DateRangeFilter = Field(
+        ...,
+        description="Analysis time period",
+    )
+    generated_at: datetime = Field(
+        ...,
+        description="Analysis generation timestamp",
+    )
+    
+    # Sentiment analysis
+    positive_feedback_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Positive feedback percentage",
+    )
+    negative_feedback_percentage: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Negative feedback percentage",
+    )
+    neutral_feedback_percentage: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=100,
+        description="Neutral feedback percentage",
+    )
+    
+    # Common themes
+    common_complaints: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Most common complaints/issues",
+    )
+    common_compliments: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Most common positive feedback",
+    )
+    recurring_issues: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Issues appearing repeatedly",
+    )
+    
+    # Item-level insights
+    items_to_keep: List[str] = Field(
+        default_factory=list,
+        max_length=30,
+        description="High-rated items to continue serving",
+    )
+    items_to_improve: List[str] = Field(
+        default_factory=list,
+        max_length=30,
+        description="Items needing quality improvement",
+    )
+    items_to_remove: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Consistently low-rated items to remove",
+    )
+    items_to_introduce: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Suggested new items based on requests",
+    )
+    
+    # Improvement recommendations
+    priority_improvements: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="High-priority improvement areas",
+    )
+    quick_wins: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Easy improvements with high impact",
+    )
+    
+    # Cost-benefit analysis
+    high_satisfaction_low_cost_items: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Items with good rating and low cost",
+    )
+    
+    # Student preferences
+    dietary_preference_trends: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Emerging dietary preference trends",
+    )
+    requested_cuisines: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Cuisines students are requesting",
+    )
+    
+    # Timing insights
+    peak_feedback_times: List[str] = Field(
+        default_factory=list,
+        description="Times when most feedback is received",
+    )
+    low_engagement_meals: List[str] = Field(
+        default_factory=list,
+        description="Meals with low feedback participation",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\menu_planning.py ---
+# --- File: app/schemas/mess/menu_planning.py ---
+"""
+Menu planning schemas for advance planning and templates.
+
+Provides comprehensive menu planning capabilities including weekly plans,
+monthly schedules, special menus, and reusable templates.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator, model_validator
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "MenuPlanRequest",
+    "WeeklyPlan",
+    "DailyMenuPlan",
+    "MonthlyPlan",
+    "SpecialMenu",
+    "SpecialDayMenu",
+    "MenuTemplate",
+    "MenuSuggestion",
+]
+
+
+class DailyMenuPlan(BaseSchema):
+    """
+    Daily menu plan structure.
+    
+    Defines items for all meals of a single day.
+    """
+
+    breakfast: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="Breakfast items",
+    )
+    lunch: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="Lunch items",
+    )
+    snacks: List[str] = Field(
+        default_factory=list,
+        max_length=15,
+        description="Snacks items",
+    )
+    dinner: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="Dinner items",
+    )
+    is_special: bool = Field(
+        False,
+        description="Special menu indicator",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Special occasion name",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Planning notes",
+    )
+
+    @field_validator("breakfast", "lunch", "snacks", "dinner")
+    @classmethod
+    def validate_menu_items(cls, v: List[str]) -> List[str]:
+        """Validate and normalize menu items."""
+        normalized = []
+        for item in v:
+            item = item.strip()
+            if item and len(item) >= 2:
+                normalized.append(item)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_items = []
+        for item in normalized:
+            if item.lower() not in seen:
+                seen.add(item.lower())
+                unique_items.append(item)
+        
+        return unique_items
+
+    @model_validator(mode="after")
+    def validate_special_occasion(self) -> "DailyMenuPlan":
+        """Validate special occasion requirements."""
+        if self.is_special and not self.special_occasion:
+            raise ValueError(
+                "special_occasion is required when is_special is True"
+            )
+        return self
+
+
+class MenuPlanRequest(BaseCreateSchema):
+    """
+    Request to create comprehensive menu plan.
+    
+    Initiates menu planning for a date range with various
+    configuration options.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    
+    # Planning period
+    start_date: date = Field(
+        ...,
+        description="Plan start date",
+    )
+    end_date: date = Field(
+        ...,
+        description="Plan end date",
+    )
+    
+    # Template usage
+    use_template: bool = Field(
+        False,
+        description="Use existing template",
+    )
+    template_id: Optional[UUID] = Field(
+        None,
+        description="Template ID to use",
+    )
+    
+    # Variety and preferences
+    ensure_variety: bool = Field(
+        True,
+        description="Ensure item variety across days",
+    )
+    min_days_between_repeat: int = Field(
+        3,
+        ge=1,
+        le=7,
+        description="Minimum days before repeating items",
+    )
+    avoid_consecutive_repeats: bool = Field(
+        True,
+        description="Avoid same item on consecutive days",
+    )
+    
+    # Dietary requirements
+    vegetarian_days_per_week: int = Field(
+        7,
+        ge=0,
+        le=7,
+        description="Days with vegetarian-only menu",
+    )
+    include_vegan_options: bool = Field(
+        False,
+        description="Include vegan options",
+    )
+    include_jain_options: bool = Field(
+        False,
+        description="Include Jain dietary options",
+    )
+    
+    # Budget constraints
+    target_cost_per_day: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Target daily cost per person",
+    )
+    max_cost_per_day: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Maximum daily cost per person",
+    )
+    
+    # Nutritional goals
+    target_calories_per_day: Optional[int] = Field(
+        None,
+        ge=1000,
+        le=5000,
+        description="Target daily calories",
+    )
+    ensure_balanced_nutrition: bool = Field(
+        default=True,
+        description="Ensure balanced macros",
+    )
+    
+    # Planning preferences
+    prefer_seasonal_items: bool = Field(
+        default=True,
+        description="Prefer seasonal ingredients",
+    )
+    include_regional_favorites: bool = Field(
+        default=True,
+        description="Include regional favorites",
+    )
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, v: date) -> date:
+        """Validate start date is not too far in past."""
+        today = date.today()
+        
+        days_past = (today - v).days
+        if days_past > 7:
+            raise ValueError(
+                "Start date cannot be more than 7 days in the past"
+            )
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_plan_request(self) -> "MenuPlanRequest":
+        """Validate menu plan request consistency."""
+        # Validate date range
+        if self.end_date < self.start_date:
+            raise ValueError("End date must be after start date")
+        
+        # Limit planning period
+        days_span = (self.end_date - self.start_date).days + 1
+        if days_span > 90:
+            raise ValueError("Planning period cannot exceed 90 days")
+        
+        # Template validation
+        if self.use_template and not self.template_id:
+            raise ValueError(
+                "template_id is required when use_template is True"
+            )
+        
+        # Cost validation
+        if self.target_cost_per_day and self.max_cost_per_day:
+            if self.max_cost_per_day < self.target_cost_per_day:
+                raise ValueError(
+                    "max_cost_per_day must be >= target_cost_per_day"
+                )
+        
+        return self
+
+
+class WeeklyPlan(BaseCreateSchema):
+    """
+    Complete weekly menu plan.
+    
+    Defines menus for all seven days of the week.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    week_start_date: date = Field(
+        ...,
+        description="Week start date (Monday)",
+    )
+    week_number: int = Field(
+        ...,
+        ge=1,
+        le=53,
+        description="Week number in year",
+    )
+    year: int = Field(
+        ...,
+        ge=2000,
+        description="Year",
+    )
+    
+    # Daily menus
+    monday: DailyMenuPlan = Field(
+        ...,
+        description="Monday menu",
+    )
+    tuesday: DailyMenuPlan = Field(
+        ...,
+        description="Tuesday menu",
+    )
+    wednesday: DailyMenuPlan = Field(
+        ...,
+        description="Wednesday menu",
+    )
+    thursday: DailyMenuPlan = Field(
+        ...,
+        description="Thursday menu",
+    )
+    friday: DailyMenuPlan = Field(
+        ...,
+        description="Friday menu",
+    )
+    saturday: DailyMenuPlan = Field(
+        ...,
+        description="Saturday menu",
+    )
+    sunday: DailyMenuPlan = Field(
+        ...,
+        description="Sunday menu",
+    )
+    
+    # Metadata
+    created_by: UUID = Field(
+        ...,
+        description="Creator user ID",
+    )
+    plan_name: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Plan name/title",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Planning notes",
+    )
+    estimated_total_cost: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Estimated total cost for the week",
+    )
+
+    @field_validator("week_start_date")
+    @classmethod
+    def validate_monday(cls, v: date) -> date:
+        """Ensure week starts on Monday."""
+        if v.weekday() != 0:  # 0 = Monday
+            raise ValueError("Week must start on Monday")
+        return v
+
+
+class SpecialDayMenu(BaseSchema):
+    """
+    Special day menu in monthly plan.
+    
+    Associates special occasion with specific date and menu.
+    """
+
+    date: date = Field(
+        ...,
+        description="Special day date",
+    )
+    occasion: str = Field(
+        ...,
+        min_length=3,
+        max_length=255,
+        description="Occasion name",
+    )
+    occasion_type: str = Field(
+        ...,
+        pattern=r"^(festival|holiday|celebration|event|birthday|other)$",
+        description="Occasion type",
+    )
+    menu: DailyMenuPlan = Field(
+        ...,
+        description="Special menu for the day",
+    )
+    budget: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Special budget allocation",
+    )
+    expected_guests: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Expected number of guests",
+    )
+
+
+class MonthlyPlan(BaseCreateSchema):
+    """
+    Comprehensive monthly menu plan.
+    
+    Organizes weekly plans and special occasions for entire month.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-(0[1-9]|1[0-2])$",
+        description="Month in YYYY-MM format",
+    )
+    month_name: str = Field(
+        ...,
+        description="Month name",
+    )
+    year: int = Field(
+        ...,
+        ge=2000,
+        description="Year",
+    )
+    
+    # Weekly plans
+    weeks: List[WeeklyPlan] = Field(
+        ...,
+        min_length=4,
+        max_length=5,
+        description="Weekly menu plans",
+    )
+    
+    # Special days
+    special_days: List[SpecialDayMenu] = Field(
+        default_factory=list,
+        max_length=31,
+        description="Special occasion menus",
+    )
+    
+    # Monthly summary
+    total_budget: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Total monthly budget",
+    )
+    created_by: UUID = Field(
+        ...,
+        description="Creator user ID",
+    )
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="Approver user ID",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=2000,
+        description="Monthly planning notes",
+    )
+
+    @model_validator(mode="after")
+    def validate_special_days(self) -> "MonthlyPlan":
+        """Ensure special days are unique and within month."""
+        if self.special_days:
+            dates = [day.date for day in self.special_days]
+            
+            # Check for duplicates
+            if len(dates) != len(set(dates)):
+                raise ValueError("Duplicate special day dates found")
+        
+        return self
+
+
+class SpecialMenu(BaseCreateSchema):
+    """
+    Special occasion menu configuration.
+    
+    Defines enhanced menu for festivals, celebrations, and events.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    occasion_date: date = Field(
+        ...,
+        description="Occasion date",
+    )
+    occasion_name: str = Field(
+        ...,
+        min_length=3,
+        max_length=255,
+        description="Occasion name",
+    )
+    occasion_type: str = Field(
+        ...,
+        pattern=r"^(festival|holiday|celebration|cultural_event|sports_event|founder_day|other)$",
+        description="Type of occasion",
+    )
+    
+    # Enhanced menu
+    breakfast: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=25,
+        description="Special breakfast items",
+    )
+    lunch: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=40,
+        description="Special lunch items",
+    )
+    snacks: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Special snacks items",
+    )
+    dinner: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=40,
+        description="Special dinner items",
+    )
+    
+    # Additional special items
+    special_items: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Extra special delicacies",
+    )
+    desserts: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Special desserts",
+    )
+    
+    # Budget and planning
+    budget: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+        description="Special occasion budget",
+    )
+    estimated_cost_per_person: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Estimated cost per person",
+    )
+    expected_attendees: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Expected number of attendees",
+    )
+    
+    # Execution details
+    decoration_theme: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Decoration theme",
+    )
+    serving_style: Optional[str] = Field(
+        None,
+        pattern=r"^(buffet|table_service|plated|family_style)$",
+        description="Serving style",
+    )
+    special_instructions: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Special preparation instructions",
+    )
+    
+    # Notifications
+    send_advance_notification: bool = Field(
+        default=True,
+        description="Send advance notification to students",
+    )
+    notification_days_before: int = Field(
+        default=3,
+        ge=0,
+        le=30,
+        description="Days before to send notification",
+    )
+
+    @field_validator("occasion_date")
+    @classmethod
+    def validate_occasion_date(cls, v: date) -> date:
+        """Validate occasion date is not too far in future."""
+        days_ahead = (v - date.today()).days
+        
+        if days_ahead < -7:
+            raise ValueError(
+                "Cannot create special menu for dates more than 7 days in past"
+            )
+        
+        if days_ahead > 365:
+            raise ValueError(
+                "Cannot create special menu more than 1 year in advance"
+            )
+        
+        return v
+
+
+class MenuTemplate(BaseCreateSchema):
+    """
+    Reusable menu template for recurring patterns.
+    
+    Stores menu patterns that can be applied to multiple dates.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    template_name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        description="Template name",
+    )
+    template_code: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Template code/identifier",
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Template description",
+    )
+    
+    # Template type and applicability
+    template_type: str = Field(
+        ...,
+        pattern=r"^(weekly|festival|summer|winter|monsoon|exam_period|vacation|regular)$",
+        description="Template type/category",
+    )
+    applicable_season: Optional[str] = Field(
+        None,
+        pattern=r"^(spring|summer|monsoon|autumn|winter|all)$",
+        description="Applicable season",
+    )
+    
+    # Menu structure (day-wise or meal-wise)
+    daily_menus: Dict[str, DailyMenuPlan] = Field(
+        ...,
+        description="Day name/identifier -> menu plan mapping",
+    )
+    
+    # Template metadata
+    created_by: UUID = Field(
+        ...,
+        description="Creator user ID",
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether template is active",
+    )
+    is_default: bool = Field(
+        default=False,
+        description="Whether this is default template",
+    )
+    usage_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of times template has been used",
+    )
+    average_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Average rating when template was used",
+    )
+    
+    # Cost information
+    estimated_daily_cost: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Estimated daily cost per person",
+    )
+    
+    # Tags for categorization
+    tags: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Template tags for search/filter",
+    )
+
+    @field_validator("daily_menus")
+    @classmethod
+    def validate_daily_menus(cls, v: Dict[str, DailyMenuPlan]) -> Dict[str, DailyMenuPlan]:
+        """Validate daily menus structure."""
+        if not v:
+            raise ValueError("Template must have at least one daily menu")
+        
+        # Validate keys are proper day names or identifiers
+        valid_days = {
+            "monday", "tuesday", "wednesday", "thursday",
+            "friday", "saturday", "sunday",
+            "day1", "day2", "day3", "day4", "day5", "day6", "day7"
+        }
+        
+        for key in v.keys():
+            if key.lower() not in valid_days:
+                # Allow custom keys but validate they're reasonable
+                if len(key) > 20:
+                    raise ValueError(f"Daily menu key '{key}' is too long")
+        
+        return v
+
+
+class MenuSuggestion(BaseSchema):
+    """
+    AI/system generated menu suggestions.
+    
+    Provides intelligent menu recommendations based on various factors.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    suggestion_date: date = Field(
+        ...,
+        description="Date for suggested menu",
+    )
+    
+    # Suggested items
+    suggested_breakfast: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="Breakfast suggestions",
+    )
+    suggested_lunch: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="Lunch suggestions",
+    )
+    suggested_snacks: List[str] = Field(
+        default_factory=list,
+        max_length=15,
+        description="Snacks suggestions",
+    )
+    suggested_dinner: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="Dinner suggestions",
+    )
+    
+    # Suggestion rationale
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Why these items are suggested",
+    )
+    based_on: List[str] = Field(
+        default_factory=list,
+        description="Factors considered (past ratings, season, etc.)",
+    )
+    
+    # Scoring
+    variety_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=10,
+        decimal_places=2,
+        description="Menu variety score (0-10)",
+    )
+    nutrition_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=10,
+        decimal_places=2,
+        description="Nutritional balance score (0-10)",
+    )
+    cost_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=10,
+        decimal_places=2,
+        description="Cost efficiency score (0-10)",
+    )
+    popularity_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=10,
+        decimal_places=2,
+        description="Based on past ratings (0-10)",
+    )
+    overall_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=10,
+        decimal_places=2,
+        description="Overall recommendation score (0-10)",
+    )
+    
+    # Additional context
+    seasonal_items_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of seasonal items included",
+    )
+    estimated_cost_per_person: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Estimated cost per person",
+    )
+    estimated_calories: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Estimated daily calories",
+    )
+    
+    # Suggestion metadata
+    generated_at: datetime = Field(
+        ...,
+        description="Suggestion generation timestamp",
+    )
+    algorithm_version: Optional[str] = Field(
+        None,
+        description="Suggestion algorithm version",
+    )
+
+    @computed_field
+    @property
+    def recommendation_strength(self) -> str:
+        """Get recommendation strength label."""
+        score = float(self.overall_score)
+        
+        if score >= 9:
+            return "highly_recommended"
+        elif score >= 7:
+            return "recommended"
+        elif score >= 5:
+            return "moderate"
+        else:
+            return "consider_alternatives"
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\mess_menu_base.py ---
+# --- File: app/schemas/mess/mess_menu_base.py ---
+"""
+Base mess menu schemas with comprehensive validation and type safety.
+
+This module provides foundational schemas for mess/cafeteria menu management
+including creation, updates, and core validation logic.
+"""
+
+from __future__ import annotations
+
+from datetime import date, time
+from typing import List, Optional
+
+from pydantic import Field, field_validator, model_validator
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+
+__all__ = [
+    "MessMenuBase",
+    "MessMenuCreate",
+    "MessMenuUpdate",
+]
+
+
+class MessMenuBase(BaseSchema):
+    """
+    Base mess menu schema with core fields.
+    
+    Provides common menu attributes and validation logic used across
+    create/update operations for hostel meal planning.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Date for which menu is planned",
+    )
+    day_of_week: str = Field(
+        ...,
+        pattern=r"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$",
+        description="Day of the week",
+    )
+
+    # Meal items
+    breakfast_items: List[str] = Field(
+        default_factory=list,
+        min_length=0,
+        max_length=20,
+        description="Breakfast menu items",
+    )
+    lunch_items: List[str] = Field(
+        default_factory=list,
+        min_length=0,
+        max_length=30,
+        description="Lunch menu items",
+    )
+    snacks_items: List[str] = Field(
+        default_factory=list,
+        min_length=0,
+        max_length=15,
+        description="Snacks/evening tea items",
+    )
+    dinner_items: List[str] = Field(
+        default_factory=list,
+        min_length=0,
+        max_length=30,
+        description="Dinner menu items",
+    )
+
+    # Meal timings
+    breakfast_time: Optional[time] = Field(
+        None,
+        description="Breakfast serving time",
+    )
+    lunch_time: Optional[time] = Field(
+        None,
+        description="Lunch serving time",
+    )
+    snacks_time: Optional[time] = Field(
+        None,
+        description="Snacks serving time",
+    )
+    dinner_time: Optional[time] = Field(
+        None,
+        description="Dinner serving time",
+    )
+
+    # Special menu flags
+    is_special_menu: bool = Field(
+        False,
+        description="Whether this is a special occasion menu",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Special occasion name (festival, celebration, etc.)",
+    )
+    special_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Additional notes about the special menu",
+    )
+
+    # Dietary options availability
+    vegetarian_available: bool = Field(
+        True,
+        description="Vegetarian options available",
+    )
+    non_vegetarian_available: bool = Field(
+        False,
+        description="Non-vegetarian options available",
+    )
+    vegan_available: bool = Field(
+        False,
+        description="Vegan options available",
+    )
+    jain_available: bool = Field(
+        False,
+        description="Jain dietary options available",
+    )
+
+    @field_validator("menu_date")
+    @classmethod
+    def validate_menu_date(cls, v: date) -> date:
+        """
+        Validate menu date constraints.
+        
+        Menu can be created for today or future dates, but not too far ahead.
+        """
+        today = date.today()
+        
+        # Can't create menu for past dates (except today)
+        if v < today:
+            raise ValueError("Menu date cannot be in the past")
+        
+        # Limit advance menu planning to 90 days
+        days_ahead = (v - today).days
+        if days_ahead > 90:
+            raise ValueError(
+                "Menu cannot be created more than 90 days in advance"
+            )
+        
+        return v
+
+    @field_validator("day_of_week")
+    @classmethod
+    def validate_day_consistency(cls, v: str, info) -> str:
+        """
+        Validate day of week matches the menu date.
+        
+        Ensures data consistency between date and day name.
+        """
+        if "menu_date" in info.data:
+            menu_date = info.data["menu_date"]
+            expected_day = menu_date.strftime("%A")
+            
+            if v != expected_day:
+                raise ValueError(
+                    f"Day of week '{v}' doesn't match menu date {menu_date} "
+                    f"(should be {expected_day})"
+                )
+        
+        return v
+
+    @field_validator(
+        "breakfast_items",
+        "lunch_items",
+        "snacks_items",
+        "dinner_items",
+    )
+    @classmethod
+    def validate_menu_items(cls, v: List[str]) -> List[str]:
+        """
+        Validate and normalize menu items.
+        
+        Ensures items are properly formatted and not empty.
+        """
+        if not v:
+            return v
+        
+        # Normalize and validate each item
+        normalized_items = []
+        for item in v:
+            item = item.strip()
+            
+            if not item:
+                continue
+            
+            if len(item) < 2:
+                raise ValueError("Menu items must be at least 2 characters long")
+            
+            if len(item) > 100:
+                raise ValueError("Menu items cannot exceed 100 characters")
+            
+            normalized_items.append(item)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_items = []
+        for item in normalized_items:
+            item_lower = item.lower()
+            if item_lower not in seen:
+                seen.add(item_lower)
+                unique_items.append(item)
+        
+        return unique_items
+
+    @field_validator("special_occasion", "special_notes")
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields by stripping whitespace."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+    @model_validator(mode="after")
+    def validate_special_menu_requirements(self) -> "MessMenuBase":
+        """
+        Validate special menu configuration.
+        
+        Special menus should have occasion name and at least one meal.
+        """
+        if self.is_special_menu:
+            if not self.special_occasion:
+                raise ValueError(
+                    "special_occasion is required when is_special_menu is True"
+                )
+            
+            # Special menus should have at least one meal with items
+            has_items = any([
+                self.breakfast_items,
+                self.lunch_items,
+                self.snacks_items,
+                self.dinner_items,
+            ])
+            
+            if not has_items:
+                raise ValueError(
+                    "Special menu must have at least one meal with items"
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_meal_times_sequence(self) -> "MessMenuBase":
+        """
+        Validate meal times are in logical sequence.
+        
+        Breakfast < Lunch < Snacks < Dinner
+        """
+        times = []
+        
+        if self.breakfast_time:
+            times.append(("breakfast", self.breakfast_time))
+        if self.lunch_time:
+            times.append(("lunch", self.lunch_time))
+        if self.snacks_time:
+            times.append(("snacks", self.snacks_time))
+        if self.dinner_time:
+            times.append(("dinner", self.dinner_time))
+        
+        # Check sequence
+        for i in range(len(times) - 1):
+            current_meal, current_time = times[i]
+            next_meal, next_time = times[i + 1]
+            
+            if current_time >= next_time:
+                raise ValueError(
+                    f"{next_meal.capitalize()} time must be after {current_meal} time"
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_dietary_options(self) -> "MessMenuBase":
+        """
+        Validate at least one dietary option is available.
+        
+        Menu must cater to at least one dietary preference.
+        """
+        if not any([
+            self.vegetarian_available,
+            self.non_vegetarian_available,
+            self.vegan_available,
+            self.jain_available,
+        ]):
+            raise ValueError(
+                "At least one dietary option must be available"
+            )
+        
+        return self
+
+
+class MessMenuCreate(MessMenuBase, BaseCreateSchema):
+    """
+    Create mess menu with creator tracking.
+    
+    Extends base schema with creation context and additional validation.
+    """
+
+    created_by: UUID = Field(
+        ...,
+        description="Supervisor/Admin user ID who created the menu",
+    )
+    
+    # Additional creation flags
+    auto_publish: bool = Field(
+        default=False,
+        description="Automatically publish menu after creation",
+    )
+    send_notification: bool = Field(
+        default=True,
+        description="Send notification to students about new menu",
+    )
+
+    @model_validator(mode="after")
+    def validate_menu_completeness(self) -> "MessMenuCreate":
+        """
+        Validate menu has sufficient items for creation.
+        
+        At least main meals (breakfast and lunch/dinner) should have items.
+        """
+        main_meals_count = sum([
+            bool(self.breakfast_items),
+            bool(self.lunch_items),
+            bool(self.dinner_items),
+        ])
+        
+        if main_meals_count < 2:
+            raise ValueError(
+                "Menu must have items for at least 2 main meals "
+                "(breakfast, lunch, or dinner)"
+            )
+        
+        return self
+
+
+class MessMenuUpdate(BaseUpdateSchema):
+    """
+    Update mess menu with partial fields.
+    
+    All fields are optional for flexible updates. Typically used
+    to modify draft menus before publication.
+    """
+
+    breakfast_items: Optional[List[str]] = Field(
+        None,
+        max_length=20,
+        description="Updated breakfast items",
+    )
+    lunch_items: Optional[List[str]] = Field(
+        None,
+        max_length=30,
+        description="Updated lunch items",
+    )
+    snacks_items: Optional[List[str]] = Field(
+        None,
+        max_length=15,
+        description="Updated snacks items",
+    )
+    dinner_items: Optional[List[str]] = Field(
+        None,
+        max_length=30,
+        description="Updated dinner items",
+    )
+
+    breakfast_time: Optional[time] = Field(
+        None,
+        description="Updated breakfast time",
+    )
+    lunch_time: Optional[time] = Field(
+        None,
+        description="Updated lunch time",
+    )
+    snacks_time: Optional[time] = Field(
+        None,
+        description="Updated snacks time",
+    )
+    dinner_time: Optional[time] = Field(
+        None,
+        description="Updated dinner time",
+    )
+
+    is_special_menu: Optional[bool] = Field(
+        None,
+        description="Updated special menu flag",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Updated special occasion",
+    )
+    special_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated special notes",
+    )
+
+    vegetarian_available: Optional[bool] = None
+    non_vegetarian_available: Optional[bool] = None
+    vegan_available: Optional[bool] = None
+    jain_available: Optional[bool] = None
+
+    @field_validator(
+        "breakfast_items",
+        "lunch_items",
+        "snacks_items",
+        "dinner_items",
+    )
+    @classmethod
+    def validate_menu_items(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate and normalize menu items if provided."""
+        if v is None:
+            return None
+        
+        # Apply same validation as base schema
+        normalized_items = []
+        for item in v:
+            item = item.strip()
+            
+            if not item:
+                continue
+            
+            if len(item) < 2:
+                raise ValueError("Menu items must be at least 2 characters long")
+            
+            if len(item) > 100:
+                raise ValueError("Menu items cannot exceed 100 characters")
+            
+            normalized_items.append(item)
+        
+        # Remove duplicates
+        seen = set()
+        unique_items = []
+        for item in normalized_items:
+            item_lower = item.lower()
+            if item_lower not in seen:
+                seen.add(item_lower)
+                unique_items.append(item)
+        
+        return unique_items if unique_items else None
+
+    @field_validator("special_occasion", "special_notes")
+    @classmethod
+    def normalize_text(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\mess_menu_response.py ---
+# --- File: app/schemas/mess/mess_menu_response.py ---
+"""
+Mess menu response schemas for API responses.
+
+Provides various response formats for menu data including
+detailed, summary, weekly, and monthly views with computed fields.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime, time
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, computed_field
+from uuid import UUID
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import MealType
+
+__all__ = [
+    "MenuResponse",
+    "MenuDetail",
+    "WeeklyMenu",
+    "DailyMenuSummary",
+    "MonthlyMenu",
+    "TodayMenu",
+    "MenuListItem",
+]
+
+
+class MenuResponse(BaseResponseSchema):
+    """
+    Standard menu response with essential information.
+    
+    Lightweight response schema for list views and basic queries.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    day_of_week: str = Field(
+        ...,
+        description="Day of the week",
+    )
+    breakfast_items: List[str] = Field(
+        default_factory=list,
+        description="Breakfast items",
+    )
+    lunch_items: List[str] = Field(
+        default_factory=list,
+        description="Lunch items",
+    )
+    snacks_items: List[str] = Field(
+        default_factory=list,
+        description="Snacks items",
+    )
+    dinner_items: List[str] = Field(
+        default_factory=list,
+        description="Dinner items",
+    )
+    is_special_menu: bool = Field(
+        ...,
+        description="Whether this is a special menu",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        description="Special occasion name",
+    )
+    is_published: bool = Field(
+        ...,
+        description="Whether menu is published to students",
+    )
+    average_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        description="Average student rating",
+    )
+
+    @computed_field
+    @property
+    def total_items_count(self) -> int:
+        """Calculate total number of items across all meals."""
+        return (
+            len(self.breakfast_items)
+            + len(self.lunch_items)
+            + len(self.snacks_items)
+            + len(self.dinner_items)
+        )
+
+    @computed_field
+    @property
+    def is_complete(self) -> bool:
+        """Check if menu has items for all main meals."""
+        return bool(
+            self.breakfast_items
+            and (self.lunch_items or self.dinner_items)
+        )
+
+
+class MenuDetail(BaseResponseSchema):
+    """
+    Detailed menu information with complete metadata.
+    
+    Comprehensive response including all menu details, ratings,
+    and management information.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    day_of_week: str = Field(
+        ...,
+        description="Day of the week",
+    )
+
+    # Meals with timings
+    breakfast_items: List[str] = Field(
+        default_factory=list,
+        description="Breakfast menu items",
+    )
+    breakfast_time: Optional[time] = Field(
+        None,
+        description="Breakfast serving time",
+    )
+    
+    lunch_items: List[str] = Field(
+        default_factory=list,
+        description="Lunch menu items",
+    )
+    lunch_time: Optional[time] = Field(
+        None,
+        description="Lunch serving time",
+    )
+    
+    snacks_items: List[str] = Field(
+        default_factory=list,
+        description="Snacks menu items",
+    )
+    snacks_time: Optional[time] = Field(
+        None,
+        description="Snacks serving time",
+    )
+    
+    dinner_items: List[str] = Field(
+        default_factory=list,
+        description="Dinner menu items",
+    )
+    dinner_time: Optional[time] = Field(
+        None,
+        description="Dinner serving time",
+    )
+
+    # Dietary options
+    vegetarian_available: bool = Field(
+        ...,
+        description="Vegetarian options available",
+    )
+    non_vegetarian_available: bool = Field(
+        ...,
+        description="Non-vegetarian options available",
+    )
+    vegan_available: bool = Field(
+        ...,
+        description="Vegan options available",
+    )
+    jain_available: bool = Field(
+        ...,
+        description="Jain dietary options available",
+    )
+
+    # Special menu information
+    is_special_menu: bool = Field(
+        ...,
+        description="Special menu indicator",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        description="Special occasion name",
+    )
+    special_notes: Optional[str] = Field(
+        None,
+        description="Special menu notes",
+    )
+
+    # Management information
+    created_by: UUID = Field(
+        ...,
+        description="Creator user ID",
+    )
+    created_by_name: str = Field(
+        ...,
+        description="Creator name",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+    
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="Approver user ID",
+    )
+    approved_by_name: Optional[str] = Field(
+        None,
+        description="Approver name",
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+
+    # Publication status
+    is_published: bool = Field(
+        ...,
+        description="Publication status",
+    )
+    published_at: Optional[datetime] = Field(
+        None,
+        description="Publication timestamp",
+    )
+    published_by: Optional[UUID] = Field(
+        None,
+        description="Publisher user ID",
+    )
+
+    # Feedback and ratings
+    average_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average rating",
+    )
+    total_feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Total feedback count",
+    )
+    rating_breakdown: Optional[Dict[str, int]] = Field(
+        None,
+        description="Rating distribution (1-5 stars)",
+    )
+
+    # Metadata
+    last_updated: datetime = Field(
+        ...,
+        description="Last update timestamp",
+    )
+    last_updated_by: Optional[UUID] = Field(
+        None,
+        description="Last updater user ID",
+    )
+
+    @computed_field
+    @property
+    def approval_status(self) -> str:
+        """Get approval status label."""
+        if self.approved_by:
+            return "approved"
+        elif self.is_published:
+            return "published_without_approval"
+        else:
+            return "pending"
+
+    @computed_field
+    @property
+    def has_ratings(self) -> bool:
+        """Check if menu has received any ratings."""
+        return self.total_feedback_count > 0
+
+
+class DailyMenuSummary(BaseSchema):
+    """
+    Daily menu summary for weekly/monthly views.
+    
+    Compact representation of single day's menu for
+    calendar and list views.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    day_of_week: str = Field(
+        ...,
+        description="Day of the week",
+    )
+    breakfast: List[str] = Field(
+        default_factory=list,
+        description="Breakfast items (top 3 shown)",
+    )
+    lunch: List[str] = Field(
+        default_factory=list,
+        description="Lunch items (top 3 shown)",
+    )
+    dinner: List[str] = Field(
+        default_factory=list,
+        description="Dinner items (top 3 shown)",
+    )
+    is_special: bool = Field(
+        ...,
+        description="Special menu indicator",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        description="Special occasion name",
+    )
+    average_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    is_published: bool = Field(
+        default=False,
+        description="Publication status",
+    )
+
+    @computed_field
+    @property
+    def has_complete_menu(self) -> bool:
+        """Check if menu has all main meals."""
+        return bool(self.breakfast and self.lunch and self.dinner)
+
+    @computed_field
+    @property
+    def rating_stars(self) -> str:
+        """Get star rating display string."""
+        if self.average_rating is None:
+            return "No ratings"
+        
+        rating = float(self.average_rating)
+        full_stars = int(rating)
+        half_star = rating - full_stars >= 0.5
+        
+        stars = "★" * full_stars
+        if half_star:
+            stars += "½"
+        
+        return f"{stars} ({rating:.1f})"
+
+
+class WeeklyMenu(BaseSchema):
+    """
+    Weekly menu display with all days.
+    
+    Provides complete week view for menu planning and
+    student information.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    week_number: int = Field(
+        ...,
+        ge=1,
+        le=53,
+        description="Week number in year",
+    )
+    year: int = Field(
+        ...,
+        ge=2000,
+        description="Year",
+    )
+    week_start_date: date = Field(
+        ...,
+        description="Week start date (Monday)",
+    )
+    week_end_date: date = Field(
+        ...,
+        description="Week end date (Sunday)",
+    )
+    menus: List[DailyMenuSummary] = Field(
+        ...,
+        min_length=0,
+        max_length=7,
+        description="Daily menus for the week",
+    )
+    total_menus: int = Field(
+        default=0,
+        ge=0,
+        le=7,
+        description="Number of menus available",
+    )
+    special_days_count: int = Field(
+        default=0,
+        ge=0,
+        le=7,
+        description="Number of special menus",
+    )
+    average_weekly_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Average rating for the week",
+    )
+
+    @computed_field
+    @property
+    def completion_percentage(self) -> Decimal:
+        """Calculate percentage of days with menus."""
+        if self.total_menus == 0:
+            return Decimal("0.00")
+        return round(Decimal(self.total_menus) / Decimal("7") * 100, 2)
+
+    @computed_field
+    @property
+    def is_complete(self) -> bool:
+        """Check if all 7 days have menus."""
+        return self.total_menus == 7
+
+
+class MonthlyMenu(BaseSchema):
+    """
+    Monthly menu calendar view.
+    
+    Provides complete month overview with all menus
+    and summary statistics.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-(0[1-9]|1[0-2])$",
+        description="Month in YYYY-MM format",
+    )
+    month_name: str = Field(
+        ...,
+        description="Month name (January, February, etc.)",
+    )
+    year: int = Field(
+        ...,
+        ge=2000,
+        description="Year",
+    )
+    menus_by_date: Dict[str, DailyMenuSummary] = Field(
+        ...,
+        description="Menus indexed by date (YYYY-MM-DD)",
+    )
+    
+    # Summary statistics
+    total_days: int = Field(
+        ...,
+        ge=28,
+        le=31,
+        description="Total days in month",
+    )
+    menus_created: int = Field(
+        ...,
+        ge=0,
+        description="Number of menus created",
+    )
+    menus_published: int = Field(
+        default=0,
+        ge=0,
+        description="Number of published menus",
+    )
+    special_days: int = Field(
+        default=0,
+        ge=0,
+        description="Number of special occasion menus",
+    )
+    average_rating: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=0,
+        le=5,
+        decimal_places=2,
+        description="Average monthly rating",
+    )
+    total_feedbacks: int = Field(
+        default=0,
+        ge=0,
+        description="Total feedback count for month",
+    )
+
+    @computed_field
+    @property
+    def completion_rate(self) -> Decimal:
+        """Calculate menu completion rate for month."""
+        if self.total_days == 0:
+            return Decimal("0.00")
+        return round(
+            Decimal(self.menus_created) / Decimal(self.total_days) * 100,
+            2,
+        )
+
+    @computed_field
+    @property
+    def publication_rate(self) -> Decimal:
+        """Calculate publication rate."""
+        if self.menus_created == 0:
+            return Decimal("0.00")
+        return round(
+            Decimal(self.menus_published) / Decimal(self.menus_created) * 100,
+            2,
+        )
+
+
+class TodayMenu(BaseSchema):
+    """
+    Today's menu for student view.
+    
+    Simplified, student-friendly view of current day's menu
+    with timing and dietary information.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    date: date = Field(
+        ...,
+        description="Today's date",
+    )
+    day_of_week: str = Field(
+        ...,
+        description="Day of the week",
+    )
+
+    # Breakfast
+    breakfast: List[str] = Field(
+        ...,
+        description="Breakfast items",
+    )
+    breakfast_time: str = Field(
+        ...,
+        description="Breakfast timing (formatted)",
+    )
+    
+    # Lunch
+    lunch: List[str] = Field(
+        ...,
+        description="Lunch items",
+    )
+    lunch_time: str = Field(
+        ...,
+        description="Lunch timing (formatted)",
+    )
+    
+    # Snacks
+    snacks: List[str] = Field(
+        default_factory=list,
+        description="Snacks items",
+    )
+    snacks_time: Optional[str] = Field(
+        None,
+        description="Snacks timing (formatted)",
+    )
+    
+    # Dinner
+    dinner: List[str] = Field(
+        ...,
+        description="Dinner items",
+    )
+    dinner_time: str = Field(
+        ...,
+        description="Dinner timing (formatted)",
+    )
+
+    # Special menu
+    is_special: bool = Field(
+        ...,
+        description="Special menu indicator",
+    )
+    special_occasion: Optional[str] = Field(
+        None,
+        description="Special occasion name",
+    )
+    special_message: Optional[str] = Field(
+        None,
+        description="Special message for students",
+    )
+
+    # Dietary information
+    dietary_note: Optional[str] = Field(
+        None,
+        description="Dietary information note",
+    )
+    allergen_warning: Optional[str] = Field(
+        None,
+        description="Allergen warning",
+    )
+
+    # Student interaction
+    can_provide_feedback: bool = Field(
+        default=True,
+        description="Whether student can provide feedback",
+    )
+    already_rated: bool = Field(
+        default=False,
+        description="Whether student has already rated",
+    )
+
+    @computed_field
+    @property
+    def next_meal(self) -> str:
+        """Determine next upcoming meal based on current time."""
+        from datetime import datetime
+        
+        current_time = datetime.now().time()
+        
+        # Parse times (assuming format like "07:30 AM")
+        def parse_time(time_str: str) -> time:
+            try:
+                return datetime.strptime(time_str, "%I:%M %p").time()
+            except:
+                return time(0, 0)
+        
+        breakfast_time = parse_time(self.breakfast_time)
+        lunch_time = parse_time(self.lunch_time)
+        dinner_time = parse_time(self.dinner_time)
+        
+        if current_time < breakfast_time:
+            return "Breakfast"
+        elif current_time < lunch_time:
+            return "Lunch"
+        elif self.snacks_time and current_time < parse_time(self.snacks_time):
+            return "Snacks"
+        elif current_time < dinner_time:
+            return "Dinner"
+        else:
+            return "Dinner service ended"
+
+
+class MenuListItem(BaseSchema):
+    """
+    Minimal menu list item for efficient list rendering.
+    
+    Optimized for pagination and management list views.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    day_of_week: str = Field(
+        ...,
+        description="Day of the week",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    total_items: int = Field(
+        ...,
+        ge=0,
+        description="Total menu items across all meals",
+    )
+    is_special: bool = Field(
+        ...,
+        description="Special menu indicator",
+    )
+    is_published: bool = Field(
+        ...,
+        description="Publication status",
+    )
+    average_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Average rating",
+    )
+    feedback_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of feedbacks",
+    )
+
+    @computed_field
+    @property
+    def status_badge_color(self) -> str:
+        """Get status badge color for UI."""
+        if self.is_published:
+            return "green"
+        else:
+            return "yellow"
+
+    @computed_field
+    @property
+    def rating_badge_color(self) -> str:
+        """Get rating badge color based on average rating."""
+        if self.average_rating is None:
+            return "gray"
+        
+        rating = float(self.average_rating)
+        if rating >= 4.5:
+            return "green"
+        elif rating >= 3.5:
+            return "yellow"
+        elif rating >= 2.5:
+            return "orange"
+        else:
+            return "red"
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\__init__.py ---
+# --- File: app/schemas/mess/__init__.py ---
+"""
+Mess management schemas package.
+
+Comprehensive mess/cafeteria menu management schemas including planning,
+feedback, approval workflows, and duplication with enhanced validation.
+"""
+
+from __future__ import annotations
+
+from app.schemas.mess.meal_items import (
+    AllergenInfo,
+    DietaryOptions,
+    ItemCategory,
+    ItemMasterList,
+    MealItems,
+    MenuItem,
+    NutritionalInfo,
+)
+from app.schemas.mess.menu_approval import (
+    ApprovalHistory,
+    ApprovalWorkflow,
+    BulkApproval,
+    MenuApprovalRequest,
+    MenuApprovalResponse,
+)
+from app.schemas.mess.menu_duplication import (
+    BulkMenuCreate,
+    CrossHostelDuplication,
+    DuplicateMenuRequest,
+    DuplicateResponse,
+    MenuCloneConfig,
+)
+from app.schemas.mess.menu_feedback import (
+    FeedbackAnalysis,
+    FeedbackRequest,
+    FeedbackResponse,
+    ItemRating,
+    QualityMetrics,
+    RatingsSummary,
+    SentimentAnalysis,
+)
+from app.schemas.mess.menu_planning import (
+    DailyMenuPlan,
+    MenuPlanRequest,
+    MenuSuggestion,
+    MenuTemplate,
+    MonthlyPlan,
+    SpecialDayMenu,
+    SpecialMenu,
+    WeeklyPlan,
+)
+from app.schemas.mess.mess_menu_base import (
+    MessMenuBase,
+    MessMenuCreate,
+    MessMenuUpdate,
+)
+from app.schemas.mess.mess_menu_response import (
+    DailyMenuSummary,
+    MenuDetail,
+    MenuListItem,
+    MenuResponse,
+    MonthlyMenu,
+    TodayMenu,
+    WeeklyMenu,
+)
+
+__all__ = [
+    # Base schemas
+    "MessMenuBase",
+    "MessMenuCreate",
+    "MessMenuUpdate",
+    # Response schemas
+    "MenuResponse",
+    "MenuDetail",
+    "MenuListItem",
+    "WeeklyMenu",
+    "DailyMenuSummary",
+    "MonthlyMenu",
+    "TodayMenu",
+    # Meal items
+    "MealItems",
+    "MenuItem",
+    "DietaryOptions",
+    "NutritionalInfo",
+    "AllergenInfo",
+    "ItemMasterList",
+    "ItemCategory",
+    # Planning
+    "MenuPlanRequest",
+    "WeeklyPlan",
+    "DailyMenuPlan",
+    "MonthlyPlan",
+    "SpecialMenu",
+    "SpecialDayMenu",
+    "MenuTemplate",
+    "MenuSuggestion",
+    # Feedback
+    "FeedbackRequest",
+    "FeedbackResponse",
+    "RatingsSummary",
+    "ItemRating",
+    "QualityMetrics",
+    "FeedbackAnalysis",
+    "SentimentAnalysis",
     # Approval
     "MenuApprovalRequest",
+    "MenuApprovalResponse",
     "ApprovalWorkflow",
-    
+    "BulkApproval",
+    "ApprovalHistory",
     # Duplication
     "DuplicateMenuRequest",
     "BulkMenuCreate",
+    "DuplicateResponse",
+    "CrossHostelDuplication",
+    "MenuCloneConfig",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\mess\__pycache__ =====

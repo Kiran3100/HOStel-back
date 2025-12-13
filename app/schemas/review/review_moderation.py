@@ -11,7 +11,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator,model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema, BaseCreateSchema

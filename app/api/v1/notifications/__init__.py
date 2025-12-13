@@ -73,7 +73,7 @@ def get_current_admin(current_user: CurrentUser = Depends(get_current_user)) -> 
 # Import sub-routers and mount them under /notifications in the main API router.
 from . import notifications, templates, preferences, send  # noqa: E402
 
-router.include_router(notifications.router)
+router.include_router(notifications.router, prefix="/notifications")
 router.include_router(templates.router, prefix="/templates")
 router.include_router(preferences.router, prefix="/preferences")
 router.include_router(send.router, prefix="/send")

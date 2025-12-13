@@ -301,7 +301,7 @@ class DailyMenuSummary(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    date: date = Field(
+    menu_date: date = Field(
         ...,
         description="Menu date",
     )
@@ -548,7 +548,7 @@ class TodayMenu(BaseSchema):
         ...,
         description="Hostel name",
     )
-    date: date = Field(
+    menu_date: date = Field(
         ...,
         description="Today's date",
     )

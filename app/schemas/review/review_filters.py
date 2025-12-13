@@ -9,7 +9,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator,model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseFilterSchema

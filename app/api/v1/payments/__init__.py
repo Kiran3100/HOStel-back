@@ -75,7 +75,7 @@ def get_current_admin_or_staff(current_user: CurrentUser = Depends(get_current_u
 # Import sub-routers and mount them under /payments in the main API router.
 from . import payments, initiate, gateway, refunds, schedule, reminders, ledger, receipt  # noqa: E402
 
-router.include_router(payments.router)
+router.include_router(payments.router, prefix="/payments")
 router.include_router(initiate.router, prefix="/initiate")
 router.include_router(gateway.router, prefix="/gateway")
 router.include_router(refunds.router, prefix="/refunds")

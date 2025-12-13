@@ -8,11 +8,11 @@ monthly schedules, special menus, and reusable templates.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator,computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -343,7 +343,7 @@ class SpecialDayMenu(BaseSchema):
     Associates special occasion with specific date and menu.
     """
 
-    date: date = Field(
+    menu_date: date = Field(
         ...,
         description="Special day date",
     )

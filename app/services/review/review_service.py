@@ -82,7 +82,6 @@ class ReviewService:
             is_approved=r.is_approved,
             helpful_count=r.helpful_count,
             not_helpful_count=r.not_helpful_count,
-            created_at=r.created_at,
         )
 
     def _to_detail(
