@@ -10,7 +10,7 @@
     "vc >=14.2,<15",
     "vc14_runtime >=14.29.30133"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4",
   "files": [
     "Library/bin/expat.dll",
     "Library/bin/libexpat.dll",
@@ -29,12 +29,12 @@
   "fn": "libexpat-2.7.3-h885b0b7_4.conda",
   "license": "MIT",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4",
     "type": 1
   },
   "md5": "9532f38c808ab067b141f6770be871e9",
   "name": "libexpat",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\libexpat-2.7.3-h885b0b7_4.conda",
   "paths_data": {
     "paths": [
       {

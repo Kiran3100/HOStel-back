@@ -9,7 +9,7 @@
     "vc14_runtime >=14.29.30133",
     "zlib >=1.2.13,<2.0.0a0"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0",
   "files": [
     "Library/bin/tcl86t.dll",
     "Library/bin/tclsh.exe",
@@ -1086,12 +1086,12 @@
   "fn": "tk-8.6.15-hf199647_0.conda",
   "license": "TCL",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0",
     "type": 1
   },
   "md5": "ddff7b6a72958ef802f40a735e505474",
   "name": "tk",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\tk-8.6.15-hf199647_0.conda",
   "paths_data": {
     "paths": [
       {
@@ -7339,7 +7339,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:\\b\\abs_933obpeb5t\\croot\\tk_1755243793210\\_h_env",
         "sha256": "07a314b5b4649c9bc6e6cdc3b33ab5ea824e84cd52a5d468fa2eeeea107cc571",
-        "sha256_in_prefix": "96d392ce3f2e3d3d7b1b8b947fe6aa0104afed17fc4d9dbe51649ac4660ac97e",
+        "sha256_in_prefix": "b721fd8e61a696830332c9741265c168e30dde0d9bfb0139ed46a7ef9db35bdb",
         "size_in_bytes": 8210
       },
       {

@@ -6,7 +6,7 @@
   "depends": [
     "python >=3.10,<3.11.0a0"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0",
   "files": [
     "Lib/site-packages/_distutils_hack/__init__.py",
     "Lib/site-packages/_distutils_hack/__pycache__/__init__.cpython-310.pyc",
@@ -879,12 +879,12 @@
   "fn": "setuptools-80.9.0-py310haa95532_0.conda",
   "license": "MIT",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0",
     "type": 1
   },
   "md5": "b897c30feeaa701443a96ef278367a5d",
   "name": "setuptools",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\setuptools-80.9.0-py310haa95532_0.conda",
   "paths_data": {
     "paths": [
       {

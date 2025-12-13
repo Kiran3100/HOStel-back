@@ -67,7 +67,7 @@ def get_supervisor(
 
 
 @router.post(
-    "",
+    "/",
     response_model=SupervisorDetail,
     status_code=status.HTTP_201_CREATED,
 )

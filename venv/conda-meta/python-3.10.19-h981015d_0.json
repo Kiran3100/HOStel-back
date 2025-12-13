@@ -19,7 +19,7 @@
     "zlib >=1.2.13,<2.0a0",
     "pip"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\python-3.10.19-h981015d_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\python-3.10.19-h981015d_0",
   "files": [
     "DLLs/_asyncio.pyd",
     "DLLs/_bz2.pyd",
@@ -2404,12 +2404,12 @@
   "fn": "python-3.10.19-h981015d_0.conda",
   "license": "PSF-2.0",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\python-3.10.19-h981015d_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\python-3.10.19-h981015d_0",
     "type": 1
   },
   "md5": "7fd5d34bdd0ef5e0e0696c0b033cc399",
   "name": "python",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\python-3.10.19-h981015d_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\python-3.10.19-h981015d_0.conda",
   "paths_data": {
     "paths": [
       {

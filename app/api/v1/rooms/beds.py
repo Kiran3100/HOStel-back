@@ -102,7 +102,7 @@ def get_bed_history(
 
 
 @router.post(
-    "",
+    "/",
     response_model=BedResponse,
     status_code=status.HTTP_201_CREATED,
 )

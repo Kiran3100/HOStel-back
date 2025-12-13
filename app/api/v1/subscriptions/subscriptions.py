@@ -63,7 +63,7 @@ def get_subscription(
 
 
 @router.post(
-    "",
+    "/",
     response_model=SubscriptionResponse,
     status_code=status.HTTP_201_CREATED,
 )

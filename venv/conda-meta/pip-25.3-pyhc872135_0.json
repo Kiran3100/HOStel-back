@@ -8,7 +8,7 @@
     "setuptools",
     "wheel"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0",
   "files": [
     "Lib/site-packages/pip-25.3.dist-info/INSTALLER",
     "Lib/site-packages/pip-25.3.dist-info/METADATA",
@@ -888,13 +888,13 @@
   "fn": "pip-25.3-pyhc872135_0.conda",
   "license": "MIT",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0",
     "type": 1
   },
   "md5": "f713912a259ec613b3832c3bc842e9d4",
   "name": "pip",
   "noarch": "python",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\pip-25.3-pyhc872135_0.conda",
   "package_type": "noarch_python",
   "paths_data": {
     "paths": [

@@ -1,6 +1,7 @@
 # app/config.py
 from __future__ import annotations
 
+import json
 import logging
 import secrets
 from enum import Enum
@@ -9,16 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from pydantic import (
-    AnyHttpUrl, 
-    BaseSettings, 
-    EmailStr, 
-    Field, 
-    HttpUrl, 
-    PostgresDsn, 
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
     SecretStr,
-    validator,
-    root_validator
 )
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.security import JWTSettings
 
@@ -68,27 +66,35 @@ class CacheBackend(str, Enum):
 class DatabaseSettings(BaseSettings):
     """Database configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # Main database
-    DATABASE_URL: str = Field("sqlite:///./app.db", env="DATABASE_URL")
-    DATABASE_ECHO: bool = Field(False, env="DATABASE_ECHO")
+    DATABASE_URL: str = Field(default="sqlite:///./app.db")
+    DATABASE_ECHO: bool = Field(default=False)
     
     # Connection pool settings
-    DATABASE_POOL_SIZE: int = Field(10, env="DATABASE_POOL_SIZE")
-    DATABASE_MAX_OVERFLOW: int = Field(20, env="DATABASE_MAX_OVERFLOW")
-    DATABASE_POOL_TIMEOUT: int = Field(30, env="DATABASE_POOL_TIMEOUT")
-    DATABASE_POOL_RECYCLE: int = Field(3600, env="DATABASE_POOL_RECYCLE")
+    DATABASE_POOL_SIZE: int = Field(default=10)
+    DATABASE_MAX_OVERFLOW: int = Field(default=20)
+    DATABASE_POOL_TIMEOUT: int = Field(default=30)
+    DATABASE_POOL_RECYCLE: int = Field(default=3600)
     
     # Connection retry settings
-    DATABASE_RETRY_ATTEMPTS: int = Field(3, env="DATABASE_RETRY_ATTEMPTS")
-    DATABASE_RETRY_DELAY: float = Field(1.0, env="DATABASE_RETRY_DELAY")
+    DATABASE_RETRY_ATTEMPTS: int = Field(default=3)
+    DATABASE_RETRY_DELAY: float = Field(default=1.0)
     
     # Read replica (optional)
-    DATABASE_READ_URL: Optional[str] = Field(None, env="DATABASE_READ_URL")
+    DATABASE_READ_URL: Optional[str] = Field(default=None)
     
     # Backup settings
-    BACKUP_RETENTION_DAYS: int = Field(30, env="BACKUP_RETENTION_DAYS")
+    BACKUP_RETENTION_DAYS: int = Field(default=30)
     
-    @validator("DATABASE_URL")
+    @field_validator("DATABASE_URL")
+    @classmethod
     def validate_database_url(cls, v: str) -> str:
         """Validate database URL format."""
         if not v:
@@ -122,52 +128,56 @@ class DatabaseSettings(BaseSettings):
 class SecuritySettings(BaseSettings):
     """Security configuration."""
     
-    # JWT Settings
-    JWT_SECRET_KEY: SecretStr = Field("CHANGE_ME_IN_PRODUCTION", env="JWT_SECRET_KEY")
-    JWT_ALGORITHM: str = Field("HS256", env="JWT_ALGORITHM")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
-    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(30, env="REFRESH_TOKEN_EXPIRE_DAYS")
-    
-    # Password settings
-    PASSWORD_MIN_LENGTH: int = Field(8, env="PASSWORD_MIN_LENGTH")
-    PASSWORD_REQUIRE_UPPERCASE: bool = Field(True, env="PASSWORD_REQUIRE_UPPERCASE")
-    PASSWORD_REQUIRE_LOWERCASE: bool = Field(True, env="PASSWORD_REQUIRE_LOWERCASE")
-    PASSWORD_REQUIRE_NUMBERS: bool = Field(True, env="PASSWORD_REQUIRE_NUMBERS")
-    PASSWORD_REQUIRE_SPECIAL: bool = Field(True, env="PASSWORD_REQUIRE_SPECIAL")
-    
-    # Rate limiting
-    RATE_LIMIT_PER_MINUTE: int = Field(60, env="RATE_LIMIT_PER_MINUTE")
-    RATE_LIMIT_PER_HOUR: int = Field(1000, env="RATE_LIMIT_PER_HOUR")
-    RATE_LIMIT_PER_DAY: int = Field(10000, env="RATE_LIMIT_PER_DAY")
-    
-    # Account security
-    MAX_LOGIN_ATTEMPTS: int = Field(5, env="MAX_LOGIN_ATTEMPTS")
-    ACCOUNT_LOCKOUT_DURATION_MINUTES: int = Field(30, env="ACCOUNT_LOCKOUT_DURATION_MINUTES")
-    
-    # Session settings
-    SESSION_TIMEOUT_MINUTES: int = Field(480, env="SESSION_TIMEOUT_MINUTES")  # 8 hours
-    REMEMBER_ME_DAYS: int = Field(30, env="REMEMBER_ME_DAYS")
-    
-    # HTTPS settings
-    FORCE_HTTPS: bool = Field(False, env="FORCE_HTTPS")
-    SECURE_COOKIES: bool = Field(False, env="SECURE_COOKIES")
-    
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default_factory=list,
-        env="BACKEND_CORS_ORIGINS",
-        description="Comma-separated list of allowed CORS origins",
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
     )
     
-    # API Security
-    API_KEY_HEADER: str = Field("X-API-Key", env="API_KEY_HEADER")
-    REQUIRE_API_KEY: bool = Field(False, env="REQUIRE_API_KEY")
+    # JWT Settings
+    JWT_SECRET_KEY: SecretStr = Field(default="CHANGE_ME_IN_PRODUCTION_min32chars")
+    JWT_ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30)
     
-    @validator("JWT_SECRET_KEY")
+    # Password settings
+    PASSWORD_MIN_LENGTH: int = Field(default=8)
+    PASSWORD_REQUIRE_UPPERCASE: bool = Field(default=True)
+    PASSWORD_REQUIRE_LOWERCASE: bool = Field(default=True)
+    PASSWORD_REQUIRE_NUMBERS: bool = Field(default=True)
+    PASSWORD_REQUIRE_SPECIAL: bool = Field(default=True)
+    
+    # Rate limiting
+    RATE_LIMIT_PER_MINUTE: int = Field(default=60)
+    RATE_LIMIT_PER_HOUR: int = Field(default=1000)
+    RATE_LIMIT_PER_DAY: int = Field(default=10000)
+    
+    # Account security
+    MAX_LOGIN_ATTEMPTS: int = Field(default=5)
+    ACCOUNT_LOCKOUT_DURATION_MINUTES: int = Field(default=30)
+    
+    # Session settings
+    SESSION_TIMEOUT_MINUTES: int = Field(default=480)  # 8 hours
+    REMEMBER_ME_DAYS: int = Field(default=30)
+    
+    # HTTPS settings
+    FORCE_HTTPS: bool = Field(default=False)
+    SECURE_COOKIES: bool = Field(default=False)
+    
+    # CORS
+    BACKEND_CORS_ORIGINS: List[str] = Field(default_factory=list)
+    
+    # API Security
+    API_KEY_HEADER: str = Field(default="X-API-Key")
+    REQUIRE_API_KEY: bool = Field(default=False)
+    
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
     def validate_jwt_secret(cls, v: SecretStr) -> SecretStr:
         """Validate JWT secret key."""
         secret = v.get_secret_value()
-        if secret == "CHANGE_ME_IN_PRODUCTION":
+        if "CHANGE_ME" in secret:
             logging.warning("Using default JWT secret key - CHANGE THIS IN PRODUCTION!")
         
         if len(secret) < 32:
@@ -175,14 +185,25 @@ class SecuritySettings(BaseSettings):
         
         return v
     
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         """Parse CORS origins from string or list."""
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        if isinstance(v, list):
             return v
-        raise ValueError("Invalid CORS origins format")
+        if isinstance(v, str):
+            # Empty string
+            if not v:
+                return []
+            # Try JSON parsing first
+            if v.startswith('['):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # Comma-separated
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return []
     
     @property
     def jwt_settings(self) -> JWTSettings:
@@ -198,323 +219,432 @@ class SecuritySettings(BaseSettings):
 class EmailSettings(BaseSettings):
     """Email configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # Provider settings
-    EMAIL_PROVIDER: EmailProvider = Field(EmailProvider.SMTP, env="EMAIL_PROVIDER")
+    EMAIL_PROVIDER: EmailProvider = Field(default=EmailProvider.SMTP)
     
     # SMTP settings
-    SMTP_HOST: str = Field("localhost", env="SMTP_HOST")
-    SMTP_PORT: int = Field(587, env="SMTP_PORT")
-    SMTP_USERNAME: str = Field("", env="SMTP_USERNAME")
-    SMTP_PASSWORD: SecretStr = Field("", env="SMTP_PASSWORD")
-    SMTP_USE_TLS: bool = Field(True, env="SMTP_USE_TLS")
-    SMTP_USE_SSL: bool = Field(False, env="SMTP_USE_SSL")
+    SMTP_HOST: str = Field(default="localhost")
+    SMTP_PORT: int = Field(default=587)
+    SMTP_USERNAME: str = Field(default="")
+    SMTP_PASSWORD: SecretStr = Field(default="")
+    SMTP_USE_TLS: bool = Field(default=True)
+    SMTP_USE_SSL: bool = Field(default=False)
     
     # Email settings
-    FROM_EMAIL: EmailStr = Field("noreply@example.com", env="FROM_EMAIL")
-    FROM_NAME: str = Field("Hostel Management", env="FROM_NAME")
+    FROM_EMAIL: EmailStr = Field(default="noreply@example.com")
+    FROM_NAME: str = Field(default="Hostel Management")
     
     # SendGrid
-    SENDGRID_API_KEY: SecretStr = Field("", env="SENDGRID_API_KEY")
+    SENDGRID_API_KEY: SecretStr = Field(default="")
     
     # Mailgun
-    MAILGUN_API_KEY: SecretStr = Field("", env="MAILGUN_API_KEY")
-    MAILGUN_DOMAIN: str = Field("", env="MAILGUN_DOMAIN")
+    MAILGUN_API_KEY: SecretStr = Field(default="")
+    MAILGUN_DOMAIN: str = Field(default="")
     
     # AWS SES
-    AWS_ACCESS_KEY_ID: str = Field("", env="AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY: SecretStr = Field("", env="AWS_SECRET_ACCESS_KEY")
-    AWS_REGION: str = Field("us-east-1", env="AWS_REGION")
+    AWS_ACCESS_KEY_ID: str = Field(default="")
+    AWS_SECRET_ACCESS_KEY: SecretStr = Field(default="")
+    AWS_REGION: str = Field(default="us-east-1")
     
     # Email limits
-    EMAIL_RATE_LIMIT_PER_HOUR: int = Field(100, env="EMAIL_RATE_LIMIT_PER_HOUR")
-    EMAIL_BATCH_SIZE: int = Field(50, env="EMAIL_BATCH_SIZE")
+    EMAIL_RATE_LIMIT_PER_HOUR: int = Field(default=100)
+    EMAIL_BATCH_SIZE: int = Field(default=50)
     
     # Templates
-    EMAIL_TEMPLATE_DIR: str = Field("templates/email", env="EMAIL_TEMPLATE_DIR")
+    EMAIL_TEMPLATE_DIR: str = Field(default="templates/email")
     
-    @root_validator
-    def validate_email_config(cls, values):
+    @model_validator(mode="after")
+    def validate_email_config(self):
         """Validate email configuration based on provider."""
-        provider = values.get("EMAIL_PROVIDER")
+        provider = self.EMAIL_PROVIDER
         
         if provider == EmailProvider.SMTP:
-            required = ["SMTP_HOST", "SMTP_PORT"]
-            for field in required:
-                if not values.get(field):
-                    raise ValueError(f"{field} is required for SMTP provider")
+            if not self.SMTP_HOST or not self.SMTP_PORT:
+                logging.warning("SMTP_HOST and SMTP_PORT should be configured for SMTP provider")
         
         elif provider == EmailProvider.SENDGRID:
-            if not values.get("SENDGRID_API_KEY"):
-                raise ValueError("SENDGRID_API_KEY is required for SendGrid provider")
+            if not self.SENDGRID_API_KEY or not self.SENDGRID_API_KEY.get_secret_value():
+                logging.warning("SENDGRID_API_KEY should be configured for SendGrid provider")
         
         elif provider == EmailProvider.MAILGUN:
-            required = ["MAILGUN_API_KEY", "MAILGUN_DOMAIN"]
-            for field in required:
-                if not values.get(field):
-                    raise ValueError(f"{field} is required for Mailgun provider")
+            if not self.MAILGUN_API_KEY or not self.MAILGUN_DOMAIN:
+                logging.warning("MAILGUN_API_KEY and MAILGUN_DOMAIN should be configured for Mailgun provider")
         
-        return values
+        return self
 
 
 class SMSSettings(BaseSettings):
     """SMS configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # Provider settings
-    SMS_PROVIDER: SMSProvider = Field(SMSProvider.TWILIO, env="SMS_PROVIDER")
+    SMS_PROVIDER: SMSProvider = Field(default=SMSProvider.TWILIO)
     
     # Twilio
-    TWILIO_ACCOUNT_SID: str = Field("", env="TWILIO_ACCOUNT_SID")
-    TWILIO_AUTH_TOKEN: SecretStr = Field("", env="TWILIO_AUTH_TOKEN")
-    TWILIO_FROM_NUMBER: str = Field("", env="TWILIO_FROM_NUMBER")
+    TWILIO_ACCOUNT_SID: str = Field(default="")
+    TWILIO_AUTH_TOKEN: SecretStr = Field(default="")
+    TWILIO_FROM_NUMBER: str = Field(default="")
     
     # MSG91
-    MSG91_API_KEY: SecretStr = Field("", env="MSG91_API_KEY")
-    MSG91_SENDER_ID: str = Field("", env="MSG91_SENDER_ID")
+    MSG91_API_KEY: SecretStr = Field(default="")
+    MSG91_SENDER_ID: str = Field(default="")
     
     # TextLocal
-    TEXTLOCAL_API_KEY: SecretStr = Field("", env="TEXTLOCAL_API_KEY")
-    TEXTLOCAL_SENDER: str = Field("", env="TEXTLOCAL_SENDER")
+    TEXTLOCAL_API_KEY: SecretStr = Field(default="")
+    TEXTLOCAL_SENDER: str = Field(default="")
     
     # SMS limits
-    SMS_RATE_LIMIT_PER_MINUTE: int = Field(100, env="SMS_RATE_LIMIT_PER_MINUTE")
-    SMS_RATE_LIMIT_PER_HOUR: int = Field(1000, env="SMS_RATE_LIMIT_PER_HOUR")
-    SMS_RATE_LIMIT_PER_DAY: int = Field(10000, env="SMS_RATE_LIMIT_PER_DAY")
+    SMS_RATE_LIMIT_PER_MINUTE: int = Field(default=100)
+    SMS_RATE_LIMIT_PER_HOUR: int = Field(default=1000)
+    SMS_RATE_LIMIT_PER_DAY: int = Field(default=10000)
     
     # Retry settings
-    SMS_RETRY_ATTEMPTS: int = Field(3, env="SMS_RETRY_ATTEMPTS")
-    SMS_RETRY_DELAY: float = Field(1.0, env="SMS_RETRY_DELAY")
-    SMS_TIMEOUT: int = Field(30, env="SMS_TIMEOUT")
+    SMS_RETRY_ATTEMPTS: int = Field(default=3)
+    SMS_RETRY_DELAY: float = Field(default=1.0)
+    SMS_TIMEOUT: int = Field(default=30)
     
-    @root_validator
-    def validate_sms_config(cls, values):
+    @model_validator(mode="after")
+    def validate_sms_config(self):
         """Validate SMS configuration based on provider."""
-        provider = values.get("SMS_PROVIDER")
+        provider = self.SMS_PROVIDER
         
         if provider == SMSProvider.TWILIO:
-            required = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"]
-            for field in required:
-                if not values.get(field):
-                    raise ValueError(f"{field} is required for Twilio provider")
+            if not self.TWILIO_ACCOUNT_SID or not self.TWILIO_AUTH_TOKEN:
+                logging.warning("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN should be configured for Twilio provider")
         
         elif provider == SMSProvider.MSG91:
-            if not values.get("MSG91_API_KEY"):
-                raise ValueError("MSG91_API_KEY is required for MSG91 provider")
+            if not self.MSG91_API_KEY:
+                logging.warning("MSG91_API_KEY should be configured for MSG91 provider")
         
         elif provider == SMSProvider.TEXTLOCAL:
-            if not values.get("TEXTLOCAL_API_KEY"):
-                raise ValueError("TEXTLOCAL_API_KEY is required for TextLocal provider")
+            if not self.TEXTLOCAL_API_KEY:
+                logging.warning("TEXTLOCAL_API_KEY should be configured for TextLocal provider")
         
-        return values
+        return self
 
 
 class FileStorageSettings(BaseSettings):
     """File storage configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # Local storage
-    UPLOAD_DIR: str = Field("uploads", env="UPLOAD_DIR")
-    MAX_FILE_SIZE: int = Field(10 * 1024 * 1024, env="MAX_FILE_SIZE")  # 10MB
+    UPLOAD_DIR: str = Field(default="uploads")
+    MAX_FILE_SIZE: int = Field(default=10 * 1024 * 1024)  # 10MB
     ALLOWED_FILE_EXTENSIONS: Set[str] = Field(
-        default_factory=lambda: {".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"},
-        env="ALLOWED_FILE_EXTENSIONS"
+        default_factory=lambda: {".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"}
     )
     
     # AWS S3
-    AWS_S3_BUCKET: str = Field("", env="AWS_S3_BUCKET")
-    AWS_S3_REGION: str = Field("us-east-1", env="AWS_S3_REGION")
-    AWS_S3_ACCESS_KEY: str = Field("", env="AWS_S3_ACCESS_KEY")
-    AWS_S3_SECRET_KEY: SecretStr = Field("", env="AWS_S3_SECRET_KEY")
-    AWS_S3_CUSTOM_DOMAIN: Optional[str] = Field(None, env="AWS_S3_CUSTOM_DOMAIN")
+    AWS_S3_BUCKET: str = Field(default="")
+    AWS_S3_REGION: str = Field(default="us-east-1")
+    AWS_S3_ACCESS_KEY: str = Field(default="")
+    AWS_S3_SECRET_KEY: SecretStr = Field(default="")
+    AWS_S3_CUSTOM_DOMAIN: Optional[str] = Field(default=None)
     
     # File processing
-    IMAGE_MAX_WIDTH: int = Field(1920, env="IMAGE_MAX_WIDTH")
-    IMAGE_MAX_HEIGHT: int = Field(1080, env="IMAGE_MAX_HEIGHT")
-    IMAGE_QUALITY: int = Field(85, env="IMAGE_QUALITY")
+    IMAGE_MAX_WIDTH: int = Field(default=1920)
+    IMAGE_MAX_HEIGHT: int = Field(default=1080)
+    IMAGE_QUALITY: int = Field(default=85)
     
-    @validator("ALLOWED_FILE_EXTENSIONS", pre=True)
+    @field_validator("ALLOWED_FILE_EXTENSIONS", mode="before")
+    @classmethod
     def parse_file_extensions(cls, v):
         """Parse file extensions from string or set."""
+        if isinstance(v, set):
+            return v
+        if isinstance(v, list):
+            return set(v)
         if isinstance(v, str):
+            # Empty string
+            if not v:
+                return {".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"}
+            # Try JSON parsing first
+            if v.startswith('[') or v.startswith('{'):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, (list, set)):
+                        return set(parsed)
+                except json.JSONDecodeError:
+                    pass
+            # Comma-separated
             return {ext.strip() for ext in v.split(",") if ext.strip()}
-        return v
+        return {".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"}
 
 
 class CacheSettings(BaseSettings):
     """Cache configuration."""
     
-    CACHE_BACKEND: CacheBackend = Field(CacheBackend.MEMORY, env="CACHE_BACKEND")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
+    CACHE_BACKEND: CacheBackend = Field(default=CacheBackend.MEMORY)
     
     # Redis
-    REDIS_URL: str = Field("redis://localhost:6379/0", env="REDIS_URL")
-    REDIS_PASSWORD: SecretStr = Field("", env="REDIS_PASSWORD")
-    REDIS_DB: int = Field(0, env="REDIS_DB")
-    REDIS_MAX_CONNECTIONS: int = Field(20, env="REDIS_MAX_CONNECTIONS")
+    REDIS_URL: str = Field(default="redis://localhost:6379/0")
+    REDIS_PASSWORD: SecretStr = Field(default="")
+    REDIS_DB: int = Field(default=0)
+    REDIS_MAX_CONNECTIONS: int = Field(default=20)
     
     # Memcached
     MEMCACHED_SERVERS: List[str] = Field(
-        default_factory=lambda: ["127.0.0.1:11211"],
-        env="MEMCACHED_SERVERS"
+        default_factory=lambda: ["127.0.0.1:11211"]
     )
     
     # Cache TTL (seconds)
-    CACHE_DEFAULT_TTL: int = Field(300, env="CACHE_DEFAULT_TTL")  # 5 minutes
-    CACHE_USER_TTL: int = Field(900, env="CACHE_USER_TTL")  # 15 minutes
-    CACHE_SETTINGS_TTL: int = Field(3600, env="CACHE_SETTINGS_TTL")  # 1 hour
+    CACHE_DEFAULT_TTL: int = Field(default=300)  # 5 minutes
+    CACHE_USER_TTL: int = Field(default=900)  # 15 minutes
+    CACHE_SETTINGS_TTL: int = Field(default=3600)  # 1 hour
+    
+    @field_validator("MEMCACHED_SERVERS", mode="before")
+    @classmethod
+    def parse_memcached_servers(cls, v):
+        """Parse MEMCACHED_SERVERS from various formats."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Empty string
+            if not v:
+                return ["127.0.0.1:11211"]
+            # Try JSON parsing first
+            if v.startswith('['):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # Comma-separated
+            if ',' in v:
+                return [x.strip() for x in v.split(',') if x.strip()]
+            # Single value
+            return [v]
+        return ["127.0.0.1:11211"]
 
 
 class MonitoringSettings(BaseSettings):
     """Monitoring and logging configuration."""
     
-    # Logging
-    LOG_LEVEL: LogLevel = Field(LogLevel.INFO, env="LOG_LEVEL")
-    LOG_FORMAT: str = Field(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        env="LOG_FORMAT"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
     )
-    LOG_FILE: Optional[str] = Field(None, env="LOG_FILE")
-    LOG_ROTATION: str = Field("midnight", env="LOG_ROTATION")
-    LOG_RETENTION: int = Field(30, env="LOG_RETENTION")  # days
+    
+    # Logging
+    LOG_LEVEL: LogLevel = Field(default=LogLevel.INFO)
+    LOG_FORMAT: str = Field(
+        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    LOG_FILE: Optional[str] = Field(default=None)
+    LOG_ROTATION: str = Field(default="midnight")
+    LOG_RETENTION: int = Field(default=30)  # days
     
     # Sentry
-    SENTRY_DSN: Optional[str] = Field(None, env="SENTRY_DSN")
-    SENTRY_ENVIRONMENT: Optional[str] = Field(None, env="SENTRY_ENVIRONMENT")
-    SENTRY_RELEASE: Optional[str] = Field(None, env="SENTRY_RELEASE")
+    SENTRY_DSN: Optional[str] = Field(default=None)
+    SENTRY_ENVIRONMENT: Optional[str] = Field(default=None)
+    SENTRY_RELEASE: Optional[str] = Field(default=None)
     
     # Metrics
-    ENABLE_METRICS: bool = Field(True, env="ENABLE_METRICS")
-    METRICS_PORT: int = Field(9090, env="METRICS_PORT")
+    ENABLE_METRICS: bool = Field(default=True)
+    METRICS_PORT: int = Field(default=9090)
     
     # Health checks
-    HEALTH_CHECK_ENABLED: bool = Field(True, env="HEALTH_CHECK_ENABLED")
-    HEALTH_CHECK_TIMEOUT: int = Field(30, env="HEALTH_CHECK_TIMEOUT")
+    HEALTH_CHECK_ENABLED: bool = Field(default=True)
+    HEALTH_CHECK_TIMEOUT: int = Field(default=30)
 
 
 class PaymentSettings(BaseSettings):
     """Payment gateway configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # Razorpay (popular in India)
-    RAZORPAY_KEY_ID: str = Field("", env="RAZORPAY_KEY_ID")
-    RAZORPAY_KEY_SECRET: SecretStr = Field("", env="RAZORPAY_KEY_SECRET")
-    RAZORPAY_WEBHOOK_SECRET: SecretStr = Field("", env="RAZORPAY_WEBHOOK_SECRET")
+    RAZORPAY_KEY_ID: str = Field(default="")
+    RAZORPAY_KEY_SECRET: SecretStr = Field(default="")
+    RAZORPAY_WEBHOOK_SECRET: SecretStr = Field(default="")
     
     # Stripe
-    STRIPE_PUBLISHABLE_KEY: str = Field("", env="STRIPE_PUBLISHABLE_KEY")
-    STRIPE_SECRET_KEY: SecretStr = Field("", env="STRIPE_SECRET_KEY")
-    STRIPE_WEBHOOK_SECRET: SecretStr = Field("", env="STRIPE_WEBHOOK_SECRET")
+    STRIPE_PUBLISHABLE_KEY: str = Field(default="")
+    STRIPE_SECRET_KEY: SecretStr = Field(default="")
+    STRIPE_WEBHOOK_SECRET: SecretStr = Field(default="")
     
     # PayPal
-    PAYPAL_CLIENT_ID: str = Field("", env="PAYPAL_CLIENT_ID")
-    PAYPAL_CLIENT_SECRET: SecretStr = Field("", env="PAYPAL_CLIENT_SECRET")
-    PAYPAL_MODE: str = Field("sandbox", env="PAYPAL_MODE")  # sandbox or live
+    PAYPAL_CLIENT_ID: str = Field(default="")
+    PAYPAL_CLIENT_SECRET: SecretStr = Field(default="")
+    PAYPAL_MODE: str = Field(default="sandbox")  # sandbox or live
     
     # Payment settings
-    CURRENCY: str = Field("INR", env="CURRENCY")
-    PAYMENT_TIMEOUT_MINUTES: int = Field(15, env="PAYMENT_TIMEOUT_MINUTES")
+    CURRENCY: str = Field(default="INR")
+    PAYMENT_TIMEOUT_MINUTES: int = Field(default=15)
 
 
 class Settings(BaseSettings):
     """Main application settings."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow"
+    )
+    
     # ------------------------------------------------------------------ #
     # General
     # ------------------------------------------------------------------ #
-    PROJECT_NAME: str = Field("Hostel Management SaaS API", env="PROJECT_NAME")
-    PROJECT_VERSION: str = Field("1.0.0", env="PROJECT_VERSION")
+    PROJECT_NAME: str = Field(default="Hostel Management SaaS API")
+    PROJECT_VERSION: str = Field(default="1.0.0")
     PROJECT_DESCRIPTION: str = Field(
-        "Complete hostel management solution with booking, payments, and analytics",
-        env="PROJECT_DESCRIPTION"
+        default="Complete hostel management solution with booking, payments, and analytics"
     )
     
-    ENVIRONMENT: Environment = Field(Environment.DEVELOPMENT, env="ENVIRONMENT")
-    DEBUG: bool = Field(False, env="DEBUG")
+    ENVIRONMENT: Environment = Field(default=Environment.DEVELOPMENT)
+    DEBUG: bool = Field(default=False)
     
     # API settings
-    API_V1_STR: str = Field("/api/v1", env="API_V1_STR")
-    API_DOCS_URL: Optional[str] = Field("/docs", env="API_DOCS_URL")
-    API_REDOC_URL: Optional[str] = Field("/redoc", env="API_REDOC_URL")
+    API_V1_STR: str = Field(default="/api/v1")
+    API_DOCS_URL: Optional[str] = Field(default="/docs")
+    API_REDOC_URL: Optional[str] = Field(default="/redoc")
     
     # Server settings
-    HOST: str = Field("0.0.0.0", env="HOST")
-    PORT: int = Field(8000, env="PORT")
-    WORKERS: int = Field(1, env="WORKERS")
+    HOST: str = Field(default="0.0.0.0")
+    PORT: int = Field(default=8000)
+    WORKERS: int = Field(default=1)
     
     # Timezone
-    TIMEZONE: str = Field("Asia/Kolkata", env="TIMEZONE")
+    TIMEZONE: str = Field(default="Asia/Kolkata")
     
     # ------------------------------------------------------------------ #
     # Sub-configurations
     # ------------------------------------------------------------------ #
-    database: DatabaseSettings = DatabaseSettings()
-    security: SecuritySettings = SecuritySettings()
-    email: EmailSettings = EmailSettings()
-    sms: SMSSettings = SMSSettings()
-    storage: FileStorageSettings = FileStorageSettings()
-    cache: CacheSettings = CacheSettings()
-    monitoring: MonitoringSettings = MonitoringSettings()
-    payment: PaymentSettings = PaymentSettings()
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
+    email: EmailSettings = Field(default_factory=EmailSettings)
+    sms: SMSSettings = Field(default_factory=SMSSettings)
+    storage: FileStorageSettings = Field(default_factory=FileStorageSettings)
+    cache: CacheSettings = Field(default_factory=CacheSettings)
+    monitoring: MonitoringSettings = Field(default_factory=MonitoringSettings)
+    payment: PaymentSettings = Field(default_factory=PaymentSettings)
     
     # ------------------------------------------------------------------ #
     # Feature Flags
     # ------------------------------------------------------------------ #
-    FEATURE_REGISTRATION: bool = Field(True, env="FEATURE_REGISTRATION")
-    FEATURE_EMAIL_VERIFICATION: bool = Field(True, env="FEATURE_EMAIL_VERIFICATION")
-    FEATURE_SMS_VERIFICATION: bool = Field(True, env="FEATURE_SMS_VERIFICATION")
-    FEATURE_PAYMENTS: bool = Field(True, env="FEATURE_PAYMENTS")
-    FEATURE_ANALYTICS: bool = Field(True, env="FEATURE_ANALYTICS")
-    FEATURE_NOTIFICATIONS: bool = Field(True, env="FEATURE_NOTIFICATIONS")
+    FEATURE_REGISTRATION: bool = Field(default=True)
+    FEATURE_EMAIL_VERIFICATION: bool = Field(default=True)
+    FEATURE_SMS_VERIFICATION: bool = Field(default=True)
+    FEATURE_PAYMENTS: bool = Field(default=True)
+    FEATURE_ANALYTICS: bool = Field(default=True)
+    FEATURE_NOTIFICATIONS: bool = Field(default=True)
     
     # ------------------------------------------------------------------ #
     # Business Logic
     # ------------------------------------------------------------------ #
     # Booking settings
-    BOOKING_ADVANCE_DAYS: int = Field(365, env="BOOKING_ADVANCE_DAYS")
-    BOOKING_CANCELLATION_HOURS: int = Field(24, env="BOOKING_CANCELLATION_HOURS")
-    BOOKING_MODIFICATION_HOURS: int = Field(2, env="BOOKING_MODIFICATION_HOURS")
+    BOOKING_ADVANCE_DAYS: int = Field(default=365)
+    BOOKING_CANCELLATION_HOURS: int = Field(default=24)
+    BOOKING_MODIFICATION_HOURS: int = Field(default=2)
     
     # Payment settings
-    ADVANCE_PAYMENT_PERCENTAGE: int = Field(20, env="ADVANCE_PAYMENT_PERCENTAGE")
-    LATE_PAYMENT_PENALTY_PERCENTAGE: int = Field(5, env="LATE_PAYMENT_PENALTY_PERCENTAGE")
+    ADVANCE_PAYMENT_PERCENTAGE: int = Field(default=20)
+    LATE_PAYMENT_PENALTY_PERCENTAGE: int = Field(default=5)
     
     # Notification settings
     NOTIFICATION_REMINDER_HOURS: List[int] = Field(
-        default_factory=lambda: [72, 24, 2],
-        env="NOTIFICATION_REMINDER_HOURS"
+        default_factory=lambda: [72, 24, 2]
     )
     
-    @validator("ENVIRONMENT", pre=True)
+    @field_validator("ENVIRONMENT", mode="before")
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment."""
         if isinstance(v, str):
             return Environment(v.lower())
         return v
     
-    @validator("DEBUG")
-    def validate_debug(cls, v, values):
+    @field_validator("DEBUG")
+    @classmethod
+    def validate_debug(cls, v, info):
         """Debug should be False in production."""
-        env = values.get("ENVIRONMENT")
+        env = info.data.get("ENVIRONMENT")
         if env == Environment.PRODUCTION and v:
             logging.warning("Debug mode is enabled in production environment!")
         return v
     
-    @root_validator
-    def validate_production_settings(cls, values):
+    @field_validator("NOTIFICATION_REMINDER_HOURS", mode="before")
+    @classmethod
+    def parse_reminder_hours(cls, v):
+        """Parse NOTIFICATION_REMINDER_HOURS from various formats."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Empty string
+            if not v:
+                return [72, 24, 2]
+            # Try JSON parsing first
+            if v.startswith('['):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [int(x) for x in parsed]
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            # Comma-separated
+            if ',' in v:
+                try:
+                    return [int(x.strip()) for x in v.split(',') if x.strip()]
+                except ValueError:
+                    pass
+            # Single value
+            try:
+                return [int(v)]
+            except ValueError:
+                pass
+        # Return default if all parsing fails
+        return [72, 24, 2]
+    
+    @model_validator(mode="after")
+    def validate_production_settings(self):
         """Validate production-specific settings."""
-        env = values.get("ENVIRONMENT")
-        
-        if env == Environment.PRODUCTION:
+        if self.ENVIRONMENT == Environment.PRODUCTION:
             # Check critical production settings
-            security = values.get("security", {})
-            if isinstance(security, SecuritySettings):
-                jwt_secret = security.JWT_SECRET_KEY.get_secret_value()
-                if jwt_secret == "CHANGE_ME_IN_PRODUCTION":
-                    raise ValueError("JWT secret must be changed in production")
+            if isinstance(self.security, SecuritySettings):
+                jwt_secret = self.security.JWT_SECRET_KEY.get_secret_value()
+                if "CHANGE_ME" in jwt_secret:
+                    logging.warning("JWT secret should be changed in production")
                 
-                if not security.FORCE_HTTPS:
+                if not self.security.FORCE_HTTPS:
                     logging.warning("HTTPS is not enforced in production")
                 
-                if not security.SECURE_COOKIES:
+                if not self.security.SECURE_COOKIES:
                     logging.warning("Secure cookies are not enabled in production")
         
-        return values
+        return self
     
     # ------------------------------------------------------------------ #
     # Backward Compatibility Properties
@@ -578,19 +708,14 @@ class Settings(BaseSettings):
     def get_cors_origins(self) -> List[str]:
         """Get CORS origins based on environment."""
         if self.is_development():
-            return self.security.BACKEND_CORS_ORIGINS + [
+            base_origins = self.security.BACKEND_CORS_ORIGINS or []
+            dev_origins = [
                 "http://localhost:3000",
                 "http://localhost:3001",
                 "http://127.0.0.1:3000",
             ]
+            return base_origins + dev_origins
         return self.security.BACKEND_CORS_ORIGINS
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        # Allow extra fields for flexibility
-        extra = "allow"
 
 
 @lru_cache()
@@ -605,9 +730,11 @@ def get_settings() -> Settings:
         settings = Settings()
         
         # Log configuration summary
-        logging.info(f"Application starting with environment: {settings.ENVIRONMENT}")
+        logging.basicConfig(level=logging.INFO)
+        logging.info(f"Application starting with environment: {settings.ENVIRONMENT.value}")
         logging.info(f"Debug mode: {settings.DEBUG}")
-        logging.info(f"Database: {settings.database.DATABASE_URL.split('@')[-1] if '@' in settings.database.DATABASE_URL else 'Local'}")
+        db_display = settings.database.DATABASE_URL.split('@')[-1] if '@' in settings.database.DATABASE_URL else 'Local'
+        logging.info(f"Database: {db_display}")
         
         return settings
         
@@ -626,7 +753,7 @@ def get_test_settings() -> Settings:
             DATABASE_ECHO=False
         ),
         security=SecuritySettings(
-            JWT_SECRET_KEY=SecretStr("test-secret-key-32-chars-minimum"),
+            JWT_SECRET_KEY=SecretStr("test-secret-key-32-chars-minimum-length"),
             ACCESS_TOKEN_EXPIRE_MINUTES=15
         ),
     )
@@ -649,10 +776,22 @@ def validate_configuration() -> None:
         # Validate critical settings in production
         if settings.is_production():
             critical_checks = [
-                (settings.security.JWT_SECRET_KEY.get_secret_value() != "CHANGE_ME_IN_PRODUCTION", "JWT secret must be changed"),
-                (settings.database.DATABASE_URL != "sqlite:///./app.db", "Production database should not be SQLite"),
-                (settings.security.FORCE_HTTPS, "HTTPS should be enforced in production"),
-                (settings.monitoring.SENTRY_DSN is not None, "Sentry should be configured in production"),
+                (
+                    "CHANGE_ME" not in settings.security.JWT_SECRET_KEY.get_secret_value(),
+                    "JWT secret must be changed"
+                ),
+                (
+                    settings.database.DATABASE_URL != "sqlite:///./app.db",
+                    "Production database should not be SQLite"
+                ),
+                (
+                    settings.security.FORCE_HTTPS,
+                    "HTTPS should be enforced in production"
+                ),
+                (
+                    settings.monitoring.SENTRY_DSN is not None,
+                    "Sentry should be configured in production"
+                ),
             ]
             
             for check, message in critical_checks:

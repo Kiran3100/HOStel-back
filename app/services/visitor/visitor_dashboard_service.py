@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from app.repositories.visitor import (
     VisitorRepository,
     HostelBookingRepository,
-    VisitorBehaviorAnalyticsVisitorRepository,
 )
 from app.repositories.core import HostelRepository, UserRepository
 from app.schemas.visitor.visitor_dashboard import (
@@ -55,8 +54,7 @@ class VisitorDashboardService:
     def _get_booking_repo(self, uow: UnitOfWork) -> HostelBookingRepository:
         return uow.get_repo(HostelBookingRepository)
 
-    def _get_behavior_repo(self, uow: UnitOfWork) -> VisitorBehaviorAnalyticsVisitorRepository:
-        return uow.get_repo(VisitorBehaviorAnalyticsVisitorRepository)
+    # REMOVED: _get_behavior_repo method since the repository doesn't exist yet
 
     def _today(self) -> date:
         return date.today()
@@ -75,7 +73,7 @@ class VisitorDashboardService:
             user_repo = self._get_user_repo(uow)
             hostel_repo = self._get_hostel_repo(uow)
             booking_repo = self._get_booking_repo(uow)
-            behavior_repo = self._get_behavior_repo(uow)
+            # REMOVED: behavior_repo assignment
 
             user = user_repo.get(user_id)
             if user is None:
@@ -168,11 +166,10 @@ class VisitorDashboardService:
                 bookings=bh_items,
             )
 
-            # Behavior analytics
-            behavior = behavior_repo.get_by_visitor_id(v.id)
-            total_searches = behavior.total_searches if behavior else 0
-            total_hostel_views = behavior.hostels_viewed if behavior else 0
-            total_bookings = behavior.bookings_made if behavior else len(bookings)
+            # Behavior analytics - Placeholder values until repository is implemented
+            total_searches = 0  # TODO: Implement behavior tracking
+            total_hostel_views = 0  # TODO: Implement behavior tracking
+            total_bookings = len(bookings)
 
         # Placeholders for sections not yet tracked
         recent_searches: List[RecentSearch] = []

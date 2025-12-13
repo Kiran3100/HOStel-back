@@ -9,7 +9,7 @@
     "vc >=14.2,<15",
     "vc14_runtime >=14.29.30133"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0",
   "files": [
     "Library/bin/c_rehash.pl",
     "Library/bin/libcrypto-3-x64.dll",
@@ -177,12 +177,12 @@
   "fn": "openssl-3.0.18-h543e019_0.conda",
   "license": "Apache-2.0",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0",
     "type": 1
   },
   "md5": "d68f698bb2e9ea94b2db5b6d00b3eae5",
   "name": "openssl",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\openssl-3.0.18-h543e019_0.conda",
   "paths_data": {
     "paths": [
       {
@@ -191,7 +191,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:\\\\miniconda3\\\\conda-bld\\\\openssl_1759488976042\\\\_h_env",
         "sha256": "dd9069600315dda982c3f57a47b9a750eb18f21917714281d3e9720165153413",
-        "sha256_in_prefix": "92517378797f7e262b46546f5708f7deb52e0a648259ad89d0168bd2b5feab58",
+        "sha256_in_prefix": "d1c03c0375479441ab5dd0fdc35195c3cf9ae5a4cf6a1a2e6f52e11dbda86d15",
         "size_in_bytes": 7316
       },
       {
@@ -1230,7 +1230,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:/miniconda3/conda-bld/openssl_1759488976042/_h_env",
         "sha256": "662a827a668f1c8f7184072865599fd52f75b91a1becb3ceb851702f8d7b55a9",
-        "sha256_in_prefix": "91764a03bb9c3074a48f9222f926e4582251cb433767d13ed80248df91edbeda",
+        "sha256_in_prefix": "fed27399134ec201d92fa0b44e3a7c83c71ebd341f7955c903baf10c52c4a496",
         "size_in_bytes": 332
       },
       {
@@ -1239,7 +1239,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:/miniconda3/conda-bld/openssl_1759488976042/_h_env",
         "sha256": "9124bd732b42263f94369794f065e418d66ba230a828d775345598b708cf63c7",
-        "sha256_in_prefix": "84c8bd8c2731a1e21d22558d5f1ccc53a5bf319fbe9e35a1562cc44ca35870d7",
+        "sha256_in_prefix": "2d5ee5419450b7ff0bf0c7e97f2316a278acc2a174a07fa670a7183cfb07a543",
         "size_in_bytes": 332
       },
       {
@@ -1248,7 +1248,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:/miniconda3/conda-bld/openssl_1759488976042/_h_env",
         "sha256": "67d9276d3d64f6085b3e57ae1b01223d864bbf20a785df062a5e68e1f267bacf",
-        "sha256_in_prefix": "a15bc1bbfebcb05a5153eb8ef56957806e3bb181406df2044fc58b4c4b9fbc6d",
+        "sha256_in_prefix": "af6fe0464b64502d033e574b3c686ea40eea0bb37dd2baa3c07b195a5b2fdf7c",
         "size_in_bytes": 285
       },
       {

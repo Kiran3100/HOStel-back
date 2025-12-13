@@ -1,5 +1,5 @@
-==> 2025-12-13 11:19:22 <==
-# cmd: C:\Users\HP\anaconda3\Scripts\conda-script.py create --prefix ./venv python=3.10 -y
+==> 2025-12-13 17:16:46 <==
+# cmd: C:\Users\kiran\anaconda3\Scripts\conda-script.py create --prefix ./venv python=3.10 -y
 # conda version: 25.5.1
 +defaults/noarch::pip-25.3-pyhc872135_0
 +defaults/noarch::tzdata-2025b-h04d1e81_0

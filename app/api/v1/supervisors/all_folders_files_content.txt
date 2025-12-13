@@ -1,0 +1,759 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\activity.py ---
+# app/api/v1/supervisors/activity.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorActivityService
+from app.schemas.supervisor.supervisor_activity import (
+    SupervisorActivityLog,
+    ActivityDetail,
+    ActivitySummary,
+    ActivityFilterParams,
+)
+from . import CurrentUser, get_current_user, get_current_supervisor
+
+router = APIRouter(tags=["Supervisors - Activity"])
+
+
+def _get_service(session: Session) -> SupervisorActivityService:
+    uow = UnitOfWork(session)
+    return SupervisorActivityService(uow)
+
+
+@router.get("/", response_model=List[SupervisorActivityLog])
+def list_my_activity(
+    filters: ActivityFilterParams = Depends(),
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> List[SupervisorActivityLog]:
+    """
+    List recent activity for the authenticated supervisor.
+
+    Expected service method:
+        list_activity_for_user(user_id: UUID, filters: ActivityFilterParams) -> list[SupervisorActivityLog]
+    """
+    service = _get_service(session)
+    return service.list_activity_for_user(
+        user_id=current_user.id,
+        filters=filters,
+    )
+
+
+@router.get("/summary", response_model=ActivitySummary)
+def get_my_activity_summary(
+    filters: ActivityFilterParams = Depends(),
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> ActivitySummary:
+    """
+    Get a high-level summary of activity for the authenticated supervisor.
+
+    Expected service method:
+        get_activity_summary_for_user(user_id: UUID, filters: ActivityFilterParams) -> ActivitySummary
+    """
+    service = _get_service(session)
+    return service.get_activity_summary_for_user(
+        user_id=current_user.id,
+        filters=filters,
+    )
+
+
+@router.get("/{activity_id}", response_model=ActivityDetail)
+def get_activity_detail(
+    activity_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ActivityDetail:
+    """
+    Get detailed information about a single activity record.
+
+    Expected service method:
+        get_activity_detail(activity_id: UUID) -> ActivityDetail
+    """
+    service = _get_service(session)
+    return service.get_activity_detail(activity_id=activity_id)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\assignments.py ---
+# app/api/v1/supervisors/assignments.py
+from __future__ import annotations
+
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorAssignmentService
+from app.schemas.supervisor.supervisor_assignment import (
+    SupervisorAssignment,
+    AssignmentRequest,
+    AssignmentUpdate,
+    RevokeAssignmentRequest,
+    AssignmentTransfer,
+)
+from . import CurrentUser, get_current_user, get_current_supervisor
+
+router = APIRouter(tags=["Supervisors - Assignments"])
+
+
+def _get_service(session: Session) -> SupervisorAssignmentService:
+    uow = UnitOfWork(session)
+    return SupervisorAssignmentService(uow)
+
+
+@router.get("/me", response_model=List[SupervisorAssignment])
+def list_my_assignments(
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> List[SupervisorAssignment]:
+    """
+    List hostel assignments for the authenticated supervisor.
+
+    Expected service method:
+        list_assignments_for_user(user_id: UUID) -> list[SupervisorAssignment]
+    """
+    service = _get_service(session)
+    return service.list_assignments_for_user(user_id=current_user.id)
+
+
+@router.get("/{supervisor_id}", response_model=List[SupervisorAssignment])
+def list_assignments_for_supervisor(
+    supervisor_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> List[SupervisorAssignment]:
+    """
+    List hostel assignments for the given supervisor.
+
+    Expected service method:
+        list_assignments_for_supervisor(supervisor_id: UUID) -> list[SupervisorAssignment]
+    """
+    service = _get_service(session)
+    return service.list_assignments_for_supervisor(supervisor_id=supervisor_id)
+
+
+@router.post(
+    "",
+    response_model=SupervisorAssignment,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_assignment(
+    payload: AssignmentRequest,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorAssignment:
+    """
+    Create a new supervisor↔hostel assignment.
+
+    Expected service method:
+        create_assignment(data: AssignmentRequest) -> SupervisorAssignment
+    """
+    service = _get_service(session)
+    return service.create_assignment(data=payload)
+
+
+@router.patch(
+    "/{assignment_id}",
+    response_model=SupervisorAssignment,
+)
+def update_assignment(
+    assignment_id: UUID,
+    payload: AssignmentUpdate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorAssignment:
+    """
+    Update an existing assignment (role, dates, flags, etc.).
+
+    Expected service method:
+        update_assignment(assignment_id: UUID, data: AssignmentUpdate) -> SupervisorAssignment
+    """
+    service = _get_service(session)
+    return service.update_assignment(
+        assignment_id=assignment_id,
+        data=payload,
+    )
+
+
+@router.post(
+    "/{assignment_id}/revoke",
+    response_model=SupervisorAssignment,
+)
+def revoke_assignment(
+    assignment_id: UUID,
+    payload: RevokeAssignmentRequest,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorAssignment:
+    """
+    Revoke an assignment with a given reason.
+
+    Expected service method:
+        revoke_assignment(assignment_id: UUID, data: RevokeAssignmentRequest) -> SupervisorAssignment
+    """
+    service = _get_service(session)
+    return service.revoke_assignment(
+        assignment_id=assignment_id,
+        data=payload,
+    )
+
+
+@router.post(
+    "/transfer",
+    response_model=SupervisorAssignment,
+)
+def transfer_assignment(
+    payload: AssignmentTransfer,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorAssignment:
+    """
+    Transfer a supervisor from one hostel to another.
+
+    Expected service method:
+        transfer_assignment(data: AssignmentTransfer) -> SupervisorAssignment
+    """
+    service = _get_service(session)
+    return service.transfer_assignment(data=payload)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\dashboard.py ---
+# app/api/v1/supervisors/dashboard.py
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorDashboardService
+from app.schemas.supervisor.supervisor_dashboard import SupervisorDashboard
+from . import CurrentUser, get_current_supervisor
+
+router = APIRouter(tags=["Supervisors - Dashboard"])
+
+
+def _get_service(session: Session) -> SupervisorDashboardService:
+    uow = UnitOfWork(session)
+    return SupervisorDashboardService(uow)
+
+
+@router.get("/", response_model=SupervisorDashboard)
+def get_my_dashboard(
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> SupervisorDashboard:
+    """
+    Return the dashboard for the authenticated supervisor.
+
+    Expected service method:
+        get_dashboard_for_user(user_id: UUID) -> SupervisorDashboard
+    """
+    service = _get_service(session)
+    return service.get_dashboard_for_user(user_id=current_user.id)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\performance.py ---
+# app/api/v1/supervisors/performance.py
+from __future__ import annotations
+
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorPerformanceService
+from app.schemas.supervisor.supervisor_performance import (
+    PerformanceReport,
+    PeerComparison,
+)
+from . import CurrentUser, get_current_user, get_current_supervisor
+
+router = APIRouter(tags=["Supervisors - Performance"])
+
+
+def _get_service(session: Session) -> SupervisorPerformanceService:
+    uow = UnitOfWork(session)
+    return SupervisorPerformanceService(uow)
+
+
+@router.get("/me", response_model=PerformanceReport)
+def get_my_performance(
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> PerformanceReport:
+    """
+    Get a detailed performance report for the authenticated supervisor.
+
+    Expected service method:
+        get_performance_for_user(user_id: UUID) -> PerformanceReport
+    """
+    service = _get_service(session)
+    return service.get_performance_for_user(user_id=current_user.id)
+
+
+@router.get("/{supervisor_id}", response_model=PerformanceReport)
+def get_performance_for_supervisor(
+    supervisor_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> PerformanceReport:
+    """
+    Get a detailed performance report for a specific supervisor.
+
+    Expected service method:
+        get_performance_for_supervisor(supervisor_id: UUID) -> PerformanceReport
+    """
+    service = _get_service(session)
+    return service.get_performance_for_supervisor(supervisor_id=supervisor_id)
+
+
+@router.get("/comparison", response_model=PeerComparison)
+def compare_supervisors(
+    hostel_id: Optional[UUID] = Query(
+        None,
+        description="Restrict comparison to a single hostel (optional)",
+    ),
+    limit: int = Query(
+        10,
+        ge=1,
+        le=100,
+        description="Maximum number of supervisors to include in comparison",
+    ),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> PeerComparison:
+    """
+    Compare supervisors' performance (e.g., top/bottom performers).
+
+    Expected service method:
+        compare_supervisors(hostel_id: Optional[UUID], limit: int) -> PeerComparison
+    """
+    service = _get_service(session)
+    return service.compare_supervisors(
+        hostel_id=hostel_id,
+        limit=limit,
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\permissions.py ---
+# app/api/v1/supervisors/permissions.py
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from uuid import UUID
+from typing import Any
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorPermissionsService
+from app.schemas.supervisor.supervisor_permissions import (
+    SupervisorPermissions,
+    PermissionUpdate,
+    PermissionCheckRequest,
+    PermissionCheckResponse,
+    BulkPermissionUpdate,
+    ApplyPermissionTemplate,
+)
+from . import CurrentUser, get_current_user, get_current_supervisor
+
+router = APIRouter(tags=["Supervisors - Permissions"])
+
+
+def _get_service(session: Session) -> SupervisorPermissionsService:
+    uow = UnitOfWork(session)
+    return SupervisorPermissionsService(uow)
+
+
+@router.get("/me", response_model=SupervisorPermissions)
+def get_my_permissions(
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> SupervisorPermissions:
+    """
+    Get permissions for the authenticated supervisor.
+
+    Expected service method:
+        get_permissions_for_user(user_id: UUID) -> SupervisorPermissions
+    """
+    service = _get_service(session)
+    return service.get_permissions_for_user(user_id=current_user.id)
+
+
+@router.get("/{supervisor_id}", response_model=SupervisorPermissions)
+def get_permissions_for_supervisor(
+    supervisor_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorPermissions:
+    """
+    Get permissions for a specific supervisor.
+
+    Expected service method:
+        get_permissions(supervisor_id: UUID) -> SupervisorPermissions
+    """
+    service = _get_service(session)
+    return service.get_permissions(supervisor_id=supervisor_id)
+
+
+@router.patch("/{supervisor_id}", response_model=SupervisorPermissions)
+def update_permission(
+    supervisor_id: UUID,
+    payload: PermissionUpdate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorPermissions:
+    """
+    Update a single permission for a supervisor.
+
+    Expected service method:
+        update_permission(supervisor_id: UUID, data: PermissionUpdate) -> SupervisorPermissions
+    """
+    service = _get_service(session)
+    return service.update_permission(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.patch("/{supervisor_id}/bulk", response_model=SupervisorPermissions)
+def bulk_update_permissions(
+    supervisor_id: UUID,
+    payload: BulkPermissionUpdate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorPermissions:
+    """
+    Bulk update multiple permissions for a supervisor.
+
+    Expected service method:
+        bulk_update_permissions(supervisor_id: UUID, data: BulkPermissionUpdate) -> SupervisorPermissions
+    """
+    service = _get_service(session)
+    return service.bulk_update_permissions(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.post("/{supervisor_id}/template", response_model=SupervisorPermissions)
+def apply_permission_template(
+    supervisor_id: UUID,
+    payload: ApplyPermissionTemplate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorPermissions:
+    """
+    Apply a predefined permission template to a supervisor.
+
+    Expected service method:
+        apply_template(supervisor_id: UUID, data: ApplyPermissionTemplate) -> SupervisorPermissions
+    """
+    service = _get_service(session)
+    return service.apply_template(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.post("/{supervisor_id}/check", response_model=PermissionCheckResponse)
+def check_permission_for_supervisor(
+    supervisor_id: UUID,
+    payload: PermissionCheckRequest,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> PermissionCheckResponse:
+    """
+    Check if a supervisor has a specific permission / within limits.
+
+    Expected service method:
+        check_permission(supervisor_id: UUID, data: PermissionCheckRequest) -> PermissionCheckResponse
+    """
+    service = _get_service(session)
+    return service.check_permission(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.post("/me/check", response_model=PermissionCheckResponse)
+def check_my_permission(
+    payload: PermissionCheckRequest,
+    current_user: CurrentUser = Depends(get_current_supervisor),
+    session: Session = Depends(get_session),
+) -> PermissionCheckResponse:
+    """
+    Check a permission for the authenticated supervisor.
+
+    Convenience wrapper around the generic check endpoint.
+    """
+    service = _get_service(session)
+    return service.check_permission_for_user(
+        user_id=current_user.id,
+        data=payload,
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\supervisors.py ---
+# app/api/v1/supervisors/supervisors.py
+from __future__ import annotations
+
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
+from app.core import get_session
+from app.services import UnitOfWork
+from app.services.supervisor import SupervisorService
+from app.schemas.supervisor.supervisor_base import (
+    SupervisorCreate,
+    SupervisorUpdate,
+    SupervisorStatusUpdate,
+    SupervisorReassignment,
+)
+from app.schemas.supervisor.supervisor_response import (
+    SupervisorDetail,
+    SupervisorListItem,
+)
+from . import CurrentUser, get_current_user
+
+router = APIRouter(tags=["Supervisors"])
+
+
+def _get_service(session: Session) -> SupervisorService:
+    """Helper to construct SupervisorService with a UnitOfWork."""
+    uow = UnitOfWork(session)
+    return SupervisorService(uow)
+
+
+@router.get("/", response_model=List[SupervisorListItem])
+def list_supervisors(
+    hostel_id: Optional[UUID] = Query(
+        None,
+        description="Filter supervisors by hostel_id (optional)",
+    ),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> List[SupervisorListItem]:
+    """
+    List supervisors, optionally filtered by hostel.
+
+    Expected service method:
+        list_supervisors(hostel_id: Optional[UUID]) -> list[SupervisorListItem]
+    """
+    service = _get_service(session)
+    return service.list_supervisors(hostel_id=hostel_id)
+
+
+@router.get("/{supervisor_id}", response_model=SupervisorDetail)
+def get_supervisor(
+    supervisor_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorDetail:
+    """
+    Get detailed information for a single supervisor.
+
+    Expected service method:
+        get_supervisor_detail(supervisor_id: UUID) -> SupervisorDetail
+    """
+    service = _get_service(session)
+    return service.get_supervisor_detail(supervisor_id=supervisor_id)
+
+
+@router.post(
+    "",
+    response_model=SupervisorDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_supervisor(
+    payload: SupervisorCreate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorDetail:
+    """
+    Create a new supervisor.
+
+    Expected service method:
+        create_supervisor(data: SupervisorCreate) -> SupervisorDetail
+    """
+    service = _get_service(session)
+    return service.create_supervisor(data=payload)
+
+
+@router.patch("/{supervisor_id}", response_model=SupervisorDetail)
+def update_supervisor(
+    supervisor_id: UUID,
+    payload: SupervisorUpdate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorDetail:
+    """
+    Update supervisor details.
+
+    Expected service method:
+        update_supervisor(supervisor_id: UUID, data: SupervisorUpdate) -> SupervisorDetail
+    """
+    service = _get_service(session)
+    return service.update_supervisor(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.patch("/{supervisor_id}/status", response_model=SupervisorDetail)
+def update_supervisor_status(
+    supervisor_id: UUID,
+    payload: SupervisorStatusUpdate,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorDetail:
+    """
+    Update supervisor status (active/suspended/etc.).
+
+    Expected service method:
+        update_supervisor_status(supervisor_id: UUID, data: SupervisorStatusUpdate) -> SupervisorDetail
+    """
+    service = _get_service(session)
+    return service.update_supervisor_status(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+
+@router.post("/{supervisor_id}/reassign", response_model=SupervisorDetail)
+def reassign_supervisor(
+    supervisor_id: UUID,
+    payload: SupervisorReassignment,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> SupervisorDetail:
+    """
+    Reassign a supervisor (e.g., move primary hostel).
+
+    Expected service method:
+        reassign_supervisor(supervisor_id: UUID, data: SupervisorReassignment) -> SupervisorDetail
+    """
+    service = _get_service(session)
+    return service.reassign_supervisor(
+        supervisor_id=supervisor_id,
+        data=payload,
+    )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\__init__.py ---
+# app/api/v1/supervisors/__init__.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+from app.core.security import decode_token, TokenDecodeError
+from app.schemas.common.enums import UserRole
+
+router = APIRouter()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+@dataclass
+class CurrentUser:
+    """Minimal representation of the authenticated user."""
+    id: UUID
+    role: UserRole
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
+    """
+    Decode JWT and return minimal CurrentUser.
+
+    Expects payload to contain either:
+      - sub (user id) and role
+      - or user_id and user_role
+
+    Adjust this to match your actual TokenPayload.
+    """
+    try:
+        payload: dict[str, Any] = decode_token(token)
+    except TokenDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        ) from exc
+
+    user_id_raw = payload.get("sub") or payload.get("user_id")
+    role_raw = payload.get("role") or payload.get("user_role")
+
+    if not user_id_raw or not role_raw:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    try:
+        user_id = UUID(str(user_id_raw))
+        role = UserRole(str(role_raw))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        ) from exc
+
+    return CurrentUser(id=user_id, role=role)
+
+
+def get_current_supervisor(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Ensure the authenticated user is a SUPERVISOR."""
+    if current_user.role is not UserRole.SUPERVISOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only supervisors can access this endpoint",
+        )
+    return current_user
+
+
+# Import sub-routers and mount them under /supervisors in the main API router.
+from . import supervisors, dashboard, assignments, permissions, performance, activity  # noqa: E402
+
+# CRUD / listing for supervisors
+router.include_router(supervisors.router)
+# Self dashboard
+router.include_router(dashboard.router, prefix="/dashboard")
+# Hostel assignments
+router.include_router(assignments.router, prefix="/assignments")
+# Permissions management
+router.include_router(permissions.router, prefix="/permissions")
+# Performance reports
+router.include_router(performance.router, prefix="/performance")
+# Activity logs
+router.include_router(activity.router, prefix="/activity")
+
+__all__ = [
+    "router",
+    "CurrentUser",
+    "get_current_user",
+    "get_current_supervisor",
+]
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\api\v1\supervisors\__pycache__ =====

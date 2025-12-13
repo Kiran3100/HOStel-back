@@ -9,7 +9,7 @@
     "vc >=14.2,<15",
     "vc14_runtime >=14.29.30133"
   ],
-  "extracted_package_dir": "C:\\Users\\HP\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0",
+  "extracted_package_dir": "C:\\Users\\kiran\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0",
   "files": [
     "Library/include/zconf.h",
     "Library/include/zlib.h",
@@ -23,12 +23,12 @@
   "fn": "zlib-1.3.1-h02ab6af_0.conda",
   "license": "Zlib",
   "link": {
-    "source": "C:\\Users\\HP\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0",
+    "source": "C:\\Users\\kiran\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0",
     "type": 1
   },
   "md5": "4db9b3fbefe915ffb9eef8c812a98c6a",
   "name": "zlib",
-  "package_tarball_full_path": "C:\\Users\\HP\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0.conda",
+  "package_tarball_full_path": "C:\\Users\\kiran\\anaconda3\\pkgs\\zlib-1.3.1-h02ab6af_0.conda",
   "paths_data": {
     "paths": [
       {
@@ -51,7 +51,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "C:/b/abs_32dad41tdx/croot/zlib-split_1756475910568/_h_env",
         "sha256": "46a874f3d6e4da9ccff384c6e1cdfd2d602633a7edf4cbc2fa66154458f153c8",
-        "sha256_in_prefix": "401b5fbb16b3ad97325f942ddbd268874d2c34d99cc0ea832bd071a48f9fae90",
+        "sha256_in_prefix": "54b3b89b4e14a43d68de9c48e7eeaa0f488502f5528b6f2a1291dd6caa7f0c82",
         "size_in_bytes": 549
       },
       {

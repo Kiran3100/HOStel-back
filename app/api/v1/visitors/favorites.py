@@ -43,7 +43,7 @@ def list_favorites(
 
 
 @router.post(
-    "",
+    "/",
     response_model=FavoriteHostelItem,
     status_code=status.HTTP_201_CREATED,
 )

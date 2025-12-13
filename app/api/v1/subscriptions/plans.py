@@ -101,7 +101,7 @@ def get_plan(
 
 
 @router.post(
-    "",
+    "/",
     response_model=PlanResponse,
     status_code=status.HTTP_201_CREATED,
 )
