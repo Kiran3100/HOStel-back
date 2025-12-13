@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from uuid import UUID
 
 from pydantic import Field, computed_field
@@ -179,7 +179,7 @@ class ReferralDetail(BaseResponseSchema):
     )
 
     # Status history
-    status_history: List[Dict[str, any]] = Field(
+    status_history: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="History of status changes",
     )
@@ -442,7 +442,7 @@ class TimelineEvent(BaseSchema):
     event_title: str = Field(..., description="Event title")
     event_description: Optional[str] = Field(None, description="Event description")
     event_date: datetime = Field(..., description="Event timestamp")
-    event_data: Dict[str, any] = Field(
+    event_data: Dict[str, Any] = Field(
         default_factory=dict,
         description="Additional event data",
     )
@@ -502,22 +502,22 @@ class ReferralAnalytics(BaseSchema):
     )
 
     # Trends
-    referral_trend: List[Dict[str, any]] = Field(
+    referral_trend: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Daily/weekly referral trend data",
     )
-    conversion_trend: List[Dict[str, any]] = Field(
+    conversion_trend: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Conversion trend data",
     )
 
     # Top performers
-    top_referrers: List[Dict[str, any]] = Field(
+    top_referrers: List[Dict[str, Any]] = Field(
         default_factory=list,
         max_length=10,
         description="Top 10 referrers",
     )
-    top_sources: List[Dict[str, any]] = Field(
+    top_sources: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Top referral sources",
     )

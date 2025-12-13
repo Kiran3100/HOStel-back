@@ -10,7 +10,7 @@ from __future__ import annotations
 from enum import Enum
 
 from pydantic import Field, field_validator
-
+from typing import Optional
 from app.schemas.common.base import BaseSchema
 
 __all__ = [

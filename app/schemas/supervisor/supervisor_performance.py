@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, computed_field
 
@@ -1100,7 +1100,7 @@ class PerformanceGoalProgress(BaseSchema):
     
     # Tracking
     last_updated: datetime = Field(..., description="Last progress update")
-    measurement_history: List[Dict[str, any]] = Field(
+    measurement_history: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Historical measurements",
     )

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -491,7 +491,7 @@ class ProgramStats(BaseSchema):
     pending_rewards: Decimal = Field(..., ge=0, description="Pending reward payments")
 
     # Top referrers
-    top_referrers: List[Dict[str, any]] = Field(
+    top_referrers: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Top 10 referrers",
     )
