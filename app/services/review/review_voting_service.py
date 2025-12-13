@@ -234,11 +234,13 @@ class ReviewVotingService:
                     helpful_votes += 1
                 else:
                     not_helpful_votes += 1
-
                 items.append(
                     VoteHistoryItem(
                         review_id=rid,
+                        hostel_id=hid,
                         hostel_name=hostel_name,
+                        review_title=r.title,
+                        review_rating=r.overall_rating,
                         vote_type=VoteType.HELPFUL if vt == "helpful" else VoteType.NOT_HELPFUL,
                         voted_at=v["voted_at"],
                     )

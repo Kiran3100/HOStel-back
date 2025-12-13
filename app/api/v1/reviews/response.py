@@ -13,7 +13,7 @@ from app.services.review import HostelResponseService
 from app.schemas.review.review_response_schema import (
     HostelResponseCreate,
     OwnerResponse,
-    ResponseUpdate,
+    HostelResponseUpdate,
     ResponseGuidelines,
     ResponseStats,
 )
@@ -74,7 +74,7 @@ def create_hostel_response(
 @router.patch("/{review_id}", response_model=OwnerResponse)
 def update_hostel_response(
     review_id: UUID,
-    payload: ResponseUpdate,
+    payload: HostelResponseUpdate,
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_staff),
 ) -> OwnerResponse:
@@ -82,7 +82,7 @@ def update_hostel_response(
     Update an existing hostel/owner response (staff only).
     """
     service = _get_service(session)
-    # Expected: update_response(review_id: UUID, user_id: UUID, data: ResponseUpdate) -> OwnerResponse
+    # Expected: update_response(review_id: UUID, user_id: UUID, data: HostelResponseUpdate) -> OwnerResponse
     return service.update_response(
         review_id=review_id,
         user_id=current_user.id,

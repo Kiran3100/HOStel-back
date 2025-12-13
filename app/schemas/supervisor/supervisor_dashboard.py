@@ -8,7 +8,8 @@ task management, and actionable insights.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import datetime, time
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -298,7 +299,7 @@ class RecentMaintenanceItem(BaseSchema):
         description="Estimated cost",
     )
     created_at: datetime = Field(..., description="Request creation time")
-    scheduled_date: Optional[date] = Field(
+    scheduled_date: Optional[Date] = Field(
         default=None,
         description="Scheduled completion date",
     )
@@ -315,7 +316,7 @@ class RecentMaintenanceItem(BaseSchema):
         """Check if maintenance is overdue."""
         if not self.scheduled_date:
             return False
-        return date.today() > self.scheduled_date
+        return Date.today() > self.scheduled_date
 
     @computed_field
     @property
@@ -333,8 +334,8 @@ class PendingLeaveItem(BaseSchema):
     
     # Leave details
     leave_type: str = Field(..., description="Type of leave")
-    from_date: date = Field(..., description="Leave start date")
-    to_date: date = Field(..., description="Leave end date")
+    from_date: Date = Field(..., description="Leave start date")
+    to_date: Date = Field(..., description="Leave end date")
     total_days: int = Field(..., ge=1, description="Total leave days")
     reason: str = Field(..., description="Leave reason")
     
@@ -354,7 +355,7 @@ class PendingLeaveItem(BaseSchema):
     def is_urgent(self) -> bool:
         """Check if leave approval is urgent."""
         # Urgent if leave starts within 2 days
-        return (self.from_date - date.today()).days <= 2
+        return (self.from_date - Date.today()).days <= 2
 
     @computed_field
     @property
@@ -398,7 +399,7 @@ class ScheduledMeeting(BaseSchema):
 class TodaySchedule(BaseSchema):
     """Today's schedule and planned activities."""
     
-    date: date = Field(..., description="Schedule date")
+    date: Date = Field(..., description="Schedule date")
     
     # Routine tasks
     attendance_marking_time: time = Field(

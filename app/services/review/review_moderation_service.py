@@ -247,6 +247,7 @@ class ReviewModerationService:
                         review_id=r.id,
                         hostel_id=r.hostel_id,
                         hostel_name=hostel_name,
+                        reviewer_id=r.reviewer_id,  
                         reviewer_name=reviewer_name,
                         overall_rating=r.overall_rating,
                         title=r.title,
@@ -265,6 +266,7 @@ class ReviewModerationService:
             total_pending=total_pending,
             flagged_reviews=flagged,
             auto_approved=auto_approved,
+            high_priority=flagged,
             pending_reviews=pending,
         )
 
@@ -274,7 +276,7 @@ class ReviewModerationService:
     def get_moderation_stats(
         self,
         *,
-        hostel_id: Optional[UUID],
+        hostel_id: Optional[get_moderation_statsUUID],
         period_start: date,
         period_end: date,
     ) -> ModerationStats:
@@ -321,6 +323,12 @@ class ReviewModerationService:
             if mod_by:
                 key = str(mod_by)
                 moderations_by_user[key] = moderations_by_user.get(key, 0) + 1
+        if total > 0:
+            approval_rate = Decimal(str((auto_approved + manually_approved) * 100 / total))
+            rejection_rate = Decimal(str(rejected * 100 / total))
+        else:
+            approval_rate = Decimal("0")
+            rejection_rate = Decimal("0")
 
         avg_time = (
             Decimal(str(sum(moderation_times) / len(moderation_times)))
@@ -338,5 +346,9 @@ class ReviewModerationService:
             rejected=rejected,
             flagged=flagged,
             average_moderation_time_hours=avg_time,
+            median_moderation_time_hours=None,
             moderations_by_user=moderations_by_user,
+            approval_rate=approval_rate,
+            rejection_rate=rejection_rate,
+            auto_approval_accuracy=None,
         )

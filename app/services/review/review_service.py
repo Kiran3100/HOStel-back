@@ -17,9 +17,12 @@ from app.schemas.review import (
     ReviewResponse,
     ReviewDetail,
     ReviewListItem,
+)
+
+from app.schemas.review.review_filters import (
     ReviewFilterParams,
-    SearchRequest,
-    SortOptions,
+    ReviewSearchRequest,
+    ReviewSortOptions,
 )
 from app.schemas.review.review_response import ReviewSummary
 from app.services.common import UnitOfWork, errors
@@ -141,14 +144,18 @@ class ReviewService:
         reviewer_name: str,
     ) -> ReviewListItem:
         excerpt = (r.review_text or "")[:150]
+        photos = getattr(r, "photos", None) or []
         return ReviewListItem(
             id=r.id,
             reviewer_name=reviewer_name,
+            reviewer_image=None,  # or derive from user if you want
             overall_rating=r.overall_rating,
             title=r.title,
             review_excerpt=excerpt,
             is_verified_stay=r.is_verified_stay,
             helpful_count=r.helpful_count,
+            has_photos=bool(photos),
+            photo_count=len(photos),
             created_at=r.created_at,
             has_hostel_response=False,
         )
@@ -354,7 +361,7 @@ class ReviewService:
     def search_reviews(
         self,
         params: PaginationParams,
-        req: SearchRequest,
+        req: ReviewSearchRequest,
     ) -> PaginatedResponse[ReviewListItem]:
         with UnitOfWork(self._session_factory) as uow:
             review_repo = self._get_review_repo(uow)

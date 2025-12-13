@@ -8,10 +8,11 @@ permission management, and transfer handling.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
+from datetime import date as Date
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import PermissionLevel
@@ -42,7 +43,7 @@ class SupervisorAssignment(BaseResponseSchema):
     
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment date")
     
     is_active: bool = Field(..., description="Assignment is active")
     
@@ -93,7 +94,7 @@ class AssignmentRequest(BaseCreateSchema):
         max_length=100,
         description="Employee/Staff ID",
     )
-    join_date: date = Field(
+    join_date: Date = Field(
         ...,
         description="Joining date",
     )
@@ -120,7 +121,7 @@ class AssignmentRequest(BaseCreateSchema):
 
     @field_validator("join_date")
     @classmethod
-    def validate_join_date(cls, v: date) -> date:
+    def validate_join_date(cls, v: Date) -> Date:
         """Validate join date is reasonable."""
         today = date.today()
         

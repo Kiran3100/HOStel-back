@@ -8,7 +8,8 @@ and quick-view information.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -38,7 +39,7 @@ class StudentFinancialSummary(BaseSchema):
     """
 
     monthly_rent: Decimal = Field(..., description="Monthly rent amount")
-    next_due_date: date = Field(..., description="Next payment due date")
+    next_due_date: Date = Field(..., description="Next payment due date")
     amount_due: Decimal = Field(..., description="Current amount due")
     amount_overdue: Decimal = Field(..., description="Overdue amount")
     advance_balance: Decimal = Field(..., description="Advance payment balance")
@@ -209,7 +210,7 @@ class StudentStats(BaseSchema):
         ge=0,
         description="Total amount paid",
     )
-    last_payment_date: Optional[date] = Field(
+    last_payment_date: Optional[Date] = Field(
         default=None,
         description="Last payment date",
     )
@@ -267,7 +268,7 @@ class RecentPayment(BaseSchema):
     payment_id: str = Field(..., description="Payment ID")
     amount: Decimal = Field(..., ge=0, description="Payment amount")
     payment_type: str = Field(..., description="Payment type")
-    payment_date: date = Field(..., description="Payment date")
+    payment_date: Date = Field(..., description="Payment date")
     status: str = Field(..., description="Payment status")
     receipt_url: Optional[str] = Field(
         default=None,
@@ -314,8 +315,8 @@ class PendingLeave(BaseSchema):
 
     leave_id: str = Field(..., description="Leave application ID")
     leave_type: str = Field(..., description="Leave type")
-    from_date: date = Field(..., description="Leave start date")
-    to_date: date = Field(..., description="Leave end date")
+    from_date: Date = Field(..., description="Leave start date")
+    to_date: Date = Field(..., description="Leave end date")
     total_days: int = Field(..., ge=1, description="Total leave days")
     reason: Optional[str] = Field(default=None, description="Leave reason")
     status: str = Field(..., description="Application status")
@@ -325,7 +326,7 @@ class PendingLeave(BaseSchema):
     @property
     def is_upcoming(self) -> bool:
         """Check if leave is upcoming."""
-        return self.from_date > date.today()
+        return self.from_date > Date.today()
 
 
 class RecentAnnouncement(BaseSchema):
@@ -360,7 +361,7 @@ class TodayMessMenu(BaseSchema):
     Displays daily meal menu.
     """
 
-    date: date = Field(..., description="Menu date")
+    date: Date = Field(..., description="Menu date")
     breakfast: List[str] = Field(
         default_factory=list,
         description="Breakfast items",
@@ -397,7 +398,7 @@ class UpcomingEvent(BaseSchema):
     event_id: str = Field(..., description="Event ID")
     title: str = Field(..., description="Event title")
     description: Optional[str] = Field(default=None, description="Event description")
-    event_date: date = Field(..., description="Event date")
+    event_date: Date = Field(..., description="Event date")
     event_time: Optional[str] = Field(default=None, description="Event time")
     location: Optional[str] = Field(default=None, description="Event location")
     category: str = Field(..., description="Event category")
@@ -414,7 +415,7 @@ class UpcomingEvent(BaseSchema):
     @property
     def days_until_event(self) -> int:
         """Calculate days until event."""
-        return (self.event_date - date.today()).days
+        return (self.event_date - Date.today()).days
 
 
 class StudentDashboard(BaseSchema):

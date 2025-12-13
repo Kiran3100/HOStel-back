@@ -13,7 +13,7 @@ from app.repositories.core import HostelRepository, UserRepository
 from app.schemas.review.review_response_schema import (
     HostelResponseCreate,
     OwnerResponse,
-    ResponseUpdate,
+    HostelResponseUpdate,
     ResponseGuidelines,
     ResponseStats,
 )
@@ -132,7 +132,7 @@ class HostelResponseService:
             responded_at=saved["responded_at"],
         )
 
-    def update_response(self, data: ResponseUpdate) -> OwnerResponse:
+    def update_response(self, data: HostelResponseUpdate) -> OwnerResponse:
         record = self._store.get_response(data.response_id)
         if not record:
             raise errors.NotFoundError(f"Response {data.response_id} not found")
@@ -184,10 +184,15 @@ class HostelResponseService:
         """
         with UnitOfWork(self._session_factory) as uow:
             review_repo = self._get_review_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+
+            hostel = hostel_repo.get(hostel_id)
+            if hostel is None:
+                raise errors.NotFoundError(f"Hostel {hostel_id} not found")
 
             reviews = review_repo.get_multi(
                 skip=0,
-                limit=None,  # type: ignore[arg-type]
+                limit=None,
                 filters={"hostel_id": hostel_id},
             )
 
@@ -195,15 +200,20 @@ class HostelResponseService:
         if total_reviews == 0:
             return ResponseStats(
                 hostel_id=hostel_id,
+                hostel_name=hostel.name,
                 total_reviews=0,
                 total_responses=0,
                 response_rate=Decimal("0"),
                 average_response_time_hours=Decimal("0"),
+                median_response_time_hours=None,
                 response_rate_5_star=Decimal("0"),
                 response_rate_4_star=Decimal("0"),
                 response_rate_3_star=Decimal("0"),
                 response_rate_2_star=Decimal("0"),
                 response_rate_1_star=Decimal("0"),
+                average_response_length=0,
+                pending_responses=0,
+                oldest_unanswered_days=None,
             )
 
         responses = self._store.list_responses_for_hostel(hostel_id)

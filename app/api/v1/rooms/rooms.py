@@ -34,7 +34,7 @@ def _get_service(session: Session) -> RoomService:
     return RoomService(uow)
 
 
-@router.get("", response_model=List[RoomListItem])
+@router.get("/", response_model=List[RoomListItem])
 def list_rooms(
     hostel_id: UUID = Query(..., description="Hostel ID to list rooms for"),
     only_available: bool = Query(
@@ -112,7 +112,7 @@ def get_room_occupancy_stats(
 
 
 @router.post(
-    "",
+    "/",
     response_model=RoomDetail,
     status_code=status.HTTP_201_CREATED,
 )

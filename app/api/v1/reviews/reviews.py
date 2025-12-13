@@ -26,7 +26,7 @@ def _get_service(session: Session) -> ReviewService:
     return ReviewService(uow)
 
 
-@router.get("", response_model=List[ReviewListItem])
+@router.get("/", response_model=List[ReviewListItem])
 def list_reviews(
     filters: ReviewFilterParams = Depends(),
     session: Session = Depends(get_session),

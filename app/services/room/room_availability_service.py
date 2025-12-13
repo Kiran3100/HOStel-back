@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from calendar import monthrange
-from datetime import date, timedelta
+from datetime import timedelta
+from datetime import date as Date
 from decimal import Decimal
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
@@ -51,7 +52,7 @@ class RoomAvailabilityService:
     def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
         return uow.get_repo(StudentRepository)
 
-    def _add_months(self, d: date, months: int) -> date:
+    def _add_months(self, d: Date, months: int) -> Date:
         month = d.month - 1 + months
         year = d.year + month // 12
         month = month % 12 + 1
@@ -59,7 +60,7 @@ class RoomAvailabilityService:
             d.day,
             monthrange(year, month)[1],
         )
-        return date(year, month, day)
+        return Date(year, month, day)
 
     # ------------------------------------------------------------------ #
     # Availability
@@ -150,9 +151,9 @@ class RoomAvailabilityService:
         except ValueError:
             raise errors.ValidationError("month must be in 'YYYY-MM' format")
 
-        start = date(year, m, 1)
+        start = Date(year, m, 1)
         last_day = monthrange(year, m)[1]
-        end = date(year, m, last_day)
+        end = Date(year, m, last_day)
 
         with UnitOfWork(self._session_factory) as uow:
             room_repo = self._get_room_repo(uow)

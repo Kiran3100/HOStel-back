@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema, BaseCreateSchema
 from app.schemas.common.enums import StudentStatus

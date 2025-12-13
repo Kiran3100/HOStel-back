@@ -26,7 +26,7 @@ def _get_service(session: Session) -> StudentService:
     return StudentService(uow)
 
 
-@router.get("", response_model=List[StudentListItem])
+@router.get("/", response_model=List[StudentListItem])
 def list_students(
     filters: StudentFilterParams = Depends(),
     session: Session = Depends(get_session),
@@ -75,7 +75,7 @@ def get_student(
 
 
 @router.post(
-    "",
+    "/",
     response_model=StudentDetail,
     status_code=status.HTTP_201_CREATED,
 )

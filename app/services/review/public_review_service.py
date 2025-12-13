@@ -12,12 +12,12 @@ from app.repositories.core import HostelRepository, UserRepository, StudentRepos
 from app.schemas.common.pagination import PaginationParams, PaginatedResponse
 from app.schemas.review.review_submission import (
     ReviewSubmissionRequest,
-    DetailedRatings,
+    DetailedRatingsInput,
     ReviewGuidelines,
     ReviewEligibility,
 )
 from app.schemas.review import ReviewDetail, ReviewListItem
-from app.schemas.review.review_filters import ReviewFilterParams, SortOptions
+from app.schemas.review.review_filters import ReviewFilterParams, ReviewSortOptions
 from app.services.common import UnitOfWork, errors
 from .review_service import ReviewService
 
@@ -107,7 +107,7 @@ class PublicReviewService:
         from app.schemas.review import ReviewCreate
 
         # Approximate mapping from DetailedRatings
-        dr: DetailedRatings = data.detailed_ratings
+        dr: DetailedRatingsInput = data.detailed_ratings
 
         create = ReviewCreate(
             hostel_id=data.hostel_id,
@@ -146,5 +146,5 @@ class PublicReviewService:
             min_rating=min_rating,
             approved_only=True,
         )
-        sort = SortOptions(sort_by="helpful", verified_first=True, with_photos_first=True)
+        sort = ReviewSortOptions(sort_by="helpful", verified_first=True, with_photos_first=True)
         return self._review_service.list_reviews(params, filters=filters, sort=sort)

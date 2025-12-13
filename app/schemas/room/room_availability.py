@@ -8,9 +8,10 @@ and booking-related information.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
+from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator, computed_field
 
@@ -39,7 +40,7 @@ class RoomAvailabilityRequest(BaseCreateSchema):
         ...,
         description="Hostel ID to check availability for",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
         description="Desired check-in date",
     )
@@ -77,13 +78,13 @@ class RoomAvailabilityRequest(BaseCreateSchema):
 
     @field_validator("check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
+    def validate_check_in_date(cls, v: Date) -> Date:
         """
         Validate check-in date.
         
         Ensures date is not too far in the past.
         """
-        today = date.today()
+        today = Date.today()
         # Allow up to 7 days in the past for flexibility
         min_date = today - timedelta(days=7)
         
@@ -103,7 +104,7 @@ class RoomAvailabilityRequest(BaseCreateSchema):
 
     @computed_field
     @property
-    def check_out_date(self) -> date:
+    def check_out_date(self) -> Date:
         """Calculate checkout date based on duration."""
         # Approximate: 1 month = 30 days
         return self.check_in_date + timedelta(days=self.duration_months * 30)
@@ -194,8 +195,8 @@ class AvailabilityResponse(BaseSchema):
     """
 
     hostel_id: str = Field(..., description="Hostel ID")
-    check_in_date: date = Field(..., description="Requested check-in date")
-    check_out_date: date = Field(..., description="Calculated checkout date")
+    check_in_date: Date = Field(..., description="Requested check-in date")
+    check_out_date: Date = Field(..., description="Calculated checkout date")
     duration_months: int = Field(..., ge=1, description="Stay duration")
     
     # Results
@@ -214,7 +215,7 @@ class AvailabilityResponse(BaseSchema):
     )
     
     # Filters applied
-    filters_applied: Dict[str, any] = Field(
+    filters_applied: Dict[str, Any] = Field(
         default_factory=dict,
         description="Summary of applied filters",
     )
@@ -252,8 +253,8 @@ class BookingInfo(BaseSchema):
     booking_id: str = Field(..., description="Booking ID")
     student_name: str = Field(..., description="Student name")
     student_id: str = Field(..., description="Student ID")
-    check_in_date: date = Field(..., description="Check-in date")
-    check_out_date: date = Field(..., description="Check-out date")
+    check_in_date: Date = Field(..., description="Check-in date")
+    check_out_date: Date = Field(..., description="Check-out date")
     bed_number: Optional[str] = Field(
         default=None,
         description="Assigned bed number",
@@ -268,7 +269,7 @@ class DayAvailability(BaseSchema):
     Day-level availability with booking details.
     """
 
-    date: date = Field(..., description="Date")
+    date: Date = Field(..., description="Date")
     available_beds: int = Field(..., ge=0, description="Available beds")
     total_beds: int = Field(..., ge=1, description="Total beds")
     is_available: bool = Field(..., description="Has availability")
@@ -366,7 +367,7 @@ class BulkAvailabilityRequest(BaseCreateSchema):
         max_length=10,
         description="List of hostel IDs (max 10)",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
         description="Check-in date",
     )
@@ -396,9 +397,9 @@ class BulkAvailabilityRequest(BaseCreateSchema):
 
     @field_validator("check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
+    def validate_check_in_date(cls, v: Date) -> Date:
         """Validate check-in date is not in the past."""
-        today = date.today()
+        today = Date.today()
         if v < today - timedelta(days=7):
             raise ValueError(
                 "Check-in date cannot be more than 7 days in the past"

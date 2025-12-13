@@ -29,7 +29,7 @@ from app.schemas.student.student_dashboard import (
     RecentAnnouncement,
     TodayMessMenu,
 )
-from app.services.analytics import AttendanceAnalyticsService
+from app.services.analytics.attendance_analytics_service import AttendanceAnalyticsService
 from app.services.common import UnitOfWork, errors
 
 

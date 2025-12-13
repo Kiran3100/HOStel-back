@@ -5,222 +5,1029 @@
 # ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\review =====
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_analytics.py ---
+# --- File: app/schemas/review/review_analytics.py ---
 """
-Review analytics schemas
+Review analytics schemas with comprehensive metrics and trend analysis.
+
+Provides detailed analytics, sentiment analysis, and competitive insights
+for hostel reviews.
 """
-from datetime import date
+
+from __future__ import annotations
+
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
-from pydantic import Field
+
+from pydantic import Field, field_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.filters import DateRangeFilter
 
-
-class ReviewAnalytics(BaseSchema):
-    """Comprehensive review analytics"""
-    hostel_id: UUID
-    hostel_name: str
-    
-    analysis_period: Optional[DateRangeFilter] = None
-    generated_at: datetime
-    
-    # Summary
-    total_reviews: int
-    average_rating: Decimal
-    
-    # Rating distribution
-    rating_distribution: "RatingDistribution"
-    
-    # Detailed ratings
-    detailed_ratings_average: Dict[str, Decimal] = Field(
-        ...,
-        description="Aspect -> average rating"
-    )
-    
-    # Trends
-    rating_trend: "TrendAnalysis"
-    
-    # Sentiment
-    sentiment_analysis: Optional["SentimentAnalysis"] = None
-    
-    # Verification
-    verified_reviews_count: int
-    verification_rate: Decimal
-    
-    # Engagement
-    average_helpful_votes: Decimal
-    response_rate: Decimal
-
-
-class RatingDistribution(BaseSchema):
-    """Rating distribution breakdown"""
-    rating_5_count: int
-    rating_4_count: int
-    rating_3_count: int
-    rating_2_count: int
-    rating_1_count: int
-    
-    rating_5_percentage: Decimal
-    rating_4_percentage: Decimal
-    rating_3_percentage: Decimal
-    rating_2_percentage: Decimal
-    rating_1_percentage: Decimal
-    
-    # Aggregated
-    positive_reviews: int = Field(..., description="4-5 star reviews")
-    neutral_reviews: int = Field(..., description="3 star reviews")
-    negative_reviews: int = Field(..., description="1-2 star reviews")
-    
-    positive_percentage: Decimal
-    neutral_percentage: Decimal
-    negative_percentage: Decimal
-
-
-class TrendAnalysis(BaseSchema):
-    """Rating trend analysis"""
-    trend_direction: str = Field(..., pattern="^(improving|declining|stable)$")
-    trend_percentage: Optional[Decimal] = Field(None, description="% change")
-    
-    # Monthly trend
-    monthly_ratings: List["MonthlyRating"] = Field(default_factory=list)
-    
-    # Recent vs older
-    last_30_days_rating: Decimal
-    last_90_days_rating: Decimal
-    all_time_rating: Decimal
+__all__ = [
+    "ReviewAnalytics",
+    "RatingDistribution",
+    "TrendAnalysis",
+    "MonthlyRating",
+    "SentimentAnalysis",
+    "AspectAnalysis",
+    "CompetitorComparison",
+]
 
 
 class MonthlyRating(BaseSchema):
-    """Monthly rating data"""
-    month: str  # YYYY-MM
-    average_rating: Decimal
-    review_count: int
+    """
+    Monthly rating aggregation.
+    
+    Tracks average rating and review volume by month.
+    """
+    
+    month: str = Field(
+        ...,
+        pattern=r"^\d{4}-\d{2}$",
+        description="Month in YYYY-MM format",
+        examples=["2024-01", "2024-02"],
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Average rating for the month",
+    )
+    review_count: int = Field(
+        ...,
+        ge=0,
+        description="Total reviews received in the month",
+    )
+    
+    @field_validator("average_rating")
+    @classmethod
+    def round_to_half(cls, v: Decimal) -> Decimal:
+        """Round rating to nearest 0.5."""
+        return Decimal(str(round(float(v) * 2) / 2))
+
+
+class RatingDistribution(BaseSchema):
+    """
+    Rating distribution breakdown with percentages.
+    
+    Provides detailed analysis of rating spread across 1-5 stars.
+    """
+    
+    # Raw counts
+    rating_5_count: int = Field(..., ge=0, description="5-star reviews count")
+    rating_4_count: int = Field(..., ge=0, description="4-star reviews count")
+    rating_3_count: int = Field(..., ge=0, description="3-star reviews count")
+    rating_2_count: int = Field(..., ge=0, description="2-star reviews count")
+    rating_1_count: int = Field(..., ge=0, description="1-star reviews count")
+    
+    # Percentages
+    rating_5_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of 5-star reviews",
+    )
+    rating_4_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of 4-star reviews",
+    )
+    rating_3_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of 3-star reviews",
+    )
+    rating_2_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of 2-star reviews",
+    )
+    rating_1_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of 1-star reviews",
+    )
+    
+    # Aggregated metrics
+    positive_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Count of positive reviews (4-5 stars)",
+    )
+    neutral_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Count of neutral reviews (3 stars)",
+    )
+    negative_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Count of negative reviews (1-2 stars)",
+    )
+    
+    positive_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of positive reviews",
+    )
+    neutral_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of neutral reviews",
+    )
+    negative_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of negative reviews",
+    )
+    
+    @computed_field
+    @property
+    def total_reviews(self) -> int:
+        """Calculate total number of reviews."""
+        return (
+            self.rating_5_count
+            + self.rating_4_count
+            + self.rating_3_count
+            + self.rating_2_count
+            + self.rating_1_count
+        )
+    
+    @computed_field
+    @property
+    def recommendation_score(self) -> Decimal:
+        """
+        Calculate recommendation score.
+        
+        Based on ratio of positive reviews to total reviews.
+        """
+        if self.total_reviews == 0:
+            return Decimal("0")
+        return Decimal(
+            str(round((self.positive_reviews / self.total_reviews) * 100, 2))
+        )
+
+
+class TrendAnalysis(BaseSchema):
+    """
+    Rating trend analysis over time.
+    
+    Tracks rating changes and provides directional indicators.
+    """
+    
+    trend_direction: str = Field(
+        ...,
+        pattern=r"^(improving|declining|stable)$",
+        description="Overall trend direction",
+    )
+    trend_percentage: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("-100"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage change in rating",
+    )
+    
+    # Time-based ratings
+    last_30_days_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Average rating in last 30 days",
+    )
+    last_90_days_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Average rating in last 90 days",
+    )
+    all_time_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="All-time average rating",
+    )
+    
+    # Monthly breakdown
+    monthly_ratings: List[MonthlyRating] = Field(
+        default_factory=list,
+        description="Monthly rating history",
+    )
+    
+    @field_validator("trend_direction")
+    @classmethod
+    def normalize_trend(cls, v: str) -> str:
+        """Normalize trend direction to lowercase."""
+        return v.lower().strip()
+    
+    @classmethod
+    def calculate_trend(
+        cls,
+        current_rating: Decimal,
+        previous_rating: Decimal,
+        threshold: Decimal = Decimal("0.1"),
+    ) -> str:
+        """
+        Calculate trend direction based on rating change.
+        
+        Args:
+            current_rating: Current period average rating
+            previous_rating: Previous period average rating
+            threshold: Minimum change to consider as trend
+            
+        Returns:
+            Trend direction: improving, declining, or stable
+        """
+        difference = current_rating - previous_rating
+        
+        if abs(difference) < threshold:
+            return "stable"
+        return "improving" if difference > 0 else "declining"
 
 
 class SentimentAnalysis(BaseSchema):
-    """Sentiment analysis of reviews"""
-    overall_sentiment: str = Field(..., pattern="^(positive|neutral|negative)$")
+    """
+    Sentiment analysis of review content.
     
-    sentiment_score: Decimal = Field(..., ge=-1, le=1, description="Sentiment score")
+    Provides AI-powered sentiment scoring and theme extraction.
+    """
+    
+    overall_sentiment: str = Field(
+        ...,
+        pattern=r"^(positive|neutral|negative)$",
+        description="Overall sentiment classification",
+    )
+    
+    sentiment_score: Decimal = Field(
+        ...,
+        ge=Decimal("-1"),
+        le=Decimal("1"),
+        decimal_places=3,
+        description="Sentiment score (-1 to 1, where 1 is most positive)",
+    )
     
     # Distribution
-    positive_count: int
-    neutral_count: int
-    negative_count: int
+    positive_count: int = Field(..., ge=0, description="Positive reviews count")
+    neutral_count: int = Field(..., ge=0, description="Neutral reviews count")
+    negative_count: int = Field(..., ge=0, description="Negative reviews count")
     
-    # Common themes
-    positive_themes: List[str] = Field(default_factory=list, description="Common positive mentions")
-    negative_themes: List[str] = Field(default_factory=list, description="Common complaints")
+    # Themes and keywords
+    positive_themes: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Common positive themes extracted from reviews",
+        examples=[["clean", "friendly staff", "good food"]],
+    )
+    negative_themes: List[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Common complaints extracted from reviews",
+        examples=[["noise", "maintenance issues"]],
+    )
     
-    # Keywords
-    most_mentioned_positive: List[str] = Field(default_factory=list)
-    most_mentioned_negative: List[str] = Field(default_factory=list)
+    most_mentioned_positive: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Most frequently mentioned positive keywords",
+    )
+    most_mentioned_negative: List[str] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Most frequently mentioned negative keywords",
+    )
+    
+    @field_validator("overall_sentiment")
+    @classmethod
+    def normalize_sentiment(cls, v: str) -> str:
+        """Normalize sentiment to lowercase."""
+        return v.lower().strip()
+    
+    @computed_field
+    @property
+    def total_analyzed(self) -> int:
+        """Total reviews analyzed for sentiment."""
+        return self.positive_count + self.neutral_count + self.negative_count
+    
+    @computed_field
+    @property
+    def positive_percentage(self) -> Decimal:
+        """Percentage of positive sentiment reviews."""
+        if self.total_analyzed == 0:
+            return Decimal("0")
+        return Decimal(
+            str(round((self.positive_count / self.total_analyzed) * 100, 2))
+        )
 
 
 class AspectAnalysis(BaseSchema):
-    """Analysis by specific aspects"""
-    aspect: str = Field(..., description="cleanliness, food, staff, etc.")
+    """
+    Analysis of specific review aspects (cleanliness, food, staff, etc.).
     
-    average_rating: Decimal
-    total_ratings: int
+    Provides granular insights into individual service aspects.
+    """
     
-    # Distribution
-    rating_distribution: Dict[int, int] = Field(..., description="Rating -> count")
+    aspect: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Aspect name (e.g., cleanliness, food, staff)",
+        examples=["cleanliness", "food_quality", "staff_behavior"],
+    )
+    
+    average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Average rating for this aspect",
+    )
+    total_ratings: int = Field(
+        ...,
+        ge=0,
+        description="Total number of ratings for this aspect",
+    )
+    
+    # Rating distribution for this aspect
+    rating_distribution: Dict[int, int] = Field(
+        default_factory=dict,
+        description="Rating value to count mapping",
+        examples=[{1: 5, 2: 10, 3: 20, 4: 40, 5: 25}],
+    )
     
     # Trend
-    trend: str = Field(..., pattern="^(improving|declining|stable)$")
+    trend: str = Field(
+        ...,
+        pattern=r"^(improving|declining|stable)$",
+        description="Trend direction for this aspect",
+    )
     
-    # Mentions
-    mention_count: int
-    positive_mentions: int
-    negative_mentions: int
+    # Mentions in review text
+    mention_count: int = Field(
+        ...,
+        ge=0,
+        description="Times this aspect was mentioned in reviews",
+    )
+    positive_mentions: int = Field(
+        ...,
+        ge=0,
+        description="Positive mentions count",
+    )
+    negative_mentions: int = Field(
+        ...,
+        ge=0,
+        description="Negative mentions count",
+    )
     
-    # Top comments
-    top_positive_comments: List[str] = Field(default_factory=list, max_items=5)
-    top_negative_comments: List[str] = Field(default_factory=list, max_items=5)
+    # Sample comments
+    top_positive_comments: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Top positive comments about this aspect",
+    )
+    top_negative_comments: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Top negative comments about this aspect",
+    )
+    
+    @field_validator("rating_distribution")
+    @classmethod
+    def validate_rating_keys(cls, v: Dict[int, int]) -> Dict[int, int]:
+        """Ensure rating distribution keys are valid (1-5)."""
+        invalid_keys = [k for k in v.keys() if k < 1 or k > 5]
+        if invalid_keys:
+            raise ValueError(
+                f"Invalid rating keys found: {invalid_keys}. "
+                "Rating keys must be between 1 and 5."
+            )
+        return v
+    
+    @computed_field
+    @property
+    def sentiment_ratio(self) -> Decimal:
+        """
+        Calculate sentiment ratio for this aspect.
+        
+        Returns ratio of positive to total mentions.
+        """
+        total_mentions = self.positive_mentions + self.negative_mentions
+        if total_mentions == 0:
+            return Decimal("0.5")  # Neutral if no mentions
+        return Decimal(
+            str(round(self.positive_mentions / total_mentions, 3))
+        )
 
 
 class CompetitorComparison(BaseSchema):
-    """Compare reviews with competitors (if data available)"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Competitive analysis comparing hostel with nearby competitors.
     
-    this_hostel_rating: Decimal
-    competitor_average_rating: Decimal
+    Provides benchmarking insights and competitive positioning.
+    """
     
-    rating_difference: Decimal
-    percentile_rank: Decimal = Field(..., description="Percentile among competitors")
+    hostel_id: UUID = Field(..., description="Subject hostel ID")
+    hostel_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Subject hostel name",
+    )
     
-    # Strengths
+    # Ratings comparison
+    this_hostel_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="This hostel's average rating",
+    )
+    competitor_average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Average rating of competitors in area",
+    )
+    
+    rating_difference: Decimal = Field(
+        ...,
+        ge=Decimal("-4.0"),
+        le=Decimal("4.0"),
+        decimal_places=2,
+        description="Rating difference from competitor average",
+    )
+    percentile_rank: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentile rank among competitors (0-100)",
+    )
+    
+    # Competitive advantages and weaknesses
     competitive_advantages: List[str] = Field(
         default_factory=list,
-        description="Aspects rated higher than competitors"
+        max_length=10,
+        description="Aspects rated higher than competitors",
+        examples=[["cleanliness", "staff_behavior", "security"]],
     )
-    
-    # Weaknesses
     improvement_areas: List[str] = Field(
         default_factory=list,
-        description="Aspects rated lower than competitors"
+        max_length=10,
+        description="Aspects rated lower than competitors",
+        examples=[["food_quality", "wifi", "amenities"]],
     )
+    
+    @computed_field
+    @property
+    def competitive_position(self) -> str:
+        """
+        Determine competitive position based on percentile rank.
+        
+        Returns:
+            Position category: leader, above_average, average, or below_average
+        """
+        rank = float(self.percentile_rank)
+        if rank >= 75:
+            return "leader"
+        elif rank >= 60:
+            return "above_average"
+        elif rank >= 40:
+            return "average"
+        else:
+            return "below_average"
+    
+    @computed_field
+    @property
+    def is_outperforming(self) -> bool:
+        """Check if hostel is outperforming competitors."""
+        return self.rating_difference > Decimal("0")
+
+
+class ReviewAnalytics(BaseSchema):
+    """
+    Comprehensive review analytics for a hostel.
+    
+    Aggregates all review metrics, trends, and insights.
+    """
+    
+    hostel_id: UUID = Field(..., description="Hostel identifier")
+    hostel_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Hostel name",
+    )
+    
+    # Analysis period
+    analysis_period: Optional[DateRangeFilter] = Field(
+        None,
+        description="Period for which analytics are calculated",
+    )
+    generated_at: datetime = Field(
+        ...,
+        description="Analytics generation timestamp",
+    )
+    
+    # Summary metrics
+    total_reviews: int = Field(
+        ...,
+        ge=0,
+        description="Total number of reviews",
+    )
+    average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=2,
+        description="Overall average rating",
+    )
+    
+    # Detailed breakdowns
+    rating_distribution: RatingDistribution = Field(
+        ...,
+        description="Rating distribution across 1-5 stars",
+    )
+    
+    # Aspect ratings
+    detailed_ratings_average: Dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average ratings by aspect (cleanliness, food, etc.)",
+        examples=[
+            {
+                "cleanliness": Decimal("4.5"),
+                "food_quality": Decimal("4.2"),
+                "staff_behavior": Decimal("4.7"),
+            }
+        ],
+    )
+    
+    # Trends
+    rating_trend: TrendAnalysis = Field(
+        ...,
+        description="Rating trend analysis over time",
+    )
+    
+    # Sentiment
+    sentiment_analysis: Optional[SentimentAnalysis] = Field(
+        None,
+        description="AI-powered sentiment analysis",
+    )
+    
+    # Verification metrics
+    verified_reviews_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of verified reviews",
+    )
+    verification_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of reviews that are verified",
+    )
+    
+    # Engagement metrics
+    average_helpful_votes: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Average helpful votes per review",
+    )
+    response_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+        description="Percentage of reviews with hostel responses",
+    )
+    
+    @field_validator("detailed_ratings_average")
+    @classmethod
+    def validate_aspect_ratings(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
+        """Validate aspect ratings are within valid range."""
+        for aspect, rating in v.items():
+            if not (Decimal("1.0") <= rating <= Decimal("5.0")):
+                raise ValueError(
+                    f"Rating for '{aspect}' must be between 1.0 and 5.0, "
+                    f"got {rating}"
+                )
+        return v
+    
+    @computed_field
+    @property
+    def quality_score(self) -> Decimal:
+        """
+        Calculate overall quality score (0-100).
+        
+        Composite score based on rating, verification rate, and engagement.
+        """
+        # Base score from rating (max 70 points)
+        rating_score = (float(self.average_rating) / 5.0) * 70
+        
+        # Verification bonus (max 15 points)
+        verification_score = (float(self.verification_rate) / 100) * 15
+        
+        # Engagement bonus (max 15 points)
+        engagement_score = min(
+            (float(self.average_helpful_votes) / 10) * 15, 15
+        )
+        
+        total = rating_score + verification_score + engagement_score
+        return Decimal(str(round(total, 2)))
+    
+    @computed_field
+    @property
+    def health_indicator(self) -> str:
+        """
+        Overall review health indicator.
+        
+        Returns:
+            Health status: excellent, good, fair, or poor
+        """
+        score = float(self.quality_score)
+        if score >= 80:
+            return "excellent"
+        elif score >= 65:
+            return "good"
+        elif score >= 50:
+            return "fair"
+        else:
+            return "poor"
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_base.py ---
+# --- File: app/schemas/review/review_base.py ---
 """
-Review base schemas
+Base review schemas with comprehensive validation.
+
+Provides foundation schemas for review creation and updates.
 """
+
+from __future__ import annotations
+
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field, HttpUrl, field_validator
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
 
+__all__ = [
+    "ReviewBase",
+    "ReviewCreate",
+    "ReviewUpdate",
+    "DetailedRatings",
+]
+
+
+class DetailedRatings(BaseSchema):
+    """
+    Detailed aspect-based ratings for comprehensive feedback.
+    
+    Allows reviewers to rate specific aspects of their experience.
+    """
+    
+    cleanliness_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Cleanliness and hygiene rating",
+    )
+    food_quality_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Food quality rating (if mess facility available)",
+    )
+    staff_behavior_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Staff courtesy and helpfulness rating",
+    )
+    security_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Safety and security measures rating",
+    )
+    value_for_money_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Value for money rating",
+    )
+    amenities_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Facilities and amenities quality rating",
+    )
+    location_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Location convenience rating",
+    )
+    wifi_quality_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Internet/WiFi quality rating",
+    )
+    maintenance_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Maintenance responsiveness rating",
+    )
+
 
 class ReviewBase(BaseSchema):
-    """Base review schema"""
+    """
+    Base review schema with all core fields.
+    
+    Foundation for review creation with comprehensive validation.
+    """
+    
+    # Identifiers
     hostel_id: UUID = Field(..., description="Hostel being reviewed")
-    reviewer_id: UUID = Field(..., description="User writing review")
-    student_id: Optional[UUID] = Field(None, description="Student profile (if verified stay)")
-    booking_id: Optional[UUID] = Field(None, description="Related booking")
+    reviewer_id: UUID = Field(..., description="User submitting the review")
+    student_id: Optional[UUID] = Field(
+        None,
+        description="Student profile ID (for verified stay reviews)",
+    )
+    booking_id: Optional[UUID] = Field(
+        None,
+        description="Related booking reference for verification",
+    )
     
     # Overall rating
-    overall_rating: Decimal = Field(..., ge=1, le=5, description="Overall rating 1-5")
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=1,
+        description="Overall rating (1.0 to 5.0, in 0.5 increments)",
+        examples=[Decimal("4.5"), Decimal("3.0")],
+    )
     
     # Review content
-    title: str = Field(..., min_length=5, max_length=255, description="Review title")
-    review_text: str = Field(..., min_length=50, max_length=5000, description="Review text")
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Review title/headline",
+        examples=["Great hostel with excellent facilities"],
+    )
+    review_text: str = Field(
+        ...,
+        min_length=50,
+        max_length=5000,
+        description="Detailed review text",
+    )
     
-    # Detailed ratings
-    cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
-    food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
-    staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
-    security_rating: Optional[int] = Field(None, ge=1, le=5)
-    value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
-    amenities_rating: Optional[int] = Field(None, ge=1, le=5)
+    # Detailed aspect ratings (optional but encouraged)
+    cleanliness_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Cleanliness rating",
+    )
+    food_quality_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Food quality rating",
+    )
+    staff_behavior_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Staff behavior rating",
+    )
+    security_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Security rating",
+    )
+    value_for_money_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Value for money rating",
+    )
+    amenities_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Amenities rating",
+    )
     
-    # Photos
-    photos: List[HttpUrl] = Field(default_factory=list, max_items=10, description="Review photos")
+    # Media attachments
+    photos: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Review photos (max 10)",
+        examples=[
+            [
+                "https://example.com/photos/room1.jpg",
+                "https://example.com/photos/facilities.jpg",
+            ]
+        ],
+    )
     
-    @field_validator('overall_rating')
+    @field_validator("overall_rating")
     @classmethod
-    def round_rating(cls, v: Decimal) -> Decimal:
-        """Round rating to 0.5"""
-        return round(v * 2) / 2
+    def round_rating_to_half(cls, v: Decimal) -> Decimal:
+        """
+        Round overall rating to nearest 0.5.
+        
+        Ensures consistent rating increments (1.0, 1.5, 2.0, etc.).
+        """
+        return Decimal(str(round(float(v) * 2) / 2))
+    
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Validate and clean review title."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Review title cannot be empty")
+        
+        # Check for excessive capitalization (possible spam)
+        if len(v) > 10 and v.isupper():
+            raise ValueError(
+                "Please avoid using all caps in your review title"
+            )
+        
+        return v
+    
+    @field_validator("review_text")
+    @classmethod
+    def validate_review_text(cls, v: str) -> str:
+        """Validate and clean review text."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Review text cannot be empty")
+        
+        # Check minimum word count (approximately 10 words)
+        word_count = len(v.split())
+        if word_count < 10:
+            raise ValueError(
+                "Please provide a more detailed review (minimum 10 words)"
+            )
+        
+        # Check for excessive capitalization
+        if len(v) > 50 and sum(1 for c in v if c.isupper()) / len(v) > 0.5:
+            raise ValueError(
+                "Please avoid excessive use of capital letters in your review"
+            )
+        
+        return v
+    
+    @field_validator("photos")
+    @classmethod
+    def validate_photos(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Validate photo URLs."""
+        if len(v) > 10:
+            raise ValueError("Maximum 10 photos allowed per review")
+        
+        # Convert to list of strings and back to ensure consistency
+        return v
+    
+    @model_validator(mode="after")
+    def validate_rating_consistency(self) -> "ReviewBase":
+        """
+        Validate that overall rating is consistent with detailed ratings.
+        
+        If detailed ratings are provided, checks that overall rating
+        is reasonably aligned with the average of detailed ratings.
+        """
+        detailed_ratings = [
+            r for r in [
+                self.cleanliness_rating,
+                self.food_quality_rating,
+                self.staff_behavior_rating,
+                self.security_rating,
+                self.value_for_money_rating,
+                self.amenities_rating,
+            ]
+            if r is not None
+        ]
+        
+        if detailed_ratings:
+            avg_detailed = sum(detailed_ratings) / len(detailed_ratings)
+            overall = float(self.overall_rating)
+            
+            # Allow some variance (±1 star)
+            if abs(overall - avg_detailed) > 1.5:
+                raise ValueError(
+                    "Overall rating seems inconsistent with detailed ratings. "
+                    "Please review your ratings."
+                )
+        
+        return self
 
 
 class ReviewCreate(ReviewBase, BaseCreateSchema):
-    """Create review"""
-    pass
+    """
+    Schema for creating a new review.
+    
+    Inherits all validation from ReviewBase and adds creation-specific rules.
+    """
+    
+    # Additional fields for creation context
+    would_recommend: bool = Field(
+        ...,
+        description="Would the reviewer recommend this hostel?",
+    )
+    
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=24,
+        description="Duration of stay in months (helps with verification)",
+    )
+    
+    @model_validator(mode="after")
+    def validate_recommendation_consistency(self) -> "ReviewCreate":
+        """
+        Validate recommendation aligns with rating.
+        
+        Warns if low-rated review has recommendation or vice versa.
+        """
+        rating = float(self.overall_rating)
+        
+        # High rating (4+) but not recommending seems inconsistent
+        if rating >= 4.0 and not self.would_recommend:
+            # This is allowed but logged for review
+            pass
+        
+        # Low rating (<3) but recommending seems inconsistent
+        if rating < 3.0 and self.would_recommend:
+            # This is allowed but logged for review
+            pass
+        
+        return self
 
 
 class ReviewUpdate(BaseUpdateSchema):
-    """Update review (limited time after posting)"""
-    title: Optional[str] = Field(None, min_length=5, max_length=255)
-    review_text: Optional[str] = Field(None, min_length=50, max_length=5000)
+    """
+    Schema for updating an existing review.
     
-    overall_rating: Optional[Decimal] = Field(None, ge=1, le=5)
+    Allows partial updates with time-limited edit window.
+    All fields are optional to support partial updates.
+    """
     
+    # Content updates
+    title: Optional[str] = Field(
+        None,
+        min_length=5,
+        max_length=255,
+        description="Updated review title",
+    )
+    review_text: Optional[str] = Field(
+        None,
+        min_length=50,
+        max_length=5000,
+        description="Updated review text",
+    )
+    
+    # Rating updates
+    overall_rating: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        decimal_places=1,
+        description="Updated overall rating",
+    )
+    
+    # Detailed ratings updates
     cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
     food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
     staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
@@ -228,693 +1035,2618 @@ class ReviewUpdate(BaseUpdateSchema):
     value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
     amenities_rating: Optional[int] = Field(None, ge=1, le=5)
     
-    photos: Optional[List[HttpUrl]] = None
+    # Media updates
+    photos: Optional[List[HttpUrl]] = Field(
+        None,
+        max_length=10,
+        description="Updated photo list",
+    )
+    
+    @field_validator("overall_rating")
+    @classmethod
+    def round_rating_to_half(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round overall rating to nearest 0.5."""
+        if v is None:
+            return v
+        return Decimal(str(round(float(v) * 2) / 2))
+    
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+        """Validate updated title."""
+        if v is None:
+            return v
+        
+        v = v.strip()
+        if not v:
+            raise ValueError("Review title cannot be empty")
+        
+        if len(v) > 10 and v.isupper():
+            raise ValueError(
+                "Please avoid using all caps in your review title"
+            )
+        
+        return v
+    
+    @field_validator("review_text")
+    @classmethod
+    def validate_review_text(cls, v: Optional[str]) -> Optional[str]:
+        """Validate updated review text."""
+        if v is None:
+            return v
+        
+        v = v.strip()
+        if not v:
+            raise ValueError("Review text cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 10:
+            raise ValueError(
+                "Please provide a more detailed review (minimum 10 words)"
+            )
+        
+        return v
+    
+    @field_validator("photos")
+    @classmethod
+    def validate_photos(cls, v: Optional[List[HttpUrl]]) -> Optional[List[HttpUrl]]:
+        """Validate updated photos."""
+        if v is None:
+            return v
+        
+        if len(v) > 10:
+            raise ValueError("Maximum 10 photos allowed per review")
+        
+        return v
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_filters.py ---
+# --- File: app/schemas/review/review_filters.py ---
 """
-Review filter schemas
+Review filter and search schemas with advanced filtering options.
 """
+
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
+
+from pydantic import Field, field_validator,model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseFilterSchema
 
+__all__ = [
+    "ReviewFilterParams",
+    "ReviewSearchRequest",
+    "ReviewSortOptions",
+    "ReviewExportRequest",
+]
+
 
 class ReviewFilterParams(BaseFilterSchema):
-    """Review filter parameters"""
-    # Hostel filter
-    hostel_id: Optional[UUID] = None
-    hostel_ids: Optional[List[UUID]] = None
+    """
+    Comprehensive review filtering parameters.
     
-    # Rating filter
-    min_rating: Optional[Decimal] = Field(None, ge=1, le=5)
-    max_rating: Optional[Decimal] = Field(None, ge=1, le=5)
-    rating: Optional[int] = Field(None, ge=1, le=5, description="Exact rating")
+    Supports filtering by hostel, ratings, verification, dates, and more.
+    """
     
-    # Verification
-    verified_only: Optional[bool] = None
-    
-    # Date filter
-    posted_date_from: Optional[date] = None
-    posted_date_to: Optional[date] = None
-    
-    # Status
-    approved_only: bool = Field(True, description="Show only approved reviews")
-    flagged_only: Optional[bool] = None
-    
-    # Response
-    with_hostel_response: Optional[bool] = None
-    
-    # Helpfulness
-    min_helpful_count: Optional[int] = Field(None, ge=0)
-    
-    # Photos
-    with_photos_only: Optional[bool] = None
-
-
-class SearchRequest(BaseFilterSchema):
-    """Search reviews"""
-    query: str = Field(..., min_length=1)
-    hostel_id: Optional[UUID] = None
-    
-    search_in_title: bool = Field(True)
-    search_in_content: bool = Field(True)
-    
-    min_rating: Optional[Decimal] = None
-    
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
-
-
-class SortOptions(BaseFilterSchema):
-    """Review sorting options"""
-    sort_by: str = Field(
-        "helpful",
-        pattern="^(helpful|recent|rating_high|rating_low|verified)$"
+    # Hostel filters
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Filter by specific hostel",
+    )
+    hostel_ids: Optional[List[UUID]] = Field(
+        None,
+        max_length=50,
+        description="Filter by multiple hostels (max 50)",
     )
     
-    # Additional sort logic
-    verified_first: bool = Field(True, description="Show verified reviews first")
-    with_photos_first: bool = Field(False, description="Prioritize reviews with photos")
+    # Rating filters
+    min_rating: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Minimum overall rating",
+    )
+    max_rating: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Maximum overall rating",
+    )
+    rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Exact rating (1-5 stars)",
+    )
+    
+    # Verification filters
+    verified_only: Optional[bool] = Field(
+        None,
+        description="Show only verified stay reviews",
+    )
+    
+    # Date filters
+    posted_date_from: Optional[date] = Field(
+        None,
+        description="Reviews posted on or after this date",
+    )
+    posted_date_to: Optional[date] = Field(
+        None,
+        description="Reviews posted on or before this date",
+    )
+    
+    # Status filters
+    approved_only: bool = Field(
+        True,
+        description="Show only approved/published reviews",
+    )
+    flagged_only: Optional[bool] = Field(
+        None,
+        description="Show only flagged reviews",
+    )
+    
+    # Response filter
+    with_hostel_response: Optional[bool] = Field(
+        None,
+        description="Filter by presence of hostel response",
+    )
+    
+    # Engagement filters
+    min_helpful_count: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Minimum helpful vote count",
+    )
+    
+    # Media filter
+    with_photos_only: Optional[bool] = Field(
+        None,
+        description="Show only reviews with photos",
+    )
+    
+    @field_validator("hostel_ids")
+    @classmethod
+    def validate_hostel_ids(cls, v: Optional[List[UUID]]) -> Optional[List[UUID]]:
+        """Validate hostel IDs list."""
+        if v is not None and len(v) > 50:
+            raise ValueError("Maximum 50 hostel IDs allowed")
+        return v
+    
+    @field_validator("max_rating")
+    @classmethod
+    def validate_rating_range(cls, v: Optional[Decimal], info) -> Optional[Decimal]:
+        """Validate that max_rating >= min_rating."""
+        min_rating = info.data.get("min_rating")
+        if v is not None and min_rating is not None and v < min_rating:
+            raise ValueError("max_rating must be greater than or equal to min_rating")
+        return v
+    
+    @field_validator("posted_date_to")
+    @classmethod
+    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate that posted_date_to >= posted_date_from."""
+        posted_date_from = info.data.get("posted_date_from")
+        if v is not None and posted_date_from is not None and v < posted_date_from:
+            raise ValueError(
+                "posted_date_to must be on or after posted_date_from"
+            )
+        return v
+
+
+class ReviewSearchRequest(BaseFilterSchema):
+    """
+    Full-text search request for reviews.
+    
+    Supports searching in titles and content with advanced options.
+    """
+    
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Search query",
+        examples=["clean rooms", "friendly staff"],
+    )
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Limit search to specific hostel",
+    )
+    
+    # Search scope
+    search_in_title: bool = Field(
+        True,
+        description="Include review titles in search",
+    )
+    search_in_content: bool = Field(
+        True,
+        description="Include review text in search",
+    )
+    
+    # Additional filters
+    min_rating: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Filter by minimum rating",
+    )
+    verified_only: Optional[bool] = Field(
+        None,
+        description="Show only verified reviews",
+    )
+    
+    # Pagination
+    page: int = Field(
+        1,
+        ge=1,
+        description="Page number",
+    )
+    page_size: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Results per page",
+    )
+    
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Validate and clean search query."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Search query cannot be empty")
+        return v
+    
+    @model_validator(mode="after")
+    def validate_search_scope(self) -> "ReviewSearchRequest":
+        """Ensure at least one search scope is selected."""
+        if not self.search_in_title and not self.search_in_content:
+            raise ValueError(
+                "At least one search scope must be enabled "
+                "(title or content)"
+            )
+        return self
+
+
+class ReviewSortOptions(BaseFilterSchema):
+    """
+    Review sorting options with multiple strategies.
+    
+    Supports various sorting methods including helpful votes and recency.
+    """
+    
+    sort_by: str = Field(
+        "helpful",
+        pattern=r"^(helpful|recent|rating_high|rating_low|verified|oldest)$",
+        description="Sort method",
+    )
+    
+    # Priority options
+    verified_first: bool = Field(
+        True,
+        description="Prioritize verified reviews in results",
+    )
+    with_photos_first: bool = Field(
+        False,
+        description="Prioritize reviews with photos",
+    )
+    with_response_first: bool = Field(
+        False,
+        description="Prioritize reviews with hostel responses",
+    )
+    
+    @field_validator("sort_by")
+    @classmethod
+    def normalize_sort_by(cls, v: str) -> str:
+        """Normalize sort_by value to lowercase."""
+        return v.lower().strip()
 
 
 class ReviewExportRequest(BaseFilterSchema):
-    """Export reviews"""
-    hostel_id: UUID
-    filters: Optional[ReviewFilterParams] = None
+    """
+    Export reviews to various formats.
     
-    format: str = Field("csv", pattern="^(csv|excel|pdf)$")
+    Supports CSV, Excel, and PDF exports with customizable content.
+    """
     
-    include_detailed_ratings: bool = Field(True)
-    include_hostel_responses: bool = Field(True)
-    include_voter_stats: bool = Field(False)
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel to export reviews for",
+    )
+    filters: Optional[ReviewFilterParams] = Field(
+        None,
+        description="Additional filters to apply",
+    )
+    
+    # Export format
+    format: str = Field(
+        "csv",
+        pattern=r"^(csv|excel|pdf|json)$",
+        description="Export format",
+    )
+    
+    # Content options
+    include_detailed_ratings: bool = Field(
+        True,
+        description="Include aspect-specific ratings",
+    )
+    include_hostel_responses: bool = Field(
+        True,
+        description="Include hostel responses to reviews",
+    )
+    include_voter_stats: bool = Field(
+        False,
+        description="Include helpful vote statistics",
+    )
+    include_reviewer_info: bool = Field(
+        True,
+        description="Include reviewer name and verification status",
+    )
+    
+    # Date range for export
+    date_from: Optional[date] = Field(
+        None,
+        description="Export reviews from this date onwards",
+    )
+    date_to: Optional[date] = Field(
+        None,
+        description="Export reviews up to this date",
+    )
+    
+    @field_validator("format")
+    @classmethod
+    def normalize_format(cls, v: str) -> str:
+        """Normalize format to lowercase."""
+        return v.lower().strip()
+    
+    @field_validator("date_to")
+    @classmethod
+    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate export date range."""
+        date_from = info.data.get("date_from")
+        if v is not None and date_from is not None and v < date_from:
+            raise ValueError("date_to must be on or after date_from")
+        return v
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_moderation.py ---
+# --- File: app/schemas/review/review_moderation.py ---
 """
-Review moderation schemas
+Review moderation and approval workflow schemas.
+
+Handles review moderation queue, approval/rejection, and flagging.
 """
-from datetime import datetime
-from typing import List, Optional
-from pydantic import Field
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator,model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema, BaseCreateSchema
 
+__all__ = [
+    "ModerationRequest",
+    "ModerationResponse",
+    "ModerationQueue",
+    "PendingReview",
+    "ApprovalWorkflow",
+    "BulkModeration",
+    "ModerationStats",
+    "FlagReview",
+]
+
 
 class ModerationRequest(BaseCreateSchema):
-    """Submit review for moderation"""
-    review_id: UUID
+    """
+    Review moderation action request.
     
-    action: str = Field(..., pattern="^(approve|reject|flag|unflag)$")
+    Supports approval, rejection, and flagging of reviews.
+    """
     
-    # If rejecting
-    rejection_reason: Optional[str] = Field(None, min_length=20, max_length=500)
+    review_id: UUID = Field(..., description="Review to moderate")
     
-    # If flagging
+    action: str = Field(
+        ...,
+        pattern=r"^(approve|reject|flag|unflag|hold)$",
+        description="Moderation action to take",
+    )
+    
+    # Rejection details
+    rejection_reason: Optional[str] = Field(
+        None,
+        min_length=20,
+        max_length=500,
+        description="Reason for rejection (required if action=reject)",
+    )
+    
+    # Flagging details
     flag_reason: Optional[str] = Field(
         None,
-        pattern="^(inappropriate|spam|fake|offensive|other)$"
+        pattern=r"^(inappropriate|spam|fake|offensive|profanity|other)$",
+        description="Reason for flagging (required if action=flag)",
     )
-    flag_details: Optional[str] = Field(None, max_length=1000)
+    flag_details: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Additional flagging details",
+    )
     
-    # Moderator notes (internal)
-    moderator_notes: Optional[str] = Field(None, max_length=500)
+    # Internal notes
+    moderator_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Internal moderator notes (not visible to reviewer)",
+    )
+    
+    # Notification control
+    notify_reviewer: bool = Field(
+        True,
+        description="Send notification to reviewer about moderation action",
+    )
+    
+    @field_validator("action")
+    @classmethod
+    def normalize_action(cls, v: str) -> str:
+        """Normalize action to lowercase."""
+        return v.lower().strip()
+    
+    @model_validator(mode="after")
+    def validate_action_requirements(self) -> "ModerationRequest":
+        """Validate that required fields are provided for specific actions."""
+        if self.action == "reject" and not self.rejection_reason:
+            raise ValueError(
+                "rejection_reason is required when action is 'reject'"
+            )
+        
+        if self.action == "flag" and not self.flag_reason:
+            raise ValueError(
+                "flag_reason is required when action is 'flag'"
+            )
+        
+        return self
+
+
+class FlagReview(BaseCreateSchema):
+    """
+    User-initiated review flagging.
+    
+    Allows users to report inappropriate or problematic reviews.
+    """
+    
+    review_id: UUID = Field(..., description="Review to flag")
+    reporter_id: UUID = Field(..., description="User reporting the review")
+    
+    flag_reason: str = Field(
+        ...,
+        pattern=r"^(inappropriate|spam|fake|offensive|profanity|not_relevant|other)$",
+        description="Reason for flagging",
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Detailed description of the issue",
+    )
+    
+    @field_validator("flag_reason")
+    @classmethod
+    def normalize_flag_reason(cls, v: str) -> str:
+        """Normalize flag reason to lowercase."""
+        return v.lower().strip()
 
 
 class ModerationResponse(BaseSchema):
-    """Moderation response"""
-    review_id: UUID
+    """Response after moderation action."""
     
-    action_taken: str
-    moderated_by: UUID
-    moderated_by_name: str
-    moderated_at: datetime
+    review_id: UUID = Field(..., description="Moderated review ID")
     
-    # Notification sent
-    reviewer_notified: bool
+    action_taken: str = Field(
+        ...,
+        description="Action that was performed",
+    )
+    moderated_by: UUID = Field(..., description="Moderator user ID")
+    moderated_by_name: str = Field(..., description="Moderator name")
+    moderated_at: datetime = Field(..., description="Moderation timestamp")
     
-    message: str
-
-
-class ModerationQueue(BaseSchema):
-    """Moderation queue for reviews"""
-    hostel_id: Optional[UUID] = None
+    # Notification status
+    reviewer_notified: bool = Field(
+        ...,
+        description="Whether reviewer was notified",
+    )
     
-    total_pending: int
-    flagged_reviews: int
-    auto_approved: int
-    
-    pending_reviews: List["PendingReview"]
+    message: str = Field(
+        ...,
+        description="Result message",
+        examples=["Review approved successfully"],
+    )
 
 
 class PendingReview(BaseSchema):
-    """Pending review in moderation queue"""
-    review_id: UUID
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Review pending moderation.
     
-    reviewer_name: str
-    overall_rating: Decimal
+    Represents a review in the moderation queue.
+    """
     
-    title: str
-    review_excerpt: str
+    review_id: UUID = Field(..., description="Review ID")
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
     
-    is_verified_stay: bool
+    # Reviewer info
+    reviewer_id: UUID = Field(..., description="Reviewer ID")
+    reviewer_name: str = Field(..., description="Reviewer name")
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
     
-    # Flags
-    is_flagged: bool
-    flag_count: int
+    # Content preview
+    title: str = Field(..., description="Review title")
+    review_excerpt: str = Field(
+        ...,
+        max_length=200,
+        description="Review text excerpt (first 200 chars)",
+    )
     
-    submitted_at: datetime
+    # Verification
+    is_verified_stay: bool = Field(
+        ...,
+        description="Whether stay is verified",
+    )
     
-    # Auto-moderation score
-    spam_score: Optional[Decimal] = Field(None, ge=0, le=1, description="AI spam detection score")
-    sentiment_score: Optional[Decimal] = Field(None, ge=-1, le=1, description="Sentiment analysis")
+    # Flags and issues
+    is_flagged: bool = Field(..., description="Whether review is flagged")
+    flag_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of times review has been flagged",
+    )
+    flag_reasons: List[str] = Field(
+        default_factory=list,
+        description="Reasons for flagging",
+    )
+    
+    # Timestamps
+    submitted_at: datetime = Field(..., description="Review submission time")
+    
+    # AI moderation scores
+    spam_score: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="AI spam detection score (0-1, higher = more likely spam)",
+    )
+    sentiment_score: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("-1"),
+        le=Decimal("1"),
+        description="Sentiment analysis score (-1 to 1)",
+    )
+    toxicity_score: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="Content toxicity score (0-1, higher = more toxic)",
+    )
+    
+    # Priority indicators
+    requires_immediate_attention: bool = Field(
+        default=False,
+        description="Whether review needs urgent moderation",
+    )
+
+
+class ModerationQueue(BaseSchema):
+    """
+    Moderation queue overview.
+    
+    Summary of reviews pending moderation.
+    """
+    
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Filter by specific hostel (None = all hostels)",
+    )
+    
+    # Queue statistics
+    total_pending: int = Field(..., ge=0, description="Total pending reviews")
+    flagged_reviews: int = Field(..., ge=0, description="Flagged reviews count")
+    auto_approved: int = Field(..., ge=0, description="Auto-approved count")
+    high_priority: int = Field(
+        ...,
+        ge=0,
+        description="High priority items needing attention",
+    )
+    
+    # Reviews in queue
+    pending_reviews: List[PendingReview] = Field(
+        default_factory=list,
+        description="List of pending reviews",
+    )
+    
+    # Queue health
+    average_wait_time_hours: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        description="Average time reviews spend in queue",
+    )
+    oldest_review_age_hours: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        description="Age of oldest pending review",
+    )
 
 
 class ApprovalWorkflow(BaseSchema):
-    """Review approval workflow"""
-    review_id: UUID
+    """
+    Review approval workflow status.
     
-    requires_moderation: bool
+    Tracks the complete moderation lifecycle of a review.
+    """
+    
+    review_id: UUID = Field(..., description="Review ID")
+    
+    # Workflow status
+    requires_moderation: bool = Field(
+        ...,
+        description="Whether review requires manual moderation",
+    )
     moderation_status: str = Field(
         ...,
-        pattern="^(pending|approved|rejected|flagged)$"
+        pattern=r"^(pending|approved|rejected|flagged|on_hold)$",
+        description="Current moderation status",
     )
     
     # Timeline
-    submitted_at: datetime
-    moderated_at: Optional[datetime]
+    submitted_at: datetime = Field(..., description="Submission timestamp")
+    moderated_at: Optional[datetime] = Field(
+        None,
+        description="Moderation completion timestamp",
+    )
+    published_at: Optional[datetime] = Field(
+        None,
+        description="Publication timestamp (if approved)",
+    )
     
-    # Moderator
-    moderated_by: Optional[UUID]
-    moderated_by_name: Optional[str]
+    # Moderator info
+    moderated_by: Optional[UUID] = Field(None, description="Moderator user ID")
+    moderated_by_name: Optional[str] = Field(None, description="Moderator name")
     
-    # Reason (if rejected)
-    rejection_reason: Optional[str]
+    # Rejection/flagging details
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejection",
+    )
+    flag_reasons: List[str] = Field(
+        default_factory=list,
+        description="List of flag reasons",
+    )
+    
+    # Auto-moderation
+    auto_moderation_score: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="Automated moderation confidence score",
+    )
+    auto_approved: bool = Field(
+        default=False,
+        description="Whether review was auto-approved",
+    )
 
 
 class BulkModeration(BaseCreateSchema):
-    """Moderate multiple reviews"""
-    review_ids: List[UUID] = Field(..., min_items=1, max_items=50)
+    """
+    Bulk moderation of multiple reviews.
     
-    action: str = Field(..., pattern="^(approve|reject)$")
+    Allows moderators to process multiple reviews at once.
+    """
     
-    # Common reason
-    reason: Optional[str] = None
+    review_ids: List[UUID] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Reviews to moderate (max 50)",
+    )
+    
+    action: str = Field(
+        ...,
+        pattern=r"^(approve|reject|flag)$",
+        description="Action to apply to all reviews",
+    )
+    
+    # Common reason/notes
+    reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common reason for all reviews",
+    )
+    
+    notify_reviewers: bool = Field(
+        True,
+        description="Send notifications to all affected reviewers",
+    )
+    
+    @field_validator("review_ids")
+    @classmethod
+    def validate_review_ids(cls, v: List[UUID]) -> List[UUID]:
+        """Validate review IDs list."""
+        if len(v) > 50:
+            raise ValueError("Maximum 50 reviews can be moderated at once")
+        
+        # Remove duplicates
+        unique_ids = list(set(v))
+        if len(unique_ids) != len(v):
+            raise ValueError("Duplicate review IDs found")
+        
+        return v
+    
+    @field_validator("action")
+    @classmethod
+    def normalize_action(cls, v: str) -> str:
+        """Normalize action to lowercase."""
+        return v.lower().strip()
 
 
 class ModerationStats(BaseSchema):
-    """Moderation statistics"""
-    hostel_id: Optional[UUID]
-    period_start: date
-    period_end: date
+    """
+    Moderation statistics and metrics.
     
-    total_reviews: int
-    auto_approved: int
-    manually_approved: int
-    rejected: int
-    flagged: int
+    Provides insights into moderation performance and volume.
+    """
     
-    average_moderation_time_hours: Decimal
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Hostel filter (None = all hostels)",
+    )
+    period_start: date = Field(..., description="Statistics period start")
+    period_end: date = Field(..., description="Statistics period end")
+    
+    # Volume metrics
+    total_reviews: int = Field(..., ge=0, description="Total reviews received")
+    auto_approved: int = Field(..., ge=0, description="Auto-approved count")
+    manually_approved: int = Field(
+        ...,
+        ge=0,
+        description="Manually approved count",
+    )
+    rejected: int = Field(..., ge=0, description="Rejected count")
+    flagged: int = Field(..., ge=0, description="Flagged count")
+    
+    # Performance metrics
+    average_moderation_time_hours: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        description="Average time to moderate (in hours)",
+    )
+    median_moderation_time_hours: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        description="Median moderation time",
+    )
     
     # By moderator
-    moderations_by_user: dict = Field(default_factory=dict)
+    moderations_by_user: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Moderator ID/name to moderation count mapping",
+    )
+    
+    # Quality metrics
+    approval_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of reviews approved",
+    )
+    rejection_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of reviews rejected",
+    )
+    auto_approval_accuracy: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Accuracy of auto-approval system",
+    )
+    
+    @field_validator("period_end")
+    @classmethod
+    def validate_period(cls, v: date, info) -> date:
+        """Validate period end is after start."""
+        period_start = info.data.get("period_start")
+        if period_start and v < period_start:
+            raise ValueError("period_end must be on or after period_start")
+        return v
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_response.py ---
+# --- File: app/schemas/review/review_response.py ---
 """
-Review response schemas
+Review response schemas for API responses.
+
+Provides comprehensive response formats for reviews.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
+
+from pydantic import Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
-
-class ReviewResponse(BaseResponseSchema):
-    """Review response"""
-    hostel_id: UUID
-    hostel_name: str
-    
-    reviewer_id: UUID
-    reviewer_name: str
-    
-    overall_rating: Decimal
-    title: str
-    review_text: str
-    
-    is_verified_stay: bool
-    verified_at: Optional[datetime]
-    
-    is_approved: bool
-    
-    helpful_count: int
-    not_helpful_count: int
-    
-    created_at: datetime
-
-
-class ReviewDetail(BaseResponseSchema):
-    """Detailed review information"""
-    hostel_id: UUID
-    hostel_name: str
-    
-    # Reviewer
-    reviewer_id: UUID
-    reviewer_name: str
-    reviewer_profile_image: Optional[str]
-    
-    student_id: Optional[UUID]
-    booking_id: Optional[UUID]
-    
-    # Ratings
-    overall_rating: Decimal
-    cleanliness_rating: Optional[int]
-    food_quality_rating: Optional[int]
-    staff_behavior_rating: Optional[int]
-    security_rating: Optional[int]
-    value_for_money_rating: Optional[int]
-    amenities_rating: Optional[int]
-    
-    # Content
-    title: str
-    review_text: str
-    
-    # Photos
-    photos: List[str]
-    
-    # Verification
-    is_verified_stay: bool
-    verified_at: Optional[datetime]
-    
-    # Moderation
-    is_approved: bool
-    approved_by: Optional[UUID]
-    approved_at: Optional[datetime]
-    
-    is_flagged: bool
-    flag_reason: Optional[str]
-    flagged_by: Optional[UUID]
-    flagged_at: Optional[datetime]
-    
-    # Engagement
-    helpful_count: int
-    not_helpful_count: int
-    report_count: int
-    
-    # Hostel response
-    hostel_response: Optional["HostelResponseDetail"]
-    
-    # Dates
-    created_at: datetime
-    updated_at: datetime
-    
-    # Visibility
-    is_published: bool
+__all__ = [
+    "ReviewResponse",
+    "ReviewDetail",
+    "ReviewListItem",
+    "ReviewSummary",
+    "HostelResponseDetail",
+]
 
 
 class HostelResponseDetail(BaseSchema):
-    """Hostel's response to review"""
-    response_text: str
-    responded_by: UUID
-    responded_by_name: str
-    responded_at: datetime
+    """
+    Hostel's response to a review.
+    
+    Represents management's reply to customer feedback.
+    """
+    
+    response_id: UUID = Field(..., description="Response ID")
+    response_text: str = Field(
+        ...,
+        min_length=20,
+        max_length=2000,
+        description="Response text from hostel management",
+    )
+    responded_by: UUID = Field(..., description="User who responded")
+    responded_by_name: str = Field(..., description="Responder's name")
+    responded_by_role: str = Field(
+        ...,
+        description="Responder's role (admin, owner, manager)",
+    )
+    responded_at: datetime = Field(..., description="Response timestamp")
+    
+    # Metadata
+    is_edited: bool = Field(
+        default=False,
+        description="Whether response has been edited",
+    )
+    edited_at: Optional[datetime] = Field(
+        None,
+        description="Last edit timestamp",
+    )
+
+
+class ReviewResponse(BaseResponseSchema):
+    """
+    Basic review response.
+    
+    Minimal review information for list views.
+    """
+    
+    # Hostel info
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Reviewer info
+    reviewer_id: UUID = Field(..., description="Reviewer user ID")
+    reviewer_name: str = Field(..., description="Reviewer display name")
+    
+    # Review content
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    title: str = Field(..., description="Review title")
+    review_text: str = Field(..., description="Review text")
+    
+    # Verification
+    is_verified_stay: bool = Field(
+        ...,
+        description="Whether stay is verified",
+    )
+    verified_at: Optional[datetime] = Field(
+        None,
+        description="Verification timestamp",
+    )
+    
+    # Status
+    is_approved: bool = Field(..., description="Approval status")
+    
+    # Engagement
+    helpful_count: int = Field(..., ge=0, description="Helpful votes count")
+    not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
+    
+    # Timestamps
+    created_at: datetime = Field(..., description="Creation timestamp")
+    
+    @computed_field
+    @property
+    def helpfulness_ratio(self) -> Decimal:
+        """Calculate helpfulness ratio."""
+        total_votes = self.helpful_count + self.not_helpful_count
+        if total_votes == 0:
+            return Decimal("0.5")  # Neutral
+        return Decimal(str(round(self.helpful_count / total_votes, 3)))
+
+
+class ReviewDetail(BaseResponseSchema):
+    """
+    Detailed review information.
+    
+    Complete review data including all ratings, media, and metadata.
+    """
+    
+    # Hostel info
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Reviewer info
+    reviewer_id: UUID = Field(..., description="Reviewer ID")
+    reviewer_name: str = Field(..., description="Reviewer name")
+    reviewer_profile_image: Optional[str] = Field(
+        None,
+        description="Reviewer profile image URL",
+    )
+    
+    # References
+    student_id: Optional[UUID] = Field(None, description="Student profile ID")
+    booking_id: Optional[UUID] = Field(None, description="Related booking ID")
+    
+    # Ratings
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
+    food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
+    security_rating: Optional[int] = Field(None, ge=1, le=5)
+    value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
+    amenities_rating: Optional[int] = Field(None, ge=1, le=5)
+    location_rating: Optional[int] = Field(None, ge=1, le=5)
+    wifi_quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    
+    # Content
+    title: str = Field(..., description="Review title")
+    review_text: str = Field(..., description="Full review text")
+    
+    # Media
+    photos: List[str] = Field(
+        default_factory=list,
+        description="Review photo URLs",
+    )
+    
+    # Verification
+    is_verified_stay: bool = Field(..., description="Verification status")
+    verified_at: Optional[datetime] = Field(None, description="Verification time")
+    verification_method: Optional[str] = Field(
+        None,
+        description="How the stay was verified",
+    )
+    
+    # Moderation
+    is_approved: bool = Field(..., description="Approval status")
+    approved_by: Optional[UUID] = Field(None, description="Approver ID")
+    approved_at: Optional[datetime] = Field(None, description="Approval time")
+    
+    is_flagged: bool = Field(default=False, description="Flagged status")
+    flag_reason: Optional[str] = Field(None, description="Flag reason")
+    flagged_by: Optional[UUID] = Field(None, description="Flagger ID")
+    flagged_at: Optional[datetime] = Field(None, description="Flag time")
+    
+    # Engagement
+    helpful_count: int = Field(..., ge=0, description="Helpful votes")
+    not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
+    report_count: int = Field(..., ge=0, description="Report count")
+    
+    # Hostel response
+    hostel_response: Optional[HostelResponseDetail] = Field(
+        None,
+        description="Hostel's response to this review",
+    )
+    
+    # Timestamps
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    
+    # Visibility
+    is_published: bool = Field(..., description="Publication status")
+    
+    # Additional metadata
+    would_recommend: Optional[bool] = Field(
+        None,
+        description="Whether reviewer recommends the hostel",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=24,
+        description="Duration of stay",
+    )
+    
+    @computed_field
+    @property
+    def total_votes(self) -> int:
+        """Total votes on this review."""
+        return self.helpful_count + self.not_helpful_count
+    
+    @computed_field
+    @property
+    def average_detailed_rating(self) -> Optional[Decimal]:
+        """Calculate average of detailed ratings."""
+        ratings = [
+            r for r in [
+                self.cleanliness_rating,
+                self.food_quality_rating,
+                self.staff_behavior_rating,
+                self.security_rating,
+                self.value_for_money_rating,
+                self.amenities_rating,
+                self.location_rating,
+                self.wifi_quality_rating,
+            ]
+            if r is not None
+        ]
+        
+        if not ratings:
+            return None
+        
+        return Decimal(str(round(sum(ratings) / len(ratings), 2)))
 
 
 class ReviewListItem(BaseSchema):
-    """Review list item"""
-    id: UUID
-    reviewer_name: str
-    overall_rating: Decimal
-    title: str
-    review_excerpt: str = Field(..., description="First 150 characters")
+    """
+    Review list item for paginated lists.
     
-    is_verified_stay: bool
-    helpful_count: int
+    Optimized for list views with essential information only.
+    """
     
-    created_at: datetime
+    id: UUID = Field(..., description="Review ID")
+    reviewer_name: str = Field(..., description="Reviewer name")
+    reviewer_image: Optional[str] = Field(None, description="Profile image URL")
     
-    has_hostel_response: bool
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating",
+    )
+    title: str = Field(..., description="Review title")
+    review_excerpt: str = Field(
+        ...,
+        max_length=150,
+        description="Review text excerpt (first 150 chars)",
+    )
+    
+    is_verified_stay: bool = Field(..., description="Verification status")
+    helpful_count: int = Field(..., ge=0, description="Helpful votes")
+    
+    has_photos: bool = Field(..., description="Has photos attached")
+    photo_count: int = Field(..., ge=0, description="Number of photos")
+    
+    created_at: datetime = Field(..., description="Creation timestamp")
+    
+    has_hostel_response: bool = Field(
+        ...,
+        description="Whether hostel has responded",
+    )
+    
+    @computed_field
+    @property
+    def days_ago(self) -> int:
+        """Days since review was posted."""
+        delta = datetime.utcnow() - self.created_at
+        return delta.days
 
 
 class ReviewSummary(BaseSchema):
-    """Review summary for hostel"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Review summary for a hostel.
     
-    total_reviews: int
-    average_rating: Decimal
+    Aggregated review statistics and recent reviews.
+    """
+    
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    # Aggregate metrics
+    total_reviews: int = Field(..., ge=0, description="Total reviews count")
+    average_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Average overall rating",
+    )
     
     # Rating distribution
-    rating_5_count: int
-    rating_4_count: int
-    rating_3_count: int
-    rating_2_count: int
-    rating_1_count: int
+    rating_5_count: int = Field(..., ge=0)
+    rating_4_count: int = Field(..., ge=0)
+    rating_3_count: int = Field(..., ge=0)
+    rating_2_count: int = Field(..., ge=0)
+    rating_1_count: int = Field(..., ge=0)
     
     # Verified reviews
-    verified_reviews_count: int
-    verified_reviews_percentage: Decimal
+    verified_reviews_count: int = Field(..., ge=0)
+    verified_reviews_percentage: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of verified reviews",
+    )
+    
+    # Average detailed ratings
+    average_cleanliness: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_food_quality: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_staff_behavior: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_security: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_value_for_money: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_amenities: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
     
     # Recent reviews
-    recent_reviews: List[ReviewListItem] = Field(default_factory=list, max_items=5)
+    recent_reviews: List[ReviewListItem] = Field(
+        default_factory=list,
+        max_length=5,
+        description="5 most recent reviews",
+    )
     
-    # Recommendation
+    # Recommendation metric
     would_recommend_percentage: Decimal = Field(
         ...,
-        description="% of reviewers who would recommend"
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of reviewers who would recommend",
     )
+    
+    @computed_field
+    @property
+    def positive_review_percentage(self) -> Decimal:
+        """Percentage of 4-5 star reviews."""
+        if self.total_reviews == 0:
+            return Decimal("0")
+        
+        positive = self.rating_5_count + self.rating_4_count
+        return Decimal(str(round((positive / self.total_reviews) * 100, 2)))
+    
+    @computed_field
+    @property
+    def rating_quality_score(self) -> str:
+        """
+        Qualitative rating description.
+        
+        Returns: excellent, very_good, good, average, or poor
+        """
+        rating = float(self.average_rating)
+        if rating >= 4.5:
+            return "excellent"
+        elif rating >= 4.0:
+            return "very_good"
+        elif rating >= 3.5:
+            return "good"
+        elif rating >= 3.0:
+            return "average"
+        else:
+            return "poor"
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_response_schema.py ---
+# --- File: app/schemas/review/review_response_schema.py ---
 """
-Hostel response to review schemas
+Hostel response to review schemas.
+
+Handles hostel management responses to customer reviews.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional
-from pydantic import Field
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, field_validator, computed_field
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from app.schemas.common.base import (
+    BaseSchema,
+    BaseCreateSchema,
+    BaseUpdateSchema,
+    BaseResponseSchema,
+)
+
+__all__ = [
+    "HostelResponseCreate",
+    "HostelResponseUpdate",
+    "OwnerResponse",
+    "ResponseGuidelines",
+    "ResponseStats",
+    "ResponseTemplate",
+]
 
 
 class HostelResponseCreate(BaseCreateSchema):
-    """Create hostel response to review"""
-    review_id: UUID = Field(..., description="Review being responded to")
+    """
+    Create hostel response to a review.
+    
+    Allows hostel management to respond to customer feedback.
+    """
+    
+    review_id: UUID = Field(
+        ...,
+        description="Review being responded to",
+    )
     
     response_text: str = Field(
         ...,
         min_length=20,
         max_length=2000,
-        description="Response text"
+        description="Response text from hostel management",
+        examples=[
+            "Thank you for your feedback. We appreciate your kind words "
+            "about our staff and facilities. We are always striving to "
+            "improve and provide the best experience for our residents."
+        ],
     )
     
-    responded_by: UUID = Field(..., description="Admin/owner responding")
+    responded_by: UUID = Field(
+        ...,
+        description="Admin/owner user ID who is responding",
+    )
+    
+    # Optional template reference
+    template_id: Optional[UUID] = Field(
+        None,
+        description="Response template used (if any)",
+    )
+    
+    @field_validator("response_text")
+    @classmethod
+    def validate_response_text(cls, v: str) -> str:
+        """Validate and clean response text."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Response text cannot be empty")
+        
+        # Minimum word count (approximately 5 words)
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Response should be more detailed (minimum 5 words)"
+            )
+        
+        # Check for placeholder text
+        placeholder_phrases = [
+            "lorem ipsum",
+            "test response",
+            "[insert",
+            "placeholder",
+        ]
+        lower_text = v.lower()
+        for phrase in placeholder_phrases:
+            if phrase in lower_text:
+                raise ValueError(
+                    f"Response appears to contain placeholder text: '{phrase}'"
+                )
+        
+        return v
+
+
+class HostelResponseUpdate(BaseUpdateSchema):
+    """
+    Update existing hostel response.
+    
+    Allows editing of response with edit history tracking.
+    """
+    
+    response_id: UUID = Field(..., description="Response to update")
+    
+    response_text: str = Field(
+        ...,
+        min_length=20,
+        max_length=2000,
+        description="Updated response text",
+    )
+    
+    edit_reason: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Reason for editing the response",
+    )
+    
+    @field_validator("response_text")
+    @classmethod
+    def validate_response_text(cls, v: str) -> str:
+        """Validate and clean response text."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Response text cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Response should be more detailed (minimum 5 words)"
+            )
+        
+        return v
 
 
 class OwnerResponse(BaseResponseSchema):
-    """Owner/hostel response to review"""
-    review_id: UUID
+    """
+    Owner/hostel response to review.
     
-    response_text: str
+    Complete response information for display.
+    """
     
-    responded_by: UUID
-    responded_by_name: str
-    responded_by_role: str
+    review_id: UUID = Field(..., description="Associated review ID")
     
-    responded_at: datetime
-
-
-class ResponseUpdate(BaseCreateSchema):
-    """Update hostel response"""
-    response_id: UUID
+    response_text: str = Field(..., description="Response text")
     
-    response_text: str = Field(..., min_length=20, max_length=2000)
+    # Responder info
+    responded_by: UUID = Field(..., description="Responder user ID")
+    responded_by_name: str = Field(..., description="Responder name")
+    responded_by_role: str = Field(
+        ...,
+        description="Responder role in hostel",
+        examples=["hostel_admin", "owner", "manager"],
+    )
+    responded_by_image: Optional[str] = Field(
+        None,
+        description="Responder profile image URL",
+    )
+    
+    responded_at: datetime = Field(..., description="Response timestamp")
+    
+    # Edit tracking
+    is_edited: bool = Field(default=False, description="Whether edited")
+    edited_at: Optional[datetime] = Field(None, description="Last edit time")
+    edit_count: int = Field(default=0, ge=0, description="Number of edits")
+    
+    @computed_field
+    @property
+    def response_age_days(self) -> int:
+        """Days since response was posted."""
+        delta = datetime.utcnow() - self.responded_at
+        return delta.days
 
 
 class ResponseGuidelines(BaseSchema):
-    """Guidelines for hostel responses"""
+    """
+    Guidelines for hostel responses to reviews.
+    
+    Helps hostel staff craft professional and effective responses.
+    """
+    
     guidelines: List[str] = Field(
         default_factory=lambda: [
             "Thank the reviewer for their feedback",
-            "Address specific concerns mentioned",
-            "Be professional and courteous",
-            "Explain any misunderstandings",
-            "Mention improvements made",
-            "Invite them to connect directly if needed"
-        ]
+            "Address specific concerns mentioned in the review",
+            "Be professional and courteous at all times",
+            "Explain any misunderstandings clearly and factually",
+            "Mention improvements made based on feedback",
+            "Invite them to connect directly for unresolved issues",
+            "Keep the response focused and relevant",
+            "Avoid making excuses or being defensive",
+        ],
+        description="Response guidelines for hostel staff",
     )
     
     best_practices: List[str] = Field(
         default_factory=lambda: [
-            "Respond within 48 hours",
-            "Personalize your response",
-            "Acknowledge both positive and negative points",
-            "Don't be defensive or argumentative",
-            "Keep it concise and relevant"
-        ]
+            "Respond within 24-48 hours of review posting",
+            "Personalize your response with reviewer's name if appropriate",
+            "Acknowledge both positive and negative points raised",
+            "Never be defensive or argumentative",
+            "Keep responses concise (100-300 words ideal)",
+            "Use professional and friendly tone",
+            "Proofread before publishing",
+            "Follow up on promised actions",
+        ],
+        description="Best practices for responding to reviews",
+    )
+    
+    response_templates_available: bool = Field(
+        default=True,
+        description="Whether pre-approved templates are available",
+    )
+    
+    # Character limits
+    min_length: int = Field(default=20, description="Minimum response length")
+    max_length: int = Field(default=2000, description="Maximum response length")
+    recommended_length: int = Field(
+        default=200,
+        description="Recommended response length",
     )
 
 
 class ResponseStats(BaseSchema):
-    """Hostel response statistics"""
-    hostel_id: UUID
+    """
+    Hostel response statistics.
     
-    total_reviews: int
-    total_responses: int
-    response_rate: Decimal = Field(..., description="% of reviews with responses")
+    Tracks response rate and performance metrics.
+    """
     
-    average_response_time_hours: Decimal
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    hostel_name: str = Field(..., description="Hostel name")
     
-    # By rating
-    response_rate_5_star: Decimal
-    response_rate_4_star: Decimal
-    response_rate_3_star: Decimal
-    response_rate_2_star: Decimal
-    response_rate_1_star: Decimal
+    # Volume metrics
+    total_reviews: int = Field(..., ge=0, description="Total reviews received")
+    total_responses: int = Field(..., ge=0, description="Total responses given")
+    
+    # Rate metrics
+    response_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of reviews with responses",
+    )
+    
+    # Timing metrics
+    average_response_time_hours: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        description="Average time to respond in hours",
+    )
+    median_response_time_hours: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        description="Median time to respond",
+    )
+    
+    # Response by rating
+    response_rate_5_star: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Response rate for 5-star reviews",
+    )
+    response_rate_4_star: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Response rate for 4-star reviews",
+    )
+    response_rate_3_star: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Response rate for 3-star reviews",
+    )
+    response_rate_2_star: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Response rate for 2-star reviews",
+    )
+    response_rate_1_star: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Response rate for 1-star reviews",
+    )
+    
+    # Response quality
+    average_response_length: int = Field(
+        ...,
+        ge=0,
+        description="Average response length in characters",
+    )
+    
+    # Pending responses
+    pending_responses: int = Field(
+        ...,
+        ge=0,
+        description="Reviews awaiting response",
+    )
+    oldest_unanswered_days: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Age of oldest unanswered review in days",
+    )
+    
+    @computed_field
+    @property
+    def negative_review_response_rate(self) -> Decimal:
+        """Response rate for negative reviews (1-2 stars)."""
+        # Calculate weighted average if counts are known
+        # For now, return average of 1 and 2 star rates
+        rate_1 = float(self.response_rate_1_star)
+        rate_2 = float(self.response_rate_2_star)
+        return Decimal(str(round((rate_1 + rate_2) / 2, 2)))
+    
+    @computed_field
+    @property
+    def response_health(self) -> str:
+        """
+        Evaluate response health.
+        
+        Returns: excellent, good, needs_improvement, or poor
+        """
+        rate = float(self.response_rate)
+        time_hours = float(self.average_response_time_hours)
+        
+        if rate >= 90 and time_hours <= 24:
+            return "excellent"
+        elif rate >= 70 and time_hours <= 48:
+            return "good"
+        elif rate >= 50:
+            return "needs_improvement"
+        else:
+            return "poor"
+
+
+class ResponseTemplate(BaseSchema):
+    """
+    Pre-approved response template.
+    
+    Helps staff respond quickly while maintaining quality.
+    """
+    
+    template_id: UUID = Field(..., description="Template ID")
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        description="Template name",
+        examples=["Positive Review Thank You", "Negative Review Apology"],
+    )
+    
+    category: str = Field(
+        ...,
+        pattern=r"^(positive|negative|neutral|specific_issue)$",
+        description="Template category based on review type",
+    )
+    
+    template_text: str = Field(
+        ...,
+        min_length=50,
+        max_length=2000,
+        description="Template text with placeholders",
+        examples=[
+            "Dear {reviewer_name}, thank you for your {rating}-star review! "
+            "We're delighted to hear about your positive experience at "
+            "{hostel_name}. {custom_message} We look forward to hosting you "
+            "again. Best regards, {responder_name}"
+        ],
+    )
+    
+    # Placeholders
+    available_placeholders: List[str] = Field(
+        default_factory=lambda: [
+            "{reviewer_name}",
+            "{hostel_name}",
+            "{rating}",
+            "{responder_name}",
+            "{custom_message}",
+        ],
+        description="Available placeholders in template",
+    )
+    
+    # Usage stats
+    usage_count: int = Field(
+        default=0,
+        ge=0,
+        description="Times this template has been used",
+    )
+    
+    is_active: bool = Field(default=True, description="Whether template is active")
+    
+    @field_validator("category")
+    @classmethod
+    def normalize_category(cls, v: str) -> str:
+        """Normalize category to lowercase."""
+        return v.lower().strip()
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_submission.py ---
+# --- File: app/schemas/review/review_submission.py ---
 """
-Review submission schemas
+Review submission and verification schemas.
+
+Handles the complete review submission workflow including
+verification and eligibility checks.
 """
+
+from __future__ import annotations
+
+from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
-from pydantic import Field, HttpUrl
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
+__all__ = [
+    "ReviewSubmissionRequest",
+    "DetailedRatingsInput",
+    "VerifiedReview",
+    "ReviewGuidelines",
+    "ReviewEligibility",
+    "ReviewDraft",
+]
+
+
+class DetailedRatingsInput(BaseSchema):
+    """
+    Detailed aspect ratings for review submission.
+    
+    Allows reviewers to rate specific aspects of their experience.
+    """
+    
+    cleanliness: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Cleanliness and hygiene rating",
+    )
+    food_quality: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Food quality rating (if mess facility used)",
+    )
+    staff_behavior: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Staff behavior and helpfulness rating",
+    )
+    security: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Safety and security measures rating",
+    )
+    value_for_money: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Value for money rating",
+    )
+    amenities: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Facilities and amenities quality rating",
+    )
+    location: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Location convenience rating",
+    )
+    wifi_quality: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Internet/WiFi quality rating",
+    )
+    maintenance: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Maintenance responsiveness rating",
+    )
+    
+    @computed_field
+    @property
+    def average_rating(self) -> Decimal:
+        """Calculate average of all provided ratings."""
+        ratings = [
+            self.cleanliness,
+            self.staff_behavior,
+            self.security,
+            self.value_for_money,
+            self.amenities,
+        ]
+        
+        # Add optional ratings if provided
+        optional = [
+            self.food_quality,
+            self.location,
+            self.wifi_quality,
+            self.maintenance,
+        ]
+        ratings.extend([r for r in optional if r is not None])
+        
+        return Decimal(str(round(sum(ratings) / len(ratings), 2)))
+
 
 class ReviewSubmissionRequest(BaseCreateSchema):
-    """Submit review request"""
+    """
+    Complete review submission request.
+    
+    Contains all data needed to submit a new review.
+    """
+    
     hostel_id: UUID = Field(..., description="Hostel to review")
     
-    # Verification (optional, helps verify stay)
-    booking_id: Optional[UUID] = Field(None, description="Related booking ID")
-    student_id: Optional[UUID] = Field(None, description="Student profile ID")
+    # Verification references (optional but help verify stay)
+    booking_id: Optional[UUID] = Field(
+        None,
+        description="Related booking ID for stay verification",
+    )
+    student_id: Optional[UUID] = Field(
+        None,
+        description="Student profile ID for stay verification",
+    )
     
-    # Basic review
-    overall_rating: Decimal = Field(..., ge=1, le=5, description="Overall rating")
-    title: str = Field(..., min_length=5, max_length=255)
-    review_text: str = Field(..., min_length=50, max_length=5000)
+    # Basic review content
+    overall_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating (1-5, in 0.5 increments)",
+        examples=[Decimal("4.5")],
+    )
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Review title",
+        examples=["Excellent hostel with great facilities"],
+    )
+    review_text: str = Field(
+        ...,
+        min_length=50,
+        max_length=5000,
+        description="Detailed review text",
+    )
     
     # Detailed ratings
-    detailed_ratings: "DetailedRatings"
+    detailed_ratings: DetailedRatingsInput = Field(
+        ...,
+        description="Detailed aspect-specific ratings",
+    )
     
     # Media
-    photos: List[HttpUrl] = Field(default_factory=list, max_items=10)
+    photos: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Review photos (max 10)",
+    )
     
-    # Recommendations
-    would_recommend: bool = Field(..., description="Would recommend this hostel?")
+    # Recommendation
+    would_recommend: bool = Field(
+        ...,
+        description="Would you recommend this hostel?",
+    )
     
-    # Stay details (helps verification)
-    stay_duration_months: Optional[int] = Field(None, ge=1, le=24)
-    check_in_date: Optional[date] = None
+    # Stay details (helps with verification)
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=24,
+        description="Duration of stay in months",
+    )
+    check_in_date: Optional[date] = Field(
+        None,
+        description="Approximate check-in date",
+    )
+    check_out_date: Optional[date] = Field(
+        None,
+        description="Approximate check-out date (if moved out)",
+    )
     
-    # Terms
-    agree_to_guidelines: bool = Field(..., description="Agrees to review guidelines")
-
-
-class DetailedRatings(BaseSchema):
-    """Detailed aspect ratings"""
-    cleanliness: int = Field(..., ge=1, le=5, description="Cleanliness rating")
-    food_quality: Optional[int] = Field(None, ge=1, le=5, description="Food quality (if applicable)")
-    staff_behavior: int = Field(..., ge=1, le=5, description="Staff behavior")
-    security: int = Field(..., ge=1, le=5, description="Security")
-    value_for_money: int = Field(..., ge=1, le=5, description="Value for money")
-    amenities: int = Field(..., ge=1, le=5, description="Amenities quality")
-    location: Optional[int] = Field(None, ge=1, le=5, description="Location convenience")
-    wifi_quality: Optional[int] = Field(None, ge=1, le=5, description="WiFi quality")
-    maintenance: Optional[int] = Field(None, ge=1, le=5, description="Maintenance responsiveness")
+    # Specific feedback (optional)
+    pros: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Things you liked (max 5)",
+    )
+    cons: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Things that could be improved (max 5)",
+    )
+    
+    # Terms acceptance
+    agree_to_guidelines: bool = Field(
+        ...,
+        description="Confirms agreement to review guidelines",
+    )
+    
+    @field_validator("overall_rating")
+    @classmethod
+    def round_to_half(cls, v: Decimal) -> Decimal:
+        """Round overall rating to nearest 0.5."""
+        return Decimal(str(round(float(v) * 2) / 2))
+    
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Validate and clean title."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Review title cannot be empty")
+        
+        if len(v) > 10 and v.isupper():
+            raise ValueError("Please avoid using all caps in the title")
+        
+        return v
+    
+    @field_validator("review_text")
+    @classmethod
+    def validate_review_text(cls, v: str) -> str:
+        """Validate and clean review text."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Review text cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 10:
+            raise ValueError(
+                "Please provide a more detailed review (minimum 10 words)"
+            )
+        
+        return v
+    
+    @field_validator("agree_to_guidelines")
+    @classmethod
+    def must_agree(cls, v: bool) -> bool:
+        """Ensure user agrees to guidelines."""
+        if not v:
+            raise ValueError(
+                "You must agree to the review guidelines to submit a review"
+            )
+        return v
+    
+    @field_validator("pros", "cons")
+    @classmethod
+    def validate_feedback_items(cls, v: List[str]) -> List[str]:
+        """Validate and clean feedback items."""
+        cleaned = []
+        for item in v:
+            item = item.strip()
+            if item:
+                if len(item) > 200:
+                    raise ValueError(
+                        "Each feedback item must be 200 characters or less"
+                    )
+                cleaned.append(item)
+        return cleaned
+    
+    @model_validator(mode="after")
+    def validate_dates(self) -> "ReviewSubmissionRequest":
+        """Validate check-in and check-out dates."""
+        if self.check_in_date and self.check_out_date:
+            if self.check_out_date <= self.check_in_date:
+                raise ValueError(
+                    "Check-out date must be after check-in date"
+                )
+        
+        if self.check_in_date and self.check_in_date > date.today():
+            raise ValueError("Check-in date cannot be in the future")
+        
+        return self
+    
+    @model_validator(mode="after")
+    def validate_rating_consistency(self) -> "ReviewSubmissionRequest":
+        """Validate overall rating aligns with detailed ratings."""
+        overall = float(self.overall_rating)
+        detailed_avg = float(self.detailed_ratings.average_rating)
+        
+        # Allow ±1.5 variance
+        if abs(overall - detailed_avg) > 1.5:
+            raise ValueError(
+                "Overall rating seems inconsistent with detailed ratings. "
+                "Please review your ratings."
+            )
+        
+        return self
 
 
 class VerifiedReview(BaseSchema):
-    """Verified review marker"""
-    review_id: UUID
+    """
+    Verified review marker.
     
-    is_verified: bool
+    Indicates that a review is from a verified stay.
+    """
+    
+    review_id: UUID = Field(..., description="Review ID")
+    
+    is_verified: bool = Field(..., description="Verification status")
     verification_method: str = Field(
         ...,
-        pattern="^(booking_verified|student_verified|admin_verified|auto_verified)$"
+        pattern=r"^(booking_verified|student_verified|admin_verified|auto_verified|manual_verified)$",
+        description="Method used for verification",
     )
     
-    verified_by: Optional[UUID] = None
-    verified_at: datetime
-    
-    verification_details: Optional[dict] = Field(
+    verified_by: Optional[UUID] = Field(
         None,
-        description="Additional verification information"
+        description="Admin who verified (for manual verification)",
     )
+    verified_at: datetime = Field(..., description="Verification timestamp")
+    
+    # Verification details
+    verification_details: Optional[Dict[str, str]] = Field(
+        None,
+        description="Additional verification information",
+        examples=[
+            {
+                "booking_id": "123e4567-e89b-12d3-a456-426614174000",
+                "stay_duration": "6 months",
+                "verified_via": "booking_system",
+            }
+        ],
+    )
+    
+    # Confidence score for auto-verification
+    verification_confidence: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="Confidence score for auto-verification (0-1)",
+    )
+    
+    @field_validator("verification_method")
+    @classmethod
+    def normalize_method(cls, v: str) -> str:
+        """Normalize verification method."""
+        return v.lower().strip()
 
 
 class ReviewGuidelines(BaseSchema):
-    """Review guidelines"""
+    """
+    Review guidelines and prohibited content.
+    
+    Helps users understand what makes a good review.
+    """
+    
     guidelines: List[str] = Field(
         default_factory=lambda: [
-            "Be honest and fair",
-            "Focus on your experience",
-            "Avoid offensive language",
-            "Don't include personal information",
-            "Be specific and constructive",
-            "Reviews are public and visible to all"
-        ]
+            "Be honest and fair in your assessment",
+            "Focus on your personal experience",
+            "Avoid offensive or abusive language",
+            "Don't include personal contact information",
+            "Be specific and constructive with feedback",
+            "Reviews are public and visible to all users",
+            "Rate based on your actual experience, not expectations",
+            "Consider both pros and cons objectively",
+        ],
+        description="Guidelines for writing reviews",
     )
     
     prohibited_content: List[str] = Field(
         default_factory=lambda: [
-            "Offensive or abusive language",
-            "Personal attacks",
-            "Spam or promotional content",
-            "Fake or fraudulent reviews",
-            "Reviews for competing businesses"
-        ]
+            "Offensive, abusive, or threatening language",
+            "Personal attacks on staff or other residents",
+            "Spam, advertising, or promotional content",
+            "Fake, fraudulent, or misleading reviews",
+            "Reviews for competing businesses",
+            "Personal contact information (phone, email, address)",
+            "Illegal content or content promoting illegal activities",
+            "Discriminatory content based on race, religion, gender, etc.",
+        ],
+        description="Content that is not allowed in reviews",
+    )
+    
+    tips_for_good_review: List[str] = Field(
+        default_factory=lambda: [
+            "Describe specific experiences (room quality, food, staff)",
+            "Mention the duration of your stay",
+            "Include photos if possible",
+            "Be balanced - mention both positives and areas for improvement",
+            "Update your review if significant changes occur",
+        ],
+        description="Tips for writing helpful reviews",
+    )
+    
+    minimum_requirements: Dict[str, int] = Field(
+        default_factory=lambda: {
+            "title_min_length": 5,
+            "title_max_length": 255,
+            "review_min_length": 50,
+            "review_max_length": 5000,
+            "min_overall_rating": 1,
+            "max_overall_rating": 5,
+            "max_photos": 10,
+        },
+        description="Minimum requirements for review submission",
     )
 
 
 class ReviewEligibility(BaseSchema):
-    """Check if user can review hostel"""
-    user_id: UUID
-    hostel_id: UUID
+    """
+    Check if user is eligible to review a hostel.
     
-    can_review: bool
-    reason: str
+    Validates eligibility based on stay history and existing reviews.
+    """
     
-    # Details
-    has_stayed: bool
-    has_booking: bool
-    already_reviewed: bool
+    user_id: UUID = Field(..., description="User to check eligibility for")
+    hostel_id: UUID = Field(..., description="Hostel to review")
     
-    # If already reviewed
-    existing_review_id: Optional[UUID] = None
-    can_edit: bool = Field(False, description="Can edit existing review")
+    can_review: bool = Field(
+        ...,
+        description="Whether user can submit a review",
+    )
+    reason: str = Field(
+        ...,
+        description="Reason for eligibility decision",
+        examples=[
+            "Eligible to review",
+            "Already reviewed this hostel",
+            "No verified stay at this hostel",
+        ],
+    )
+    
+    # Stay verification
+    has_stayed: bool = Field(
+        ...,
+        description="Whether user has stayed at this hostel",
+    )
+    has_booking: bool = Field(
+        ...,
+        description="Whether user has a booking at this hostel",
+    )
+    stay_verified: bool = Field(
+        ...,
+        description="Whether stay is verified",
+    )
+    
+    # Existing review
+    already_reviewed: bool = Field(
+        ...,
+        description="Whether user already has a review for this hostel",
+    )
+    existing_review_id: Optional[UUID] = Field(
+        None,
+        description="ID of existing review (if any)",
+    )
+    can_edit: bool = Field(
+        default=False,
+        description="Whether user can edit their existing review",
+    )
+    edit_deadline: Optional[datetime] = Field(
+        None,
+        description="Deadline for editing existing review",
+    )
+    
+    # Additional info
+    last_stay_date: Optional[date] = Field(
+        None,
+        description="Date of last stay (if applicable)",
+    )
+    stay_duration_days: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Duration of stay in days",
+    )
+
+
+class ReviewDraft(BaseSchema):
+    """
+    Saved review draft.
+    
+    Allows users to save incomplete reviews for later.
+    """
+    
+    draft_id: UUID = Field(..., description="Draft ID")
+    user_id: UUID = Field(..., description="User who created the draft")
+    hostel_id: UUID = Field(..., description="Target hostel")
+    
+    # Partial content
+    overall_rating: Optional[Decimal] = Field(
+        None,
+        ge=Decimal("1.0"),
+        le=Decimal("5.0"),
+        description="Overall rating (if set)",
+    )
+    title: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Review title (if set)",
+    )
+    review_text: Optional[str] = Field(
+        None,
+        max_length=5000,
+        description="Review text (if set)",
+    )
+    
+    # Detailed ratings
+    detailed_ratings: Optional[Dict[str, int]] = Field(
+        None,
+        description="Detailed ratings (if any set)",
+    )
+    
+    # Photos
+    photos: List[str] = Field(
+        default_factory=list,
+        description="Uploaded photo URLs",
+    )
+    
+    # Timestamps
+    created_at: datetime = Field(..., description="Draft creation time")
+    updated_at: datetime = Field(..., description="Last update time")
+    expires_at: datetime = Field(
+        ...,
+        description="When draft expires and will be deleted",
+    )
+    
+    @computed_field
+    @property
+    def completion_percentage(self) -> int:
+        """Estimate completion percentage."""
+        total_fields = 5  # rating, title, text, detailed_ratings, photos
+        completed = 0
+        
+        if self.overall_rating is not None:
+            completed += 1
+        if self.title:
+            completed += 1
+        if self.review_text and len(self.review_text) >= 50:
+            completed += 1
+        if self.detailed_ratings and len(self.detailed_ratings) >= 3:
+            completed += 1
+        if self.photos:
+            completed += 1
+        
+        return int((completed / total_fields) * 100)
+    
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        """Check if draft is expired."""
+        return datetime.utcnow() > self.expires_at
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_voting.py ---
+# --- File: app/schemas/review/review_voting.py ---
 """
-Review voting (helpful/not helpful) schemas
+Review voting (helpful/not helpful) schemas.
+
+Handles review helpfulness voting and engagement metrics.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
-from pydantic import Field
+from math import sqrt
+from typing import List, Optional
+
+from pydantic import Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
 from app.schemas.common.enums import VoteType
 
+__all__ = [
+    "VoteRequest",
+    "VoteResponse",
+    "HelpfulnessScore",
+    "VoteHistory",
+    "VoteHistoryItem",
+    "RemoveVote",
+    "VotingStats",
+]
+
 
 class VoteRequest(BaseCreateSchema):
-    """Vote on review helpfulness"""
-    review_id: UUID = Field(..., description="Review ID")
-    voter_id: UUID = Field(..., description="User voting")
+    """
+    Submit vote on review helpfulness.
     
-    vote_type: VoteType = Field(..., description="helpful or not_helpful")
+    Allows users to indicate if a review was helpful.
+    """
+    
+    review_id: UUID = Field(..., description="Review to vote on")
+    voter_id: UUID = Field(..., description="User casting the vote")
+    
+    vote_type: VoteType = Field(
+        ...,
+        description="Vote type: helpful or not_helpful",
+    )
+    
+    # Optional feedback
+    feedback: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Optional feedback about why vote was cast",
+    )
 
 
 class VoteResponse(BaseSchema):
-    """Vote response"""
-    review_id: UUID
-    vote_type: VoteType
+    """
+    Response after vote submission.
+    
+    Returns updated vote counts.
+    """
+    
+    review_id: UUID = Field(..., description="Voted review ID")
+    vote_type: VoteType = Field(..., description="Vote that was cast")
     
     # Updated counts
-    helpful_count: int
-    not_helpful_count: int
+    helpful_count: int = Field(..., ge=0, description="Updated helpful count")
+    not_helpful_count: int = Field(..., ge=0, description="Updated not helpful count")
     
-    message: str
+    # User's current vote status
+    user_vote: Optional[VoteType] = Field(
+        None,
+        description="User's current vote (may differ if changed)",
+    )
+    
+    message: str = Field(
+        ...,
+        description="Result message",
+        examples=["Vote recorded successfully", "Vote updated"],
+    )
+    
+    @computed_field
+    @property
+    def total_votes(self) -> int:
+        """Total votes on the review."""
+        return self.helpful_count + self.not_helpful_count
+    
+    @computed_field
+    @property
+    def helpfulness_percentage(self) -> Decimal:
+        """Percentage of helpful votes."""
+        if self.total_votes == 0:
+            return Decimal("0")
+        return Decimal(str(round((self.helpful_count / self.total_votes) * 100, 2)))
 
 
 class HelpfulnessScore(BaseSchema):
-    """Helpfulness score for review"""
-    review_id: UUID
+    """
+    Helpfulness score for review ranking.
     
-    helpful_count: int
-    not_helpful_count: int
-    total_votes: int
+    Uses Wilson score for statistically sound ranking.
+    """
     
+    review_id: UUID = Field(..., description="Review ID")
+    
+    # Raw counts
+    helpful_count: int = Field(..., ge=0, description="Helpful votes")
+    not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
+    total_votes: int = Field(..., ge=0, description="Total votes")
+    
+    # Percentage
     helpfulness_percentage: Decimal = Field(
         ...,
-        description="% of voters who found it helpful"
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Percentage of helpful votes",
     )
     
+    # Wilson score for ranking
     helpfulness_score: Decimal = Field(
         ...,
-        ge=0,
-        le=1,
-        description="Wilson score for ranking"
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="Wilson score for ranking (0-1)",
     )
-
-
-class VoteHistory(BaseSchema):
-    """User's voting history"""
-    user_id: UUID
     
-    total_votes: int
-    helpful_votes: int
-    not_helpful_votes: int
+    # Rank among hostel's reviews
+    rank: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Rank among reviews for this hostel",
+    )
     
-    recent_votes: List["VoteHistoryItem"] = Field(default_factory=list, max_items=10)
+    @classmethod
+    def calculate_wilson_score(
+        cls,
+        helpful: int,
+        total: int,
+        confidence: float = 0.95,
+    ) -> Decimal:
+        """
+        Calculate Wilson score for review ranking.
+        
+        Wilson score provides a statistically robust way to rank items
+        by positive/negative votes, handling the case where items with
+        few votes aren't artificially ranked higher than those with many.
+        
+        Args:
+            helpful: Number of helpful votes
+            total: Total number of votes
+            confidence: Confidence level (default 0.95 for 95%)
+            
+        Returns:
+            Wilson score as Decimal (0-1)
+        """
+        if total == 0:
+            return Decimal("0")
+        
+        # Z-score for confidence level (1.96 for 95%)
+        z = 1.96 if confidence == 0.95 else 1.645  # 90% confidence
+        
+        phat = helpful / total
+        
+        denominator = 1 + (z * z / total)
+        numerator = (
+            phat
+            + (z * z / (2 * total))
+            - z * sqrt((phat * (1 - phat) + z * z / (4 * total)) / total)
+        )
+        
+        score = numerator / denominator
+        return Decimal(str(round(max(0, min(1, score)), 6)))
 
 
 class VoteHistoryItem(BaseSchema):
-    """Individual vote in history"""
-    review_id: UUID
-    hostel_name: str
-    vote_type: VoteType
-    voted_at: datetime
+    """
+    Individual vote in user's history.
+    """
+    
+    review_id: UUID = Field(..., description="Review that was voted on")
+    hostel_id: UUID = Field(..., description="Hostel of the review")
+    hostel_name: str = Field(..., description="Hostel name")
+    
+    review_title: str = Field(..., description="Review title")
+    review_rating: Decimal = Field(
+        ...,
+        ge=Decimal("1"),
+        le=Decimal("5"),
+        description="Review's overall rating",
+    )
+    
+    vote_type: VoteType = Field(..., description="How user voted")
+    voted_at: datetime = Field(..., description="When vote was cast")
+    
+    @computed_field
+    @property
+    def days_ago(self) -> int:
+        """Days since vote was cast."""
+        delta = datetime.utcnow() - self.voted_at
+        return delta.days
+
+
+class VoteHistory(BaseSchema):
+    """
+    User's complete voting history.
+    
+    Tracks all votes cast by a user.
+    """
+    
+    user_id: UUID = Field(..., description="User ID")
+    
+    # Aggregate stats
+    total_votes: int = Field(..., ge=0, description="Total votes cast")
+    helpful_votes: int = Field(..., ge=0, description="Helpful votes cast")
+    not_helpful_votes: int = Field(..., ge=0, description="Not helpful votes cast")
+    
+    # Recent activity
+    recent_votes: List[VoteHistoryItem] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Most recent votes (max 20)",
+    )
+    
+    # Voting patterns
+    most_voted_hostels: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Hostels where user votes most",
+    )
+    
+    @computed_field
+    @property
+    def helpful_vote_percentage(self) -> Decimal:
+        """Percentage of helpful votes vs total."""
+        if self.total_votes == 0:
+            return Decimal("0")
+        return Decimal(
+            str(round((self.helpful_votes / self.total_votes) * 100, 2))
+        )
+    
+    @computed_field
+    @property
+    def voting_tendency(self) -> str:
+        """
+        User's voting tendency.
+        
+        Returns: positive, balanced, or critical
+        """
+        percentage = float(self.helpful_vote_percentage)
+        if percentage >= 70:
+            return "positive"
+        elif percentage >= 40:
+            return "balanced"
+        else:
+            return "critical"
 
 
 class RemoveVote(BaseCreateSchema):
-    """Remove vote (change mind)"""
-    review_id: UUID
-    voter_id: UUID
+    """
+    Remove previously cast vote.
+    
+    Allows users to change their mind about a vote.
+    """
+    
+    review_id: UUID = Field(..., description="Review to remove vote from")
+    voter_id: UUID = Field(..., description="User removing their vote")
+    
+    reason: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Optional reason for removing vote",
+    )
+
+
+class VotingStats(BaseSchema):
+    """
+    Voting statistics for a hostel's reviews.
+    
+    Provides insights into review engagement.
+    """
+    
+    hostel_id: UUID = Field(..., description="Hostel ID")
+    
+    # Aggregate metrics
+    total_votes: int = Field(..., ge=0, description="Total votes across all reviews")
+    total_helpful: int = Field(..., ge=0, description="Total helpful votes")
+    total_not_helpful: int = Field(..., ge=0, description="Total not helpful votes")
+    
+    # Per-review metrics
+    total_reviews: int = Field(..., ge=0, description="Total reviews")
+    reviews_with_votes: int = Field(..., ge=0, description="Reviews that have votes")
+    
+    average_votes_per_review: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        description="Average votes per review",
+    )
+    average_helpfulness: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="Average helpfulness percentage across reviews",
+    )
+    
+    # Top reviews
+    most_helpful_review_id: Optional[UUID] = Field(
+        None,
+        description="Review with highest helpfulness score",
+    )
+    most_voted_review_id: Optional[UUID] = Field(
+        None,
+        description="Review with most total votes",
+    )
+    
+    @computed_field
+    @property
+    def engagement_rate(self) -> Decimal:
+        """Percentage of reviews that have votes."""
+        if self.total_reviews == 0:
+            return Decimal("0")
+        return Decimal(
+            str(round((self.reviews_with_votes / self.total_reviews) * 100, 2))
+        )
+    
+    @computed_field
+    @property
+    def overall_sentiment(self) -> str:
+        """
+        Overall voting sentiment.
+        
+        Returns: positive, neutral, or negative
+        """
+        if self.total_votes == 0:
+            return "neutral"
+        
+        helpful_ratio = self.total_helpful / self.total_votes
+        if helpful_ratio >= 0.7:
+            return "positive"
+        elif helpful_ratio >= 0.4:
+            return "neutral"
+        else:
+            return "negative"
 
 # --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\__init__.py ---
+# --- File: app/schemas/review/__init__.py ---
 """
-Review schemas package
+Review schemas package.
+
+Provides comprehensive schemas for:
+- Review creation, update, and submission
+- Review responses and details
+- Moderation and approval workflows
+- Voting and engagement
+- Hostel responses to reviews
+- Filtering, searching, and export
+- Analytics and insights
+
+Example:
+    from app.schemas.review import (
+        ReviewCreate,
+        ReviewResponse,
+        ReviewSubmissionRequest,
+        ModerationRequest,
+        VoteRequest,
+    )
 """
+
+from __future__ import annotations
+
+# Base schemas
 from app.schemas.review.review_base import (
     ReviewBase,
     ReviewCreate,
-    ReviewUpdate
+    ReviewUpdate,
+    DetailedRatings,
 )
+
+# Response schemas
 from app.schemas.review.review_response import (
     ReviewResponse,
     ReviewDetail,
-    ReviewListItem
+    ReviewListItem,
+    ReviewSummary,
+    HostelResponseDetail,
 )
+
+# Submission schemas
 from app.schemas.review.review_submission import (
     ReviewSubmissionRequest,
-    DetailedRatings,
-    VerifiedReview
+    DetailedRatingsInput,
+    VerifiedReview,
+    ReviewGuidelines,
+    ReviewEligibility,
+    ReviewDraft,
 )
+
+# Moderation schemas
 from app.schemas.review.review_moderation import (
     ModerationRequest,
+    ModerationResponse,
     ModerationQueue,
-    ApprovalWorkflow
+    PendingReview,
+    ApprovalWorkflow,
+    BulkModeration,
+    ModerationStats,
+    FlagReview,
 )
+
+# Voting schemas
 from app.schemas.review.review_voting import (
     VoteRequest,
     VoteResponse,
-    HelpfulnessScore
+    HelpfulnessScore,
+    VoteHistory,
+    VoteHistoryItem,
+    RemoveVote,
+    VotingStats,
 )
+
+# Hostel response schemas
 from app.schemas.review.review_response_schema import (
     HostelResponseCreate,
-    OwnerResponse
+    HostelResponseUpdate,
+    OwnerResponse,
+    ResponseGuidelines,
+    ResponseStats,
+    ResponseTemplate,
 )
+
+# Filter schemas
 from app.schemas.review.review_filters import (
     ReviewFilterParams,
-    SearchRequest,
-    SortOptions
+    ReviewSearchRequest,
+    ReviewSortOptions,
+    ReviewExportRequest,
 )
+
+# Analytics schemas
 from app.schemas.review.review_analytics import (
     ReviewAnalytics,
     RatingDistribution,
+    TrendAnalysis,
+    MonthlyRating,
     SentimentAnalysis,
-    TrendAnalysis
+    AspectAnalysis,
+    CompetitorComparison,
 )
 
 __all__ = [
@@ -922,39 +3654,65 @@ __all__ = [
     "ReviewBase",
     "ReviewCreate",
     "ReviewUpdate",
+    "DetailedRatings",
     
     # Response
     "ReviewResponse",
     "ReviewDetail",
     "ReviewListItem",
+    "ReviewSummary",
+    "HostelResponseDetail",
     
     # Submission
     "ReviewSubmissionRequest",
-    "DetailedRatings",
+    "DetailedRatingsInput",
     "VerifiedReview",
+    "ReviewGuidelines",
+    "ReviewEligibility",
+    "ReviewDraft",
     
     # Moderation
     "ModerationRequest",
+    "ModerationResponse",
     "ModerationQueue",
+    "PendingReview",
     "ApprovalWorkflow",
+    "BulkModeration",
+    "ModerationStats",
+    "FlagReview",
     
     # Voting
     "VoteRequest",
     "VoteResponse",
     "HelpfulnessScore",
+    "VoteHistory",
+    "VoteHistoryItem",
+    "RemoveVote",
+    "VotingStats",
     
     # Hostel Response
     "HostelResponseCreate",
+    "HostelResponseUpdate",
     "OwnerResponse",
+    "ResponseGuidelines",
+    "ResponseStats",
+    "ResponseTemplate",
     
     # Filters
     "ReviewFilterParams",
-    "SearchRequest",
-    "SortOptions",
+    "ReviewSearchRequest",
+    "ReviewSortOptions",
+    "ReviewExportRequest",
     
     # Analytics
     "ReviewAnalytics",
     "RatingDistribution",
-    "SentimentAnalysis",
     "TrendAnalysis",
+    "MonthlyRating",
+    "SentimentAnalysis",
+    "AspectAnalysis",
+    "CompetitorComparison",
 ]
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\review\__pycache__ =====

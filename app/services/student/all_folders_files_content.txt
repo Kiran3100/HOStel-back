@@ -1,0 +1,1371 @@
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\services\student ###
+
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\services\student =====
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_dashboard_service.py ---
+# app/services/student/student_dashboard_service.py
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Callable, Dict, List, Optional
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.core import (
+    StudentRepository,
+    HostelRepository,
+    RoomRepository,
+    BedRepository,
+)
+from app.repositories.transactions import PaymentRepository
+from app.repositories.services import ComplaintRepository, LeaveApplicationRepository
+from app.repositories.content import AnnouncementRepository, MessMenuRepository
+from app.schemas.common.enums import LeaveStatus
+from app.schemas.common.filters import DateRangeFilter
+from app.schemas.student.student_dashboard import (
+    StudentDashboard,
+    StudentStats,
+    StudentFinancialSummary,
+    RecentPayment,
+    RecentComplaint,
+    PendingLeave,
+    RecentAnnouncement,
+    TodayMessMenu,
+)
+from app.services.analytics import AttendanceAnalyticsService
+from app.services.common import UnitOfWork, errors
+
+
+class StudentDashboardService:
+    """
+    Aggregated student dashboard:
+
+    - Basic hostel/room/bed info
+    - Financial summary (payments)
+    - Attendance summary via AttendanceAnalyticsService
+    - Recent payments/complaints/leaves/announcements
+    - Today's mess menu
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+        self._attendance_analytics = AttendanceAnalyticsService(session_factory)
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _get_room_repo(self, uow: UnitOfWork) -> RoomRepository:
+        return uow.get_repo(RoomRepository)
+
+    def _get_bed_repo(self, uow: UnitOfWork) -> BedRepository:
+        return uow.get_repo(BedRepository)
+
+    def _get_payment_repo(self, uow: UnitOfWork) -> PaymentRepository:
+        return uow.get_repo(PaymentRepository)
+
+    def _get_complaint_repo(self, uow: UnitOfWork) -> ComplaintRepository:
+        return uow.get_repo(ComplaintRepository)
+
+    def _get_leave_repo(self, uow: UnitOfWork) -> LeaveApplicationRepository:
+        return uow.get_repo(LeaveApplicationRepository)
+
+    def _get_announcement_repo(self, uow: UnitOfWork) -> AnnouncementRepository:
+        return uow.get_repo(AnnouncementRepository)
+
+    def _get_menu_repo(self, uow: UnitOfWork) -> MessMenuRepository:
+        return uow.get_repo(MessMenuRepository)
+
+    def _today(self) -> date:
+        return date.today()
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def get_dashboard(self, student_id: UUID) -> StudentDashboard:
+        today = self._today()
+
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            room_repo = self._get_room_repo(uow)
+            bed_repo = self._get_bed_repo(uow)
+            payment_repo = self._get_payment_repo(uow)
+            complaint_repo = self._get_complaint_repo(uow)
+            leave_repo = self._get_leave_repo(uow)
+            announcement_repo = self._get_announcement_repo(uow)
+            menu_repo = self._get_menu_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None or not getattr(s, "user", None):
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            user = s.user
+            hostel = hostel_repo.get(s.hostel_id)
+            hostel_name = hostel.name if hostel else ""
+
+            room_number = bed_number = ""
+            if s.room_id:
+                room = room_repo.get(s.room_id)
+                room_number = room.room_number if room else ""
+            if s.bed_id:
+                bed = bed_repo.get(s.bed_id)
+                bed_number = bed.bed_number if bed else ""
+
+            # Financial summary
+            payments = payment_repo.list_for_student(s.id)
+            (
+                fin_summary,
+                recent_payments,
+            ) = self._build_financial_summary_and_recent(payments, s)
+
+            # Attendance summary via analytics service
+            period = DateRangeFilter(
+                start_date=today.replace(day=1),
+                end_date=today,
+            )
+            attendance_report = self._attendance_analytics.get_student_report(
+                student_id, period
+            )
+            att_summary = attendance_report.summary
+
+            # Recent complaints
+            complaints = complaint_repo.list_for_student(s.id)[:5]
+            recent_complaints: List[RecentComplaint] = []
+            for c in complaints:
+                recent_complaints.append(
+                    RecentComplaint(
+                        complaint_id=c.id,
+                        title=c.title,
+                        category=c.category.value if hasattr(c.category, "value") else str(c.category),
+                        status=c.status.value if hasattr(c.status, "value") else str(c.status),
+                        priority=c.priority.value if hasattr(c.priority, "value") else str(c.priority),
+                        created_at=c.created_at,
+                        updated_at=c.updated_at,
+                    )
+                )
+
+            # Pending leaves
+            leaves_all = leave_repo.list_for_student(s.id)
+            pending_leaves = [
+                l for l in leaves_all if l.status == LeaveStatus.PENDING
+            ]
+            pending_leave_items: List[PendingLeave] = []
+            for l in pending_leaves:
+                pending_leave_items.append(
+                    PendingLeave(
+                        leave_id=l.id,
+                        leave_type=l.leave_type.value if hasattr(l.leave_type, "value") else str(l.leave_type),
+                        from_date=l.from_date,
+                        to_date=l.to_date,
+                        total_days=l.total_days,
+                        status=l.status.value if hasattr(l.status, "value") else str(l.status),
+                        applied_at=l.created_at,
+                    )
+                )
+
+            # Announcements (recent, hostel-level)
+            ann_list = announcement_repo.list_published_for_hostel(
+                hostel_id=s.hostel_id,
+                now=self._now(),
+                audience=None,
+            )[:5]
+            recent_anns: List[RecentAnnouncement] = []
+            for a in ann_list:
+                recent_anns.append(
+                    RecentAnnouncement(
+                        announcement_id=a.id,
+                        title=a.title,
+                        category=a.category.value if hasattr(a.category, "value") else str(a.category),
+                        priority=a.priority.value if hasattr(a.priority, "value") else str(a.priority),
+                        published_at=a.published_at or a.created_at,
+                        is_read=False,
+                    )
+                )
+
+            # Today's mess menu
+            today_menu = None
+            menus_today = menu_repo.get_for_date(s.hostel_id, today)
+            if menus_today:
+                m = menus_today[0]
+                today_menu = TodayMessMenu(
+                    date=m.menu_date,
+                    breakfast=m.breakfast_items or [],
+                    lunch=m.lunch_items or [],
+                    snacks=m.snacks_items or [],
+                    dinner=m.dinner_items or [],
+                    is_special=m.is_special_menu,
+                )
+
+            # Student stats (simple)
+            stats = StudentStats(
+                days_in_hostel=(
+                    (today - s.check_in_date).days
+                    if s.check_in_date
+                    else 0
+                ),
+                total_payments_made=len(
+                    [p for p in payments if p.paid_at]
+                ),
+                total_amount_paid=sum(
+                    (p.amount for p in payments if p.paid_at), Decimal("0")
+                ),
+                complaints_raised=len(complaints),
+                complaints_resolved=len(
+                    [c for c in complaints if str(c.status).lower().endswith("closed") or str(c.status).lower() == "resolved"]  # type: ignore[str-bytes-safe]
+                ),
+                current_attendance_percentage=att_summary.attendance_percentage,
+            )
+
+        attendance_summary = attendance_report.summary
+
+        return StudentDashboard(
+            student_id=s.id,
+            student_name=user.full_name,
+            hostel_name=hostel_name,
+            room_number=room_number,
+            bed_number=bed_number,
+            financial_summary=fin_summary,
+            attendance_summary=attendance_summary,
+            recent_payments=recent_payments,
+            recent_complaints=recent_complaints,
+            pending_leave_applications=pending_leave_items,
+            recent_announcements=recent_anns,
+            today_mess_menu=today_menu,
+            stats=stats,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Helpers (financial)
+    # ------------------------------------------------------------------ #
+    def _build_financial_summary_and_recent(
+        self,
+        payments,
+        student,
+    ) -> tuple[StudentFinancialSummary, List[RecentPayment]]:
+        today = self._today()
+
+        amount_due = Decimal("0")
+        amount_overdue = Decimal("0")
+        next_due_date: Optional[date] = None
+
+        for p in payments:
+            if p.payment_status.name == "PENDING":  # PaymentStatus.PENDING
+                amount_due += p.amount
+                if p.due_date and p.due_date < today:
+                    amount_overdue += p.amount
+                if p.due_date:
+                    if not next_due_date or p.due_date < next_due_date:
+                        next_due_date = p.due_date
+
+        days_until_due = (
+            (next_due_date - today).days if next_due_date else None
+        )
+
+        payment_status_str = "current"
+        if amount_overdue > 0:
+            payment_status_str = "overdue"
+        elif amount_due > 0:
+            payment_status_str = "due_soon"
+
+        # Mess details are placeholders; not modeled in payments yet.
+        fin_summary = StudentFinancialSummary(
+            monthly_rent=student.monthly_rent_amount or Decimal("0"),
+            next_due_date=next_due_date or today,
+            amount_due=amount_due,
+            amount_overdue=amount_overdue,
+            advance_balance=Decimal("0"),
+            security_deposit=student.security_deposit_amount or Decimal("0"),
+            mess_charges=Decimal("0"),
+            mess_balance=Decimal("0"),
+            payment_status=payment_status_str,
+            days_until_due=days_until_due,
+        )
+
+        # Recent payments
+        recent_payments: List[RecentPayment] = []
+        for p in sorted(payments, key=lambda x: x.paid_at or x.created_at, reverse=True)[:5]:
+            recent_payments.append(
+                RecentPayment(
+                    payment_id=p.id,
+                    amount=p.amount,
+                    payment_type=p.payment_type.value if hasattr(p.payment_type, "value") else str(p.payment_type),
+                    payment_date=(p.paid_at or p.created_at).date(),
+                    status=p.payment_status.value if hasattr(p.payment_status, "value") else str(p.payment_status),
+                    receipt_url=p.receipt_url,
+                )
+            )
+
+        return fin_summary, recent_payments
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_finance_service.py ---
+# app/services/student/student_finance_service.py
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+from typing import Callable, Optional
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.transactions import PaymentRepository
+from app.repositories.core import StudentRepository
+from app.schemas.common.enums import PaymentStatus
+from app.schemas.student.student_dashboard import StudentFinancialSummary
+from app.schemas.student.student_response import StudentFinancialInfo
+from app.services.common import UnitOfWork, errors
+
+
+class StudentFinanceService:
+    """
+    Student-level financial data:
+
+    - StudentFinancialSummary (for dashboard)
+    - StudentFinancialInfo (detailed, for admin views)
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_payment_repo(self, uow: UnitOfWork) -> PaymentRepository:
+        return uow.get_repo(PaymentRepository)
+
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _today(self) -> date:
+        return date.today()
+
+    # ------------------------------------------------------------------ #
+    # Summary for dashboard
+    # ------------------------------------------------------------------ #
+    def get_financial_summary(self, student_id: UUID) -> StudentFinancialSummary:
+        today = self._today()
+
+        with UnitOfWork(self._session_factory) as uow:
+            pay_repo = self._get_payment_repo(uow)
+            student_repo = self._get_student_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None:
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            payments = pay_repo.list_for_student(student_id)
+
+        amount_due = Decimal("0")
+        amount_overdue = Decimal("0")
+        next_due_date: Optional[date] = None
+
+        for p in payments:
+            if p.payment_status == PaymentStatus.PENDING:
+                amount_due += p.amount
+                if p.due_date and p.due_date < today:
+                    amount_overdue += p.amount
+                if p.due_date:
+                    if not next_due_date or p.due_date < next_due_date:
+                        next_due_date = p.due_date
+
+        days_until_due = (
+            (next_due_date - today).days if next_due_date else None
+        )
+
+        status_str = "current"
+        if amount_overdue > 0:
+            status_str = "overdue"
+        elif amount_due > 0:
+            status_str = "due_soon"
+
+        return StudentFinancialSummary(
+            monthly_rent=s.monthly_rent_amount or Decimal("0"),
+            next_due_date=next_due_date or today,
+            amount_due=amount_due,
+            amount_overdue=amount_overdue,
+            advance_balance=Decimal("0"),
+            security_deposit=s.security_deposit_amount or Decimal("0"),
+            mess_charges=Decimal("0"),
+            mess_balance=Decimal("0"),
+            payment_status=status_str,
+            days_until_due=days_until_due,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Detailed info
+    # ------------------------------------------------------------------ #
+    def get_financial_info(self, student_id: UUID) -> StudentFinancialInfo:
+        today = self._today()
+
+        with UnitOfWork(self._session_factory) as uow:
+            pay_repo = self._get_payment_repo(uow)
+            student_repo = self._get_student_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None or not getattr(s, "user", None):
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            payments = pay_repo.list_for_student(student_id)
+
+        total_paid = Decimal("0")
+        total_due = Decimal("0")
+        overdue_amount = Decimal("0")
+        advance_amount = Decimal("0")
+        last_payment_date: Optional[date] = None
+        next_due_date: Optional[date] = None
+
+        for p in payments:
+            if p.payment_status == PaymentStatus.COMPLETED and p.paid_at:
+                total_paid += p.amount
+                d = p.paid_at.date()
+                if not last_payment_date or d > last_payment_date:
+                    last_payment_date = d
+            elif p.payment_status == PaymentStatus.PENDING:
+                total_due += p.amount
+                if p.due_date and p.due_date < today:
+                    overdue_amount += p.amount
+                if p.due_date:
+                    if not next_due_date or p.due_date < next_due_date:
+                        next_due_date = p.due_date
+
+        return StudentFinancialInfo(
+            student_id=student_id,
+            student_name=s.user.full_name,
+            monthly_rent_amount=s.monthly_rent_amount or Decimal("0"),
+            security_deposit_amount=s.security_deposit_amount or Decimal("0"),
+            security_deposit_paid=False,
+            security_deposit_refundable=s.security_deposit_amount or Decimal("0"),
+            total_paid=total_paid,
+            total_due=total_due,
+            last_payment_date=last_payment_date,
+            next_due_date=next_due_date,
+            overdue_amount=overdue_amount,
+            advance_amount=advance_amount,
+            mess_charges_monthly=Decimal("0"),
+            mess_balance=Decimal("0"),
+        )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_profile_service.py ---
+# app/services/student/student_profile_service.py
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Callable, List, Optional, Protocol
+from uuid import UUID, uuid4
+
+from sqlalchemy.orm import Session
+
+from app.repositories.core import StudentRepository, UserRepository
+from app.schemas.student.student_profile import (
+    StudentProfileCreate,
+    StudentProfileUpdate,
+    StudentDocuments,
+    DocumentInfo,
+    DocumentUploadRequest,
+    DocumentVerificationRequest,
+    StudentPreferences,
+)
+from app.schemas.student.student_response import StudentDetail
+from app.services.common import UnitOfWork, errors
+from .student_service import StudentService
+
+
+class StudentDocumentStore(Protocol):
+    """
+    Storage abstraction for student documents.
+
+    Expected record fields (example):
+        {
+            "id": UUID,
+            "student_id": UUID,
+            "document_type": str,
+            "document_name": str,
+            "document_url": str,
+            "uploaded_at": datetime,
+            "verified": bool,
+            "verified_by": UUID | None,
+            "verified_at": datetime | None,
+            "notes": str | None,
+        }
+    """
+
+    def list_documents(self, student_id: UUID) -> List[dict]: ...
+    def save_document(self, record: dict) -> dict: ...
+    def get_document(self, document_id: UUID) -> Optional[dict]: ...
+    def update_document(self, document_id: UUID, data: dict) -> dict: ...
+
+
+class StudentProfileService:
+    """
+    Student profile & documents:
+
+    - Get/update student "profile" fields (guardian, institution, employment, preferences).
+    - Manage uploaded documents via a DocumentStore.
+    """
+
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        document_store: StudentDocumentStore,
+    ) -> None:
+        self._session_factory = session_factory
+        self._documents = document_store
+        self._student_service = StudentService(session_factory)
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Profile (uses Student + User)
+    # ------------------------------------------------------------------ #
+    def update_profile(
+        self,
+        student_id: UUID,
+        data: StudentProfileUpdate,
+    ) -> StudentDetail:
+        """
+        Merge StudentProfileUpdate fields into Student.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None:
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            mapping = data.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(s, field) and field != "id":
+                    setattr(s, field, value)
+
+            uow.session.flush()  # type: ignore[union-attr]
+            uow.commit()
+
+        return self._student_service.get_student(student_id)
+
+    # ------------------------------------------------------------------ #
+    # Documents
+    # ------------------------------------------------------------------ #
+    def list_documents(self, student_id: UUID) -> StudentDocuments:
+        records = self._documents.list_documents(student_id)
+        docs = [DocumentInfo.model_validate(r) for r in records]
+        return StudentDocuments(student_id=student_id, documents=docs)
+
+    def upload_document(self, data: DocumentUploadRequest) -> DocumentInfo:
+        now = self._now()
+        record = {
+            "id": uuid4(),
+            "student_id": data.student_id,
+            "document_type": data.document_type,
+            "document_name": data.document_name,
+            "document_url": str(data.document_url),
+            "uploaded_at": now,
+            "verified": False,
+            "verified_by": None,
+            "verified_at": None,
+            "notes": None,
+        }
+        saved = self._documents.save_document(record)
+        return DocumentInfo.model_validate(saved)
+
+    def verify_document(self, data: DocumentVerificationRequest, *, verifier_id: UUID) -> DocumentInfo:
+        record = self._documents.get_document(data.document_id)
+        if not record:
+            raise errors.NotFoundError(f"Document {data.document_id} not found")
+
+        record["verified"] = data.verified
+        record["verified_by"] = verifier_id
+        record["verified_at"] = self._now()
+        record["notes"] = data.notes
+
+        updated = self._documents.update_document(data.document_id, record)
+        return DocumentInfo.model_validate(updated)
+
+    # ------------------------------------------------------------------ #
+    # Preferences
+    # ------------------------------------------------------------------ #
+    def update_preferences(self, student_id: UUID, prefs: StudentPreferences) -> StudentDetail:
+        """
+        Update student-level preferences that live on Student.
+        """
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None:
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            mapping = prefs.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(s, field) and field != "id":
+                    setattr(s, field, value)
+
+            uow.session.flush()  # type: ignore[union-attr]
+            uow.commit()
+
+        return self._student_service.get_student(student_id)
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_room_history_service.py ---
+# app/services/student/student_room_history_service.py
+from __future__ import annotations
+
+from datetime import date
+from typing import Callable, List
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.associations import StudentRoomAssignmentRepository
+from app.repositories.core import HostelRepository, RoomRepository, StudentRepository
+from app.schemas.student.student_room_history import (
+    RoomHistoryResponse,
+    RoomHistoryItem,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class StudentRoomHistoryService:
+    """
+    Student room/bed history:
+
+    - Build RoomHistoryResponse from StudentRoomAssignment records.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_assignment_repo(self, uow: UnitOfWork) -> StudentRoomAssignmentRepository:
+        return uow.get_repo(StudentRoomAssignmentRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _get_room_repo(self, uow: UnitOfWork) -> RoomRepository:
+        return uow.get_repo(RoomRepository)
+
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    # ------------------------------------------------------------------ #
+    # API
+    # ------------------------------------------------------------------ #
+    def get_room_history(self, student_id: UUID) -> RoomHistoryResponse:
+        with UnitOfWork(self._session_factory) as uow:
+            assignment_repo = self._get_assignment_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            room_repo = self._get_room_repo(uow)
+            student_repo = self._get_student_repo(uow)
+
+            student = student_repo.get(student_id)
+            if student is None or not getattr(student, "user", None):
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            assignments = assignment_repo.get_history_for_student(student_id)
+            if not assignments:
+                # Build empty response
+                return RoomHistoryResponse(
+                    student_id=student_id,
+                    student_name=student.user.full_name,
+                    hostel_id=student.hostel_id,
+                    hostel_name=hostel_repo.get(student.hostel_id).name if hostel_repo.get(student.hostel_id) else "",
+                    room_history=[],
+                )
+
+            hostel = hostel_repo.get(assignments[0].hostel_id)
+            hostel_name = hostel.name if hostel else ""
+
+            items: List[RoomHistoryItem] = []
+            for a in assignments:
+                room = room_repo.get(a.room_id)
+                room_number = room.room_number if room else ""
+                room_type = (
+                    room.room_type.value if room and hasattr(room.room_type, "value") else ""
+                )
+
+                dur = None
+                if a.move_out_date:
+                    dur = (a.move_out_date - a.move_in_date).days
+
+                items.append(
+                    RoomHistoryItem(
+                        id=a.id,
+                        created_at=a.created_at,
+                        updated_at=a.updated_at,
+                        hostel_id=a.hostel_id,
+                        hostel_name=hostel_name,
+                        room_id=a.room_id,
+                        room_number=room_number,
+                        room_type=room_type,
+                        bed_id=a.bed_id,
+                        bed_number=None,
+                        move_in_date=a.move_in_date,
+                        move_out_date=a.move_out_date,
+                        duration_days=dur,
+                        rent_amount=a.rent_amount,
+                        reason=a.reason,
+                        requested_by=None,
+                        approved_by=None,
+                    )
+                )
+
+        return RoomHistoryResponse(
+            student_id=student_id,
+            student_name=student.user.full_name,
+            hostel_id=student.hostel_id,
+            hostel_name=hostel_name,
+            room_history=items,
+        )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_search_service.py ---
+# app/services/student/student_search_service.py
+from __future__ import annotations
+
+from typing import Callable, Dict, List
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.core import (
+    StudentRepository,
+    UserRepository,
+    RoomRepository,
+    BedRepository,
+)
+from app.schemas.common.pagination import PaginatedResponse
+from app.schemas.student.student_filters import (
+    StudentSearchRequest,
+    StudentSortOptions,
+)
+from app.schemas.student.student_response import StudentListItem
+from app.services.common import UnitOfWork
+
+
+class StudentSearchService:
+    """
+    Advanced student search service:
+
+    - Full-text-ish search over name/email/phone/room/institution.
+    - Pagination & simple sorting options.
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _get_room_repo(self, uow: UnitOfWork) -> RoomRepository:
+        return uow.get_repo(RoomRepository)
+
+    def _get_bed_repo(self, uow: UnitOfWork) -> BedRepository:
+        return uow.get_repo(BedRepository)
+
+    # ------------------------------------------------------------------ #
+    # Search
+    # ------------------------------------------------------------------ #
+    def search(self, req: StudentSearchRequest) -> PaginatedResponse[StudentListItem]:
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            room_repo = self._get_room_repo(uow)
+            bed_repo = self._get_bed_repo(uow)
+
+            filters: Dict[str, object] = {}
+            if req.hostel_id:
+                filters["hostel_id"] = req.hostel_id
+            if req.status:
+                filters["student_status"] = req.status
+
+            students = student_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters=filters or None,
+            )
+
+            q = req.query.lower()
+
+            user_cache: Dict[UUID, object] = {}
+            room_cache: Dict[UUID, object] = {}
+            bed_cache: Dict[UUID, object] = {}
+
+            def _matches(s) -> bool:
+                # load user
+                if s.user_id not in user_cache:
+                    user_cache[s.user_id] = user_repo.get(s.user_id)
+                user = user_cache[s.user_id]
+                if user is None:
+                    return False
+
+                haystack_parts: List[str] = []
+                if req.search_in_name:
+                    haystack_parts.append(getattr(user, "full_name", ""))
+                if req.search_in_email:
+                    haystack_parts.append(getattr(user, "email", ""))
+                if req.search_in_phone:
+                    haystack_parts.append(getattr(user, "phone", ""))
+
+                if req.search_in_room:
+                    if s.room_id:
+                        if s.room_id not in room_cache:
+                            room_cache[s.room_id] = room_repo.get(s.room_id)
+                        room = room_cache[s.room_id]
+                        if room:
+                            haystack_parts.append(room.room_number or "")
+                    if s.bed_id:
+                        if s.bed_id not in bed_cache:
+                            bed_cache[s.bed_id] = bed_repo.get(s.bed_id)
+                        bed = bed_cache[s.bed_id]
+                        if bed:
+                            haystack_parts.append(bed.bed_number or "")
+
+                if req.search_in_institution:
+                    haystack_parts.append(s.institution_name or "")
+
+                haystack = " ".join(haystack_parts).lower()
+                return q in haystack
+
+            matched = [s for s in students if _matches(s)]
+
+            # Sorting (simple: by created_at desc)
+            matched_sorted = sorted(matched, key=lambda s: s.created_at, reverse=True)
+
+            # Pagination
+            page = req.page
+            page_size = req.page_size
+            offset = (page - 1) * page_size
+            page_records = matched_sorted[offset : offset + page_size]
+
+            items: List[StudentListItem] = []
+            for s in page_records:
+                user = user_cache[s.user_id]
+                room_number = bed_number = None
+                if s.room_id:
+                    room = room_cache.get(s.room_id)
+                    if room:
+                        room_number = room.room_number
+                if s.bed_id:
+                    bed = bed_cache.get(s.bed_id)
+                    if bed:
+                        bed_number = bed.bed_number
+
+                items.append(
+                    StudentListItem(
+                        id=s.id,
+                        user_id=s.user_id,
+                        full_name=user.full_name,
+                        email=user.email,
+                        phone=getattr(user, "phone", ""),
+                        room_number=room_number,
+                        bed_number=bed_number,
+                        student_status=s.student_status,
+                        check_in_date=s.check_in_date,
+                        monthly_rent=s.monthly_rent_amount,
+                        payment_status="current",
+                        created_at=s.created_at,
+                    )
+                )
+
+            return PaginatedResponse[StudentListItem].create(
+                items=items,
+                total_items=len(matched),
+                page=page,
+                page_size=page_size,
+            )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\student_service.py ---
+# app/services/student/student_service.py
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Callable, Dict, List, Optional, Sequence
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.core import (
+    StudentRepository,
+    UserRepository,
+    HostelRepository,
+    RoomRepository,
+    BedRepository,
+)
+from app.schemas.common.enums import StudentStatus
+from app.schemas.common.pagination import PaginationParams, PaginatedResponse
+from app.schemas.student import (
+    StudentCreate,
+    StudentUpdate,
+    StudentResponse,
+    StudentDetail,
+    StudentListItem,
+    StudentFilterParams,
+    StudentSortOptions,
+)
+from app.services.common import UnitOfWork, errors
+
+
+class StudentService:
+    """
+    Core student service:
+
+    - Create/update students
+    - Get student detail
+    - List students with filters + sorting
+    """
+
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self._session_factory = session_factory
+
+    # ------------------------------------------------------------------ #
+    # Helpers
+    # ------------------------------------------------------------------ #
+    def _get_student_repo(self, uow: UnitOfWork) -> StudentRepository:
+        return uow.get_repo(StudentRepository)
+
+    def _get_user_repo(self, uow: UnitOfWork) -> UserRepository:
+        return uow.get_repo(UserRepository)
+
+    def _get_hostel_repo(self, uow: UnitOfWork) -> HostelRepository:
+        return uow.get_repo(HostelRepository)
+
+    def _get_room_repo(self, uow: UnitOfWork) -> RoomRepository:
+        return uow.get_repo(RoomRepository)
+
+    def _get_bed_repo(self, uow: UnitOfWork) -> BedRepository:
+        return uow.get_repo(BedRepository)
+
+    def _now(self) -> datetime:
+        return datetime.utcnow()
+
+    # ------------------------------------------------------------------ #
+    # Mapping helpers
+    # ------------------------------------------------------------------ #
+    def _room_bed_labels(self, student, room_repo: RoomRepository, bed_repo: BedRepository) -> tuple[Optional[str], Optional[str]]:
+        room_number = bed_number = None
+        if student.room_id:
+            room = room_repo.get(student.room_id)
+            room_number = room.room_number if room else None
+        if student.bed_id:
+            bed = bed_repo.get(student.bed_id)
+            bed_number = bed.bed_number if bed else None
+        return room_number, bed_number
+
+    def _to_response(
+        self,
+        s,
+        *,
+        hostel_name: str,
+        room_number: Optional[str],
+        bed_number: Optional[str],
+        user,
+    ) -> StudentResponse:
+        # Payment & deposit derived fields are placeholders here
+        security_deposit_paid = False
+
+        return StudentResponse(
+            id=s.id,
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+            user_id=s.user_id,
+            hostel_id=s.hostel_id,
+            hostel_name=hostel_name,
+            room_id=s.room_id,
+            room_number=room_number,
+            bed_id=s.bed_id,
+            bed_number=bed_number,
+            full_name=user.full_name,
+            email=user.email,
+            phone=getattr(user, "phone", ""),
+            guardian_name=s.guardian_name,
+            guardian_phone=s.guardian_phone,
+            student_status=s.student_status,
+            check_in_date=s.check_in_date,
+            expected_checkout_date=s.expected_checkout_date,
+            monthly_rent_amount=s.monthly_rent_amount,
+            security_deposit_amount=s.security_deposit_amount,
+            security_deposit_paid=security_deposit_paid,
+            mess_subscribed=s.mess_subscribed,
+        )
+
+    def _to_detail(
+        self,
+        s,
+        *,
+        user,
+        hostel_name: str,
+        room_number: Optional[str],
+        room_type: Optional[str],
+        bed_number: Optional[str],
+    ) -> StudentDetail:
+        return StudentDetail(
+            id=s.id,
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+            user_id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            phone=getattr(user, "phone", ""),
+            gender=getattr(user, "gender", None).value if getattr(user, "gender", None) else None,
+            date_of_birth=getattr(user, "date_of_birth", None),
+            profile_image_url=getattr(user, "profile_image_url", None),
+            hostel_id=s.hostel_id,
+            hostel_name=hostel_name,
+            room_id=s.room_id,
+            room_number=room_number,
+            room_type=room_type,
+            bed_id=s.bed_id,
+            bed_number=bed_number,
+            id_proof_type=s.id_proof_type,
+            id_proof_number=s.id_proof_number,
+            id_proof_document_url=None,
+            guardian_name=s.guardian_name,
+            guardian_phone=s.guardian_phone,
+            guardian_email=s.guardian_email,
+            guardian_relation=s.guardian_relation,
+            guardian_address=s.guardian_address,
+            institution_name=s.institution_name,
+            course=s.course,
+            year_of_study=s.year_of_study,
+            student_id_number=None,
+            company_name=s.company_name,
+            designation=s.designation,
+            company_id_url=None,
+            check_in_date=s.check_in_date,
+            expected_checkout_date=s.expected_checkout_date,
+            actual_checkout_date=s.actual_checkout_date,
+            security_deposit_amount=s.security_deposit_amount,
+            security_deposit_paid=False,
+            security_deposit_paid_date=None,
+            monthly_rent_amount=s.monthly_rent_amount,
+            mess_subscribed=s.mess_subscribed,
+            dietary_preference=s.dietary_preference,
+            food_allergies=s.food_allergies,
+            student_status=s.student_status,
+            notice_period_start=None,
+            notice_period_end=None,
+            booking_id=None,
+            additional_documents=[],
+        )
+
+    def _to_list_item(
+        self,
+        s,
+        *,
+        user,
+        room_number: Optional[str],
+        bed_number: Optional[str],
+        payment_status: str,
+    ) -> StudentListItem:
+        return StudentListItem(
+            id=s.id,
+            user_id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            phone=getattr(user, "phone", ""),
+            room_number=room_number,
+            bed_number=bed_number,
+            student_status=s.student_status,
+            check_in_date=s.check_in_date,
+            monthly_rent=s.monthly_rent_amount,
+            payment_status=payment_status,
+            created_at=s.created_at,
+        )
+
+    # ------------------------------------------------------------------ #
+    # CRUD
+    # ------------------------------------------------------------------ #
+    def create_student(self, data: StudentCreate) -> StudentDetail:
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            room_repo = self._get_room_repo(uow)
+
+            user = user_repo.get(data.user_id)
+            if user is None:
+                raise errors.NotFoundError(f"User {data.user_id} not found")
+
+            hostel = hostel_repo.get(data.hostel_id)
+            if hostel is None:
+                raise errors.NotFoundError(f"Hostel {data.hostel_id} not found")
+
+            if data.room_id:
+                room = room_repo.get(data.room_id)
+                if room is None:
+                    raise errors.NotFoundError(f"Room {data.room_id} not found")
+
+            payload = data.model_dump(exclude_unset=True)
+            student = student_repo.create(payload)  # type: ignore[arg-type]
+            uow.commit()
+
+            room_number, bed_number = self._room_bed_labels(student, room_repo, self._get_bed_repo(uow))
+            room_type = None
+            if student.room_id:
+                room = room_repo.get(student.room_id)
+                room_type = room.room_type.value if room and hasattr(room.room_type, "value") else None
+
+            return self._to_detail(
+                student,
+                user=user,
+                hostel_name=hostel.name,
+                room_number=room_number,
+                room_type=room_type,
+                bed_number=bed_number,
+            )
+
+    def update_student(self, student_id: UUID, data: StudentUpdate) -> StudentDetail:
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None:
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            mapping = data.model_dump(exclude_unset=True)
+            for field, value in mapping.items():
+                if hasattr(s, field) and field != "id":
+                    setattr(s, field, value)
+
+            uow.session.flush()  # type: ignore[union-attr]
+            uow.commit()
+
+        return self.get_student(student_id)
+
+    def get_student(self, student_id: UUID) -> StudentDetail:
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            hostel_repo = self._get_hostel_repo(uow)
+            room_repo = self._get_room_repo(uow)
+
+            s = student_repo.get(student_id)
+            if s is None:
+                raise errors.NotFoundError(f"Student {student_id} not found")
+
+            user = user_repo.get(s.user_id)
+            if user is None:
+                raise errors.NotFoundError(f"User {s.user_id} not found")
+
+            hostel = hostel_repo.get(s.hostel_id)
+            hostel_name = hostel.name if hostel else ""
+
+            room_number, bed_number = self._room_bed_labels(s, room_repo, self._get_bed_repo(uow))
+            room_type = None
+            if s.room_id:
+                room = room_repo.get(s.room_id)
+                room_type = room.room_type.value if room and hasattr(room.room_type, "value") else None
+
+            return self._to_detail(
+                s,
+                user=user,
+                hostel_name=hostel_name,
+                room_number=room_number,
+                room_type=room_type,
+                bed_number=bed_number,
+            )
+
+    # ------------------------------------------------------------------ #
+    # Listing with filters/sort
+    # ------------------------------------------------------------------ #
+    def list_students(
+        self,
+        params: PaginationParams,
+        filters: Optional[StudentFilterParams] = None,
+        sort: Optional[StudentSortOptions] = None,
+    ) -> PaginatedResponse[StudentListItem]:
+        with UnitOfWork(self._session_factory) as uow:
+            student_repo = self._get_student_repo(uow)
+            user_repo = self._get_user_repo(uow)
+            room_repo = self._get_room_repo(uow)
+            bed_repo = self._get_bed_repo(uow)
+
+            raw_filters: Dict[str, object] = {}
+            if filters:
+                if filters.hostel_id:
+                    raw_filters["hostel_id"] = filters.hostel_id
+                elif filters.hostel_ids:
+                    raw_filters["hostel_id"] = filters.hostel_ids
+                if filters.status:
+                    raw_filters["student_status"] = filters.status
+                elif filters.statuses:
+                    raw_filters["student_status"] = filters.statuses
+
+            records: Sequence = student_repo.get_multi(
+                skip=0,
+                limit=None,  # type: ignore[arg-type]
+                filters=raw_filters or None,
+            )
+
+            # Advanced filter logic
+            def _matches(s) -> bool:
+                if not filters:
+                    return True
+
+                if filters.checked_in_after and (not s.check_in_date or s.check_in_date < filters.checked_in_after):
+                    return False
+                if filters.checked_in_before and (not s.check_in_date or s.check_in_date > filters.checked_in_before):
+                    return False
+
+                if filters.expected_checkout_after and (
+                    not s.expected_checkout_date or s.expected_checkout_date < filters.expected_checkout_after
+                ):
+                    return False
+                if filters.expected_checkout_before and (
+                    not s.expected_checkout_date or s.expected_checkout_date > filters.expected_checkout_before
+                ):
+                    return False
+
+                if filters.mess_subscribed is not None and s.mess_subscribed != filters.mess_subscribed:
+                    return False
+
+                if filters.institution_name and (s.institution_name or "").lower() != filters.institution_name.lower():
+                    return False
+                if filters.course and (s.course or "").lower() != filters.course.lower():
+                    return False
+                if filters.company_name and (s.company_name or "").lower() != filters.company_name.lower():
+                    return False
+
+                return True
+
+            filtered = [s for s in records if _matches(s)]
+
+            # Sorting
+            sort = sort or StudentSortOptions()
+            def _sort_key(s):
+                if sort.sort_by == "name":
+                    return getattr(s, "full_name", "").lower()
+                if sort.sort_by == "check_in_date":
+                    return s.check_in_date or datetime.min.date()
+                if sort.sort_by == "monthly_rent":
+                    return s.monthly_rent_amount or Decimal("0")
+                # Fallback: created_at
+                return s.created_at
+
+            reverse = sort.sort_order == "desc"
+            filtered_sorted = sorted(filtered, key=_sort_key, reverse=reverse)
+
+            # Pagination
+            start = params.offset
+            end = start + params.limit
+            page_records = filtered_sorted[start:end]
+
+            # Map to list items
+            user_cache: Dict[UUID, object] = {}
+            room_cache: Dict[UUID, object] = {}
+            bed_cache: Dict[UUID, object] = {}
+
+            items: List[StudentListItem] = []
+            for s in page_records:
+                # user
+                if s.user_id not in user_cache:
+                    user_cache[s.user_id] = user_repo.get(s.user_id)
+                user = user_cache[s.user_id]
+                if user is None:
+                    continue
+
+                # room/bed
+                room_number = bed_number = None
+                if s.room_id:
+                    if s.room_id not in room_cache:
+                        room_cache[s.room_id] = room_repo.get(s.room_id)
+                    room = room_cache[s.room_id]
+                    room_number = room.room_number if room else None
+                if s.bed_id:
+                    if s.bed_id not in bed_cache:
+                        bed_cache[s.bed_id] = bed_repo.get(s.bed_id)
+                    bed = bed_cache[s.bed_id]
+                    bed_number = bed.bed_number if bed else None
+
+                # payment_status placeholder
+                payment_status = "current"
+                items.append(
+                    self._to_list_item(
+                        s,
+                        user=user,
+                        room_number=room_number,
+                        bed_number=bed_number,
+                        payment_status=payment_status,
+                    )
+                )
+
+            return PaginatedResponse[StudentListItem].create(
+                items=items,
+                total_items=len(filtered_sorted),
+                page=params.page,
+                page_size=params.page_size,
+            )
+
+# --- File: D:\Last Github Push\Last\HOStel-back\app\services\student\__init__.py ---
+# app/services/student/__init__.py
+"""
+Student-related services.
+
+- StudentService:
+    Core CRUD, listing, and detail for students.
+
+- StudentProfileService:
+    Profile & document management on top of Student/User.
+
+- StudentDashboardService:
+    Student dashboard aggregation (financial, attendance, activity).
+
+- StudentSearchService:
+    Advanced search & sorting over students.
+
+- StudentRoomHistoryService:
+    Room/bed history and transfer-oriented views.
+
+- StudentFinanceService:
+    Student-level financial summaries & details.
+"""
+
+from .student_service import StudentService
+from .student_profile_service import StudentProfileService, StudentDocumentStore
+from .student_dashboard_service import StudentDashboardService
+from .student_search_service import StudentSearchService
+from .student_room_history_service import StudentRoomHistoryService
+from .student_finance_service import StudentFinanceService
+
+__all__ = [
+    "StudentService",
+    "StudentProfileService",
+    "StudentDocumentStore",
+    "StudentDashboardService",
+    "StudentSearchService",
+    "StudentRoomHistoryService",
+    "StudentFinanceService",
+]
+
+
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\services\student\__pycache__ =====

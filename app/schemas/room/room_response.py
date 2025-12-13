@@ -8,7 +8,8 @@ detailed views, list items, and statistics.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -19,7 +20,7 @@ from app.schemas.common.enums import BedStatus, RoomStatus, RoomType
 
 __all__ = [
     "RoomResponse",
-    "RoomDetail",
+    "RoomDetail",   
     "RoomListItem",
     "RoomWithBeds",
     "RoomOccupancyStats",
@@ -91,17 +92,17 @@ class BedDetail(BaseSchema):
         default=None,
         description="Current student name (if occupied)",
     )
-    occupied_from: Optional[date] = Field(
+    occupied_from: Optional[Date] = Field(
         default=None,
         description="Occupancy start date",
     )
-    expected_vacate_date: Optional[date] = Field(
+    expected_vacate_date: Optional[Date] = Field(
         default=None,
         description="Expected checkout date",
     )
     
     # Additional info
-    last_maintenance_date: Optional[date] = Field(
+    last_maintenance_date: Optional[Date] = Field(
         default=None,
         description="Last maintenance date",
     )
@@ -180,11 +181,11 @@ class RoomDetail(BaseResponseSchema):
         ...,
         description="Under maintenance",
     )
-    maintenance_start_date: Optional[date] = Field(
+    maintenance_start_date: Optional[Date] = Field(
         default=None,
         description="Maintenance start date",
     )
-    maintenance_end_date: Optional[date] = Field(
+    maintenance_end_date: Optional[Date] = Field(
         default=None,
         description="Expected maintenance end date",
     )
@@ -305,7 +306,7 @@ class BedInfo(BaseSchema):
         default=None,
         description="Occupant name (if applicable)",
     )
-    occupied_from: Optional[date] = Field(
+    occupied_from: Optional[Date] = Field(
         default=None,
         description="Occupancy start date",
     )

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import Field, field_validator, computed_field, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseFilterSchema, BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import AuditActionCategory

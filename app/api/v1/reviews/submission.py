@@ -18,7 +18,7 @@ from app.schemas.review.review_response import (
     ReviewDetail,
     ReviewResponse,
 )
-from app.schemas.review.review_filters import SearchRequest, SortOptions
+from app.schemas.review.review_filters import ReviewSearchRequest, ReviewSortOptions
 from . import CurrentUser, get_current_user
 
 router = APIRouter(tags=["Reviews - Public Submission & Listing"])
@@ -71,8 +71,8 @@ def check_review_eligibility(
 @router.get("/hostels/{hostel_id}", response_model=List[ReviewResponse])
 def list_public_reviews_for_hostel(
     hostel_id: UUID,
-    search: SearchRequest = Depends(),
-    sort: SortOptions = Depends(),
+    search: ReviewSearchRequest = Depends(),
+    sort: ReviewSortOptions = Depends(),
     session: Session = Depends(get_session),
 ) -> List[ReviewResponse]:
     """
@@ -81,8 +81,8 @@ def list_public_reviews_for_hostel(
     service = _get_service(session)
     # Expected:
     #   list_public_reviews(hostel_id: UUID,
-    #                       search: SearchRequest,
-    #                       sort: SortOptions) -> list[ReviewResponse]
+    #                       search: ReviewSearchRequest,
+    #                       sort: ReviewSortOptions) -> list[ReviewResponse]
     return service.list_public_reviews(
         hostel_id=hostel_id,
         search=search,

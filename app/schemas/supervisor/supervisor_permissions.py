@@ -12,7 +12,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional, Set
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 
