@@ -28,7 +28,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=DuplicateResponse,
     summary="Duplicate a single mess menu",
 )

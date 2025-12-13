@@ -74,7 +74,7 @@ def get_program(
 
 
 @router.post(
-    "",
+    "/",
     response_model=ProgramResponse,
     status_code=status.HTTP_201_CREATED,
 )

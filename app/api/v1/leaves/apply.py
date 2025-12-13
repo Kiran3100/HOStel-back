@@ -46,7 +46,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=LeaveDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Apply for leave",

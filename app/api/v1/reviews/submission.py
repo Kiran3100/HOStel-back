@@ -29,7 +29,7 @@ def _get_service(session: Session) -> PublicReviewService:
     return PublicReviewService(uow)
 
 
-@router.post("", response_model=ReviewDetail)
+@router.post("/", response_model=ReviewDetail)
 def submit_review(
     payload: ReviewSubmissionRequest,
     session: Session = Depends(get_session),

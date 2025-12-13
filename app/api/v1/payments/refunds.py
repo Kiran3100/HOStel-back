@@ -27,7 +27,7 @@ def _get_service(session: Session) -> RefundService:
     return RefundService(uow)
 
 
-@router.post("", response_model=RefundResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=RefundResponse, status_code=status.HTTP_201_CREATED)
 def create_refund_request(
     payload: RefundRequest,
     session: Session = Depends(get_session),

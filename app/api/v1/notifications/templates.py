@@ -70,7 +70,7 @@ def get_template(
 
 
 @router.post(
-    "",
+    "/",
     response_model=TemplateResponse,
     status_code=status.HTTP_201_CREATED,
 )

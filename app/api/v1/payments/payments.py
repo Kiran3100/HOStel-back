@@ -90,7 +90,7 @@ def get_hostel_payment_summary(
 
 
 @router.post(
-    "",
+    "/",
     response_model=PaymentDetail,
     status_code=status.HTTP_201_CREATED,
 )

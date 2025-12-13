@@ -43,7 +43,7 @@ def list_schedules_for_student(
     return service.list_schedules_for_student(student_id=student_id)
 
 
-@router.post("", response_model=PaymentSchedule, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PaymentSchedule, status_code=status.HTTP_201_CREATED)
 def create_schedule(
     payload: ScheduleCreate,
     session: Session = Depends(get_session),

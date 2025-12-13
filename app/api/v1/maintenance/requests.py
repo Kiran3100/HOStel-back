@@ -69,7 +69,7 @@ async def list_maintenance_requests(
 
 
 @router.post(
-    "",
+    "/",
     response_model=MaintenanceDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a maintenance request (low-level)",

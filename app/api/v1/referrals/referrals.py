@@ -22,7 +22,7 @@ def _get_service(session: Session) -> ReferralService:
     return ReferralService(uow)
 
 
-@router.post("", response_model=ReferralResponse)
+@router.post("/", response_model=ReferralResponse)
 def create_referral(
     payload: ReferralCreate,
     session: Session = Depends(get_session),
