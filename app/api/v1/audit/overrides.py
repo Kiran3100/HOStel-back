@@ -44,7 +44,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=List[AdminOverrideLogResponse],
     summary="List admin overrides (audit)",
 )

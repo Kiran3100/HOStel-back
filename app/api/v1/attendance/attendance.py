@@ -45,7 +45,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=List[AttendanceResponse],
     summary="List attendance records",
 )
@@ -64,7 +64,7 @@ async def list_attendance_records(
 
 
 @router.post(
-    "",
+    "/",
     response_model=AttendanceDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create an attendance record",

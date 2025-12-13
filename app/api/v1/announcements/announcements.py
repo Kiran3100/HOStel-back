@@ -58,7 +58,7 @@ async def list_announcements(
 
 
 @router.post(
-    "",
+    "/",
     response_model=AnnouncementDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new announcement",

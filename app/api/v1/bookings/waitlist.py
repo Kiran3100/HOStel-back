@@ -35,7 +35,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=WaitlistResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add visitor to booking waitlist",
@@ -74,7 +74,7 @@ async def cancel_waitlist_entry(
 
 
 @router.get(
-    "",
+    "/",
     response_model=WaitlistManagement,
     summary="List waitlist entries for a hostel",
 )

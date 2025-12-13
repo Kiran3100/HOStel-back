@@ -47,7 +47,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=SupervisorActivityDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Log supervisor activity",
@@ -67,7 +67,7 @@ async def log_supervisor_activity(
 
 
 @router.get(
-    "",
+    "/",
     response_model=PaginatedResponse[SupervisorActivityLogResponse],
     summary="List supervisor activity logs",
 )

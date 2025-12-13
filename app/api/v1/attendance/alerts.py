@@ -131,7 +131,7 @@ async def acknowledge_alert(
 
 
 @router.get(
-    "",
+    "/",
     response_model=AlertList,
     summary="List attendance alerts",
 )

@@ -42,7 +42,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.post(
-    "",
+    "/",
     response_model=AuditLogDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create an audit log entry",
@@ -65,7 +65,7 @@ async def create_audit_log(
 
 
 @router.get(
-    "",
+    "/",
     response_model=PaginatedResponse[AuditLogResponse],
     summary="List audit logs with filters",
 )

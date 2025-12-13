@@ -32,7 +32,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=List[HostelResponse],
     summary="List hostels (admin view)",
 )
@@ -53,7 +53,7 @@ async def list_hostels(
 
 
 @router.post(
-    "",
+    "/",
     response_model=HostelDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new hostel",

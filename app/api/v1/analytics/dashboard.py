@@ -26,7 +26,7 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 
 
 @router.get(
-    "",
+    "/",
     response_model=DashboardMetricsSchema,
     summary="Get dashboard metrics snapshot for a scope",
 )
