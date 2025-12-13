@@ -27,7 +27,7 @@ def _get_service(session: Session) -> PaymentService:
     return PaymentService(uow)
 
 
-@router.get("", response_model=List[PaymentListItem])
+@router.get("/", response_model=List[PaymentListItem])
 def list_payments(
     filters: PaymentFilterParams = Depends(),
     session: Session = Depends(get_session),

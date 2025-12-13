@@ -19,7 +19,7 @@ def _get_activity_service(session: Session) -> UserActivityService:
     return UserActivityService(uow)
 
 
-@router.get("", response_model=List[dict])
+@router.get("/", response_model=List[dict])
 def list_my_activity(
     limit: int = Query(100, ge=1, le=500, description="Maximum number of records to return"),
     current_user: CurrentUser = Depends(get_current_user),

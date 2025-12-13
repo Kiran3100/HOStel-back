@@ -25,7 +25,7 @@ def _get_service(session: Session) -> SubscriptionPlanService:
     return SubscriptionPlanService(uow)
 
 
-@router.get("", response_model=List[PlanResponse])
+@router.get("/", response_model=List[PlanResponse])
 def list_plans(
     public_only: bool = Query(
         True,

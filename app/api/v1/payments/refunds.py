@@ -44,7 +44,7 @@ def create_refund_request(
     )
 
 
-@router.get("", response_model=RefundList)
+@router.get("/", response_model=RefundList)
 def list_refunds(
     status_filter: str | None = Query(
         None,

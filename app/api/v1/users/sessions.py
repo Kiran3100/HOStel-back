@@ -24,7 +24,7 @@ def get_session_service() -> SessionService:
     return SessionService()
 
 
-@router.get("", response_model=ActiveSessionsList)
+@router.get("/", response_model=ActiveSessionsList)
 def list_my_sessions(
     current_user: CurrentUser = Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),

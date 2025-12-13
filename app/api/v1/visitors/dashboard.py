@@ -18,7 +18,7 @@ def _get_service(session: Session) -> VisitorDashboardService:
     return VisitorDashboardService(uow)
 
 
-@router.get("", response_model=VisitorDashboard)
+@router.get("/", response_model=VisitorDashboard)
 def get_dashboard(
     current_user: CurrentUser = Depends(get_current_visitor),
     session: Session = Depends(get_session),

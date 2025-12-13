@@ -23,7 +23,7 @@ def _get_service(session: Session) -> ReferralProgramService:
     return ReferralProgramService(uow)
 
 
-@router.get("", response_model=List[ProgramResponse])
+@router.get("/", response_model=List[ProgramResponse])
 def list_programs(
     active_only: bool = Query(
         False,

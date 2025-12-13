@@ -21,7 +21,7 @@ def _get_service(session: Session) -> VisitorPreferencesService:
     return VisitorPreferencesService(uow)
 
 
-@router.get("", response_model=VisitorPreferences)
+@router.get("/", response_model=VisitorPreferences)
 def get_preferences(
     current_user: CurrentUser = Depends(get_current_visitor),
     session: Session = Depends(get_session),

@@ -28,7 +28,7 @@ def _get_service(session: Session) -> StudentProfileService:
     return StudentProfileService(uow)
 
 
-@router.get("", response_model=StudentDetail)
+@router.get("/", response_model=StudentDetail)
 def get_my_student_profile(
     current_user: CurrentUser = Depends(get_current_student),
     session: Session = Depends(get_session),

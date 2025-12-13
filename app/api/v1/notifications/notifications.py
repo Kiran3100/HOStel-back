@@ -30,7 +30,7 @@ def _get_service(session: Session) -> NotificationService:
     return NotificationService(uow)
 
 
-@router.get("", response_model=NotificationList)
+@router.get("/", response_model=NotificationList)
 def list_my_notifications(
     only_unread: bool = Query(
         False,

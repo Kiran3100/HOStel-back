@@ -19,7 +19,7 @@ def _get_user_service(session: Session) -> UserService:
     return UserService(uow)
 
 
-@router.get("", response_model=UserDetail)
+@router.get("/", response_model=UserDetail)
 def get_me(
     current_user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),

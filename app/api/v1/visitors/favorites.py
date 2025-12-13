@@ -28,7 +28,7 @@ def _get_service(session: Session) -> FavoritesService:
     return FavoritesService(uow)
 
 
-@router.get("", response_model=FavoritesList)
+@router.get("/", response_model=FavoritesList)
 def list_favorites(
     current_user: CurrentUser = Depends(get_current_visitor),
     session: Session = Depends(get_session),

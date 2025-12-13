@@ -27,7 +27,7 @@ def _get_service(session: Session) -> SubscriptionService:
     return SubscriptionService(uow)
 
 
-@router.get("", response_model=List[SubscriptionResponse])
+@router.get("/", response_model=List[SubscriptionResponse])
 def list_subscriptions(
     hostel_id: Optional[UUID] = Query(
         None,

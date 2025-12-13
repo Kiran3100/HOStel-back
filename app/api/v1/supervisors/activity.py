@@ -26,7 +26,7 @@ def _get_service(session: Session) -> SupervisorActivityService:
     return SupervisorActivityService(uow)
 
 
-@router.get("", response_model=List[SupervisorActivityLog])
+@router.get("/", response_model=List[SupervisorActivityLog])
 def list_my_activity(
     filters: ActivityFilterParams = Depends(),
     current_user: CurrentUser = Depends(get_current_supervisor),

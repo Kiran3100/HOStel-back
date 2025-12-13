@@ -18,7 +18,7 @@ def _get_service(session: Session) -> StudentDashboardService:
     return StudentDashboardService(uow)
 
 
-@router.get("", response_model=StudentDashboard)
+@router.get("/", response_model=StudentDashboard)
 def get_my_dashboard(
     current_user: CurrentUser = Depends(get_current_student),
     session: Session = Depends(get_session),

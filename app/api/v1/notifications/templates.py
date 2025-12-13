@@ -29,7 +29,7 @@ def _get_service(session: Session) -> TemplateService:
     return TemplateService(uow)
 
 
-@router.get("", response_model=TemplateList)
+@router.get("/", response_model=TemplateList)
 def list_templates(
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_admin),

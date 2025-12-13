@@ -21,7 +21,7 @@ def _get_service(session: Session) -> StudentRoomHistoryService:
     return StudentRoomHistoryService(uow)
 
 
-@router.get("", response_model=RoomHistoryResponse)
+@router.get("/", response_model=RoomHistoryResponse)
 def get_my_room_history(
     current_user: CurrentUser = Depends(get_current_student),
     session: Session = Depends(get_session),
