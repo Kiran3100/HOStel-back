@@ -7,7 +7,8 @@ and detailed permission tracking for multi-hostel administration.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional, Union
 from uuid import UUID
@@ -52,7 +53,7 @@ class AdminHostelAssignment(BaseResponseSchema):
     # Assignment metadata
     assigned_by: Optional[UUID] = Field(None, description="Admin who created this assignment")
     assigned_by_name: Optional[str] = Field(None, description="Name of assigning admin")
-    assigned_date: date = Field(..., description="Date assignment was created")
+    assigned_date: Date = Field(..., description="Date assignment was created")
     
     # Permission configuration
     permission_level: PermissionLevel = Field(..., description="Overall permission level")
@@ -66,7 +67,7 @@ class AdminHostelAssignment(BaseResponseSchema):
     is_primary: bool = Field(False, description="Primary hostel for this admin")
     
     # Revocation tracking
-    revoked_date: Optional[date] = Field(None, description="Date assignment was revoked")
+    revoked_date: Optional[Date] = Field(None, description="Date assignment was revoked")
     revoked_by: Optional[UUID] = Field(None, description="Admin who revoked assignment")
     revoke_reason: Optional[str] = Field(None, description="Reason for revocation")
     
@@ -88,7 +89,7 @@ class AdminHostelAssignment(BaseResponseSchema):
     @property
     def assignment_duration_days(self) -> int:
         """Calculate total assignment duration in days."""
-        end_date = self.revoked_date or date.today()
+        end_date = self.revoked_date or Date.today()
         return max(0, (end_date - self.assigned_date).days)
 
     @computed_field
@@ -164,7 +165,7 @@ class AssignmentCreate(BaseCreateSchema):
         max_length=1000,
         description="Administrative notes about this assignment"
     )
-    effective_date: Optional[date] = Field(
+    effective_date: Optional[Date] = Field(
         None,
         description="Effective date for assignment (defaults to today)"
     )
@@ -187,14 +188,14 @@ class AssignmentCreate(BaseCreateSchema):
         
         # Validate effective date
         if self.effective_date:
-            if self.effective_date < date.today():
+            if self.effective_date < Date.today():
                 # Allow past dates for historical assignments but validate reasonableness
-                days_past = (date.today() - self.effective_date).days
+                days_past = (Date.today() - self.effective_date).days
                 if days_past > 365:  # More than 1 year in past
                     raise ValueError("Effective date cannot be more than 1 year in the past")
-            elif self.effective_date > date.today():
+            elif self.effective_date > Date.today():
                 # Allow future dates for scheduled assignments
-                days_future = (self.effective_date - date.today()).days
+                days_future = (self.effective_date - Date.today()).days
                 if days_future > 90:  # More than 3 months in future
                     raise ValueError("Effective date cannot be more than 90 days in the future")
         
@@ -411,7 +412,7 @@ class RevokeAssignment(BaseCreateSchema):
     )
     
     # Revocation timing and options
-    effective_date: Optional[date] = Field(
+    effective_date: Optional[Date] = Field(
         None,
         description="Effective revocation date (defaults to today)"
     )
@@ -453,7 +454,7 @@ class RevokeAssignment(BaseCreateSchema):
 
     @field_validator("effective_date")
     @classmethod
-    def validate_effective_date(cls, v: Optional[date]) -> Optional[date]:
+    def validate_effective_date(cls, v: Optional[date]) -> Optional[Date]:
         """Validate revocation effective date."""
         if v is not None:
             today = date.today()
@@ -655,7 +656,7 @@ class HostelAdminItem(BaseSchema):
     is_active: bool = Field(True, description="Assignment is active")
     
     # Assignment metadata
-    assigned_date: date = Field(..., description="Assignment creation date")
+    assigned_date: Date = Field(..., description="Assignment creation date")
     assigned_by_name: Optional[str] = Field(None, description="Name of assigning admin")
     
     # Activity tracking
@@ -681,7 +682,7 @@ class HostelAdminItem(BaseSchema):
     @property
     def assignment_duration_days(self) -> int:
         """Calculate assignment duration in days."""
-        return (date.today() - self.assigned_date).days
+        return (Date.today() - self.assigned_date).days
 
     @computed_field
     @property

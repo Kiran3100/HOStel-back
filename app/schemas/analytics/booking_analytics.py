@@ -10,7 +10,8 @@ This module provides comprehensive analytics for booking operations including:
 - Source-based metrics
 """
 
-from datetime import date, datetime
+from datetime import datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -152,7 +153,7 @@ class BookingTrendPoint(BaseSchema):
     time-series visualization and trend analysis.
     """
     
-    trend_date: date = Field(
+    trend_date: Date = Field(
         ...,
         description="Date of the data point"
     )
@@ -545,7 +546,7 @@ class BookingAnalyticsSummary(BaseSchema):
     ) -> List[BookingTrendPoint]:
         """Ensure trend points are in chronological order."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.Date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Trend points must be in chronological order")
         return v
@@ -588,8 +589,8 @@ class BookingAnalyticsSummary(BaseSchema):
         total_bookings = [point.total_bookings for point in self.trend]
         revenues = [float(point.revenue_for_day) for point in self.trend]
         
-        peak_date = max(self.trend, key=lambda x: x.total_bookings).date
-        best_revenue_date = max(self.trend, key=lambda x: x.revenue_for_day).date
+        peak_date = max(self.trend, key=lambda x: x.total_bookings).Date
+        best_revenue_date = max(self.trend, key=lambda x: x.revenue_for_day).Date
         
         return {
             "peak_booking_date": peak_date,

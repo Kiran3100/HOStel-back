@@ -12,7 +12,7 @@ Key points:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -502,8 +502,8 @@ class MultiHostelDashboard(BaseResponseSchema):
         default_factory=datetime.utcnow, description="Timestamp when dashboard was generated"
     )
 
-    period_start: date = Field(..., description="Start of reporting period")
-    period_end: date = Field(..., description="End of reporting period (inclusive)")
+    period_start: Date = Field(..., description="Start of reporting period")
+    period_end: Date = Field(..., description="End of reporting period (inclusive)")
 
     # Portfolio‑level aggregates
     aggregated_stats: AggregatedStats = Field(

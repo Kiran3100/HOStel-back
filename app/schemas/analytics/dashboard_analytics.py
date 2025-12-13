@@ -9,7 +9,7 @@ Provides comprehensive dashboard metrics including:
 - Role-specific dashboard configurations
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
@@ -369,7 +369,7 @@ class TimeseriesPoint(BaseSchema):
     Single data point in a time series.
     """
 
-    date_: date = Field(
+    date_: Date = Field(
         ...,
         description="Date of the data point"
     )
@@ -585,7 +585,7 @@ class DashboardMetrics(BaseSchema):
     ) -> List[TimeseriesPoint]:
         """Ensure timeseries data is in chronological order."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.Date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Timeseries points must be in chronological order")
         return v

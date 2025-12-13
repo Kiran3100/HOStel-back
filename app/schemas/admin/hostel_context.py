@@ -14,7 +14,7 @@ Key Improvements:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date as Date
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID

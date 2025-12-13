@@ -9,7 +9,7 @@ Provides comprehensive analytics for complaint management including:
 - Performance benchmarking
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -250,7 +250,7 @@ class ComplaintTrendPoint(BaseSchema):
     enabling time-series visualization.
     """
     
-    trend_date: date = Field(
+    trend_date: Date = Field(
         ...,
         description="Date of the data point"
     )
@@ -327,7 +327,7 @@ class ComplaintTrend(BaseSchema):
     ) -> List[ComplaintTrendPoint]:
         """Ensure trend points are in chronological order."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.Date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Trend points must be in chronological order")
         return v
@@ -360,11 +360,11 @@ class ComplaintTrend(BaseSchema):
     
     @computed_field
     @property
-    def peak_complaint_date(self) -> Optional[date]:
+    def peak_complaint_date(self) -> Optional[Date]:
         """Identify date with highest complaint volume."""
         if not self.points:
             return None
-        return max(self.points, key=lambda x: x.total_complaints).date
+        return max(self.points, key=lambda x: x.total_complaints).Date
 
 
 class CategoryBreakdown(BaseSchema):

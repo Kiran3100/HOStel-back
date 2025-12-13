@@ -13,7 +13,8 @@ Key Improvements:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -270,8 +271,8 @@ class OverrideSummary(BaseSchema):
     """
 
     admin_id: UUID = Field(..., description="Admin user ID")
-    period_start: date = Field(..., description="Summary period start date")
-    period_end: date = Field(..., description="Summary period end date")
+    period_start: Date = Field(..., description="Summary period start date")
+    period_end: Date = Field(..., description="Summary period end date")
 
     total_overrides: int = Field(..., ge=0, description="Total overrides in period")
 
