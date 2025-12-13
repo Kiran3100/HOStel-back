@@ -18,6 +18,7 @@ from app.schemas.mess.meal_items import (
     NutritionalInfo,
 )
 from app.schemas.mess.menu_approval import (
+    ApprovalAttempt,
     ApprovalHistory,
     ApprovalWorkflow,
     BulkApproval,
@@ -109,6 +110,7 @@ __all__ = [
     "ApprovalWorkflow",
     "BulkApproval",
     "ApprovalHistory",
+    "ApprovalAttempt",
     # Duplication
     "DuplicateMenuRequest",
     "BulkMenuCreate",

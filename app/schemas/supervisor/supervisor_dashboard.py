@@ -8,10 +8,9 @@ task management, and actionable insights.
 
 from __future__ import annotations
 
-from datetime import datetime, time
-from datetime import date as Date
+from datetime import datetime, time, date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field, computed_field
 
@@ -28,6 +27,9 @@ __all__ = [
     "DashboardAlert",
     "QuickActions",
     "PerformanceIndicators",
+    "ScheduledMaintenanceItem",
+    "ScheduledMeeting",
+    "QuickAction",
 ]
 
 
@@ -114,7 +116,7 @@ class DashboardMetrics(BaseSchema):
     unread_admin_messages: int = Field(..., ge=0, description="Unread messages from admin")
     pending_announcements: int = Field(..., ge=0, description="Announcements pending approval")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_health_score(self) -> Decimal:
         """Calculate overall hostel health score (0-100)."""
@@ -127,7 +129,7 @@ class DashboardMetrics(BaseSchema):
         total_score = occupancy_score + complaint_score + maintenance_score + attendance_score
         return Decimal(str(total_score)).quantize(Decimal("0.1"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def needs_attention(self) -> List[str]:
         """Identify areas needing immediate attention."""
@@ -201,7 +203,7 @@ class TaskSummary(BaseSchema):
         description="Total tasks requiring action",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def priority_score(self) -> int:
         """Calculate task priority score (higher = more urgent)."""
@@ -217,7 +219,7 @@ class TaskSummary(BaseSchema):
         
         return score
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def workload_level(self) -> str:
         """Assess current workload level."""
@@ -253,7 +255,7 @@ class RecentComplaintItem(BaseSchema):
         description="SLA deadline for resolution",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if complaint is past SLA deadline."""
@@ -261,7 +263,7 @@ class RecentComplaintItem(BaseSchema):
             return False
         return datetime.now() > self.sla_deadline
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def urgency_indicator(self) -> str:
         """Get urgency indicator for UI."""
@@ -299,7 +301,7 @@ class RecentMaintenanceItem(BaseSchema):
         description="Estimated cost",
     )
     created_at: datetime = Field(..., description="Request creation time")
-    scheduled_date: Optional[Date] = Field(
+    scheduled_date: Optional[date] = Field(
         default=None,
         description="Scheduled completion date",
     )
@@ -310,15 +312,15 @@ class RecentMaintenanceItem(BaseSchema):
         description="Assigned staff/vendor",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if maintenance is overdue."""
         if not self.scheduled_date:
             return False
-        return Date.today() > self.scheduled_date
+        return date.today() > self.scheduled_date
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_pending(self) -> int:
         """Calculate days since request creation."""
@@ -334,8 +336,8 @@ class PendingLeaveItem(BaseSchema):
     
     # Leave details
     leave_type: str = Field(..., description="Type of leave")
-    from_date: Date = Field(..., description="Leave start date")
-    to_date: Date = Field(..., description="Leave end date")
+    from_date: date = Field(..., description="Leave start date")
+    to_date: date = Field(..., description="Leave end date")
     total_days: int = Field(..., ge=1, description="Total leave days")
     reason: str = Field(..., description="Leave reason")
     
@@ -350,14 +352,14 @@ class PendingLeaveItem(BaseSchema):
         description="Supporting documents provided",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_urgent(self) -> bool:
         """Check if leave approval is urgent."""
         # Urgent if leave starts within 2 days
-        return (self.from_date - Date.today()).days <= 2
+        return (self.from_date - date.today()).days <= 2
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def pending_days(self) -> int:
         """Days since application was submitted."""
@@ -399,7 +401,7 @@ class ScheduledMeeting(BaseSchema):
 class TodaySchedule(BaseSchema):
     """Today's schedule and planned activities."""
     
-    date: Date = Field(..., description="Schedule date")
+    date: date = Field(..., description="Schedule date")
     
     # Routine tasks
     attendance_marking_time: time = Field(
@@ -433,7 +435,7 @@ class TodaySchedule(BaseSchema):
         description="Reports due today",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_scheduled_items(self) -> int:
         """Count total scheduled items for the day."""
@@ -444,7 +446,7 @@ class TodaySchedule(BaseSchema):
             len(self.report_deadlines)
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def schedule_density(self) -> str:
         """Assess schedule density for the day."""
@@ -490,7 +492,7 @@ class DashboardAlert(BaseSchema):
         description="Related entity ID",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_expired(self) -> bool:
         """Check if alert has expired."""
@@ -498,7 +500,7 @@ class DashboardAlert(BaseSchema):
             return False
         return datetime.now() > self.expires_at
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def age_minutes(self) -> int:
         """Calculate alert age in minutes."""
@@ -546,11 +548,11 @@ class QuickActions(BaseSchema):
         description="Available quick actions",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def actions_by_category(self) -> Dict[str, List[QuickAction]]:
         """Group actions by category."""
-        grouped = {}
+        grouped: Dict[str, List[QuickAction]] = {}
         for action in self.actions:
             category = action.category
             if category not in grouped:
@@ -628,7 +630,7 @@ class PerformanceIndicators(BaseSchema):
         description="Total number of peer supervisors",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_performance_score(self) -> Decimal:
         """Calculate overall performance score."""
@@ -649,7 +651,7 @@ class PerformanceIndicators(BaseSchema):
         
         return Decimal(str(score)).quantize(Decimal("0.1"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_grade(self) -> str:
         """Get performance grade based on overall score."""
@@ -750,13 +752,13 @@ class SupervisorDashboard(BaseSchema):
         description="Recommended refresh interval",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def critical_alerts_count(self) -> int:
         """Count critical alerts requiring immediate attention."""
         return sum(1 for alert in self.alerts if alert.alert_type == "urgent")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def workload_summary(self) -> str:
         """Get workload summary description."""
@@ -776,7 +778,7 @@ class SupervisorDashboard(BaseSchema):
         else:
             return "Light workload - good job!"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def dashboard_health_status(self) -> str:
         """Overall dashboard health status."""

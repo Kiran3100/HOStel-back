@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_profile.py ---
 """
 Student profile management schemas with enhanced validation.
 
@@ -287,24 +286,39 @@ class StudentProfileUpdate(BaseUpdateSchema):
     )
 
     # Apply validators
-    _validate_guardian_name = field_validator("guardian_name")(
-        StudentProfileCreate.validate_guardian_name.__func__
-    )
-    _normalize_phone = field_validator("guardian_phone")(
-        StudentProfileCreate.normalize_guardian_phone.__func__
-    )
-    _normalize_email = field_validator("guardian_email")(
-        StudentProfileCreate.normalize_guardian_email.__func__
-    )
-    _normalize_text = field_validator(
+    @field_validator("guardian_name")
+    @classmethod
+    def validate_guardian_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return StudentProfileCreate.validate_guardian_name(v)
+        return v
+
+    @field_validator("guardian_phone")
+    @classmethod
+    def normalize_guardian_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return StudentProfileCreate.normalize_guardian_phone(v)
+        return v
+
+    @field_validator("guardian_email")
+    @classmethod
+    def normalize_guardian_email(cls, v: Optional[str]) -> Optional[str]:
+        return StudentProfileCreate.normalize_guardian_email(v)
+
+    @field_validator(
         "institution_name",
         "course",
         "company_name",
         "designation",
-    )(StudentProfileCreate.normalize_text_fields.__func__)
-    _normalize_id = field_validator("id_proof_number")(
-        StudentProfileCreate.normalize_id_proof.__func__
     )
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        return StudentProfileCreate.normalize_text_fields(v)
+
+    @field_validator("id_proof_number")
+    @classmethod
+    def normalize_id_proof(cls, v: Optional[str]) -> Optional[str]:
+        return StudentProfileCreate.normalize_id_proof(v)
 
 
 class DocumentInfo(BaseSchema):

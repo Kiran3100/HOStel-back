@@ -6,7 +6,7 @@ Base schema classes with common fields and configurations.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,9 +40,9 @@ class BaseSchema(BaseModel):
         arbitrary_types_allowed=True,
         str_strip_whitespace=True,
         validate_assignment=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-        },
+        # Note: json_encoders is deprecated in Pydantic v2.
+        # Use field serializers or model_serializer for custom serialization.
+        # For datetime, Pydantic v2 handles ISO format by default.
     )
 
 
@@ -56,8 +56,14 @@ class TimestampMixin(BaseModel):
 class SoftDeleteMixin(BaseModel):
     """Mixin for soft delete support."""
 
-    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
-    is_deleted: bool = Field(False, description="Soft delete flag")
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        description="Deletion timestamp",
+    )
+    is_deleted: bool = Field(
+        default=False,
+        description="Soft delete flag",
+    )
 
 
 class UUIDMixin(BaseModel):

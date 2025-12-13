@@ -11,7 +11,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -169,12 +169,14 @@ class SubscriptionPlanBase(BaseSchema):
         """Normalize plan name to lowercase."""
         return v.lower().strip()
 
+    @computed_field  # type: ignore[misc]
     @property
     def yearly_savings(self) -> Decimal:
         """Calculate yearly savings compared to monthly billing."""
         monthly_yearly = self.price_monthly * 12
         return (monthly_yearly - self.price_yearly).quantize(Decimal("0.01"))
 
+    @computed_field  # type: ignore[misc]
     @property
     def yearly_discount_percent(self) -> Decimal:
         """Calculate yearly discount percentage."""

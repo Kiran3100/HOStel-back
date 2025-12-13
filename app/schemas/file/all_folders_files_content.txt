@@ -1,405 +1,2414 @@
-### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file ###
 
 
 
-# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file =====
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file\document_upload.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\document_upload.py ---
 """
-Document upload-specific schemas
-"""
-from datetime import date
-from typing import Optional, List
-from pydantic import Field, HttpUrl
-from uuid import UUID
+Document-specific upload schemas with validation and verification.
 
-from app.schemas.common.base import BaseCreateSchema, BaseSchema
+Handles document uploads including ID proofs, agreements, invoices,
+and other official documents with OCR and verification support.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import IDProofType
 from app.schemas.file.file_upload import FileUploadInitResponse
+
+__all__ = [
+    "DocumentUploadInitRequest",
+    "DocumentUploadInitResponse",
+    "DocumentValidationResult",
+    "DocumentInfo",
+    "DocumentList",
+    "DocumentVerificationRequest",
+    "DocumentVerificationResponse",
+    "DocumentOCRResult",
+    "DocumentExpiryAlert",
+]
 
 
 class DocumentUploadInitRequest(BaseCreateSchema):
     """
-    Initialize a document upload.
-
-    For ID proofs, agreements, invoices, etc.
+    Initialize document upload with classification.
+    
+    Supports various document types with appropriate validation
+    and processing rules.
     """
+
     filename: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field(
         ...,
-        pattern=r"^(application\/pdf|image\/[a-zA-Z0-9.+-]+)$",
-        description="Allowed: PDF or image formats",
+        pattern=r"^(application\/pdf|image\/(jpeg|jpg|png|tiff|bmp))$",
+        description="Allowed: PDF or image formats for documents",
     )
     size_bytes: int = Field(
         ...,
         ge=1,
         le=25 * 1024 * 1024,
-        description="Max 25MB for documents",
+        description="Document size (max 25 MB)",
     )
 
-    uploaded_by_user_id: UUID
-    student_id: Optional[UUID] = None
-    hostel_id: Optional[UUID] = None
+    uploaded_by_user_id: str = Field(...)
+    student_id: Optional[str] = Field(
+        None,
+        description="Student ID if document belongs to student",
+    )
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Hostel ID if document is hostel-related",
+    )
 
+    # Document classification
     document_type: str = Field(
         ...,
-        pattern=(
-            r"^(id_proof|address_proof|agreement|invoice|receipt|"
-            r"medical_certificate|other)$"
-        ),
-        description="Type of document",
+        pattern=r"^(id_proof|address_proof|income_proof|educational_certificate|"
+        r"medical_certificate|agreement|invoice|receipt|noc|"
+        r"parent_consent|police_verification|other)$",
+        description="Type of document being uploaded",
+    )
+    document_subtype: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Specific subtype (e.g., 'aadhaar', 'passport' for id_proof)",
     )
 
-    # Additional classification
-    description: Optional[str] = Field(None, max_length=255)
+    # Metadata
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Document description or notes",
+    )
+    reference_number: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Document reference/ID number",
+    )
+
+    # Dates
+    issue_date: Optional[date] = Field(
+        None,
+        description="Document issue date",
+    )
+    expiry_date: Optional[date] = Field(
+        None,
+        description="Document expiry date (if applicable)",
+    )
+
+    # Processing options
+    enable_ocr: bool = Field(
+        default=True,
+        description="Enable OCR text extraction",
+    )
+    auto_verify: bool = Field(
+        default=False,
+        description="Attempt automatic verification if possible",
+    )
+    redact_sensitive_info: bool = Field(
+        default=False,
+        description="Redact sensitive information (PII)",
+    )
+
+    @field_validator("filename")
+    @classmethod
+    def validate_document_filename(cls, v: str) -> str:
+        """Validate document filename."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Filename cannot be empty")
+        
+        valid_extensions = [".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".bmp"]
+        if not any(v.lower().endswith(ext) for ext in valid_extensions):
+            raise ValueError(
+                f"Invalid extension. Allowed: {', '.join(valid_extensions)}"
+            )
+        
+        return v
+
+    @field_validator("reference_number")
+    @classmethod
+    def validate_reference_number(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize reference number."""
+        if v is not None:
+            v = v.strip().upper()
+            if not v:
+                return None
+        return v
+
+    @field_validator("expiry_date")
+    @classmethod
+    def validate_expiry_date(cls, v: Optional[date]) -> Optional[date]:
+        """Validate expiry date is in the future."""
+        if v is not None and v < date.today():
+            raise ValueError(
+                "Document expiry date cannot be in the past"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_dates_consistency(self) -> "DocumentUploadInitRequest":
+        """Validate issue and expiry dates are consistent."""
+        if self.issue_date and self.expiry_date:
+            if self.expiry_date <= self.issue_date:
+                raise ValueError(
+                    "Expiry date must be after issue date"
+                )
+        
+        return self
 
 
 class DocumentUploadInitResponse(FileUploadInitResponse):
-    """Document-specific init response (same as generic for now)"""
-    # Can be extended with OCR flags, etc.
-    pass
+    """
+    Document-specific upload initialization response.
+    
+    Extends base response with document processing information.
+    """
+
+    document_type: str = Field(..., description="Document type")
+    
+    # Processing flags
+    will_perform_ocr: bool = Field(
+        default=False,
+        description="Whether OCR will be performed",
+    )
+    will_auto_verify: bool = Field(
+        default=False,
+        description="Whether automatic verification will be attempted",
+    )
+    
+    # Expected processing time
+    estimated_processing_time_seconds: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Estimated time for document processing",
+    )
 
 
 class DocumentValidationResult(BaseSchema):
     """
-    Result of backend-side document validation
-    (e.g. mime, size, simple content checks).
+    Backend document validation result.
+    
+    Validates document format, size, content, and basic checks.
     """
-    storage_key: str
-    is_valid: bool
-    reason: Optional[str] = Field(None, description="Why invalid, if false")
 
-    # Optional extracted info (non-PII summary)
-    extracted_metadata: Optional[dict] = Field(
+    storage_key: str = Field(..., description="Document storage key")
+    file_id: str = Field(..., description="File identifier")
+
+    # Validation status
+    is_valid: bool = Field(..., description="Overall validation status")
+    validation_score: int = Field(
+        ge=0,
+        le=100,
+        description="Validation confidence score (0-100)",
+    )
+
+    # Validation checks
+    checks_passed: List[str] = Field(
+        default_factory=list,
+        description="List of passed validation checks",
+    )
+    checks_failed: List[str] = Field(
+        default_factory=list,
+        description="List of failed validation checks",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Validation warnings",
+    )
+
+    # Failure details
+    reason: Optional[str] = Field(
         None,
-        description="e.g. issue_date, expiry_date (if parsed)",
+        description="Primary reason if invalid",
+    )
+    error_details: Optional[str] = Field(
+        None,
+        description="Detailed error information",
+    )
+
+    # Extracted metadata (non-PII summary)
+    extracted_metadata: Optional[Dict[str, str]] = Field(
+        None,
+        description="Extracted document metadata",
+    )
+    detected_type: Optional[str] = Field(
+        None,
+        description="Auto-detected document type",
+    )
+    confidence_level: Optional[str] = Field(
+        None,
+        description="Detection confidence",
+        examples=["high", "medium", "low"],
+    )
+
+    validated_at: datetime = Field(
+        ...,
+        description="Validation timestamp",
     )
 
 
-class DocumentInfo(BaseSchema):
-    """Document info for student/admin views"""
-    id: UUID
-    storage_key: str
-    url: HttpUrl
+class DocumentInfo(BaseResponseSchema):
+    """
+    Comprehensive document information.
+    
+    Used for displaying document details to users and admins.
+    """
 
-    document_type: str
-    description: Optional[str]
+    document_id: str = Field(..., description="Document identifier")
+    file_id: str = Field(..., description="Associated file ID")
+    storage_key: str = Field(..., description="Storage key")
 
-    uploaded_by_user_id: UUID
-    uploaded_by_name: Optional[str]
+    # URLs
+    url: HttpUrl = Field(..., description="Document access URL")
+    thumbnail_url: Optional[HttpUrl] = Field(
+        None,
+        description="Thumbnail URL for preview",
+    )
 
-    uploaded_at: date
-    verified: bool
-    verified_by: Optional[UUID]
-    verified_at: Optional[date]
-    verification_notes: Optional[str]
+    # Classification
+    document_type: str = Field(..., description="Document type")
+    document_subtype: Optional[str] = Field(None, description="Document subtype")
+    description: Optional[str] = Field(None, description="Description")
+
+    # Ownership
+    uploaded_by_user_id: str = Field(..., description="Uploader user ID")
+    uploaded_by_name: Optional[str] = Field(None, description="Uploader name")
+    student_id: Optional[str] = Field(None, description="Associated student")
+    hostel_id: Optional[str] = Field(None, description="Associated hostel")
+
+    # Document details
+    reference_number: Optional[str] = Field(None, description="Reference number")
+    issue_date: Optional[date] = Field(None, description="Issue date")
+    expiry_date: Optional[date] = Field(None, description="Expiry date")
+
+    # File metadata
+    filename: str = Field(..., description="Original filename")
+    content_type: str = Field(..., description="MIME type")
+    size_bytes: int = Field(ge=0, description="File size")
+
+    # Verification status
+    verified: bool = Field(
+        default=False,
+        description="Whether document has been verified",
+    )
+    verified_by: Optional[str] = Field(
+        None,
+        description="User ID who verified",
+    )
+    verified_by_name: Optional[str] = Field(
+        None,
+        description="Verifier name",
+    )
+    verified_at: Optional[datetime] = Field(
+        None,
+        description="Verification timestamp",
+    )
+    verification_notes: Optional[str] = Field(
+        None,
+        description="Verification notes",
+    )
+
+    # Status
+    status: str = Field(
+        default="pending",
+        description="Document status",
+        examples=["pending", "verified", "rejected", "expired"],
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejection if rejected",
+    )
+
+    # OCR results
+    ocr_completed: bool = Field(
+        default=False,
+        description="Whether OCR was performed",
+    )
+    extracted_text: Optional[str] = Field(
+        None,
+        description="OCR extracted text (truncated for display)",
+    )
+
+    # Timestamps
+    uploaded_at: datetime = Field(..., description="Upload timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    
+
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        """Check if document has expired."""
+        if self.expiry_date is None:
+            return False
+        return self.expiry_date < date.today()
+
+    @computed_field
+    @property
+    def days_until_expiry(self) -> Optional[int]:
+        """Get days until expiry."""
+        if self.expiry_date is None:
+            return None
+        delta = self.expiry_date - date.today()
+        return delta.days
+
+    @computed_field
+    @property
+    def is_expiring_soon(self) -> bool:
+        """Check if document expires within 30 days."""
+        days = self.days_until_expiry
+        return days is not None and 0 <= days <= 30
 
 
 class DocumentList(BaseSchema):
-    """List of documents for a student/hostel"""
-    owner_type: str = Field(..., pattern="^(student|hostel|system)$")
-    owner_id: UUID
+    """
+    List of documents for a student/hostel/user.
+    
+    Provides organized document listing with filtering.
+    """
 
-    documents: List[DocumentInfo] = Field(default_factory=list)
-    total_documents: int
+    owner_type: str = Field(
+        ...,
+        pattern=r"^(student|hostel|user|system)$",
+        description="Owner entity type",
+    )
+    owner_id: str = Field(..., description="Owner identifier")
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file\file_response.py ---
+    documents: List[DocumentInfo] = Field(
+        default_factory=list,
+        description="List of documents",
+    )
+
+    # Summary
+    total_documents: int = Field(ge=0, description="Total document count")
+    verified_count: int = Field(ge=0, description="Verified documents")
+    pending_count: int = Field(ge=0, description="Pending verification")
+    expired_count: int = Field(ge=0, description="Expired documents")
+    expiring_soon_count: int = Field(
+        ge=0,
+        description="Documents expiring within 30 days",
+    )
+
+    # By type breakdown
+    by_type: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Document count by type",
+    )
+
+    @computed_field
+    @property
+    def verification_rate(self) -> float:
+        """Get verification rate percentage."""
+        if self.total_documents == 0:
+            return 0.0
+        return round((self.verified_count / self.total_documents) * 100, 2)
+
+
+class DocumentVerificationRequest(BaseCreateSchema):
+    """
+    Request to verify a document.
+    
+    Used by admins/supervisors to verify uploaded documents.
+    """
+
+    document_id: str = Field(..., description="Document identifier to verify")
+    
+    verified_by_user_id: str = Field(
+        ...,
+        description="User performing verification",
+    )
+
+    # Verification decision
+    verification_status: str = Field(
+        ...,
+        pattern=r"^(approved|rejected)$",
+        description="Verification decision",
+    )
+
+    # Notes
+    verification_notes: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Verification notes or comments",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason for rejection (required if rejected)",
+    )
+
+    # Extracted information (manual correction)
+    extracted_reference_number: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Manually extracted reference number",
+    )
+    extracted_issue_date: Optional[date] = Field(
+        None,
+        description="Manually extracted issue date",
+    )
+    extracted_expiry_date: Optional[date] = Field(
+        None,
+        description="Manually extracted expiry date",
+    )
+
+    @model_validator(mode="after")
+    def validate_rejection_reason(self) -> "DocumentVerificationRequest":
+        """Ensure rejection reason is provided when rejecting."""
+        if self.verification_status == "rejected" and not self.rejection_reason:
+            raise ValueError(
+                "Rejection reason is required when rejecting a document"
+            )
+        return self
+
+
+class DocumentVerificationResponse(BaseSchema):
+    """
+    Response after document verification.
+    
+    Confirms verification action and provides updated status.
+    """
+
+    document_id: str = Field(..., description="Document identifier")
+    file_id: str = Field(..., description="Associated file ID")
+
+    verification_status: str = Field(..., description="Verification status")
+    verified_by: str = Field(..., description="Verifier user ID")
+    verified_by_name: str = Field(..., description="Verifier name")
+    verified_at: datetime = Field(..., description="Verification timestamp")
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Document verified successfully", "Document rejected"],
+    )
+
+
+class DocumentOCRResult(BaseSchema):
+    """
+    OCR (Optical Character Recognition) result.
+    
+    Contains extracted text and structured data from document.
+    """
+
+    document_id: str = Field(..., description="Document identifier")
+    file_id: str = Field(..., description="File identifier")
+
+    # OCR status
+    ocr_status: str = Field(
+        ...,
+        description="OCR processing status",
+        examples=["completed", "failed", "partial"],
+    )
+    confidence_score: Optional[float] = Field(
+        None,
+        ge=0,
+        le=100,
+        description="Overall OCR confidence score (0-100)",
+    )
+
+    # Extracted content
+    full_text: str = Field(
+        default="",
+        description="Complete extracted text",
+    )
+    text_length: int = Field(
+        ge=0,
+        description="Length of extracted text",
+    )
+
+    # Structured data extraction
+    extracted_fields: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Structured fields extracted from document",
+    )
+
+    # For ID documents
+    extracted_name: Optional[str] = Field(None, description="Extracted name")
+    extracted_id_number: Optional[str] = Field(None, description="Extracted ID number")
+    extracted_dob: Optional[str] = Field(None, description="Extracted date of birth")
+    extracted_address: Optional[str] = Field(None, description="Extracted address")
+
+    # Processing metadata
+    ocr_engine: str = Field(
+        default="tesseract",
+        description="OCR engine used",
+        examples=["tesseract", "google_vision", "aws_textract"],
+    )
+    processing_time_seconds: Optional[float] = Field(
+        None,
+        ge=0,
+        description="OCR processing time",
+    )
+    processed_at: datetime = Field(..., description="OCR completion timestamp")
+
+    # Error information
+    error_message: Optional[str] = Field(
+        None,
+        description="Error message if OCR failed",
+    )
+
+
+class DocumentExpiryAlert(BaseSchema):
+    """
+    Document expiry alert/notification.
+    
+    Used to notify users about expiring or expired documents.
+    """
+
+    document_id: str = Field(..., description="Document identifier")
+    document_type: str = Field(..., description="Document type")
+    reference_number: Optional[str] = Field(None, description="Document reference")
+
+    owner_id: str = Field(..., description="Document owner ID")
+    owner_type: str = Field(..., description="Owner type (student/hostel)")
+    owner_name: str = Field(..., description="Owner name")
+
+    # Expiry information
+    expiry_date: date = Field(..., description="Document expiry date")
+    days_until_expiry: int = Field(
+        ...,
+        description="Days until expiry (negative if already expired)",
+    )
+
+    # Alert details
+    alert_type: str = Field(
+        ...,
+        description="Alert type",
+        examples=["expiring_soon", "expired", "renewal_required"],
+    )
+    severity: str = Field(
+        ...,
+        description="Alert severity",
+        examples=["info", "warning", "critical"],
+    )
+
+    # Notification
+    notification_sent: bool = Field(
+        default=False,
+        description="Whether notification was sent",
+    )
+    notification_sent_at: Optional[datetime] = Field(
+        None,
+        description="Notification timestamp",
+    )
+
+    created_at: datetime = Field(..., description="Alert creation timestamp")
+
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        """Check if document is already expired."""
+        return self.days_until_expiry < 0
+
+    @computed_field
+    @property
+    def urgency_level(self) -> str:
+        """Determine urgency level based on days until expiry."""
+        if self.days_until_expiry < 0:
+            return "critical"
+        elif self.days_until_expiry <= 7:
+            return "high"
+        elif self.days_until_expiry <= 30:
+            return "medium"
+        else:
+            return "low"
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\file_filters.py ---
 """
-File information and listing schemas
+File filtering and search schemas.
+
+Provides comprehensive filtering, searching, and sorting
+capabilities for file queries.
 """
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import List, Optional
+
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseFilterSchema
+
+__all__ = [
+    "FileFilterParams",
+    "FileSearchRequest",
+    "FileSortOptions",
+    "DocumentFilterParams",
+    "ImageFilterParams",
+]
+
+
+class FileFilterParams(BaseFilterSchema):
+    """
+    Comprehensive file filter parameters.
+    
+    Supports filtering by multiple dimensions for flexible queries.
+    """
+
+    # Text search
+    search: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=255,
+        description="Search in filename, tags, description",
+    )
+
+    # Ownership filters
+    uploaded_by_user_id: Optional[str] = Field(
+        None,
+        description="Filter by uploader",
+    )
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Filter by hostel",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Filter by student",
+    )
+
+    # File type filters
+    content_type: Optional[str] = Field(
+        None,
+        description="Filter by MIME type",
+    )
+    content_type_prefix: Optional[str] = Field(
+        None,
+        description="Filter by MIME type prefix (e.g., 'image/')",
+    )
+    category: Optional[str] = Field(
+        None,
+        description="Filter by file category",
+    )
+    categories: Optional[List[str]] = Field(
+        None,
+        max_length=20,
+        description="Filter by multiple categories",
+    )
+
+    # Tags
+    tags: Optional[List[str]] = Field(
+        None,
+        max_length=10,
+        description="Filter by tags (AND logic)",
+    )
+    any_tags: Optional[List[str]] = Field(
+        None,
+        max_length=10,
+        description="Filter by tags (OR logic)",
+    )
+
+    # Size filters
+    min_size_bytes: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Minimum file size",
+    )
+    max_size_bytes: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Maximum file size",
+    )
+
+    # Date filters
+    uploaded_after: Optional[datetime] = Field(
+        None,
+        description="Uploaded after this timestamp",
+    )
+    uploaded_before: Optional[datetime] = Field(
+        None,
+        description="Uploaded before this timestamp",
+    )
+
+    # Access filters
+    is_public: Optional[bool] = Field(
+        None,
+        description="Filter by public/private status",
+    )
+    is_deleted: Optional[bool] = Field(
+        None,
+        description="Include deleted files",
+    )
+
+    # Security filters
+    virus_scan_status: Optional[str] = Field(
+        None,
+        pattern=r"^(pending|clean|infected|error|skipped)$",
+        description="Filter by virus scan status",
+    )
+
+    @field_validator("search")
+    @classmethod
+    def validate_search(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize search query."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("max_size_bytes")
+    @classmethod
+    def validate_size_range(cls, v: Optional[int], info) -> Optional[int]:
+        """Validate size range is logical."""
+        min_size = info.data.get("min_size_bytes")
+        if v is not None and min_size is not None:
+            if v < min_size:
+                raise ValueError(
+                    "max_size_bytes must be >= min_size_bytes"
+                )
+        return v
+
+    @field_validator("uploaded_before")
+    @classmethod
+    def validate_date_range(cls, v: Optional[datetime], info) -> Optional[datetime]:
+        """Validate date range is logical."""
+        uploaded_after = info.data.get("uploaded_after")
+        if v is not None and uploaded_after is not None:
+            if v < uploaded_after:
+                raise ValueError(
+                    "uploaded_before must be >= uploaded_after"
+                )
+        return v
+
+
+class FileSearchRequest(BaseFilterSchema):
+    """
+    Full-text file search request.
+    
+    Supports advanced search with field selection and filters.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Search query string",
+    )
+
+    # Search scope
+    search_in_filename: bool = Field(
+        default=True,
+        description="Search in filenames",
+    )
+    search_in_tags: bool = Field(
+        default=True,
+        description="Search in tags",
+    )
+    search_in_metadata: bool = Field(
+        default=True,
+        description="Search in metadata",
+    )
+    search_in_ocr_text: bool = Field(
+        default=False,
+        description="Search in OCR extracted text",
+    )
+
+    # Optional filters
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Limit to specific hostel",
+    )
+    content_type_prefix: Optional[str] = Field(
+        None,
+        description="Limit to specific file type",
+    )
+
+    # Pagination
+    page: int = Field(default=1, ge=1, description="Page number")
+    page_size: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Results per page",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Normalize search query."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Search query cannot be empty")
+        return v
+
+
+class FileSortOptions(BaseFilterSchema):
+    """
+    File sorting options.
+    
+    Defines available sort fields and order.
+    """
+
+    sort_by: str = Field(
+        default="created_at",
+        pattern=r"^(created_at|updated_at|filename|size_bytes|access_count)$",
+        description="Field to sort by",
+    )
+    sort_order: str = Field(
+        default="desc",
+        pattern=r"^(asc|desc)$",
+        description="Sort order",
+    )
+
+    @field_validator("sort_by", "sort_order")
+    @classmethod
+    def normalize_sort_params(cls, v: str) -> str:
+        """Normalize sort parameters."""
+        return v.lower().strip()
+
+
+class DocumentFilterParams(BaseFilterSchema):
+    """
+    Document-specific filter parameters.
+    
+    Extends base file filters with document-specific fields.
+    """
+
+    # Document type filters
+    document_type: Optional[str] = Field(
+        None,
+        description="Filter by document type",
+    )
+    document_types: Optional[List[str]] = Field(
+        None,
+        max_length=20,
+        description="Filter by multiple document types",
+    )
+    document_subtype: Optional[str] = Field(
+        None,
+        description="Filter by document subtype",
+    )
+
+    # Verification status
+    verified: Optional[bool] = Field(
+        None,
+        description="Filter by verification status",
+    )
+    verification_status: Optional[str] = Field(
+        None,
+        pattern=r"^(pending|verified|rejected)$",
+        description="Filter by specific verification status",
+    )
+
+    # Expiry filters
+    is_expired: Optional[bool] = Field(
+        None,
+        description="Filter expired documents",
+    )
+    expiring_within_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=365,
+        description="Filter documents expiring within N days",
+    )
+    expiry_date_from: Optional[date] = Field(
+        None,
+        description="Expiry date range start",
+    )
+    expiry_date_to: Optional[date] = Field(
+        None,
+        description="Expiry date range end",
+    )
+
+    # OCR filters
+    ocr_completed: Optional[bool] = Field(
+        None,
+        description="Filter by OCR completion status",
+    )
+
+    # Student/Hostel filters
+    student_id: Optional[str] = Field(None)
+    hostel_id: Optional[str] = Field(None)
+
+
+class ImageFilterParams(BaseFilterSchema):
+    """
+    Image-specific filter parameters.
+    
+    Extends base file filters with image-specific fields.
+    """
+
+    # Image usage filters
+    usage: Optional[str] = Field(
+        None,
+        pattern=r"^(hostel_cover|hostel_gallery|room_photo|avatar|"
+        r"profile_photo|document_scan|complaint_attachment|"
+        r"announcement_image|other)$",
+        description="Filter by image usage",
+    )
+
+    # Dimension filters
+    min_width: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Minimum width in pixels",
+    )
+    max_width: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Maximum width in pixels",
+    )
+    min_height: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Minimum height in pixels",
+    )
+    max_height: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Maximum height in pixels",
+    )
+
+    # Orientation filter
+    orientation: Optional[str] = Field(
+        None,
+        pattern=r"^(landscape|portrait|square)$",
+        description="Filter by image orientation",
+    )
+
+    # Processing filters
+    has_variants: Optional[bool] = Field(
+        None,
+        description="Filter images with generated variants",
+    )
+    is_optimized: Optional[bool] = Field(
+        None,
+        description="Filter optimized images",
+    )
+
+    # Format filters
+    format: Optional[str] = Field(
+        None,
+        pattern=r"^(jpeg|png|gif|webp|svg|bmp|tiff)$",
+        description="Filter by image format",
+    )
+
+    # Hostel filters
+    hostel_id: Optional[str] = Field(None)
+
+    @field_validator("max_width")
+    @classmethod
+    def validate_width_range(cls, v: Optional[int], info) -> Optional[int]:
+        """Validate width range."""
+        min_width = info.data.get("min_width")
+        if v is not None and min_width is not None:
+            if v < min_width:
+                raise ValueError("max_width must be >= min_width")
+        return v
+
+    @field_validator("max_height")
+    @classmethod
+    def validate_height_range(cls, v: Optional[int], info) -> Optional[int]:
+        """Validate height range."""
+        min_height = info.data.get("min_height")
+        if v is not None and min_height is not None:
+            if v < min_height:
+                raise ValueError("max_height must be >= min_height")
+        return v
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\file_response.py ---
+"""
+File information and listing schemas.
+
+Provides comprehensive file metadata and listing capabilities
+with filtering and pagination support.
+"""
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List, Optional, Dict
-from pydantic import Field, HttpUrl
-from uuid import UUID
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, computed_field, field_validator
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
+__all__ = [
+    "FileMetadata",
+    "FileInfo",
+    "FileURL",
+    "FileListResponse",
+    "FileStats",
+    "FileAccessLog",
+]
+
 
 class FileMetadata(BaseSchema):
-    """Additional metadata attached to a file"""
+    """
+    Comprehensive file metadata.
+    
+    Stores technical and business metadata for files.
+    """
+
+    # Technical metadata
     content_type: str = Field(..., description="MIME type")
     size_bytes: int = Field(..., ge=0, description="File size in bytes")
+    checksum: Optional[str] = Field(
+        None,
+        description="File checksum (MD5/SHA256)",
+    )
 
-    # Optional metadata
-    original_filename: Optional[str] = Field(None, description="Original filename")
-    tags: List[str] = Field(default_factory=list)
-    category: Optional[str] = Field(None, description="Logical category")
+    # Original file information
+    original_filename: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Original uploaded filename",
+    )
+    extension: Optional[str] = Field(
+        None,
+        max_length=20,
+        description="File extension (without dot)",
+    )
+
+    # Dimensions (for images/videos)
+    width: Optional[int] = Field(None, ge=1, description="Width in pixels")
+    height: Optional[int] = Field(None, ge=1, description="Height in pixels")
+    duration_seconds: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Duration for audio/video files",
+    )
+
+    # Classification
+    category: Optional[str] = Field(None, description="File category")
+    tags: List[str] = Field(default_factory=list, description="Searchable tags")
+
+    # Custom metadata
     custom_metadata: Dict[str, str] = Field(
         default_factory=dict,
-        description="Free-form key/value metadata (e.g. 'room_id', 'hostel_id')",
+        description="Custom key-value metadata",
     )
+
+    # Processing information
+    is_processed: bool = Field(
+        default=False,
+        description="Whether post-upload processing is complete",
+    )
+    processing_error: Optional[str] = Field(
+        None,
+        description="Processing error message if failed",
+    )
+
+    @computed_field
+    @property
+    def size_mb(self) -> Decimal:
+        """Get file size in megabytes."""
+        return Decimal(str(round(self.size_bytes / (1024 * 1024), 2)))
+
+    @computed_field
+    @property
+    def is_image(self) -> bool:
+        """Check if file is an image."""
+        return self.content_type.startswith("image/")
+
+    @computed_field
+    @property
+    def is_video(self) -> bool:
+        """Check if file is a video."""
+        return self.content_type.startswith("video/")
+
+    @computed_field
+    @property
+    def is_audio(self) -> bool:
+        """Check if file is audio."""
+        return self.content_type.startswith("audio/")
+
+    @computed_field
+    @property
+    def is_document(self) -> bool:
+        """Check if file is a document."""
+        document_types = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument",
+            "application/vnd.ms-excel",
+        ]
+        return any(self.content_type.startswith(dt) for dt in document_types)
 
 
 class FileInfo(BaseResponseSchema):
-    """Full file information as stored in the system"""
-    storage_key: str = Field(..., description="Storage path/key (unique)")
+    """
+    Complete file information record.
+    
+    Represents a stored file with all associated metadata.
+    """
 
-    # Ownership / context
-    uploaded_by_user_id: UUID
-    hostel_id: Optional[UUID] = None
+    file_id: str = Field(..., description="Unique file identifier")
+    storage_key: str = Field(..., description="Storage path/key")
 
-    # Access
-    is_public: bool = Field(False, description="Publicly accessible or not")
-    public_url: Optional[HttpUrl] = Field(None, description="Public CDN URL if is_public=True")
-    signed_url: Optional[HttpUrl] = Field(
+    # Ownership
+    uploaded_by_user_id: str = Field(..., description="Uploader user ID")
+    uploaded_by_name: Optional[str] = Field(None, description="Uploader name")
+
+    hostel_id: Optional[str] = Field(None, description="Associated hostel")
+    student_id: Optional[str] = Field(None, description="Associated student")
+
+    # Access control
+    is_public: bool = Field(default=False, description="Public access flag")
+    is_deleted: bool = Field(default=False, description="Soft delete flag")
+
+    # URLs
+    url: HttpUrl = Field(..., description="Primary access URL")
+    public_url: Optional[HttpUrl] = Field(
         None,
-        description="Signed temporary URL for private access (optional)",
+        description="Public CDN URL (if is_public=True)",
+    )
+    thumbnail_url: Optional[HttpUrl] = Field(
+        None,
+        description="Thumbnail URL (for images)",
     )
 
     # Metadata
-    metadata: FileMetadata
+    metadata: FileMetadata = Field(..., description="File metadata")
 
-    # Audit
-    created_at: datetime
-    updated_at: datetime
+    # Security
+    virus_scan_status: str = Field(
+        default="pending",
+        description="Antivirus scan status",
+        examples=["pending", "clean", "infected", "error", "skipped"],
+    )
+    virus_scan_timestamp: Optional[datetime] = Field(
+        None,
+        description="Virus scan completion timestamp",
+    )
+
+    # Access tracking
+    access_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of times file was accessed",
+    )
+    last_accessed_at: Optional[datetime] = Field(
+        None,
+        description="Last access timestamp",
+    )
+
+    # Audit timestamps
+    created_at: datetime = Field(..., description="Upload timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Get file age in days."""
+        delta = datetime.utcnow() - self.created_at
+        return delta.days
+
+    @computed_field
+    @property
+    def is_recent(self) -> bool:
+        """Check if file was uploaded within last 7 days."""
+        return self.age_days <= 7
 
 
 class FileURL(BaseSchema):
-    """Simple container for a file URL"""
-    url: HttpUrl
+    """
+    File access URL with expiration information.
+    
+    Used for temporary signed URLs.
+    """
+
+    url: HttpUrl = Field(..., description="Access URL")
+    url_type: str = Field(
+        default="signed",
+        description="URL type",
+        examples=["public", "signed", "cdn"],
+    )
+
     expires_at: Optional[datetime] = Field(
         None,
-        description="If signed URL, when it will expire",
+        description="URL expiration timestamp (for signed URLs)",
     )
+    is_permanent: bool = Field(
+        default=False,
+        description="Whether URL is permanent (public URLs)",
+    )
+
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        """Check if URL has expired."""
+        if self.is_permanent or self.expires_at is None:
+            return False
+        return datetime.utcnow() >= self.expires_at
+
+    @computed_field
+    @property
+    def time_until_expiry_minutes(self) -> Optional[int]:
+        """Get minutes until URL expires."""
+        if self.is_permanent or self.expires_at is None:
+            return None
+        
+        delta = self.expires_at - datetime.utcnow()
+        return max(0, int(delta.total_seconds() / 60))
 
 
 class FileListResponse(BaseSchema):
-    """Paginated list of files"""
-    items: List[FileInfo] = Field(default_factory=list)
-    total_items: int
-    page: int
-    page_size: int
+    """
+    Paginated file listing response.
+    
+    Provides filtered and sorted file listings.
+    """
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file\file_upload.py ---
-"""
-Generic file upload schemas (pre-signed URL / direct upload)
-"""
-from datetime import datetime
-from typing import List, Optional, Dict
-from pydantic import Field
-from uuid import UUID
+    items: List[FileInfo] = Field(
+        default_factory=list,
+        description="List of files",
+    )
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+    # Pagination
+    total_items: int = Field(ge=0, description="Total matching files")
+    page: int = Field(ge=1, description="Current page number")
+    page_size: int = Field(ge=1, le=100, description="Items per page")
+    total_pages: int = Field(ge=0, description="Total pages")
+
+    # Summary statistics
+    total_size_bytes: int = Field(
+        default=0,
+        ge=0,
+        description="Total size of all files in list",
+    )
+
+    @computed_field
+    @property
+    def has_next(self) -> bool:
+        """Check if there are more pages."""
+        return self.page < self.total_pages
+
+    @computed_field
+    @property
+    def has_previous(self) -> bool:
+        """Check if there are previous pages."""
+        return self.page > 1
+
+    @computed_field
+    @property
+    def total_size_mb(self) -> Decimal:
+        """Get total size in megabytes."""
+        return Decimal(str(round(self.total_size_bytes / (1024 * 1024), 2)))
+
+
+class FileStats(BaseSchema):
+    """
+    File storage statistics.
+    
+    Provides aggregate statistics for a user, hostel, or system.
+    """
+
+    entity_id: Optional[str] = Field(
+        None,
+        description="Entity ID (user/hostel) or None for system-wide",
+    )
+    entity_type: str = Field(
+        default="system",
+        description="Entity type",
+        examples=["user", "hostel", "system"],
+    )
+
+    # Counts
+    total_files: int = Field(ge=0, description="Total file count")
+    public_files: int = Field(ge=0, description="Public file count")
+    private_files: int = Field(ge=0, description="Private file count")
+
+    # By type
+    images_count: int = Field(ge=0, description="Image file count")
+    videos_count: int = Field(ge=0, description="Video file count")
+    documents_count: int = Field(ge=0, description="Document file count")
+    other_count: int = Field(ge=0, description="Other file count")
+
+    # Storage usage
+    total_size_bytes: int = Field(ge=0, description="Total storage used (bytes)")
+    storage_quota_bytes: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Storage quota (bytes)",
+    )
+
+    # Time-based
+    files_uploaded_today: int = Field(ge=0, description="Files uploaded today")
+    files_uploaded_this_week: int = Field(ge=0, description="Files uploaded this week")
+    files_uploaded_this_month: int = Field(ge=0, description="Files uploaded this month")
+
+    @computed_field
+    @property
+    def total_size_gb(self) -> Decimal:
+        """Get total size in gigabytes."""
+        return Decimal(str(round(self.total_size_bytes / (1024 ** 3), 2)))
+
+    @computed_field
+    @property
+    def storage_used_percentage(self) -> Optional[Decimal]:
+        """Get storage usage percentage."""
+        if self.storage_quota_bytes is None or self.storage_quota_bytes == 0:
+            return None
+        
+        percentage = (self.total_size_bytes / self.storage_quota_bytes) * 100
+        return Decimal(str(round(percentage, 2)))
+
+    @computed_field
+    @property
+    def is_near_quota(self) -> bool:
+        """Check if storage is near quota (>80%)."""
+        usage = self.storage_used_percentage
+        return usage is not None and usage >= 80
+
+
+class FileAccessLog(BaseSchema):
+    """
+    File access audit log entry.
+    
+    Tracks file access for security and analytics.
+    """
+
+    log_id: str = Field(..., description="Log entry identifier")
+    file_id: str = Field(..., description="Accessed file ID")
+    storage_key: str = Field(..., description="File storage key")
+
+    # Access details
+    accessed_by_user_id: Optional[str] = Field(
+        None,
+        description="User who accessed (None for public access)",
+    )
+    accessed_by_name: Optional[str] = Field(None, description="User name")
+
+    access_type: str = Field(
+        ...,
+        description="Type of access",
+        examples=["download", "view", "preview", "api"],
+    )
+    access_method: str = Field(
+        ...,
+        description="Access method",
+        examples=["direct_url", "signed_url", "api", "cdn"],
+    )
+
+    # Request metadata
+    ip_address: Optional[str] = Field(None, description="Client IP address")
+    user_agent: Optional[str] = Field(None, description="Client user agent")
+    referrer: Optional[str] = Field(None, description="HTTP referrer")
+
+    # Geo-location
+    country: Optional[str] = Field(None, description="Country code")
+    city: Optional[str] = Field(None, description="City")
+
+    accessed_at: datetime = Field(..., description="Access timestamp")
+
+    # Response
+    success: bool = Field(..., description="Whether access was successful")
+    error_message: Optional[str] = Field(
+        None,
+        description="Error message if access failed",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\file_upload.py ---
+"""
+Generic file upload schemas with comprehensive validation.
+
+Handles file upload initialization, completion, and validation
+for various storage backends (S3, GCS, Azure Blob, etc.).
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+
+__all__ = [
+    "FileUploadInitRequest",
+    "FileUploadInitResponse",
+    "FileUploadCompleteRequest",
+    "FileUploadCompleteResponse",
+    "MultipartUploadInitRequest",
+    "MultipartUploadPart",
+    "MultipartUploadCompleteRequest",
+]
 
 
 class FileUploadInitRequest(BaseCreateSchema):
     """
     Request to initialize a file upload.
-
-    Typically used to generate a pre-signed URL or
-    register a file before multipart upload.
+    
+    Generates pre-signed URLs or prepares upload session
+    for direct-to-storage uploads.
     """
-    filename: str = Field(..., min_length=1, max_length=255)
+
+    filename: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Original filename with extension",
+    )
     content_type: str = Field(
         ...,
         max_length=255,
-        description="MIME type, e.g. 'image/jpeg', 'application/pdf'",
+        description="MIME type (e.g., 'image/jpeg', 'application/pdf')",
     )
     size_bytes: int = Field(
         ...,
         ge=1,
-        le=50 * 1024 * 1024,
-        description="Expected file size in bytes (max 50MB by default)",
+        le=100 * 1024 * 1024,  # 100 MB default max
+        description="File size in bytes (max 100MB)",
     )
 
-    # Logical location
+    # Logical organization
     folder: Optional[str] = Field(
         None,
-        max_length=255,
-        description="Logical folder/path (e.g. 'hostels/123/photos')",
+        max_length=500,
+        description="Logical folder path (e.g., 'hostels/123/documents')",
     )
 
-    # Ownership / context
-    uploaded_by_user_id: UUID = Field(..., description="User initiating upload")
-    hostel_id: Optional[UUID] = Field(
+    # Ownership context
+    uploaded_by_user_id: str = Field(
+        ...,
+        description="User ID initiating the upload",
+    )
+    hostel_id: Optional[str] = Field(
         None,
-        description="Hostel context (if file is hostel-specific)",
+        description="Associated hostel ID (if applicable)",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Associated student ID (if applicable)",
     )
 
-    # Metadata / classification
+    # Classification
     category: Optional[str] = Field(
         None,
         max_length=50,
-        description="Category, e.g. 'hostel_photo', 'document', 'avatar'",
+        description="File category for organization",
+        examples=["hostel_photo", "document", "avatar", "invoice"],
     )
     tags: List[str] = Field(
         default_factory=list,
-        description="Free-form tags for search/filtering",
+        max_length=20,
+        description="Searchable tags (max 20)",
     )
 
     # Access control
     is_public: bool = Field(
-        False,
-        description="If true, file will be publicly accessible (CDN/public URL)",
+        default=False,
+        description="Whether file should be publicly accessible",
     )
+
+    # Advanced options
+    enable_virus_scan: bool = Field(
+        default=True,
+        description="Enable antivirus scanning on upload",
+    )
+    auto_optimize: bool = Field(
+        default=False,
+        description="Auto-optimize file (compression, format conversion)",
+    )
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, v: str) -> str:
+        """
+        Validate and sanitize filename.
+        
+        Prevents path traversal and dangerous characters.
+        """
+        v = v.strip()
+        if not v:
+            raise ValueError("Filename cannot be empty")
+        
+        # Block dangerous characters
+        dangerous_chars = ["<", ">", ":", '"', "|", "?", "*", "/", "\\"]
+        if any(char in v for char in dangerous_chars):
+            raise ValueError(
+                f"Filename contains invalid characters: {dangerous_chars}"
+            )
+        
+        # Block path traversal attempts
+        if ".." in v or v.startswith("."):
+            raise ValueError("Filename cannot contain '..' or start with '.'")
+        
+        # Validate extension exists
+        if "." not in v:
+            raise ValueError("Filename must include an extension")
+        
+        return v
+
+    @field_validator("content_type")
+    @classmethod
+    def validate_content_type(cls, v: str) -> str:
+        """Validate MIME type format."""
+        v = v.lower().strip()
+        
+        # Basic MIME type validation
+        if "/" not in v:
+            raise ValueError("Invalid MIME type format (must contain '/')")
+        
+        parts = v.split("/")
+        if len(parts) != 2:
+            raise ValueError("Invalid MIME type format")
+        
+        # Validate main type
+        valid_main_types = [
+            "image", "video", "audio", "application",
+            "text", "multipart", "message",
+        ]
+        if parts[0] not in valid_main_types:
+            raise ValueError(f"Unsupported MIME type category: {parts[0]}")
+        
+        return v
+
+    @field_validator("folder")
+    @classmethod
+    def validate_folder(cls, v: Optional[str]) -> Optional[str]:
+        """Validate folder path."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            
+            # Normalize path separators
+            v = v.replace("\\", "/")
+            
+            # Remove leading/trailing slashes
+            v = v.strip("/")
+            
+            # Block path traversal
+            if ".." in v:
+                raise ValueError("Folder path cannot contain '..'")
+            
+            # Block absolute paths
+            if v.startswith("/"):
+                raise ValueError("Folder path cannot be absolute")
+        
+        return v
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: List[str]) -> List[str]:
+        """Validate and normalize tags."""
+        if len(v) > 20:
+            raise ValueError("Maximum 20 tags allowed")
+        
+        # Normalize and validate each tag
+        normalized_tags = []
+        for tag in v:
+            tag = tag.strip().lower()
+            if tag:
+                if len(tag) > 50:
+                    raise ValueError("Tag length cannot exceed 50 characters")
+                if " " in tag:
+                    raise ValueError("Tags cannot contain spaces")
+                normalized_tags.append(tag)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_tags = []
+        for tag in normalized_tags:
+            if tag not in seen:
+                seen.add(tag)
+                unique_tags.append(tag)
+        
+        return unique_tags
+
+    @model_validator(mode="after")
+    def validate_size_for_type(self) -> "FileUploadInitRequest":
+        """
+        Validate file size is appropriate for content type.
+        
+        Different file types have different reasonable size limits.
+        """
+        size_limits = {
+            "image/": 20 * 1024 * 1024,      # 20 MB for images
+            "video/": 100 * 1024 * 1024,     # 100 MB for videos
+            "audio/": 50 * 1024 * 1024,      # 50 MB for audio
+            "application/pdf": 25 * 1024 * 1024,  # 25 MB for PDFs
+            "text/": 10 * 1024 * 1024,       # 10 MB for text
+        }
+        
+        for prefix, limit in size_limits.items():
+            if self.content_type.startswith(prefix):
+                if self.size_bytes > limit:
+                    raise ValueError(
+                        f"File size ({self.size_bytes / (1024*1024):.2f} MB) "
+                        f"exceeds limit for {prefix} files "
+                        f"({limit / (1024*1024):.0f} MB)"
+                    )
+                break
+        
+        return self
 
 
 class FileUploadInitResponse(BaseResponseSchema):
     """
-    Response for upload initialization.
-
-    Either returns a direct upload URL (pre-signed) or
-    indicates that the client should upload via the API.
+    Response for file upload initialization.
+    
+    Provides pre-signed URL and upload instructions.
     """
-    filename: str
-    content_type: str
-    size_bytes: int
 
+    upload_id: str = Field(
+        ...,
+        description="Unique upload session identifier",
+    )
     storage_key: str = Field(
         ...,
-        description="Internal storage key/path for this file",
+        description="Storage path/key for the file",
     )
 
-    # Pre-signed URL (for direct S3/GCS upload)
-    upload_url: Optional[str] = Field(
+    # Direct upload information
+    upload_url: Optional[HttpUrl] = Field(
         None,
-        description="Pre-signed URL for direct upload to object storage",
+        description="Pre-signed URL for direct upload to storage",
     )
     upload_method: str = Field(
-        "PUT",
-        description="HTTP method to use with upload_url (PUT/POST)",
+        default="PUT",
+        pattern=r"^(PUT|POST)$",
+        description="HTTP method for upload (PUT or POST)",
     )
     upload_headers: Dict[str, str] = Field(
         default_factory=dict,
-        description="Any headers that must be included when uploading",
+        description="Required headers for upload request",
     )
 
+    # File information
+    filename: str = Field(..., description="Original filename")
+    content_type: str = Field(..., description="MIME type")
+    size_bytes: int = Field(..., description="Expected file size")
+
     # Access information
-    is_public: bool
-    public_url: Optional[str] = Field(
+    is_public: bool = Field(..., description="Public access flag")
+    public_url: Optional[HttpUrl] = Field(
         None,
-        description="Public URL if file is/will be public",
+        description="Public URL (if is_public=True)",
+    )
+
+    # Upload constraints
+    expires_at: datetime = Field(
+        ...,
+        description="Upload URL expiration timestamp",
+    )
+    max_file_size: int = Field(
+        ...,
+        description="Maximum allowed file size for this upload",
+    )
+
+    # Processing hints
+    will_scan_virus: bool = Field(
+        default=True,
+        description="Whether file will be scanned for viruses",
+    )
+    will_optimize: bool = Field(
+        default=False,
+        description="Whether file will be auto-optimized",
     )
 
 
 class FileUploadCompleteRequest(BaseCreateSchema):
     """
-    Notify backend that the client finished uploading the file
-    to the storage using the pre-signed URL.
+    Notify backend that upload is complete.
+    
+    Triggers post-upload processing and validation.
     """
-    storage_key: str = Field(..., description="Storage key returned in init response")
-    uploaded_by_user_id: UUID = Field(..., description="User who uploaded")
-    checksum: Optional[str] = Field(
-        None,
-        description="Optional checksum/ETag from storage to verify integrity",
+
+    upload_id: str = Field(
+        ...,
+        description="Upload session ID from init response",
+    )
+    storage_key: str = Field(
+        ...,
+        description="Storage key from init response",
     )
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file\image_upload.py ---
-"""
-Image upload-specific schemas
-"""
-from typing import List, Optional
-from pydantic import Field, HttpUrl
-from uuid import UUID
+    uploaded_by_user_id: str = Field(
+        ...,
+        description="User who completed the upload",
+    )
 
-from app.schemas.common.base import BaseCreateSchema, BaseSchema
+    # Verification
+    checksum: Optional[str] = Field(
+        None,
+        max_length=128,
+        description="File checksum (MD5/SHA256) for integrity verification",
+    )
+    etag: Optional[str] = Field(
+        None,
+        max_length=128,
+        description="ETag from storage provider",
+    )
+
+    # Optional metadata
+    actual_size_bytes: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Actual uploaded file size (for verification)",
+    )
+
+    @field_validator("checksum", "etag")
+    @classmethod
+    def validate_hash(cls, v: Optional[str]) -> Optional[str]:
+        """Validate checksum/etag format."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            # Basic hex validation
+            if not all(c in "0123456789abcdefABCDEF" for c in v):
+                raise ValueError("Checksum must be hexadecimal")
+        return v
+
+
+class FileUploadCompleteResponse(BaseSchema):
+    """
+    Response after successful upload completion.
+    
+    Provides file access information and processing status.
+    """
+
+    file_id: str = Field(..., description="Unique file identifier")
+    storage_key: str = Field(..., description="Storage path/key")
+
+    # Access URLs
+    url: HttpUrl = Field(..., description="File access URL")
+    public_url: Optional[HttpUrl] = Field(
+        None,
+        description="Public CDN URL (if applicable)",
+    )
+
+    # File metadata
+    filename: str = Field(..., description="Original filename")
+    content_type: str = Field(..., description="MIME type")
+    size_bytes: int = Field(..., description="Actual file size")
+
+    # Processing status
+    processing_status: str = Field(
+        default="completed",
+        description="Post-upload processing status",
+        examples=["completed", "processing", "scanning", "optimizing"],
+    )
+    virus_scan_status: str = Field(
+        default="pending",
+        description="Virus scan status",
+        examples=["pending", "clean", "infected", "error"],
+    )
+
+    uploaded_at: datetime = Field(..., description="Upload completion timestamp")
+
+    message: str = Field(
+        default="File uploaded successfully",
+        description="Success message",
+    )
+
+
+class MultipartUploadInitRequest(BaseCreateSchema):
+    """
+    Initialize multipart upload for large files.
+    
+    Enables chunked uploads for files over a certain size threshold.
+    """
+
+    filename: str = Field(..., min_length=1, max_length=255)
+    content_type: str = Field(..., max_length=255)
+    total_size_bytes: int = Field(
+        ...,
+        ge=5 * 1024 * 1024,  # Minimum 5 MB for multipart
+        le=5 * 1024 * 1024 * 1024,  # Maximum 5 GB
+        description="Total file size (5 MB - 5 GB)",
+    )
+
+    # Chunk configuration
+    part_size_bytes: int = Field(
+        default=5 * 1024 * 1024,
+        ge=5 * 1024 * 1024,
+        le=100 * 1024 * 1024,
+        description="Size of each part (5 MB - 100 MB)",
+    )
+
+    uploaded_by_user_id: str = Field(...)
+    hostel_id: Optional[str] = Field(None)
+
+    category: Optional[str] = Field(None, max_length=50)
+    is_public: bool = Field(default=False)
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, v: str) -> str:
+        """Validate filename (same as regular upload)."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Filename cannot be empty")
+        
+        dangerous_chars = ["<", ">", ":", '"', "|", "?", "*", "/", "\\"]
+        if any(char in v for char in dangerous_chars):
+            raise ValueError(f"Filename contains invalid characters")
+        
+        if ".." in v or v.startswith("."):
+            raise ValueError("Invalid filename pattern")
+        
+        return v
+
+
+class MultipartUploadPart(BaseSchema):
+    """
+    Pre-signed URL for a single multipart upload part.
+    
+    Each part can be uploaded independently.
+    """
+
+    part_number: int = Field(
+        ...,
+        ge=1,
+        le=10000,
+        description="Part number (1-10000)",
+    )
+    upload_url: HttpUrl = Field(..., description="Pre-signed URL for this part")
+    size_bytes: int = Field(..., ge=1, description="Expected size for this part")
+
+    expires_at: datetime = Field(..., description="URL expiration timestamp")
+
+
+class MultipartUploadCompleteRequest(BaseCreateSchema):
+    """
+    Complete multipart upload after all parts uploaded.
+    
+    Combines all parts into final file.
+    """
+
+    upload_id: str = Field(..., description="Multipart upload session ID")
+    storage_key: str = Field(..., description="Storage key")
+
+    uploaded_by_user_id: str = Field(...)
+
+    # Part verification
+    parts: List[Dict[str, str]] = Field(
+        ...,
+        min_length=1,
+        description="List of uploaded parts with ETags",
+    )
+
+    @field_validator("parts")
+    @classmethod
+    def validate_parts(cls, v: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Validate parts list contains required fields."""
+        for i, part in enumerate(v, 1):
+            if "part_number" not in part or "etag" not in part:
+                raise ValueError(
+                    f"Part {i} missing required fields (part_number, etag)"
+                )
+            
+            try:
+                part_num = int(part["part_number"])
+                if part_num < 1:
+                    raise ValueError(f"Invalid part_number: {part_num}")
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid part_number in part {i}")
+        
+        return v
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\image_upload.py ---
+"""
+Image-specific upload schemas with advanced processing.
+
+Handles image uploads with variant generation, optimization,
+and format conversion capabilities.
+"""
+
+from __future__ import annotations
+
+from typing import List, Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.file.file_upload import FileUploadInitResponse
+
+__all__ = [
+    "ImageUploadInitRequest",
+    "ImageUploadInitResponse",
+    "ImageVariant",
+    "ImageProcessingResult",
+    "ImageProcessingOptions",
+    "ImageMetadata",
+]
 
 
 class ImageUploadInitRequest(BaseCreateSchema):
     """
-    Initialize an image upload.
-
-    Used for hostel photos, room photos, avatars, etc.
+    Initialize image upload with processing options.
+    
+    Supports various image types and automatic processing.
     """
+
     filename: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field(
         ...,
-        pattern=r"^image\/[a-zA-Z0-9.+-]+$",
-        description="Image MIME type, e.g. 'image/jpeg', 'image/png'",
+        pattern=r"^image\/(jpeg|jpg|png|gif|webp|svg\+xml|bmp|tiff)$",
+        description="Image MIME type (jpeg, png, gif, webp, svg, bmp, tiff)",
     )
     size_bytes: int = Field(
         ...,
         ge=1,
         le=20 * 1024 * 1024,
-        description="Max 20MB for images",
+        description="Image size (max 20 MB)",
     )
 
-    uploaded_by_user_id: UUID
-    hostel_id: Optional[UUID] = None
+    uploaded_by_user_id: str = Field(...)
+    hostel_id: Optional[str] = Field(None)
+    student_id: Optional[str] = Field(None)
 
-    # Usage context
+    # Image context
     usage: str = Field(
         ...,
-        pattern=r"^(hostel_cover|hostel_gallery|room_photo|avatar|document_scan)$",
+        pattern=r"^(hostel_cover|hostel_gallery|room_photo|avatar|profile_photo|"
+        r"document_scan|complaint_attachment|announcement_image|other)$",
         description="Intended usage of the image",
     )
 
-    # Optional transformations
+    # Processing options
     generate_variants: bool = Field(
-        True,
-        description="If true, system may generate resized variants",
+        default=True,
+        description="Generate resized variants (thumbnail, medium, large)",
     )
+    auto_optimize: bool = Field(
+        default=True,
+        description="Optimize image (compression, format conversion)",
+    )
+    convert_to_webp: bool = Field(
+        default=False,
+        description="Convert to WebP format for better compression",
+    )
+
+    # Quality settings
+    quality: int = Field(
+        default=85,
+        ge=1,
+        le=100,
+        description="Image quality for compression (1-100)",
+    )
+
+    # Watermark
+    add_watermark: bool = Field(
+        default=False,
+        description="Add watermark to image",
+    )
+
+    @field_validator("filename")
+    @classmethod
+    def validate_image_filename(cls, v: str) -> str:
+        """Validate image filename has valid extension."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Filename cannot be empty")
+        
+        valid_extensions = [
+            ".jpg", ".jpeg", ".png", ".gif",
+            ".webp", ".svg", ".bmp", ".tiff"
+        ]
+        
+        if not any(v.lower().endswith(ext) for ext in valid_extensions):
+            raise ValueError(
+                f"Invalid image extension. Allowed: {', '.join(valid_extensions)}"
+            )
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_svg_restrictions(self) -> "ImageUploadInitRequest":
+        """Apply special restrictions for SVG files."""
+        if self.content_type == "image/svg+xml":
+            # SVG files shouldn't generate variants
+            if self.generate_variants:
+                raise ValueError(
+                    "Variant generation not supported for SVG files"
+                )
+            
+            # No optimization for SVG
+            if self.auto_optimize:
+                raise ValueError(
+                    "Auto-optimization not supported for SVG files"
+                )
+        
+        return self
 
 
 class ImageVariant(BaseSchema):
-    """Information about an image variant (thumbnail, medium, etc.)"""
-    name: str = Field(..., description="Variant name, e.g. 'thumbnail', 'medium'")
-    url: HttpUrl = Field(..., description="URL for this variant")
-    width: Optional[int] = Field(None, ge=1)
-    height: Optional[int] = Field(None, ge=1)
-    size_bytes: Optional[int] = Field(None, ge=0)
+    """
+    Generated image variant information.
+    
+    Represents a resized/optimized version of the original image.
+    """
+
+    variant_name: str = Field(
+        ...,
+        description="Variant identifier",
+        examples=["thumbnail", "small", "medium", "large", "original"],
+    )
+    url: HttpUrl = Field(..., description="Variant URL")
+
+    # Dimensions
+    width: int = Field(ge=1, description="Width in pixels")
+    height: int = Field(ge=1, description="Height in pixels")
+
+    # File information
+    size_bytes: int = Field(ge=0, description="Variant file size")
+    format: str = Field(..., description="Image format", examples=["jpeg", "png", "webp"])
+
+    # Processing
+    is_optimized: bool = Field(
+        default=False,
+        description="Whether variant was optimized",
+    )
+    quality: Optional[int] = Field(
+        None,
+        ge=1,
+        le=100,
+        description="Quality setting used",
+    )
+
+    @computed_field
+    @property
+    def aspect_ratio(self) -> str:
+        """Get aspect ratio as string."""
+        from math import gcd
+        divisor = gcd(self.width, self.height)
+        return f"{self.width // divisor}:{self.height // divisor}"
+
+    @computed_field
+    @property
+    def megapixels(self) -> float:
+        """Get image size in megapixels."""
+        return round((self.width * self.height) / 1_000_000, 2)
 
 
 class ImageUploadInitResponse(FileUploadInitResponse):
     """
-    Image-specific upload init response.
-
-    Extends generic file upload init response with image-specific hints.
+    Image-specific upload initialization response.
+    
+    Extends base upload response with image processing information.
     """
+
+    # Variant planning
     variants_planned: List[str] = Field(
-        default_factory=lambda: ["thumbnail", "medium"],
-        description="Variants the system will generate after upload (for reference)",
+        default_factory=lambda: ["thumbnail", "medium", "large"],
+        description="Variants that will be generated after upload",
+    )
+
+    # Processing flags
+    will_optimize: bool = Field(
+        default=True,
+        description="Whether image will be optimized",
+    )
+    will_convert_format: bool = Field(
+        default=False,
+        description="Whether format conversion will occur",
+    )
+    target_format: Optional[str] = Field(
+        None,
+        description="Target format if converting",
+        examples=["webp", "jpeg"],
     )
 
 
 class ImageProcessingResult(BaseSchema):
-    """Result of post-upload image processing"""
-    storage_key: str
-    original_url: HttpUrl
-    variants: List[ImageVariant] = Field(default_factory=list)
+    """
+    Result of post-upload image processing.
+    
+    Provides information about all generated variants.
+    """
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\file\__init__.py ---
+    file_id: str = Field(..., description="File identifier")
+    storage_key: str = Field(..., description="Original storage key")
+
+    # Original image
+    original_url: HttpUrl = Field(..., description="Original image URL")
+    original_width: int = Field(ge=1, description="Original width")
+    original_height: int = Field(ge=1, description="Original height")
+    original_size_bytes: int = Field(ge=0, description="Original file size")
+
+    # Generated variants
+    variants: List[ImageVariant] = Field(
+        default_factory=list,
+        description="List of generated variants",
+    )
+
+    # Processing details
+    processing_status: str = Field(
+        default="completed",
+        description="Processing status",
+        examples=["completed", "failed", "partial"],
+    )
+    processing_time_seconds: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Time taken to process",
+    )
+    processing_error: Optional[str] = Field(
+        None,
+        description="Error message if processing failed",
+    )
+
+    # Optimization results
+    was_optimized: bool = Field(
+        default=False,
+        description="Whether optimization was applied",
+    )
+    size_reduction_percentage: Optional[float] = Field(
+        None,
+        ge=0,
+        le=100,
+        description="Percentage of size reduction from optimization",
+    )
+
+    @computed_field
+    @property
+    def total_variants(self) -> int:
+        """Get total number of variants generated."""
+        return len(self.variants)
+
+    @computed_field
+    @property
+    def total_storage_bytes(self) -> int:
+        """Get total storage used by all variants."""
+        return self.original_size_bytes + sum(
+            v.size_bytes for v in self.variants
+        )
+
+
+class ImageProcessingOptions(BaseSchema):
+    """
+    Advanced image processing configuration.
+    
+    Defines processing rules and variant specifications.
+    """
+
+    # Variant sizes
+    thumbnail_max_size: int = Field(
+        default=150,
+        ge=50,
+        le=500,
+        description="Maximum dimension for thumbnail (pixels)",
+    )
+    small_max_size: int = Field(
+        default=320,
+        ge=200,
+        le=640,
+        description="Maximum dimension for small variant",
+    )
+    medium_max_size: int = Field(
+        default=640,
+        ge=400,
+        le=1024,
+        description="Maximum dimension for medium variant",
+    )
+    large_max_size: int = Field(
+        default=1280,
+        ge=800,
+        le=2048,
+        description="Maximum dimension for large variant",
+    )
+
+    # Quality settings
+    thumbnail_quality: int = Field(default=70, ge=50, le=100)
+    small_quality: int = Field(default=75, ge=50, le=100)
+    medium_quality: int = Field(default=80, ge=50, le=100)
+    large_quality: int = Field(default=85, ge=50, le=100)
+
+    # Format preferences
+    preferred_format: str = Field(
+        default="original",
+        pattern=r"^(original|jpeg|png|webp)$",
+        description="Preferred output format",
+    )
+
+    # Processing flags
+    preserve_exif: bool = Field(
+        default=False,
+        description="Preserve EXIF metadata",
+    )
+    strip_metadata: bool = Field(
+        default=True,
+        description="Strip all metadata for privacy",
+    )
+    auto_orient: bool = Field(
+        default=True,
+        description="Auto-rotate based on EXIF orientation",
+    )
+
+    # Watermark
+    watermark_enabled: bool = Field(default=False)
+    watermark_text: Optional[str] = Field(None, max_length=50)
+    watermark_position: str = Field(
+        default="bottom-right",
+        pattern=r"^(top-left|top-right|bottom-left|bottom-right|center)$",
+    )
+    watermark_opacity: int = Field(default=50, ge=0, le=100)
+
+
+class ImageMetadata(BaseSchema):
+    """
+    Extended image metadata.
+    
+    Stores comprehensive image information including EXIF data.
+    """
+
+    # Basic properties
+    width: int = Field(ge=1, description="Width in pixels")
+    height: int = Field(ge=1, description="Height in pixels")
+    format: str = Field(..., description="Image format")
+    mode: Optional[str] = Field(
+        None,
+        description="Color mode (RGB, RGBA, L, etc.)",
+    )
+
+    # Color information
+    has_alpha: bool = Field(
+        default=False,
+        description="Whether image has alpha channel",
+    )
+    color_space: Optional[str] = Field(
+        None,
+        description="Color space (sRGB, Adobe RGB, etc.)",
+    )
+
+    # EXIF data (if preserved)
+    camera_make: Optional[str] = Field(None, description="Camera manufacturer")
+    camera_model: Optional[str] = Field(None, description="Camera model")
+    date_taken: Optional[str] = Field(None, description="Date photo was taken")
+    gps_latitude: Optional[float] = Field(None, description="GPS latitude")
+    gps_longitude: Optional[float] = Field(None, description="GPS longitude")
+
+    # Computed properties
+    @computed_field
+    @property
+    def aspect_ratio(self) -> str:
+        """Get aspect ratio."""
+        from math import gcd
+        divisor = gcd(self.width, self.height)
+        return f"{self.width // divisor}:{self.height // divisor}"
+
+    @computed_field
+    @property
+    def megapixels(self) -> float:
+        """Get megapixels."""
+        return round((self.width * self.height) / 1_000_000, 2)
+
+    @computed_field
+    @property
+    def orientation(self) -> str:
+        """Get image orientation."""
+        if self.width > self.height:
+            return "landscape"
+        elif self.height > self.width:
+            return "portrait"
+        else:
+            return "square"
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\__init__.py ---
 """
-File management schemas package
+File management schemas package.
+
+Comprehensive file upload, management, and processing schemas
+for images, documents, and generic files.
+
+Example:
+    from app.schemas.file import FileUploadInitRequest, DocumentInfo
 """
 
-from app.schemas.file.file_upload import (
-    FileUploadInitRequest,
-    FileUploadInitResponse,
-    FileUploadCompleteRequest,
+from __future__ import annotations
+
+from app.schemas.file.document_upload import (
+    DocumentExpiryAlert,
+    DocumentInfo,
+    DocumentList,
+    DocumentOCRResult,
+    DocumentUploadInitRequest,
+    DocumentUploadInitResponse,
+    DocumentValidationResult,
+    DocumentVerificationRequest,
+    DocumentVerificationResponse,
+)
+from app.schemas.file.file_filters import (
+    DocumentFilterParams,
+    FileFilterParams,
+    FileSearchRequest,
+    FileSortOptions,
+    ImageFilterParams,
 )
 from app.schemas.file.file_response import (
+    FileAccessLog,
     FileInfo,
-    FileMetadata,
-    FileURL,
     FileListResponse,
+    FileMetadata,
+    FileStats,
+    FileURL,
+)
+from app.schemas.file.file_upload import (
+    FileUploadCompleteRequest,
+    FileUploadCompleteResponse,
+    FileUploadInitRequest,
+    FileUploadInitResponse,
+    MultipartUploadCompleteRequest,
+    MultipartUploadInitRequest,
+    MultipartUploadPart,
 )
 from app.schemas.file.image_upload import (
+    ImageMetadata,
+    ImageProcessingOptions,
+    ImageProcessingResult,
     ImageUploadInitRequest,
     ImageUploadInitResponse,
     ImageVariant,
 )
-from app.schemas.file.document_upload import (
-    DocumentUploadInitRequest,
-    DocumentUploadInitResponse,
-    DocumentValidationResult,
-)
 
 __all__ = [
-    # Generic file
+    # Generic file upload
     "FileUploadInitRequest",
     "FileUploadInitResponse",
     "FileUploadCompleteRequest",
+    "FileUploadCompleteResponse",
+    "MultipartUploadInitRequest",
+    "MultipartUploadPart",
+    "MultipartUploadCompleteRequest",
+    # File response/info
     "FileInfo",
     "FileMetadata",
     "FileURL",
     "FileListResponse",
-    # Images
+    "FileStats",
+    "FileAccessLog",
+    # File filters
+    "FileFilterParams",
+    "FileSearchRequest",
+    "FileSortOptions",
+    "DocumentFilterParams",
+    "ImageFilterParams",
+    # Image upload
     "ImageUploadInitRequest",
     "ImageUploadInitResponse",
     "ImageVariant",
-    # Documents
+    "ImageProcessingResult",
+    "ImageProcessingOptions",
+    "ImageMetadata",
+    # Document upload
     "DocumentUploadInitRequest",
     "DocumentUploadInitResponse",
     "DocumentValidationResult",
+    "DocumentInfo",
+    "DocumentList",
+    "DocumentVerificationRequest",
+    "DocumentVerificationResponse",
+    "DocumentOCRResult",
+    "DocumentExpiryAlert",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\file\__pycache__ =====

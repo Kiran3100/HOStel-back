@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_filters.py ---
 """
 Student filter and search schemas with advanced filtering options.
 

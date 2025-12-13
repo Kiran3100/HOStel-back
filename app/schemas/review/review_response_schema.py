@@ -62,7 +62,7 @@ class HostelResponseCreate(BaseCreateSchema):
     
     # Optional template reference
     template_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Response template used (if any)",
     )
     
@@ -115,7 +115,7 @@ class HostelResponseUpdate(BaseUpdateSchema):
     )
     
     edit_reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Reason for editing the response",
     )
@@ -157,7 +157,7 @@ class OwnerResponse(BaseResponseSchema):
         examples=["hostel_admin", "owner", "manager"],
     )
     responded_by_image: Optional[str] = Field(
-        None,
+        default=None,
         description="Responder profile image URL",
     )
     
@@ -165,10 +165,10 @@ class OwnerResponse(BaseResponseSchema):
     
     # Edit tracking
     is_edited: bool = Field(default=False, description="Whether edited")
-    edited_at: Optional[datetime] = Field(None, description="Last edit time")
+    edited_at: Optional[datetime] = Field(default=None, description="Last edit time")
     edit_count: int = Field(default=0, ge=0, description="Number of edits")
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def response_age_days(self) -> int:
         """Days since response was posted."""
@@ -254,7 +254,7 @@ class ResponseStats(BaseSchema):
         description="Average time to respond in hours",
     )
     median_response_time_hours: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         description="Median time to respond",
     )
@@ -305,12 +305,12 @@ class ResponseStats(BaseSchema):
         description="Reviews awaiting response",
     )
     oldest_unanswered_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Age of oldest unanswered review in days",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def negative_review_response_rate(self) -> Decimal:
         """Response rate for negative reviews (1-2 stars)."""
@@ -320,7 +320,7 @@ class ResponseStats(BaseSchema):
         rate_2 = float(self.response_rate_2_star)
         return Decimal(str(round((rate_1 + rate_2) / 2, 2)))
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def response_health(self) -> str:
         """

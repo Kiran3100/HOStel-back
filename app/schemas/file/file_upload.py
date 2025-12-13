@@ -7,8 +7,8 @@ for various storage backends (S3, GCS, Azure Blob, etc.).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
@@ -53,7 +53,7 @@ class FileUploadInitRequest(BaseCreateSchema):
 
     # Logical organization
     folder: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Logical folder path (e.g., 'hostels/123/documents')",
     )
@@ -64,17 +64,17 @@ class FileUploadInitRequest(BaseCreateSchema):
         description="User ID initiating the upload",
     )
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Associated hostel ID (if applicable)",
     )
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Associated student ID (if applicable)",
     )
 
     # Classification
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="File category for organization",
         examples=["hostel_photo", "document", "avatar", "invoice"],
@@ -198,8 +198,8 @@ class FileUploadInitRequest(BaseCreateSchema):
                 normalized_tags.append(tag)
         
         # Remove duplicates while preserving order
-        seen = set()
-        unique_tags = []
+        seen: set[str] = set()
+        unique_tags: List[str] = []
         for tag in normalized_tags:
             if tag not in seen:
                 seen.add(tag)
@@ -253,7 +253,7 @@ class FileUploadInitResponse(BaseResponseSchema):
 
     # Direct upload information
     upload_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Pre-signed URL for direct upload to storage",
     )
     upload_method: str = Field(
@@ -274,7 +274,7 @@ class FileUploadInitResponse(BaseResponseSchema):
     # Access information
     is_public: bool = Field(..., description="Public access flag")
     public_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Public URL (if is_public=True)",
     )
 
@@ -322,19 +322,19 @@ class FileUploadCompleteRequest(BaseCreateSchema):
 
     # Verification
     checksum: Optional[str] = Field(
-        None,
+        default=None,
         max_length=128,
         description="File checksum (MD5/SHA256) for integrity verification",
     )
     etag: Optional[str] = Field(
-        None,
+        default=None,
         max_length=128,
         description="ETag from storage provider",
     )
 
     # Optional metadata
     actual_size_bytes: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Actual uploaded file size (for verification)",
     )
@@ -366,7 +366,7 @@ class FileUploadCompleteResponse(BaseSchema):
     # Access URLs
     url: HttpUrl = Field(..., description="File access URL")
     public_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Public CDN URL (if applicable)",
     )
 
@@ -420,9 +420,9 @@ class MultipartUploadInitRequest(BaseCreateSchema):
     )
 
     uploaded_by_user_id: str = Field(...)
-    hostel_id: Optional[str] = Field(None)
+    hostel_id: Optional[str] = Field(default=None)
 
-    category: Optional[str] = Field(None, max_length=50)
+    category: Optional[str] = Field(default=None, max_length=50)
     is_public: bool = Field(default=False)
 
     @field_validator("filename")
@@ -435,7 +435,7 @@ class MultipartUploadInitRequest(BaseCreateSchema):
         
         dangerous_chars = ["<", ">", ":", '"', "|", "?", "*", "/", "\\"]
         if any(char in v for char in dangerous_chars):
-            raise ValueError(f"Filename contains invalid characters")
+            raise ValueError("Filename contains invalid characters")
         
         if ".." in v or v.startswith("."):
             raise ValueError("Invalid filename pattern")
@@ -475,7 +475,7 @@ class MultipartUploadCompleteRequest(BaseCreateSchema):
     uploaded_by_user_id: str = Field(...)
 
     # Part verification
-    parts: List[Dict[str, str]] = Field(
+    parts: List[Dict[str, Any]] = Field(
         ...,
         min_length=1,
         description="List of uploaded parts with ETags",
@@ -483,7 +483,7 @@ class MultipartUploadCompleteRequest(BaseCreateSchema):
 
     @field_validator("parts")
     @classmethod
-    def validate_parts(cls, v: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def validate_parts(cls, v: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate parts list contains required fields."""
         for i, part in enumerate(v, 1):
             if "part_number" not in part or "etag" not in part:

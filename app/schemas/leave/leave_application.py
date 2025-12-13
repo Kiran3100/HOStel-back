@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema
@@ -30,6 +30,21 @@ class LeaveApplicationRequest(BaseCreateSchema):
     Streamlined schema for students to apply for leave with
     automatic calculation and validation.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "student_id": "123e4567-e89b-12d3-a456-426614174000",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174001",
+                "leave_type": "casual",
+                "from_date": "2024-02-01",
+                "to_date": "2024-02-05",
+                "reason": "Family function - attending cousin's wedding ceremony",
+                "contact_during_leave": "+919876543210",
+                "destination_address": "123 Main Street, Mumbai, Maharashtra"
+            }
+        }
+    )
 
     student_id: UUID = Field(
         ...,
@@ -242,6 +257,17 @@ class LeaveCancellationRequest(BaseCreateSchema):
     Allows students to cancel pending or approved leaves with
     proper justification.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "leave_id": "123e4567-e89b-12d3-a456-426614174000",
+                "student_id": "123e4567-e89b-12d3-a456-426614174001",
+                "cancellation_reason": "Family event has been postponed to next month",
+                "immediate_return": False
+            }
+        }
+    )
 
     leave_id: UUID = Field(
         ...,

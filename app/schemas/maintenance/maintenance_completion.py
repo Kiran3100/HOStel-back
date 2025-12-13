@@ -8,11 +8,11 @@ material tracking, and completion certificates.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -34,6 +34,18 @@ class MaterialItem(BaseSchema):
     Tracks individual materials with quantities and costs
     for accurate billing and inventory management.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "material_name": "Electrical wire 2.5mm",
+                "quantity": "50.5",
+                "unit": "meters",
+                "unit_cost": "25.00",
+                "total_cost": "1262.50"
+            }
+        }
+    )
 
     material_name: str = Field(
         ...,
@@ -54,7 +66,6 @@ class MaterialItem(BaseSchema):
     quantity: Decimal = Field(
         ...,
         gt=0,
-        max_digits=10,
         decimal_places=3,
         description="Quantity used",
     )
@@ -67,14 +78,12 @@ class MaterialItem(BaseSchema):
     unit_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Cost per unit",
     )
     total_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Total cost for this material",
     )
@@ -138,6 +147,19 @@ class CompletionRequest(BaseCreateSchema):
     Comprehensive completion with work notes, materials,
     labor tracking, and cost documentation.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "completed_by": "123e4567-e89b-12d3-a456-426614174222",
+                "work_notes": "Replaced ceiling fan, checked all electrical connections",
+                "labor_hours": "2.5",
+                "actual_cost": "3500.00",
+                "actual_completion_date": "2024-01-20"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -179,7 +201,6 @@ class CompletionRequest(BaseCreateSchema):
     labor_rate_per_hour: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Labor rate per hour",
     )
@@ -194,35 +215,30 @@ class CompletionRequest(BaseCreateSchema):
     materials_cost: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Total materials cost",
     )
     labor_cost: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Total labor cost",
     )
     vendor_charges: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="External vendor charges",
     )
     other_costs: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Other miscellaneous costs",
     )
     actual_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Total actual cost",
     )
@@ -454,6 +470,17 @@ class ChecklistItem(BaseSchema):
     
     Individual item in quality inspection checklist.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "item_description": "Check fan rotation speed",
+                "status": "pass",
+                "is_critical": True,
+                "notes": "Fan operating at normal speed"
+            }
+        }
+    )
 
     item_id: Optional[str] = Field(
         None,
@@ -512,6 +539,19 @@ class QualityCheck(BaseCreateSchema):
     Inspection and verification of work quality with
     detailed checklist and approval/rejection.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "quality_check_passed": True,
+                "overall_rating": 4,
+                "checked_by": "123e4567-e89b-12d3-a456-426614174333",
+                "inspection_date": "2024-01-21",
+                "rework_required": False
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -676,6 +716,20 @@ class CompletionResponse(BaseSchema):
     Provides summary of completion with cost variance
     and quality status.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "completed": True,
+                "estimated_cost": "3000.00",
+                "actual_cost": "3500.00",
+                "cost_variance": "500.00",
+                "within_budget": False
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -790,6 +844,20 @@ class CompletionCertificate(BaseSchema):
     Formal certificate documenting completed maintenance work
     with all details, parties, and warranties.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "certificate_number": "CERT-2024-001",
+                "work_title": "Ceiling fan replacement",
+                "completed_by": "John Technician",
+                "verified_by": "Supervisor Smith",
+                "approved_by": "Admin Manager"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,

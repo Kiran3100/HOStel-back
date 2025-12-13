@@ -8,9 +8,10 @@ Provides strongly-typed sorting criteria for search results.
 from __future__ import annotations
 
 from enum import Enum
-
-from pydantic import Field, field_validator
 from typing import Optional
+
+from pydantic import Field, field_validator, computed_field
+
 from app.schemas.common.base import BaseSchema
 
 __all__ = [
@@ -52,21 +53,21 @@ class SortCriteria(BaseSchema):
     """
 
     sort_by: SearchSortField = Field(
-        SearchSortField.RELEVANCE,
+        default=SearchSortField.RELEVANCE,
         description="Primary sort field",
     )
     sort_order: SearchSortOrder = Field(
-        SearchSortOrder.DESCENDING,
+        default=SearchSortOrder.DESCENDING,
         description="Sort direction (for applicable fields)",
     )
 
     # Secondary sort (for tie-breaking)
     secondary_sort_by: Optional[SearchSortField] = Field(
-        None,
+        default=None,
         description="Secondary sort field for tie-breaking",
     )
     secondary_sort_order: Optional[SearchSortOrder] = Field(
-        None,
+        default=None,
         description="Secondary sort direction",
     )
 
@@ -86,6 +87,7 @@ class SortCriteria(BaseSchema):
         # The sort_order parameter will be ignored for them
         return v
 
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def effective_sort_order(self) -> SearchSortOrder:
         """

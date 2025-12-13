@@ -31,9 +31,9 @@ __all__ = [
 class SuccessResponse(BaseSchema, Generic[T]):
     """Standard success response."""
 
-    success: bool = Field(True, description="Success flag")
+    success: bool = Field(default=True, description="Success flag")
     message: str = Field(..., description="Response message")
-    data: Optional[T] = Field(None, description="Response data")
+    data: Optional[T] = Field(default=None, description="Response data")
 
     @classmethod
     def create(
@@ -49,16 +49,16 @@ class ErrorDetail(BaseSchema):
     """Error detail information."""
 
     field: Optional[str] = Field(
-        None,
+        default=None,
         description="Field name causing error",
     )
     message: str = Field(..., description="Error message")
     code: Optional[str] = Field(
-        None,
+        default=None,
         description="Error code",
     )
     location: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Error location in nested structure",
     )
 
@@ -66,22 +66,22 @@ class ErrorDetail(BaseSchema):
 class ErrorResponse(BaseSchema):
     """Standard error response."""
 
-    success: bool = Field(False, description="Success flag")
+    success: bool = Field(default=False, description="Success flag")
     message: str = Field(..., description="Error message")
     errors: Optional[List[ErrorDetail]] = Field(
-        None,
+        default=None,
         description="Detailed errors",
     )
     error_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Application error code",
     )
     timestamp: Optional[str] = Field(
-        None,
+        default=None,
         description="Error timestamp",
     )
     path: Optional[str] = Field(
-        None,
+        default=None,
         description="Request path that caused error",
     )
 
@@ -131,11 +131,11 @@ class BulkOperationResponse(BaseSchema):
         description="Failed items",
     )
     errors: Optional[List[Dict[str, Any]]] = Field(
-        None,
+        default=None,
         description="Errors for failed items",
     )
     details: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Additional operation details",
     )
 
@@ -171,11 +171,11 @@ class NotFoundResponse(ErrorResponse):
     """Not found error response (404)."""
 
     resource_type: Optional[str] = Field(
-        None,
+        default=None,
         description="Type of resource not found",
     )
     resource_id: Optional[str] = Field(
-        None,
+        default=None,
         description="ID of resource not found",
     )
 
@@ -184,7 +184,7 @@ class UnauthorizedResponse(ErrorResponse):
     """Unauthorized error response (401)."""
 
     auth_scheme: Optional[str] = Field(
-        None,
+        default=None,
         description="Authentication scheme required",
     )
 
@@ -193,11 +193,11 @@ class ForbiddenResponse(ErrorResponse):
     """Forbidden error response (403)."""
 
     required_permission: Optional[str] = Field(
-        None,
+        default=None,
         description="Required permission",
     )
     user_permissions: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="User's current permissions",
     )
 
@@ -206,7 +206,7 @@ class ConflictResponse(ErrorResponse):
     """Conflict error response (409)."""
 
     conflicting_resource: Optional[str] = Field(
-        None,
+        default=None,
         description="Conflicting resource identifier",
     )
 
@@ -215,14 +215,14 @@ class RateLimitResponse(ErrorResponse):
     """Rate limit exceeded response (429)."""
 
     retry_after: Optional[int] = Field(
-        None,
+        default=None,
         description="Seconds to wait before retry",
     )
     limit: Optional[int] = Field(
-        None,
+        default=None,
         description="Rate limit",
     )
     window: Optional[int] = Field(
-        None,
+        default=None,
         description="Time window in seconds",
     )

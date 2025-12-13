@@ -4,6 +4,8 @@ Visitor inquiry and contact schemas package.
 
 This module exports all inquiry-related schemas for easy importing
 across the application.
+
+Migrated to Pydantic v2 with full compatibility.
 """
 
 from __future__ import annotations

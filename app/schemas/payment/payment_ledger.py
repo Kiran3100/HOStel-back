@@ -62,19 +62,16 @@ class LedgerEntry(BaseResponseSchema):
     )
     amount: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Transaction amount",
     )
 
     # Running Balance
     balance_before: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Balance before this entry",
     )
     balance_after: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Balance after this entry",
     )
 
@@ -107,13 +104,13 @@ class LedgerEntry(BaseResponseSchema):
         description="Additional notes",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_debit(self) -> bool:
         """Check if entry is a debit."""
         return self.entry_type == "debit"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_credit(self) -> bool:
         """Check if entry is a credit."""
@@ -143,7 +140,6 @@ class LedgerSummary(BaseSchema):
     # Current Balance
     current_balance: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Current outstanding balance",
     )
 
@@ -151,19 +147,16 @@ class LedgerSummary(BaseSchema):
     total_charges: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total charges (debits)",
     )
     total_payments: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total payments (credits)",
     )
     total_refunds: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total refunds received",
     )
 
@@ -171,13 +164,11 @@ class LedgerSummary(BaseSchema):
     total_due: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total amount currently due",
     )
     overdue_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount that is overdue",
     )
 
@@ -191,19 +182,19 @@ class LedgerSummary(BaseSchema):
         description="Date of last payment",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def net_amount(self) -> Decimal:
         """Calculate net amount (charges - payments)."""
         return (self.total_charges - self.total_payments).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_overdue_balance(self) -> bool:
         """Check if there's any overdue amount."""
         return self.overdue_amount > Decimal("0")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def account_status(self) -> str:
         """
@@ -260,7 +251,6 @@ class AccountStatement(BaseSchema):
     # Opening Balance
     opening_balance: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Balance at start of period",
     )
 
@@ -274,20 +264,17 @@ class AccountStatement(BaseSchema):
     total_debits: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total debits in period",
     )
     total_credits: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total credits in period",
     )
 
     # Closing Balance
     closing_balance: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Balance at end of period",
     )
 
@@ -297,13 +284,13 @@ class AccountStatement(BaseSchema):
         description="URL to download PDF statement",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def net_change(self) -> Decimal:
         """Calculate net change in balance."""
         return (self.closing_balance - self.opening_balance).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def transaction_count(self) -> int:
         """Get total number of transactions."""
@@ -332,12 +319,10 @@ class TransactionItem(BaseSchema):
 
     amount: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Transaction amount",
     )
     balance_after: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Balance after transaction",
     )
 
@@ -391,7 +376,7 @@ class TransactionHistory(BaseSchema):
         description="Items per page",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_pages(self) -> int:
         """Calculate total pages."""
@@ -425,7 +410,6 @@ class BalanceAdjustment(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Adjustment amount",
     )
 
@@ -486,7 +470,6 @@ class WriteOff(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount to write off",
     )
 

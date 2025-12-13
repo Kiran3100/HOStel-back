@@ -8,7 +8,7 @@ booking history, recent activity, recommendations, and alerts.
 
 from __future__ import annotations
 
-from datetime import  datetime
+from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -73,7 +73,7 @@ class SavedHostelItem(BaseSchema):
         description="Number of available beds",
     )
     cover_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="URL to cover image",
     )
 
@@ -83,7 +83,7 @@ class SavedHostelItem(BaseSchema):
         description="When hostel was saved to favorites",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Personal notes about this hostel",
     )
@@ -106,7 +106,7 @@ class SavedHostelItem(BaseSchema):
         description="Whether price has changed since saving",
     )
     price_change_percentage: Optional[Decimal] = Field(
-        None,
+        default=None,
         description="Percentage change in price (negative = drop, positive = increase)",
     )
 
@@ -323,7 +323,7 @@ class RecentSearch(BaseSchema):
         description="Unique search identifier",
     )
     search_query: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Search query text",
     )
@@ -379,7 +379,7 @@ class RecentlyViewedHostel(BaseSchema):
         description="Average rating",
     )
     cover_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Cover image URL",
     )
 
@@ -436,7 +436,7 @@ class RecommendedHostel(BaseSchema):
         description="Available beds",
     )
     cover_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Cover image URL",
     )
 

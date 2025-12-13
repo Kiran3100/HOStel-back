@@ -8,10 +8,11 @@ recurring patterns and multi-hostel deployment.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
+from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator,computed_field
+from pydantic import Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -88,7 +89,7 @@ class DuplicateMenuRequest(BaseCreateSchema):
         description="User creating the duplicate",
     )
 
-    @field_validator("target_date")
+    @field_validator("target_date", mode="after")
     @classmethod
     def validate_target_date(cls, v: date) -> date:
         """Validate target date is appropriate for duplication."""
@@ -211,7 +212,7 @@ class BulkMenuCreate(BaseCreateSchema):
         description="User creating menus",
     )
 
-    @field_validator("start_date")
+    @field_validator("start_date", mode="after")
     @classmethod
     def validate_start_date(cls, v: date) -> date:
         """Validate start date constraints."""
@@ -403,7 +404,7 @@ class CrossHostelDuplication(BaseCreateSchema):
         description="User performing cross-hostel duplication",
     )
 
-    @field_validator("target_hostel_ids")
+    @field_validator("target_hostel_ids", mode="after")
     @classmethod
     def validate_unique_hostels(cls, v: List[UUID]) -> List[UUID]:
         """Ensure no duplicate hostel IDs."""

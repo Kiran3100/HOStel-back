@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import EmailStr, Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import BookingSource, BookingStatus, RoomType
@@ -224,6 +224,7 @@ class BookingBase(BaseSchema):
                 return None
         return v
 
+    @computed_field
     @property
     def expected_check_out_date(self) -> date:
         """Calculate expected check-out date based on duration."""
@@ -232,11 +233,13 @@ class BookingBase(BaseSchema):
             days=self.stay_duration_months * 30
         )
 
+    @computed_field
     @property
     def days_until_check_in(self) -> int:
         """Calculate days remaining until check-in."""
         return (self.preferred_check_in_date - date.today()).days
 
+    @computed_field
     @property
     def is_long_term_booking(self) -> bool:
         """Check if this is a long-term booking (>= 6 months)."""

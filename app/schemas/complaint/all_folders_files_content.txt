@@ -1,1083 +1,2955 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint ###
 
 
 
-# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint =====
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_analytics.py ---
-=======
-=======
->>>>>>> Stashed changes
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint ###
-
-
-
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint =====
-
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_analytics.py ---
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_analytics.py ---
 """
-Complaint analytics schemas
+Complaint analytics and reporting schemas.
+
+Provides comprehensive analytics, metrics, and insights
+for complaint management performance.
 """
+
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List
-from pydantic import Field
-from uuid import UUID
+from typing import Dict, List, Optional
+
+from pydantic import Field, field_validator
 
 from app.schemas.common.base import BaseSchema
 
+__all__ = [
+    "ComplaintAnalytics",
+    "ResolutionMetrics",
+    "CategoryAnalysis",
+    "CategoryMetrics",
+    "ComplaintTrendPoint",
+    "StaffPerformance",
+    "ComplaintHeatmap",
+    "RoomComplaintCount",
+]
+
 
 class ComplaintAnalytics(BaseSchema):
-    """Comprehensive complaint analytics"""
-    hostel_id: Optional[UUID] = None
-    period_start: date
-    period_end: date
+    """
+    Comprehensive complaint analytics dashboard.
     
-    # Summary
-    total_complaints: int
-    open_complaints: int
-    resolved_complaints: int
-    closed_complaints: int
-    
-    # Resolution metrics
-    resolution_metrics: "ResolutionMetrics"
-    
-    # Category analysis
-    category_analysis: "CategoryAnalysis"
-    
-    # Priority distribution
-    priority_distribution: Dict[str, int]
-    
-    # Trend
-    complaint_trend: List["ComplaintTrendPoint"]
-    
-    # SLA performance
-    sla_compliance_rate: Decimal
-    sla_breached_count: int
-    
+    Provides holistic view of complaint management performance.
+    """
+
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Hostel ID (None for system-wide analytics)",
+    )
+    period_start: date = Field(..., description="Analytics period start")
+    period_end: date = Field(..., description="Analytics period end")
+
+    # Summary counts
+    total_complaints: int = Field(ge=0, description="Total complaints")
+    open_complaints: int = Field(ge=0, description="Open complaints")
+    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+    closed_complaints: int = Field(ge=0, description="Closed complaints")
+
+    # Detailed metrics
+    resolution_metrics: "ResolutionMetrics" = Field(
+        ...,
+        description="Resolution performance metrics",
+    )
+
+    category_analysis: "CategoryAnalysis" = Field(
+        ...,
+        description="Category-wise breakdown",
+    )
+
+    priority_distribution: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Distribution by priority level",
+    )
+
+    complaint_trend: List["ComplaintTrendPoint"] = Field(
+        default_factory=list,
+        description="Time-series trend data",
+    )
+
+    # SLA metrics
+    sla_compliance_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="SLA compliance percentage",
+    )
+    sla_breached_count: int = Field(
+        ge=0,
+        description="SLA breached complaint count",
+    )
+
     # Staff performance
-    top_resolvers: List["StaffPerformance"]
+    top_resolvers: List["StaffPerformance"] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Top 10 complaint resolvers",
+    )
+
+    @field_validator("period_end")
+    @classmethod
+    def validate_period_range(cls, v: date, info) -> date:
+        """Validate analytics period is logical."""
+        period_start = info.data.get("period_start")
+        if period_start and v < period_start:
+            raise ValueError("period_end must be >= period_start")
+        return v
 
 
 class ResolutionMetrics(BaseSchema):
-    """Resolution performance metrics"""
-    total_resolved: int
+    """
+    Detailed complaint resolution performance metrics.
     
-    # Time metrics
-    average_resolution_time_hours: Decimal
-    median_resolution_time_hours: Decimal
-    fastest_resolution_hours: Decimal
-    slowest_resolution_hours: Decimal
-    
-    # Resolution rate
-    resolution_rate: Decimal = Field(..., description="% of complaints resolved")
-    same_day_resolution_rate: Decimal
-    
-    # Escalation
-    escalation_rate: Decimal = Field(..., description="% of complaints escalated")
-    
-    # Reopened
-    reopen_rate: Decimal = Field(..., description="% of resolved complaints reopened")
+    Tracks resolution efficiency and quality indicators.
+    """
+
+    total_resolved: int = Field(ge=0, description="Total resolved count")
+
+    # Time metrics (in hours)
+    average_resolution_time_hours: Decimal = Field(
+        ge=0,
+        description="Average resolution time (hours)",
+    )
+    median_resolution_time_hours: Decimal = Field(
+        ge=0,
+        description="Median resolution time (hours)",
+    )
+    fastest_resolution_hours: Decimal = Field(
+        ge=0,
+        description="Fastest resolution time (hours)",
+    )
+    slowest_resolution_hours: Decimal = Field(
+        ge=0,
+        description="Slowest resolution time (hours)",
+    )
+
+    # Performance rates
+    resolution_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% of complaints resolved",
+    )
+    same_day_resolution_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% resolved within 24 hours",
+    )
+
+    # Escalation metrics
+    escalation_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% of complaints escalated",
+    )
+
+    # Quality metrics
+    reopen_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% of resolved complaints reopened",
+    )
 
 
 class CategoryAnalysis(BaseSchema):
-    """Analysis by complaint category"""
-    categories: List["CategoryMetrics"]
+    """
+    Category-wise complaint analysis.
     
-    most_common_category: str
-    most_problematic_category: str = Field(..., description="Category with longest resolution time")
+    Identifies problem areas and trends by category.
+    """
+
+    categories: List["CategoryMetrics"] = Field(
+        default_factory=list,
+        description="Metrics for each category",
+    )
+
+    most_common_category: str = Field(
+        ...,
+        description="Category with most complaints",
+    )
+    most_problematic_category: str = Field(
+        ...,
+        description="Category with longest avg resolution time",
+    )
 
 
 class CategoryMetrics(BaseSchema):
-    """Metrics for single category"""
-    category: str
-    total_complaints: int
-    open_complaints: int
-    resolved_complaints: int
+    """
+    Metrics for a single complaint category.
     
-    average_resolution_time_hours: Decimal
-    resolution_rate: Decimal
-    
-    percentage_of_total: Decimal
+    Provides detailed performance data per category.
+    """
+
+    category: str = Field(..., description="Category name")
+    total_complaints: int = Field(ge=0, description="Total complaints")
+    open_complaints: int = Field(ge=0, description="Open complaints")
+    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+
+    average_resolution_time_hours: Decimal = Field(
+        ge=0,
+        description="Average resolution time (hours)",
+    )
+    resolution_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="Resolution rate percentage",
+    )
+
+    percentage_of_total: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% of total complaints",
+    )
 
 
 class ComplaintTrendPoint(BaseSchema):
-    """Complaint trend data point"""
-    period: str = Field(..., description="Date, week, or month")
-    total_complaints: int
-    open_complaints: int
-    resolved_complaints: int
+    """
+    Time-series data point for complaint trends.
     
-    # By priority
-    urgent_count: int
-    high_count: int
-    medium_count: int
-    low_count: int
+    Represents complaint metrics for a specific period.
+    """
+
+    period: str = Field(
+        ...,
+        description="Time period (date, week, or month)",
+        examples=["2024-01-15", "2024-W03", "2024-01"],
+    )
+    total_complaints: int = Field(ge=0, description="Total complaints")
+    open_complaints: int = Field(ge=0, description="Open complaints")
+    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+
+    # Priority breakdown
+    urgent_count: int = Field(ge=0, description="Urgent priority count")
+    high_count: int = Field(ge=0, description="High priority count")
+    medium_count: int = Field(ge=0, description="Medium priority count")
+    low_count: int = Field(ge=0, description="Low priority count")
 
 
 class StaffPerformance(BaseSchema):
-    """Staff complaint resolution performance"""
-    staff_id: UUID
-    staff_name: str
-    staff_role: str
+    """
+    Individual staff member complaint resolution performance.
     
-    complaints_assigned: int
-    complaints_resolved: int
-    
-    average_resolution_time_hours: Decimal
-    resolution_rate: Decimal
-    
-    average_rating: Optional[Decimal] = None
+    Tracks productivity and quality metrics per staff member.
+    """
+
+    staff_id: str = Field(..., description="Staff member user ID")
+    staff_name: str = Field(..., description="Staff member name")
+    staff_role: str = Field(..., description="Staff member role")
+
+    complaints_assigned: int = Field(
+        ge=0,
+        description="Total complaints assigned",
+    )
+    complaints_resolved: int = Field(
+        ge=0,
+        description="Total complaints resolved",
+    )
+
+    average_resolution_time_hours: Decimal = Field(
+        ge=0,
+        description="Average resolution time (hours)",
+    )
+    resolution_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="Resolution rate percentage",
+    )
+
+    average_rating: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=5,
+        description="Average feedback rating (1-5)",
+    )
 
 
 class ComplaintHeatmap(BaseSchema):
-    """Complaint heatmap by time/location"""
-    hostel_id: UUID
+    """
+    Complaint heatmap for pattern analysis.
     
-    # By hour of day
-    complaints_by_hour: Dict[int, int] = Field(..., description="Hour (0-23) -> count")
-    
-    # By day of week
-    complaints_by_day: Dict[str, int] = Field(..., description="Day -> count")
-    
-    # By room/floor
-    complaints_by_room: List["RoomComplaintCount"]
-    complaints_by_floor: Dict[int, int]
+    Identifies temporal and spatial complaint patterns.
+    """
+
+    hostel_id: str = Field(..., description="Hostel identifier")
+
+    # Temporal patterns
+    complaints_by_hour: Dict[int, int] = Field(
+        default_factory=dict,
+        description="Complaint count by hour of day (0-23)",
+    )
+    complaints_by_day: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaint count by day of week",
+    )
+
+    # Spatial patterns
+    complaints_by_room: List["RoomComplaintCount"] = Field(
+        default_factory=list,
+        description="Complaint count by room",
+    )
+    complaints_by_floor: Dict[int, int] = Field(
+        default_factory=dict,
+        description="Complaint count by floor number",
+    )
+
+    @field_validator("complaints_by_hour")
+    @classmethod
+    def validate_hour_keys(cls, v: Dict[int, int]) -> Dict[int, int]:
+        """Validate hour keys are in valid range (0-23)."""
+        for hour in v.keys():
+            if not 0 <= hour <= 23:
+                raise ValueError(f"Invalid hour: {hour}. Must be 0-23")
+        return v
 
 
 class RoomComplaintCount(BaseSchema):
-    """Complaint count by room"""
-    room_id: UUID
-    room_number: str
-    complaint_count: int
+    """
+    Complaint count and analysis for specific room.
     
-    most_common_category: str
+    Helps identify problematic rooms.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_assignment.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_assignment.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_assignment.py ---
->>>>>>> Stashed changes
+    room_id: str = Field(..., description="Room identifier")
+    room_number: str = Field(..., description="Room number")
+    complaint_count: int = Field(ge=0, description="Total complaints")
+
+    most_common_category: str = Field(
+        ...,
+        description="Most frequent complaint category",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_assignment.py ---
 """
-Complaint assignment schemas
+Complaint assignment and reassignment schemas.
+
+Handles complaint assignment to staff members, reassignments,
+bulk operations, and unassignment flows.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional
-from pydantic import Field
-from uuid import UUID
+from typing import List, Optional
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "AssignmentRequest",
+    "AssignmentResponse",
+    "ReassignmentRequest",
+    "BulkAssignment",
+    "UnassignRequest",
+    "AssignmentHistory",
+]
 
 
 class AssignmentRequest(BaseCreateSchema):
-    """Assign complaint to staff member"""
-    complaint_id: UUID = Field(..., description="Complaint ID")
-    assigned_to: UUID = Field(..., description="User ID to assign to (supervisor/staff)")
+    """
+    Request to assign complaint to a staff member.
     
-    # Optional
+    Supports optional estimated resolution time and notes
+    for assignment context.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to assign",
+    )
+    assigned_to: str = Field(
+        ...,
+        description="User ID of assignee (supervisor/staff)",
+    )
+
     estimated_resolution_time: Optional[datetime] = Field(
         None,
-        description="Estimated resolution time"
+        description="Estimated resolution timestamp",
     )
-    
-    assignment_notes: Optional[str] = Field(None, max_length=500)
+
+    assignment_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Assignment context or instructions",
+    )
+
+    @field_validator("assignment_notes")
+    @classmethod
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize assignment notes."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("estimated_resolution_time")
+    @classmethod
+    def validate_estimated_time(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure estimated resolution time is in the future."""
+        if v is not None and v <= datetime.utcnow():
+            raise ValueError(
+                "Estimated resolution time must be in the future"
+            )
+        return v
 
 
 class AssignmentResponse(BaseSchema):
-    """Assignment response"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Response after successful complaint assignment.
     
-    assigned_to: UUID
-    assigned_to_name: str
-    assigned_by: UUID
-    assigned_by_name: str
-    
-    assigned_at: datetime
-    
-    message: str
+    Provides confirmation details and assignment metadata.
+    """
+
+    complaint_id: str = Field(..., description="Assigned complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    assigned_to: str = Field(..., description="Assignee user ID")
+    assigned_to_name: str = Field(..., description="Assignee name")
+    assigned_by: str = Field(..., description="User who performed assignment")
+    assigned_by_name: str = Field(..., description="Assigner name")
+
+    assigned_at: datetime = Field(..., description="Assignment timestamp")
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Complaint assigned successfully"],
+    )
 
 
 class ReassignmentRequest(BaseCreateSchema):
-    """Reassign complaint to different staff"""
-    complaint_id: UUID
-    new_assigned_to: UUID = Field(..., description="New assignee")
+    """
+    Request to reassign complaint to different staff member.
     
-    reassignment_reason: str = Field(..., min_length=10, max_length=500)
-    
-    # Notify previous assignee
-    notify_previous_assignee: bool = Field(True)
+    Requires reason for reassignment to maintain audit trail.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to reassign",
+    )
+    new_assigned_to: str = Field(
+        ...,
+        description="New assignee user ID",
+    )
+
+    reassignment_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for reassignment (mandatory)",
+    )
+
+    notify_previous_assignee: bool = Field(
+        default=True,
+        description="Send notification to previous assignee",
+    )
+
+    @field_validator("reassignment_reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate reassignment reason."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Reassignment reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 3:
+            raise ValueError(
+                "Reassignment reason must be at least 3 words"
+            )
+        
+        return v
 
 
 class BulkAssignment(BaseCreateSchema):
-    """Assign multiple complaints"""
-    complaint_ids: List[UUID] = Field(..., min_items=1)
-    assigned_to: UUID
+    """
+    Bulk assignment of multiple complaints to one assignee.
     
-    assignment_notes: Optional[str] = None
+    Useful for distributing workload efficiently.
+    """
+
+    complaint_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="List of complaint IDs to assign (max 50)",
+    )
+    assigned_to: str = Field(
+        ...,
+        description="User ID of assignee for all complaints",
+    )
+
+    assignment_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common assignment notes",
+    )
+
+    @field_validator("complaint_ids")
+    @classmethod
+    def validate_complaint_ids_unique(cls, v: List[str]) -> List[str]:
+        """Ensure complaint IDs are unique."""
+        if len(v) != len(set(v)):
+            raise ValueError("Complaint IDs must be unique")
+        
+        if len(v) > 50:
+            raise ValueError("Cannot assign more than 50 complaints at once")
+        
+        return v
+
+    @field_validator("assignment_notes")
+    @classmethod
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize assignment notes."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
 
 
 class UnassignRequest(BaseCreateSchema):
-    """Unassign complaint"""
-    complaint_id: UUID
-    reason: str = Field(..., min_length=10, max_length=500)
+    """
+    Request to unassign complaint from current assignee.
+    
+    Requires reason for accountability.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_base.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_base.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_base.py ---
->>>>>>> Stashed changes
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to unassign",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for unassignment",
+    )
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate unassignment reason."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Unassignment reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 3:
+            raise ValueError(
+                "Unassignment reason must be at least 3 words"
+            )
+        
+        return v
+
+
+class AssignmentHistory(BaseSchema):
+    """
+    Assignment history entry for audit trail.
+    
+    Tracks all assignment changes for a complaint.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    
+    assigned_to: str = Field(..., description="Assignee user ID")
+    assigned_to_name: str = Field(..., description="Assignee name")
+    
+    assigned_by: str = Field(..., description="Assigner user ID")
+    assigned_by_name: str = Field(..., description="Assigner name")
+    
+    assigned_at: datetime = Field(..., description="Assignment timestamp")
+    unassigned_at: Optional[datetime] = Field(
+        None,
+        description="Unassignment timestamp",
+    )
+    
+    reason: Optional[str] = Field(
+        None,
+        description="Assignment/reassignment reason",
+    )
+    
+    duration_hours: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Duration assigned (hours)",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_base.py ---
 """
-Complaint base schemas
+Core complaint schemas with enhanced validation and type safety.
+
+This module provides base schemas for complaint creation, updates, and status management
+with comprehensive field validation and business rule enforcement.
 """
+
+from __future__ import annotations
+
 from typing import List, Optional
-from pydantic import Field, HttpUrl
-from uuid import UUID
 
-from app.schemas.common.base import BaseCreateSchema, BaseUpdateSchema, BaseSchema
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
+
+__all__ = [
+    "ComplaintBase",
+    "ComplaintCreate",
+    "ComplaintUpdate",
+    "ComplaintStatusUpdate",
+]
 
 
 class ComplaintBase(BaseSchema):
-    """Base complaint schema"""
-    hostel_id: UUID = Field(..., description="Hostel ID")
-    raised_by: UUID = Field(..., description="User who raised complaint")
-    student_id: Optional[UUID] = Field(None, description="Student ID if raised by student")
+    """
+    Base complaint schema with core fields and validation.
     
-    # Complaint details
-    title: str = Field(..., min_length=5, max_length=255, description="Complaint title")
-    description: str = Field(..., min_length=20, max_length=2000, description="Detailed description")
-    
-    category: ComplaintCategory = Field(..., description="Complaint category")
-    sub_category: Optional[str] = Field(None, max_length=100, description="Sub-category")
-    
-    priority: Priority = Field(Priority.MEDIUM, description="Priority level")
-    
-    # Location
-    room_id: Optional[UUID] = Field(None, description="Related room")
-    location_details: Optional[str] = Field(None, max_length=500, description="Specific location details")
-    
+    This schema defines the fundamental structure of a complaint including
+    identification, categorization, priority, and location details.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel identifier where complaint originated",
+    )
+    raised_by: str = Field(
+        ...,
+        description="User ID who raised the complaint",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Student ID if complaint raised by a student",
+    )
+
+    # Complaint content
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Brief complaint title/summary",
+    )
+    description: str = Field(
+        ...,
+        min_length=20,
+        max_length=2000,
+        description="Detailed complaint description",
+    )
+
+    # Classification
+    category: ComplaintCategory = Field(
+        ...,
+        description="Primary complaint category",
+    )
+    sub_category: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Optional sub-category for finer classification",
+    )
+
+    # Priority
+    priority: Priority = Field(
+        default=Priority.MEDIUM,
+        description="Complaint priority level (defaults to medium)",
+    )
+
+    # Location details
+    room_id: Optional[str] = Field(
+        None,
+        description="Room identifier if complaint is room-specific",
+    )
+    location_details: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Detailed location information within hostel",
+    )
+
     # Attachments
-    attachments: List[HttpUrl] = Field(default_factory=list, description="Photo/document URLs")
+    attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="URLs of supporting documents/photos (max 10)",
+    )
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """
+        Validate and normalize complaint title.
+        
+        Ensures title is meaningful and properly formatted.
+        """
+        v = v.strip()
+        if not v:
+            raise ValueError("Title cannot be empty or whitespace only")
+        if v.isdigit():
+            raise ValueError("Title cannot consist of only numbers")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: str) -> str:
+        """
+        Validate and normalize complaint description.
+        
+        Ensures description provides sufficient detail.
+        """
+        v = v.strip()
+        if not v:
+            raise ValueError("Description cannot be empty or whitespace only")
+        
+        # Check for minimum word count (at least 5 words)
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Description must contain at least 5 words for clarity"
+            )
+        
+        return v
+
+    @field_validator("sub_category")
+    @classmethod
+    def validate_sub_category(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize sub-category if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("location_details")
+    @classmethod
+    def validate_location_details(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize location details if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError("Maximum 10 attachments allowed per complaint")
+        return v
+
+    @model_validator(mode="after")
+    def validate_location_consistency(self) -> "ComplaintBase":
+        """
+        Validate location-related fields are consistent.
+        
+        If room_id is provided, location_details should also be provided
+        for better context.
+        """
+        if self.room_id and not self.location_details:
+            # This is a soft validation - log warning but don't fail
+            pass
+        
+        return self
 
 
 class ComplaintCreate(ComplaintBase, BaseCreateSchema):
-    """Create complaint schema"""
-    pass
+    """
+    Schema for creating a new complaint.
+    
+    Inherits all validation from ComplaintBase and adds any
+    create-specific validation if needed.
+    """
+
+    @model_validator(mode="after")
+    def validate_create_specific_rules(self) -> "ComplaintCreate":
+        """
+        Enforce creation-specific business rules.
+        
+        Additional validation that only applies during complaint creation.
+        """
+        # Ensure high/urgent priority complaints have location details
+        if self.priority in [Priority.HIGH, Priority.URGENT, Priority.CRITICAL]:
+            if not self.location_details and not self.room_id:
+                raise ValueError(
+                    f"High priority complaints ({self.priority.value}) "
+                    "must include location details or room ID"
+                )
+        
+        return self
 
 
 class ComplaintUpdate(BaseUpdateSchema):
-    """Update complaint schema"""
-    title: Optional[str] = Field(None, min_length=5, max_length=255)
-    description: Optional[str] = Field(None, min_length=20, max_length=2000)
-    category: Optional[ComplaintCategory] = None
-    sub_category: Optional[str] = None
-    priority: Optional[Priority] = None
-    location_details: Optional[str] = None
-    attachments: Optional[List[HttpUrl]] = None
+    """
+    Schema for updating existing complaint.
     
-    # Status updates
-    status: Optional[ComplaintStatus] = None
+    All fields are optional to support partial updates.
+    Includes validation to ensure meaningful updates.
+    """
+
+    title: Optional[str] = Field(
+        None,
+        min_length=5,
+        max_length=255,
+        description="Updated complaint title",
+    )
+    description: Optional[str] = Field(
+        None,
+        min_length=20,
+        max_length=2000,
+        description="Updated complaint description",
+    )
+    category: Optional[ComplaintCategory] = Field(
+        None,
+        description="Updated complaint category",
+    )
+    sub_category: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Updated sub-category",
+    )
+    priority: Optional[Priority] = Field(
+        None,
+        description="Updated priority level",
+    )
+    location_details: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated location details",
+    )
+    attachments: Optional[List[HttpUrl]] = Field(
+        None,
+        max_length=10,
+        description="Updated attachments list",
+    )
+    status: Optional[ComplaintStatus] = Field(
+        None,
+        description="Updated complaint status",
+    )
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+        """Validate title if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Title cannot be empty or whitespace only")
+            if v.isdigit():
+                raise ValueError("Title cannot consist of only numbers")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate description if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Description cannot be empty or whitespace only")
+            
+            word_count = len(v.split())
+            if word_count < 5:
+                raise ValueError(
+                    "Description must contain at least 5 words for clarity"
+                )
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: Optional[List[HttpUrl]]) -> Optional[List[HttpUrl]]:
+        """Ensure attachment count doesn't exceed limit."""
+        if v is not None and len(v) > 10:
+            raise ValueError("Maximum 10 attachments allowed per complaint")
+        return v
+
+    @model_validator(mode="after")
+    def validate_has_updates(self) -> "ComplaintUpdate":
+        """
+        Ensure at least one field is being updated.
+        
+        Prevents empty update requests.
+        """
+        update_fields = {
+            k: v for k, v in self.model_dump(exclude_unset=True).items()
+            if v is not None
+        }
+        
+        if not update_fields:
+            raise ValueError("At least one field must be provided for update")
+        
+        return self
 
 
 class ComplaintStatusUpdate(BaseUpdateSchema):
-    """Update complaint status"""
-    status: ComplaintStatus = Field(..., description="New status")
-    notes: Optional[str] = Field(None, max_length=500, description="Status change notes")
+    """
+    Dedicated schema for complaint status updates.
+    
+    Provides focused status change functionality with
+    mandatory change notes for audit trail.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_comments.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_comments.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_comments.py ---
->>>>>>> Stashed changes
+    status: ComplaintStatus = Field(
+        ...,
+        description="New complaint status",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason or notes for status change",
+    )
+
+    @field_validator("notes")
+    @classmethod
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize status change notes."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @model_validator(mode="after")
+    def validate_status_change_requirements(self) -> "ComplaintStatusUpdate":
+        """
+        Enforce business rules for status changes.
+        
+        Certain status transitions require mandatory notes.
+        """
+        # Statuses that require explanatory notes
+        statuses_requiring_notes = {
+            ComplaintStatus.REJECTED,
+            ComplaintStatus.ON_HOLD,
+            ComplaintStatus.CLOSED,
+            ComplaintStatus.REOPENED,
+        }
+        
+        if self.status in statuses_requiring_notes and not self.notes:
+            raise ValueError(
+                f"Status change to '{self.status.value}' requires explanatory notes"
+            )
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_comments.py ---
 """
-Complaint comments/discussion schemas
+Complaint discussion and comments schemas.
+
+Handles internal notes and public comments on complaints
+with support for attachments and mentions.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Optional
-from pydantic import Field, HttpUrl
-from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from pydantic import Field, HttpUrl, field_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+
+__all__ = [
+    "CommentCreate",
+    "CommentResponse",
+    "CommentList",
+    "CommentUpdate",
+    "CommentDelete",
+    "MentionNotification",
+]
 
 
 class CommentCreate(BaseCreateSchema):
-    """Create comment on complaint"""
-    complaint_id: UUID = Field(..., description="Complaint ID")
+    """
+    Create comment on complaint.
     
-    comment_text: str = Field(..., min_length=5, max_length=1000, description="Comment text")
-    
-    # Internal or public
-    is_internal: bool = Field(False, description="Internal note vs public comment")
-    
-    # Attachments
-    attachments: List[HttpUrl] = Field(default_factory=list)
+    Supports both public comments and internal notes
+    with optional attachments.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to comment on",
+    )
+
+    comment_text: str = Field(
+        ...,
+        min_length=5,
+        max_length=1000,
+        description="Comment text content",
+    )
+
+    is_internal: bool = Field(
+        default=False,
+        description="Internal note (staff only) vs public comment",
+    )
+
+    attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Comment attachments (max 5)",
+    )
+
+    @field_validator("comment_text")
+    @classmethod
+    def validate_comment_text(cls, v: str) -> str:
+        """Validate comment text quality."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Comment text cannot be empty")
+        
+        # Ensure meaningful content
+        if len(v) < 5:
+            raise ValueError("Comment must be at least 5 characters")
+        
+        return v
+
+    @field_validator("attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 5:
+            raise ValueError("Maximum 5 attachments allowed per comment")
+        return v
 
 
 class CommentResponse(BaseResponseSchema):
-    """Comment response"""
-    complaint_id: UUID
+    """
+    Comment response with author information.
     
-    commented_by: UUID
-    commented_by_name: str
-    commented_by_role: str
-    
-    comment_text: str
-    is_internal: bool
-    
-    attachments: List[str]
-    
-    created_at: datetime
-    updated_at: datetime
+    Includes metadata about comment author and timing.
+    """
+
+    complaint_id: str = Field(..., description="Associated complaint ID")
+
+    commented_by: str = Field(..., description="Commenter user ID")
+    commented_by_name: str = Field(..., description="Commenter name")
+    commented_by_role: str = Field(..., description="Commenter role")
+
+    comment_text: str = Field(..., description="Comment content")
+    is_internal: bool = Field(..., description="Internal note flag")
+
+    attachments: List[str] = Field(
+        default_factory=list,
+        description="Attachment URLs",
+    )
+
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+
+    is_edited: bool = Field(
+        default=False,
+        description="Whether comment was edited",
+    )
 
 
 class CommentList(BaseSchema):
-    """List of comments for complaint"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    List of comments for a complaint.
     
-    total_comments: int
-    public_comments: int
-    internal_notes: int
-    
-    comments: List[CommentResponse]
+    Provides summary statistics and comment thread.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    total_comments: int = Field(ge=0, description="Total comment count")
+    public_comments: int = Field(ge=0, description="Public comment count")
+    internal_notes: int = Field(ge=0, description="Internal note count")
+
+    comments: List[CommentResponse] = Field(
+        default_factory=list,
+        description="List of comments (sorted by creation time)",
+    )
 
 
 class CommentUpdate(BaseCreateSchema):
-    """Update comment"""
-    comment_id: UUID
-    comment_text: str = Field(..., min_length=5, max_length=1000)
+    """
+    Update existing comment.
+    
+    Allows modification of comment text only.
+    """
+
+    comment_id: str = Field(
+        ...,
+        description="Comment identifier to update",
+    )
+    comment_text: str = Field(
+        ...,
+        min_length=5,
+        max_length=1000,
+        description="Updated comment text",
+    )
+
+    @field_validator("comment_text")
+    @classmethod
+    def validate_comment_text(cls, v: str) -> str:
+        """Validate comment text quality."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Comment text cannot be empty")
+        
+        if len(v) < 5:
+            raise ValueError("Comment must be at least 5 characters")
+        
+        return v
 
 
 class CommentDelete(BaseCreateSchema):
-    """Delete comment"""
-    comment_id: UUID
-    reason: Optional[str] = Field(None, max_length=200)
+    """
+    Delete comment request.
+    
+    Optional reason for deletion audit trail.
+    """
+
+    comment_id: str = Field(
+        ...,
+        description="Comment identifier to delete",
+    )
+    reason: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Deletion reason (optional)",
+    )
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize deletion reason if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
 
 
 class MentionNotification(BaseSchema):
-    """Notification when mentioned in comment"""
-    comment_id: UUID
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Notification when user is mentioned in comment.
     
-    mentioned_by: UUID
-    mentioned_by_name: str
-    
-    comment_excerpt: str
-    
-    comment_url: str
+    Supports @mention functionality in comments.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_escalation.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_escalation.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_escalation.py ---
->>>>>>> Stashed changes
+    comment_id: str = Field(..., description="Comment ID with mention")
+    complaint_id: str = Field(..., description="Associated complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    mentioned_by: str = Field(..., description="User who mentioned")
+    mentioned_by_name: str = Field(..., description="Mentioner name")
+
+    comment_excerpt: str = Field(
+        ...,
+        max_length=200,
+        description="Comment excerpt (first 200 chars)",
+    )
+
+    comment_url: str = Field(
+        ...,
+        description="Direct URL to comment",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_escalation.py ---
 """
-Complaint escalation schemas
+Complaint escalation schemas with comprehensive tracking.
+
+Handles complaint escalation workflow, auto-escalation rules,
+and escalation history management.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Optional
-from pydantic import Field
-from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+
+__all__ = [
+    "EscalationRequest",
+    "EscalationResponse",
+    "EscalationHistory",
+    "EscalationEntry",
+    "AutoEscalationRule",
+]
 
 
 class EscalationRequest(BaseCreateSchema):
-    """Escalate complaint"""
-    complaint_id: UUID = Field(..., description="Complaint ID")
-    escalate_to: UUID = Field(..., description="User to escalate to (admin/supervisor)")
+    """
+    Request to escalate complaint to higher authority.
     
+    Requires detailed reason and supports priority increase
+    and urgency flags.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to escalate",
+    )
+    escalate_to: str = Field(
+        ...,
+        description="User ID to escalate to (admin/supervisor)",
+    )
+
     escalation_reason: str = Field(
         ...,
         min_length=20,
         max_length=500,
-        description="Reason for escalation"
+        description="Detailed escalation reason",
     )
-    
-    # Priority increase
-    increase_priority: bool = Field(True, description="Increase priority level")
-    
-    # Urgency
-    is_urgent: bool = Field(False)
+
+    increase_priority: bool = Field(
+        default=True,
+        description="Automatically increase priority level",
+    )
+
+    is_urgent: bool = Field(
+        default=False,
+        description="Mark as urgent escalation",
+    )
+
+    @field_validator("escalation_reason")
+    @classmethod
+    def validate_escalation_reason(cls, v: str) -> str:
+        """Validate escalation reason quality."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Escalation reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Escalation reason must contain at least 5 words "
+                "for proper documentation"
+            )
+        
+        return v
 
 
 class EscalationResponse(BaseSchema):
-    """Escalation response"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Response after successful escalation.
     
-    escalated: bool
-    escalated_to: UUID
-    escalated_to_name: str
-    escalated_by: UUID
-    escalated_by_name: str
-    escalated_at: datetime
-    
-    new_priority: str
-    
-    message: str
+    Provides confirmation and updated complaint details.
+    """
+
+    complaint_id: str = Field(..., description="Escalated complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    escalated: bool = Field(..., description="Escalation confirmation flag")
+    escalated_to: str = Field(..., description="Escalated to user ID")
+    escalated_to_name: str = Field(..., description="Escalated to name")
+    escalated_by: str = Field(..., description="Escalator user ID")
+    escalated_by_name: str = Field(..., description="Escalator name")
+    escalated_at: datetime = Field(..., description="Escalation timestamp")
+
+    new_priority: str = Field(
+        ...,
+        description="Updated priority level after escalation",
+    )
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Complaint escalated successfully"],
+    )
 
 
 class EscalationHistory(BaseSchema):
-    """Escalation history for complaint"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Complete escalation history for a complaint.
     
-    escalations: List["EscalationEntry"]
-    total_escalations: int
+    Provides audit trail of all escalations.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    escalations: List["EscalationEntry"] = Field(
+        default_factory=list,
+        description="List of escalation entries",
+    )
+    total_escalations: int = Field(
+        ge=0,
+        description="Total escalation count",
+    )
 
 
 class EscalationEntry(BaseResponseSchema):
-    """Individual escalation entry"""
-    escalated_to: UUID
-    escalated_to_name: str
-    escalated_by: UUID
-    escalated_by_name: str
-    escalated_at: datetime
+    """
+    Individual escalation entry in history.
     
-    reason: str
-    
-    # Status at time of escalation
-    status_before: str
-    priority_before: str
-    priority_after: str
-    
-    # Response time
-    response_time_hours: Optional[int] = None
-    resolved_after_escalation: bool
+    Tracks single escalation event with complete metadata.
+    """
+
+    escalated_to: str = Field(..., description="Escalated to user ID")
+    escalated_to_name: str = Field(..., description="Escalated to name")
+    escalated_by: str = Field(..., description="Escalator user ID")
+    escalated_by_name: str = Field(..., description="Escalator name")
+    escalated_at: datetime = Field(..., description="Escalation timestamp")
+
+    reason: str = Field(..., description="Escalation reason")
+
+    # State before/after
+    status_before: str = Field(..., description="Status before escalation")
+    priority_before: str = Field(..., description="Priority before escalation")
+    priority_after: str = Field(..., description="Priority after escalation")
+
+    # Response tracking
+    response_time_hours: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Time taken to respond (hours)",
+    )
+    resolved_after_escalation: bool = Field(
+        ...,
+        description="Whether resolved after this escalation",
+    )
 
 
 class AutoEscalationRule(BaseSchema):
-    """Auto-escalation rule configuration"""
-    hostel_id: UUID
+    """
+    Auto-escalation rule configuration.
     
+    Defines automatic escalation triggers based on time
+    and SLA conditions.
+    """
+
+    hostel_id: str = Field(
+        ...,
+        description="Hostel identifier for rule scope",
+    )
+
     # Trigger conditions
-    escalate_after_hours: int = Field(24, description="Hours before auto-escalation")
-    escalate_on_sla_breach: bool = Field(True)
-    
-    # Priority-based rules
-    urgent_escalation_hours: int = Field(4)
-    high_escalation_hours: int = Field(12)
-    medium_escalation_hours: int = Field(24)
-    
+    escalate_after_hours: int = Field(
+        default=24,
+        ge=1,
+        le=168,  # Max 1 week
+        description="Hours before auto-escalation (default 24)",
+    )
+    escalate_on_sla_breach: bool = Field(
+        default=True,
+        description="Auto-escalate on SLA breach",
+    )
+
+    # Priority-specific rules
+    urgent_escalation_hours: int = Field(
+        default=4,
+        ge=1,
+        le=24,
+        description="Escalation threshold for urgent complaints (hours)",
+    )
+    high_escalation_hours: int = Field(
+        default=12,
+        ge=1,
+        le=48,
+        description="Escalation threshold for high priority (hours)",
+    )
+    medium_escalation_hours: int = Field(
+        default=24,
+        ge=1,
+        le=72,
+        description="Escalation threshold for medium priority (hours)",
+    )
+
     # Escalation chain
-    first_escalation_to: UUID = Field(..., description="First level escalation")
-    second_escalation_to: Optional[UUID] = Field(None, description="Second level if not resolved")
-    
-    is_active: bool = Field(True)
+    first_escalation_to: str = Field(
+        ...,
+        description="First level escalation target user ID",
+    )
+    second_escalation_to: Optional[str] = Field(
+        None,
+        description="Second level escalation target (if first unresolved)",
+    )
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_feedback.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_feedback.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_feedback.py ---
->>>>>>> Stashed changes
+    is_active: bool = Field(
+        default=True,
+        description="Rule active status",
+    )
+
+    @model_validator(mode="after")
+    def validate_escalation_thresholds(self) -> "AutoEscalationRule":
+        """
+        Validate escalation time thresholds are logical.
+        
+        Ensures urgent < high < medium.
+        """
+        if not (
+            self.urgent_escalation_hours
+            < self.high_escalation_hours
+            < self.medium_escalation_hours
+        ):
+            raise ValueError(
+                "Escalation thresholds must follow: "
+                "urgent < high < medium"
+            )
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_feedback.py ---
 """
-Complaint feedback schemas
+Complaint feedback and satisfaction schemas.
+
+Handles student feedback collection, ratings, and
+feedback analytics for service improvement.
 """
-from datetime import datetime
-from typing import Optional
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+
 from pydantic import Field, field_validator
-from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+
+__all__ = [
+    "FeedbackRequest",
+    "FeedbackResponse",
+    "FeedbackSummary",
+    "FeedbackAnalysis",
+    "RatingTrendPoint",
+]
 
 
 class FeedbackRequest(BaseCreateSchema):
-    """Submit feedback on resolved complaint"""
-    complaint_id: UUID = Field(..., description="Complaint ID")
+    """
+    Submit feedback on resolved complaint.
     
-    rating: int = Field(..., ge=1, le=5, description="Rating 1-5")
-    
-    feedback: Optional[str] = Field(None, max_length=1000, description="Detailed feedback")
-    
+    Collects rating, detailed feedback, and satisfaction metrics.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to provide feedback for",
+    )
+
+    rating: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Overall rating (1-5 stars)",
+    )
+
+    feedback: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Detailed feedback comments",
+    )
+
     # Satisfaction questions
-    issue_resolved_satisfactorily: bool = Field(..., description="Was issue resolved well?")
-    response_time_satisfactory: bool = Field(..., description="Was response time good?")
-    staff_helpful: bool = Field(..., description="Was staff helpful?")
-    
-    # Would recommend
-    would_recommend: Optional[bool] = Field(None, description="Would recommend complaint system")
+    issue_resolved_satisfactorily: bool = Field(
+        ...,
+        description="Was the issue resolved to your satisfaction?",
+    )
+    response_time_satisfactory: bool = Field(
+        ...,
+        description="Was the response time acceptable?",
+    )
+    staff_helpful: bool = Field(
+        ...,
+        description="Was the staff helpful and professional?",
+    )
+
+    would_recommend: Optional[bool] = Field(
+        None,
+        description="Would you recommend this complaint system?",
+    )
+
+    @field_validator("feedback")
+    @classmethod
+    def validate_feedback(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize feedback text if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("rating")
+    @classmethod
+    def validate_rating_for_poor_scores(cls, v: int, info) -> int:
+        """
+        Encourage feedback text for low ratings.
+        
+        Note: This is advisory validation, not enforced.
+        """
+        # Could log warning if rating <= 2 and no feedback
+        # but not enforcing to avoid friction
+        return v
 
 
 class FeedbackResponse(BaseResponseSchema):
-    """Feedback response"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Feedback submission response.
     
-    rating: int
-    feedback: Optional[str]
-    
-    submitted_by: UUID
-    submitted_at: datetime
-    
-    message: str
+    Confirms feedback receipt and provides summary.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    rating: int = Field(..., description="Submitted rating")
+    feedback: Optional[str] = Field(None, description="Submitted feedback")
+
+    submitted_by: str = Field(..., description="Feedback submitter user ID")
+    submitted_at: datetime = Field(..., description="Submission timestamp")
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Thank you for your feedback!"],
+    )
 
 
 class FeedbackSummary(BaseSchema):
-    """Feedback summary for hostel/supervisor"""
-    entity_id: UUID
-    entity_type: str = Field(..., pattern="^(hostel|supervisor)$")
+    """
+    Feedback summary for hostel or supervisor.
     
-    # Period
-    period_start: date
-    period_end: date
-    
-    # Overall stats
-    total_feedbacks: int
-    average_rating: Decimal
-    
+    Provides aggregate feedback metrics and insights.
+    """
+
+    entity_id: str = Field(
+        ...,
+        description="Entity identifier (hostel or supervisor)",
+    )
+    entity_type: str = Field(
+        ...,
+        pattern=r"^(hostel|supervisor)$",
+        description="Entity type: hostel or supervisor",
+    )
+
+    # Time period
+    period_start: date = Field(..., description="Summary period start date")
+    period_end: date = Field(..., description="Summary period end date")
+
+    # Overall statistics
+    total_feedbacks: int = Field(ge=0, description="Total feedback count")
+    average_rating: Decimal = Field(
+        ge=0,
+        le=5,
+        description="Average rating (0-5)",
+    )
+
     # Rating distribution
-    rating_5_count: int
-    rating_4_count: int
-    rating_3_count: int
-    rating_2_count: int
-    rating_1_count: int
-    
-    # Satisfaction metrics
-    resolution_satisfaction_rate: Decimal = Field(..., description="% satisfied with resolution")
-    response_time_satisfaction_rate: Decimal
-    staff_helpfulness_rate: Decimal
-    
+    rating_5_count: int = Field(ge=0, description="5-star rating count")
+    rating_4_count: int = Field(ge=0, description="4-star rating count")
+    rating_3_count: int = Field(ge=0, description="3-star rating count")
+    rating_2_count: int = Field(ge=0, description="2-star rating count")
+    rating_1_count: int = Field(ge=0, description="1-star rating count")
+
+    # Satisfaction metrics (percentages)
+    resolution_satisfaction_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% satisfied with issue resolution",
+    )
+    response_time_satisfaction_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% satisfied with response time",
+    )
+    staff_helpfulness_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% who found staff helpful",
+    )
+
     # Recommendation
-    recommendation_rate: Decimal = Field(..., description="% who would recommend")
-    
-    # Comments analysis
-    positive_feedback_count: int
-    negative_feedback_count: int
-    common_themes: List[str] = Field(default_factory=list)
+    recommendation_rate: Decimal = Field(
+        ge=0,
+        le=100,
+        description="% who would recommend the system",
+    )
+
+    # Sentiment analysis
+    positive_feedback_count: int = Field(
+        ge=0,
+        description="Positive feedback count",
+    )
+    negative_feedback_count: int = Field(
+        ge=0,
+        description="Negative feedback count",
+    )
+    common_themes: List[str] = Field(
+        default_factory=list,
+        description="Common themes from feedback analysis",
+    )
 
 
 class FeedbackAnalysis(BaseSchema):
-    """Detailed feedback analysis"""
-    hostel_id: UUID
-    period_start: date
-    period_end: date
+    """
+    Detailed feedback analysis with trends.
     
-    # Trend
-    rating_trend: List["RatingTrendPoint"]
-    
-    # By category
-    feedback_by_category: dict = Field(..., description="Average rating by complaint category")
-    
-    # By priority
-    feedback_by_priority: dict
-    
+    Provides deep insights into feedback patterns.
+    """
+
+    hostel_id: str = Field(..., description="Hostel identifier")
+    period_start: date = Field(..., description="Analysis period start")
+    period_end: date = Field(..., description="Analysis period end")
+
+    # Trend data
+    rating_trend: List["RatingTrendPoint"] = Field(
+        default_factory=list,
+        description="Rating trend over time",
+    )
+
+    # Category analysis
+    feedback_by_category: dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average rating by complaint category",
+    )
+
+    # Priority analysis
+    feedback_by_priority: dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average rating by priority level",
+    )
+
     # Response time impact
-    avg_rating_quick_response: Decimal
-    avg_rating_slow_response: Decimal
+    avg_rating_quick_response: Decimal = Field(
+        ge=0,
+        le=5,
+        description="Average rating for quick responses",
+    )
+    avg_rating_slow_response: Decimal = Field(
+        ge=0,
+        le=5,
+        description="Average rating for slow responses",
+    )
 
 
 class RatingTrendPoint(BaseSchema):
-    """Rating trend data point"""
-    period: str = Field(..., description="Date or week")
-    average_rating: Decimal
-    feedback_count: int
+    """
+    Data point for rating trend analysis.
+    
+    Represents rating metrics for a specific time period.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_filters.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_filters.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_filters.py ---
->>>>>>> Stashed changes
+    period: str = Field(
+        ...,
+        description="Time period (date, week, or month)",
+        examples=["2024-01", "Week 1", "2024-01-15"],
+    )
+    average_rating: Decimal = Field(
+        ge=0,
+        le=5,
+        description="Average rating for period",
+    )
+    feedback_count: int = Field(
+        ge=0,
+        description="Number of feedbacks in period",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_filters.py ---
 """
-Complaint filter and search schemas
+Complaint filtering and search schemas.
+
+Provides comprehensive filtering, searching, and sorting
+capabilities for complaint queries.
 """
+
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import List, Optional
-from pydantic import Field
-from uuid import UUID
+
+from pydantic import Field, field_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
 
+__all__ = [
+    "ComplaintFilterParams",
+    "ComplaintSearchRequest",
+    "ComplaintSortOptions",
+    "ComplaintExportRequest",
+]
+
 
 class ComplaintFilterParams(BaseFilterSchema):
-    """Complaint filter parameters"""
+    """
+    Comprehensive complaint filter parameters.
+    
+    Supports filtering by multiple dimensions for flexible queries.
+    """
+
     # Text search
-    search: Optional[str] = Field(None, description="Search in title, description, number")
-    
-    # Hostel filter
-    hostel_id: Optional[UUID] = None
-    hostel_ids: Optional[List[UUID]] = None
-    
-    # Raised by
-    raised_by: Optional[UUID] = None
-    student_id: Optional[UUID] = None
-    
-    # Assignment
-    assigned_to: Optional[UUID] = None
-    unassigned_only: Optional[bool] = None
-    
-    # Category
-    category: Optional[ComplaintCategory] = None
-    categories: Optional[List[ComplaintCategory]] = None
-    
-    # Priority
-    priority: Optional[Priority] = None
-    priorities: Optional[List[Priority]] = None
-    
-    # Status
-    status: Optional[ComplaintStatus] = None
-    statuses: Optional[List[ComplaintStatus]] = None
-    
-    # Date filters
-    opened_date_from: Optional[date] = None
-    opened_date_to: Optional[date] = None
-    resolved_date_from: Optional[date] = None
-    resolved_date_to: Optional[date] = None
-    
-    # SLA
-    sla_breached_only: Optional[bool] = None
-    
-    # Escalation
-    escalated_only: Optional[bool] = None
-    
-    # Room
-    room_id: Optional[UUID] = None
-    
-    # Age
-    age_hours_min: Optional[int] = Field(None, ge=0)
-    age_hours_max: Optional[int] = Field(None, ge=0)
+    search: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=255,
+        description="Search in title, description, complaint number",
+    )
+
+    # Hostel filters
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Filter by single hostel",
+    )
+    hostel_ids: Optional[List[str]] = Field(
+        None,
+        max_length=50,
+        description="Filter by multiple hostels (max 50)",
+    )
+
+    # User filters
+    raised_by: Optional[str] = Field(
+        None,
+        description="Filter by complainant user ID",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Filter by student ID",
+    )
+
+    # Assignment filters
+    assigned_to: Optional[str] = Field(
+        None,
+        description="Filter by assigned staff member",
+    )
+    unassigned_only: Optional[bool] = Field(
+        None,
+        description="Show only unassigned complaints",
+    )
+
+    # Category filters
+    category: Optional[ComplaintCategory] = Field(
+        None,
+        description="Filter by single category",
+    )
+    categories: Optional[List[ComplaintCategory]] = Field(
+        None,
+        max_length=20,
+        description="Filter by multiple categories",
+    )
+
+    # Priority filters
+    priority: Optional[Priority] = Field(
+        None,
+        description="Filter by single priority",
+    )
+    priorities: Optional[List[Priority]] = Field(
+        None,
+        max_length=10,
+        description="Filter by multiple priorities",
+    )
+
+    # Status filters
+    status: Optional[ComplaintStatus] = Field(
+        None,
+        description="Filter by single status",
+    )
+    statuses: Optional[List[ComplaintStatus]] = Field(
+        None,
+        max_length=10,
+        description="Filter by multiple statuses",
+    )
+
+    # Date range filters
+    opened_date_from: Optional[date] = Field(
+        None,
+        description="Opened date range start (inclusive)",
+    )
+    opened_date_to: Optional[date] = Field(
+        None,
+        description="Opened date range end (inclusive)",
+    )
+    resolved_date_from: Optional[date] = Field(
+        None,
+        description="Resolved date range start",
+    )
+    resolved_date_to: Optional[date] = Field(
+        None,
+        description="Resolved date range end",
+    )
+
+    # Special filters
+    sla_breached_only: Optional[bool] = Field(
+        None,
+        description="Show only SLA breached complaints",
+    )
+    escalated_only: Optional[bool] = Field(
+        None,
+        description="Show only escalated complaints",
+    )
+
+    # Location filters
+    room_id: Optional[str] = Field(
+        None,
+        description="Filter by specific room",
+    )
+
+    # Age filters
+    age_hours_min: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Minimum complaint age in hours",
+    )
+    age_hours_max: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Maximum complaint age in hours",
+    )
+
+    @field_validator("search")
+    @classmethod
+    def validate_search(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize search query."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("hostel_ids", "categories", "priorities", "statuses")
+    @classmethod
+    def validate_list_length(cls, v: Optional[List]) -> Optional[List]:
+        """Ensure filter lists don't exceed reasonable limits."""
+        if v is not None and len(v) > 50:
+            raise ValueError("Too many items in filter list (max 50)")
+        return v
+
+    @field_validator("opened_date_to")
+    @classmethod
+    def validate_opened_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate opened date range is logical."""
+        opened_date_from = info.data.get("opened_date_from")
+        if v is not None and opened_date_from is not None:
+            if v < opened_date_from:
+                raise ValueError(
+                    "opened_date_to must be >= opened_date_from"
+                )
+        return v
+
+    @field_validator("resolved_date_to")
+    @classmethod
+    def validate_resolved_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate resolved date range is logical."""
+        resolved_date_from = info.data.get("resolved_date_from")
+        if v is not None and resolved_date_from is not None:
+            if v < resolved_date_from:
+                raise ValueError(
+                    "resolved_date_to must be >= resolved_date_from"
+                )
+        return v
+
+    @field_validator("age_hours_max")
+    @classmethod
+    def validate_age_range(cls, v: Optional[int], info) -> Optional[int]:
+        """Validate age range is logical."""
+        age_hours_min = info.data.get("age_hours_min")
+        if v is not None and age_hours_min is not None:
+            if v < age_hours_min:
+                raise ValueError(
+                    "age_hours_max must be >= age_hours_min"
+                )
+        return v
 
 
 class ComplaintSearchRequest(BaseFilterSchema):
-    """Complaint search request"""
-    query: str = Field(..., min_length=1, description="Search query")
-    hostel_id: Optional[UUID] = None
+    """
+    Full-text search request for complaints.
     
-    # Search fields
-    search_in_title: bool = Field(True)
-    search_in_description: bool = Field(True)
-    search_in_number: bool = Field(True)
-    
-    # Filters
-    status: Optional[ComplaintStatus] = None
-    priority: Optional[Priority] = None
-    
+    Supports configurable search fields and filters.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Search query string",
+    )
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Limit search to specific hostel",
+    )
+
+    # Search scope configuration
+    search_in_title: bool = Field(
+        default=True,
+        description="Include title in search",
+    )
+    search_in_description: bool = Field(
+        default=True,
+        description="Include description in search",
+    )
+    search_in_number: bool = Field(
+        default=True,
+        description="Include complaint number in search",
+    )
+
+    # Optional filters
+    status: Optional[ComplaintStatus] = Field(
+        None,
+        description="Filter by status",
+    )
+    priority: Optional[Priority] = Field(
+        None,
+        description="Filter by priority",
+    )
+
     # Pagination
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
+    page: int = Field(
+        default=1,
+        ge=1,
+        description="Page number",
+    )
+    page_size: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Results per page (1-100)",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Normalize search query."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Search query cannot be empty")
+        return v
 
 
 class ComplaintSortOptions(BaseFilterSchema):
-    """Complaint sorting options"""
+    """
+    Sorting options for complaint queries.
+    
+    Defines available sort fields and order.
+    """
+
     sort_by: str = Field(
-        "opened_at",
-        pattern="^(opened_at|priority|status|category|age)$"
+        default="opened_at",
+        pattern=r"^(opened_at|priority|status|category|age|updated_at|resolved_at)$",
+        description="Field to sort by",
     )
-    sort_order: str = Field("desc", pattern="^(asc|desc)$")
+    sort_order: str = Field(
+        default="desc",
+        pattern=r"^(asc|desc)$",
+        description="Sort order: ascending or descending",
+    )
+
+    @field_validator("sort_by", "sort_order")
+    @classmethod
+    def normalize_sort_params(cls, v: str) -> str:
+        """Normalize sort parameters to lowercase."""
+        return v.lower().strip()
 
 
 class ComplaintExportRequest(BaseFilterSchema):
-    """Export complaints"""
-    hostel_id: Optional[UUID] = None
-    filters: Optional[ComplaintFilterParams] = None
+    """
+    Export complaints to various formats.
     
-    format: str = Field("csv", pattern="^(csv|excel|pdf)$")
-    
-    # Fields to include
-    include_comments: bool = Field(False)
-    include_resolution_details: bool = Field(True)
-    include_feedback: bool = Field(True)
+    Supports CSV, Excel, and PDF exports with configurable fields.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_resolution.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_resolution.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_resolution.py ---
->>>>>>> Stashed changes
+    hostel_id: Optional[str] = Field(
+        None,
+        description="Limit export to specific hostel",
+    )
+    filters: Optional[ComplaintFilterParams] = Field(
+        None,
+        description="Apply filters to export",
+    )
+
+    format: str = Field(
+        default="csv",
+        pattern=r"^(csv|excel|pdf)$",
+        description="Export format: csv, excel, or pdf",
+    )
+
+    # Export options
+    include_comments: bool = Field(
+        default=False,
+        description="Include comments in export",
+    )
+    include_resolution_details: bool = Field(
+        default=True,
+        description="Include resolution details",
+    )
+    include_feedback: bool = Field(
+        default=True,
+        description="Include student feedback",
+    )
+
+    @field_validator("format")
+    @classmethod
+    def normalize_format(cls, v: str) -> str:
+        """Normalize export format to lowercase."""
+        return v.lower().strip()
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_resolution.py ---
 """
-Complaint resolution schemas
+Complaint resolution and closure schemas.
+
+Handles complaint resolution workflow including marking as resolved,
+reopening, and final closure with comprehensive validation.
 """
-from datetime import datetime
+
+from __future__ import annotations
+
+from datetime import date, datetime
 from typing import List, Optional
-from pydantic import Field, HttpUrl
-from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+
+__all__ = [
+    "ResolutionRequest",
+    "ResolutionResponse",
+    "ResolutionUpdate",
+    "ReopenRequest",
+    "CloseRequest",
+]
 
 
 class ResolutionRequest(BaseCreateSchema):
-    """Mark complaint as resolved"""
-    complaint_id: UUID = Field(..., description="Complaint ID")
+    """
+    Request to mark complaint as resolved.
     
+    Requires detailed resolution notes and supports
+    optional proof attachments and follow-up scheduling.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to resolve",
+    )
+
     resolution_notes: str = Field(
         ...,
         min_length=20,
         max_length=2000,
-        description="Resolution details"
+        description="Detailed resolution description",
     )
-    
-    # Attachments (proof of resolution)
+
     resolution_attachments: List[HttpUrl] = Field(
         default_factory=list,
-        description="Photos/documents of resolved issue"
+        max_length=10,
+        description="Proof of resolution (photos/documents)",
     )
-    
-    # Time tracking
+
     actual_resolution_time: Optional[datetime] = Field(
         None,
-        description="Actual time taken to resolve"
+        description="Actual time resolution was completed",
     )
-    
-    # Follow-up required
-    follow_up_required: bool = Field(False)
-    follow_up_date: Optional[date] = None
-    follow_up_notes: Optional[str] = None
+
+    # Follow-up tracking
+    follow_up_required: bool = Field(
+        default=False,
+        description="Whether follow-up check is needed",
+    )
+    follow_up_date: Optional[date] = Field(
+        None,
+        description="Scheduled follow-up date",
+    )
+    follow_up_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Follow-up instructions",
+    )
+
+    @field_validator("resolution_notes")
+    @classmethod
+    def validate_resolution_notes(cls, v: str) -> str:
+        """Validate resolution notes quality."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Resolution notes cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 10:
+            raise ValueError(
+                "Resolution notes must contain at least 10 words "
+                "for proper documentation"
+            )
+        
+        return v
+
+    @field_validator("resolution_attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError(
+                "Maximum 10 resolution attachments allowed"
+            )
+        return v
+
+    @field_validator("follow_up_date")
+    @classmethod
+    def validate_follow_up_date(cls, v: Optional[date]) -> Optional[date]:
+        """Ensure follow-up date is in the future."""
+        if v is not None and v <= date.today():
+            raise ValueError(
+                "Follow-up date must be in the future"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_follow_up_consistency(self) -> "ResolutionRequest":
+        """
+        Validate follow-up fields are consistent.
+        
+        If follow_up_required is True, follow_up_date must be provided.
+        """
+        if self.follow_up_required and not self.follow_up_date:
+            raise ValueError(
+                "Follow-up date is required when follow-up is marked as needed"
+            )
+        
+        return self
 
 
 class ResolutionResponse(BaseSchema):
-    """Resolution response"""
-    complaint_id: UUID
-    complaint_number: str
+    """
+    Response after successful complaint resolution.
     
-    resolved: bool
-    resolved_at: datetime
-    resolved_by: UUID
-    resolved_by_name: str
-    
-    resolution_notes: str
-    
-    # Time taken
-    time_to_resolve_hours: int
-    sla_met: bool
-    
-    message: str
+    Provides confirmation and resolution metrics.
+    """
+
+    complaint_id: str = Field(..., description="Resolved complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    resolved: bool = Field(..., description="Resolution confirmation flag")
+    resolved_at: datetime = Field(..., description="Resolution timestamp")
+    resolved_by: str = Field(..., description="Resolver user ID")
+    resolved_by_name: str = Field(..., description="Resolver name")
+
+    resolution_notes: str = Field(..., description="Resolution description")
+
+    # Performance metrics
+    time_to_resolve_hours: int = Field(
+        ge=0,
+        description="Total resolution time in hours",
+    )
+    sla_met: bool = Field(
+        ...,
+        description="Whether SLA was met for this resolution",
+    )
+
+    message: str = Field(
+        ...,
+        description="Confirmation message",
+        examples=["Complaint resolved successfully"],
+    )
 
 
 class ResolutionUpdate(BaseCreateSchema):
-    """Update resolution details"""
-    complaint_id: UUID
+    """
+    Update resolution details for already resolved complaint.
     
-    resolution_notes: Optional[str] = Field(None, min_length=20, max_length=2000)
-    resolution_attachments: Optional[List[HttpUrl]] = None
-    follow_up_notes: Optional[str] = None
+    Allows modification of resolution notes and attachments.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier",
+    )
+
+    resolution_notes: Optional[str] = Field(
+        None,
+        min_length=20,
+        max_length=2000,
+        description="Updated resolution notes",
+    )
+    resolution_attachments: Optional[List[HttpUrl]] = Field(
+        None,
+        max_length=10,
+        description="Updated resolution attachments",
+    )
+    follow_up_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated follow-up notes",
+    )
+
+    @field_validator("resolution_notes")
+    @classmethod
+    def validate_resolution_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Validate resolution notes if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Resolution notes cannot be empty")
+            
+            word_count = len(v.split())
+            if word_count < 10:
+                raise ValueError(
+                    "Resolution notes must contain at least 10 words"
+                )
+        
+        return v
+
+    @field_validator("resolution_attachments")
+    @classmethod
+    def validate_attachments_limit(
+        cls,
+        v: Optional[List[HttpUrl]]
+    ) -> Optional[List[HttpUrl]]:
+        """Ensure attachment count doesn't exceed limit."""
+        if v is not None and len(v) > 10:
+            raise ValueError(
+                "Maximum 10 resolution attachments allowed"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_has_updates(self) -> "ResolutionUpdate":
+        """Ensure at least one field is being updated."""
+        update_fields = {
+            k: v for k, v in self.model_dump(exclude_unset=True).items()
+            if v is not None and k != "complaint_id"
+        }
+        
+        if not update_fields:
+            raise ValueError(
+                "At least one field must be provided for update"
+            )
+        
+        return self
 
 
 class ReopenRequest(BaseCreateSchema):
-    """Reopen resolved complaint"""
-    complaint_id: UUID
+    """
+    Request to reopen a resolved/closed complaint.
     
-    reopen_reason: str = Field(..., min_length=20, max_length=500)
-    
-    # Additional details
-    additional_issues: Optional[str] = Field(None, max_length=1000)
-    new_attachments: List[HttpUrl] = Field(default_factory=list)
+    Requires detailed reason and supports additional information.
+    """
+
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to reopen",
+    )
+
+    reopen_reason: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="Detailed reason for reopening",
+    )
+
+    additional_issues: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Additional issues discovered",
+    )
+    new_attachments: List[HttpUrl] = Field(
+        default_factory=list,
+        max_length=10,
+        description="New supporting attachments",
+    )
+
+    @field_validator("reopen_reason")
+    @classmethod
+    def validate_reopen_reason(cls, v: str) -> str:
+        """Validate reopen reason quality."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Reopen reason cannot be empty")
+        
+        word_count = len(v.split())
+        if word_count < 5:
+            raise ValueError(
+                "Reopen reason must contain at least 5 words "
+                "for proper documentation"
+            )
+        
+        return v
+
+    @field_validator("additional_issues")
+    @classmethod
+    def validate_additional_issues(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize additional issues if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+    @field_validator("new_attachments")
+    @classmethod
+    def validate_attachments_limit(cls, v: List[HttpUrl]) -> List[HttpUrl]:
+        """Ensure attachment count doesn't exceed limit."""
+        if len(v) > 10:
+            raise ValueError(
+                "Maximum 10 new attachments allowed"
+            )
+        return v
 
 
 class CloseRequest(BaseCreateSchema):
-    """Close complaint (final)"""
-    complaint_id: UUID
+    """
+    Request to close complaint (final state).
     
-    closure_notes: Optional[str] = Field(None, max_length=500)
-    
-    # Require student confirmation
-    student_confirmed: bool = Field(False, description="Student confirmed resolution")
+    Optional closure notes and student confirmation.
+    """
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\complaint_response.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_response.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\complaint_response.py ---
->>>>>>> Stashed changes
+    complaint_id: str = Field(
+        ...,
+        description="Complaint identifier to close",
+    )
+
+    closure_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Final closure notes",
+    )
+
+    student_confirmed: bool = Field(
+        default=False,
+        description="Student confirmed resolution satisfaction",
+    )
+
+    @field_validator("closure_notes")
+    @classmethod
+    def validate_closure_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize closure notes if provided."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\complaint_response.py ---
 """
-Complaint response schemas
+Complaint response schemas for API outputs.
+
+Provides comprehensive response models for different complaint views:
+- Summary responses for list views
+- Detailed responses for single complaint views
+- Dashboard summary statistics
 """
+
+from __future__ import annotations
+
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional
-from pydantic import Field
-from uuid import UUID
+
+from pydantic import Field, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
 
-
-class ComplaintResponse(BaseResponseSchema):
-    """Complaint response schema"""
-    complaint_number: str
-    hostel_id: UUID
-    hostel_name: str
-    
-    raised_by: UUID
-    raised_by_name: str
-    student_id: Optional[UUID]
-    
-    title: str
-    category: ComplaintCategory
-    priority: Priority
-    status: ComplaintStatus
-    
-    assigned_to: Optional[UUID]
-    assigned_to_name: Optional[str]
-    
-    opened_at: datetime
-    resolved_at: Optional[datetime]
-    
-    # SLA
-    sla_breach: bool
-    age_hours: int
-
-
-class ComplaintDetail(BaseResponseSchema):
-    """Detailed complaint information"""
-    complaint_number: str
-    
-    # Hostel
-    hostel_id: UUID
-    hostel_name: str
-    
-    # Raised by
-    raised_by: UUID
-    raised_by_name: str
-    raised_by_email: str
-    raised_by_phone: str
-    
-    student_id: Optional[UUID]
-    student_name: Optional[str]
-    room_number: Optional[str]
-    
-    # Complaint details
-    title: str
-    description: str
-    category: ComplaintCategory
-    sub_category: Optional[str]
-    priority: Priority
-    
-    # Location
-    room_id: Optional[UUID]
-    location_details: Optional[str]
-    
-    # Attachments
-    attachments: List[str]
-    
-    # Assignment
-    assigned_to: Optional[UUID]
-    assigned_to_name: Optional[str]
-    assigned_by: Optional[UUID]
-    assigned_by_name: Optional[str]
-    assigned_at: Optional[datetime]
-    reassigned_count: int
-    
-    # Status workflow
-    status: ComplaintStatus
-    opened_at: datetime
-    in_progress_at: Optional[datetime]
-    resolved_at: Optional[datetime]
-    closed_at: Optional[datetime]
-    closed_by: Optional[UUID]
-    closed_by_name: Optional[str]
-    
-    # Resolution
-    resolution_notes: Optional[str]
-    resolution_attachments: List[str]
-    estimated_resolution_time: Optional[datetime]
-    actual_resolution_time: Optional[datetime]
-    
-    # Feedback
-    student_feedback: Optional[str]
-    student_rating: Optional[int]
-    feedback_submitted_at: Optional[datetime]
-    
-    # SLA
-    sla_breach: bool
-    sla_breach_reason: Optional[str]
-    
-    # Escalation
-    escalated: bool
-    escalated_to: Optional[UUID]
-    escalated_to_name: Optional[str]
-    escalated_at: Optional[datetime]
-    escalation_reason: Optional[str]
-    
-    # Admin override
-    overridden_by_admin: bool
-    override_admin_id: Optional[UUID]
-    override_timestamp: Optional[datetime]
-    override_reason: Optional[str]
-    
-    # Comments count
-    total_comments: int
-    
-    # Time tracking
-    age_hours: int
-    time_to_resolve_hours: Optional[int]
-
-
-class ComplaintListItem(BaseSchema):
-    """Complaint list item"""
-    id: UUID
-    complaint_number: str
-    title: str
-    
-    category: str
-    priority: str
-    status: ComplaintStatus
-    
-    raised_by_name: str
-    room_number: Optional[str]
-    
-    assigned_to_name: Optional[str]
-    
-    opened_at: datetime
-    age_hours: int
-    
-    sla_breach: bool
-
-
-class ComplaintSummary(BaseSchema):
-    """Complaint summary for dashboard"""
-    hostel_id: UUID
-    
-    total_complaints: int
-    open_complaints: int
-    in_progress_complaints: int
-    resolved_complaints: int
-    
-    high_priority_count: int
-    urgent_priority_count: int
-    
-    sla_breached_count: int
-    
-    average_resolution_time_hours: Decimal
-
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\hostel-back\app\schemas\complaint\__init__.py ---
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\__init__.py ---
->>>>>>> Stashed changes
-=======
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\complaint\__init__.py ---
->>>>>>> Stashed changes
-"""
-Complaint schemas package
-"""
-from app.schemas.complaint.complaint_base import (
-    ComplaintBase,
-    ComplaintCreate,
-    ComplaintUpdate
-)
-from app.schemas.complaint.complaint_response import (
-    ComplaintResponse,
-    ComplaintDetail,
-    ComplaintListItem
-)
-from app.schemas.complaint.complaint_assignment import (
-    AssignmentRequest,
-    AssignmentResponse,
-    ReassignmentRequest
-)
-from app.schemas.complaint.complaint_resolution import (
-    ResolutionRequest,
-    ResolutionResponse,
-    ResolutionUpdate
-)
-from app.schemas.complaint.complaint_escalation import (
-    EscalationRequest,
-    EscalationResponse,
-    EscalationHistory
-)
-from app.schemas.complaint.complaint_feedback import (
-    FeedbackRequest,
-    FeedbackResponse,
-    FeedbackSummary
-)
-from app.schemas.complaint.complaint_comments import (
-    CommentCreate,
-    CommentResponse,
-    CommentList
-)
-from app.schemas.complaint.complaint_filters import (
-    ComplaintFilterParams,
-    ComplaintSearchRequest,
-    ComplaintSortOptions
-)
-from app.schemas.complaint.complaint_analytics import (
-    ComplaintAnalytics,
-    ResolutionMetrics,
-    CategoryAnalysis
-)
-
 __all__ = [
-    # Base
-    "ComplaintBase",
-    "ComplaintCreate",
-    "ComplaintUpdate",
-    
-    # Response
     "ComplaintResponse",
     "ComplaintDetail",
     "ComplaintListItem",
+    "ComplaintSummary",
+    "ComplaintStats",
+]
+
+
+class ComplaintResponse(BaseResponseSchema):
+    """
+    Standard complaint response with essential fields.
     
+    Used for list views and general complaint information.
+    """
+
+    complaint_number: str = Field(
+        ...,
+        description="Unique complaint reference number",
+    )
+    hostel_id: str = Field(
+        ...,
+        description="Associated hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Associated hostel name for display",
+    )
+
+    # Complainant information
+    raised_by: str = Field(
+        ...,
+        description="User ID who raised the complaint",
+    )
+    raised_by_name: str = Field(
+        ...,
+        description="Display name of complainant",
+    )
+    student_id: Optional[str] = Field(
+        None,
+        description="Student ID if applicable",
+    )
+
+    # Core complaint fields
+    title: str = Field(
+        ...,
+        description="Complaint title",
+    )
+    category: ComplaintCategory = Field(
+        ...,
+        description="Complaint category",
+    )
+    priority: Priority = Field(
+        ...,
+        description="Priority level",
+    )
+    status: ComplaintStatus = Field(
+        ...,
+        description="Current status",
+    )
+
     # Assignment
+    assigned_to: Optional[str] = Field(
+        None,
+        description="Assigned staff member ID",
+    )
+    assigned_to_name: Optional[str] = Field(
+        None,
+        description="Assigned staff member name",
+    )
+
+    # Timestamps
+    opened_at: datetime = Field(
+        ...,
+        description="Complaint creation timestamp",
+    )
+    resolved_at: Optional[datetime] = Field(
+        None,
+        description="Resolution timestamp",
+    )
+
+    # Metrics
+    sla_breach: bool = Field(
+        ...,
+        description="Whether complaint has breached SLA",
+    )
+    age_hours: int = Field(
+        ...,
+        ge=0,
+        description="Age of complaint in hours",
+    )
+
+    @computed_field
+    @property
+    def is_overdue(self) -> bool:
+        """Determine if complaint is overdue based on priority and age."""
+        # Define SLA thresholds in hours by priority
+        sla_thresholds = {
+            Priority.CRITICAL: 2,
+            Priority.URGENT: 4,
+            Priority.HIGH: 12,
+            Priority.MEDIUM: 24,
+            Priority.LOW: 48,
+        }
+        
+        threshold = sla_thresholds.get(self.priority, 24)
+        return self.age_hours > threshold and self.status not in [
+            ComplaintStatus.RESOLVED,
+            ComplaintStatus.CLOSED,
+        ]
+
+
+class ComplaintDetail(BaseResponseSchema):
+    """
+    Comprehensive complaint details with full information.
+    
+    Used for single complaint view with complete audit trail
+    and relationship information.
+    """
+
+    complaint_number: str = Field(
+        ...,
+        description="Unique complaint reference number",
+    )
+
+    # Hostel information
+    hostel_id: str = Field(..., description="Hostel identifier")
+    hostel_name: str = Field(..., description="Hostel name")
+
+    # Complainant information (detailed)
+    raised_by: str = Field(..., description="User ID of complainant")
+    raised_by_name: str = Field(..., description="Complainant name")
+    raised_by_email: str = Field(..., description="Complainant email")
+    raised_by_phone: str = Field(..., description="Complainant phone")
+
+    student_id: Optional[str] = Field(None, description="Student ID")
+    student_name: Optional[str] = Field(None, description="Student name")
+    room_number: Optional[str] = Field(None, description="Room number")
+
+    # Complaint content
+    title: str = Field(..., description="Complaint title")
+    description: str = Field(..., description="Detailed description")
+    category: ComplaintCategory = Field(..., description="Category")
+    sub_category: Optional[str] = Field(None, description="Sub-category")
+    priority: Priority = Field(..., description="Priority level")
+
+    # Location
+    room_id: Optional[str] = Field(None, description="Room ID")
+    location_details: Optional[str] = Field(None, description="Location details")
+
+    # Media
+    attachments: List[str] = Field(
+        default_factory=list,
+        description="Attachment URLs",
+    )
+
+    # Assignment history
+    assigned_to: Optional[str] = Field(None, description="Current assignee ID")
+    assigned_to_name: Optional[str] = Field(None, description="Current assignee name")
+    assigned_by: Optional[str] = Field(None, description="Assigned by user ID")
+    assigned_by_name: Optional[str] = Field(None, description="Assigned by name")
+    assigned_at: Optional[datetime] = Field(None, description="Assignment timestamp")
+    reassigned_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of times complaint was reassigned",
+    )
+
+    # Status workflow
+    status: ComplaintStatus = Field(..., description="Current status")
+    opened_at: datetime = Field(..., description="Creation timestamp")
+    in_progress_at: Optional[datetime] = Field(
+        None,
+        description="When complaint moved to in-progress",
+    )
+    resolved_at: Optional[datetime] = Field(
+        None,
+        description="Resolution timestamp",
+    )
+    closed_at: Optional[datetime] = Field(None, description="Closure timestamp")
+    closed_by: Optional[str] = Field(None, description="User who closed complaint")
+    closed_by_name: Optional[str] = Field(None, description="Closer name")
+
+    # Resolution details
+    resolution_notes: Optional[str] = Field(
+        None,
+        description="Resolution description",
+    )
+    resolution_attachments: List[str] = Field(
+        default_factory=list,
+        description="Resolution proof URLs",
+    )
+    estimated_resolution_time: Optional[datetime] = Field(
+        None,
+        description="Estimated resolution time",
+    )
+    actual_resolution_time: Optional[datetime] = Field(
+        None,
+        description="Actual resolution time",
+    )
+
+    # Feedback
+    student_feedback: Optional[str] = Field(None, description="Student feedback")
+    student_rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="Student rating (1-5)",
+    )
+    feedback_submitted_at: Optional[datetime] = Field(
+        None,
+        description="Feedback submission timestamp",
+    )
+
+    # SLA tracking
+    sla_breach: bool = Field(..., description="SLA breach status")
+    sla_breach_reason: Optional[str] = Field(
+        None,
+        description="Reason for SLA breach",
+    )
+
+    # Escalation
+    escalated: bool = Field(default=False, description="Escalation status")
+    escalated_to: Optional[str] = Field(None, description="Escalated to user ID")
+    escalated_to_name: Optional[str] = Field(None, description="Escalated to name")
+    escalated_at: Optional[datetime] = Field(None, description="Escalation timestamp")
+    escalation_reason: Optional[str] = Field(None, description="Escalation reason")
+
+    # Admin override
+    overridden_by_admin: bool = Field(
+        default=False,
+        description="Admin override flag",
+    )
+    override_admin_id: Optional[str] = Field(None, description="Override admin ID")
+    override_timestamp: Optional[datetime] = Field(
+        None,
+        description="Override timestamp",
+    )
+    override_reason: Optional[str] = Field(None, description="Override reason")
+
+    # Engagement metrics
+    total_comments: int = Field(
+        default=0,
+        ge=0,
+        description="Total comment count",
+    )
+
+    # Time metrics
+    age_hours: int = Field(ge=0, description="Complaint age in hours")
+    time_to_resolve_hours: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Time taken to resolve (hours)",
+    )
+
+    @computed_field
+    @property
+    def is_active(self) -> bool:
+        """Check if complaint is in an active state."""
+        active_statuses = {
+            ComplaintStatus.OPEN,
+            ComplaintStatus.ASSIGNED,
+            ComplaintStatus.IN_PROGRESS,
+            ComplaintStatus.REOPENED,
+        }
+        return self.status in active_statuses
+
+    @computed_field
+    @property
+    def resolution_efficiency(self) -> Optional[str]:
+        """
+        Calculate resolution efficiency rating.
+        
+        Returns:
+            Efficiency rating: 'excellent', 'good', 'average', 'poor', or None
+        """
+        if not self.time_to_resolve_hours:
+            return None
+        
+        # Define efficiency thresholds based on priority
+        thresholds = {
+            Priority.CRITICAL: {"excellent": 1, "good": 2, "average": 4},
+            Priority.URGENT: {"excellent": 2, "good": 4, "average": 8},
+            Priority.HIGH: {"excellent": 6, "good": 12, "average": 24},
+            Priority.MEDIUM: {"excellent": 12, "good": 24, "average": 48},
+            Priority.LOW: {"excellent": 24, "good": 48, "average": 72},
+        }
+        
+        threshold = thresholds.get(self.priority, thresholds[Priority.MEDIUM])
+        hours = self.time_to_resolve_hours
+        
+        if hours <= threshold["excellent"]:
+            return "excellent"
+        elif hours <= threshold["good"]:
+            return "good"
+        elif hours <= threshold["average"]:
+            return "average"
+        else:
+            return "poor"
+
+
+class ComplaintListItem(BaseSchema):
+    """
+    Lightweight complaint item for list views.
+    
+    Optimized for performance with minimal fields
+    for table/grid displays.
+    """
+
+    id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Reference number")
+    title: str = Field(..., description="Complaint title")
+
+    category: str = Field(..., description="Category name")
+    priority: str = Field(..., description="Priority level")
+    status: ComplaintStatus = Field(..., description="Current status")
+
+    raised_by_name: str = Field(..., description="Complainant name")
+    room_number: Optional[str] = Field(None, description="Room number")
+
+    assigned_to_name: Optional[str] = Field(None, description="Assignee name")
+
+    opened_at: datetime = Field(..., description="Creation timestamp")
+    age_hours: int = Field(ge=0, description="Age in hours")
+
+    sla_breach: bool = Field(..., description="SLA breach status")
+
+    @computed_field
+    @property
+    def status_color(self) -> str:
+        """
+        Get status color code for UI display.
+        
+        Returns:
+            Color code string for status badge
+        """
+        color_map = {
+            ComplaintStatus.OPEN: "red",
+            ComplaintStatus.ASSIGNED: "orange",
+            ComplaintStatus.IN_PROGRESS: "blue",
+            ComplaintStatus.ON_HOLD: "yellow",
+            ComplaintStatus.RESOLVED: "green",
+            ComplaintStatus.CLOSED: "gray",
+            ComplaintStatus.REOPENED: "purple",
+        }
+        return color_map.get(self.status, "gray")
+
+    @computed_field
+    @property
+    def priority_weight(self) -> int:
+        """
+        Get numeric priority weight for sorting.
+        
+        Returns:
+            Integer weight (higher = more urgent)
+        """
+        weight_map = {
+            "critical": 5,
+            "urgent": 4,
+            "high": 3,
+            "medium": 2,
+            "low": 1,
+        }
+        return weight_map.get(self.priority.lower(), 2)
+
+
+class ComplaintSummary(BaseSchema):
+    """
+    Complaint statistics summary for dashboard.
+    
+    Provides aggregate metrics for a hostel or supervisor.
+    """
+
+    hostel_id: str = Field(..., description="Hostel identifier")
+
+    total_complaints: int = Field(ge=0, description="Total complaint count")
+    open_complaints: int = Field(ge=0, description="Open complaints")
+    in_progress_complaints: int = Field(ge=0, description="In-progress complaints")
+    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+
+    high_priority_count: int = Field(ge=0, description="High priority count")
+    urgent_priority_count: int = Field(ge=0, description="Urgent priority count")
+
+    sla_breached_count: int = Field(ge=0, description="SLA breached count")
+
+    average_resolution_time_hours: Decimal = Field(
+        ge=0,
+        description="Average resolution time in hours",
+    )
+
+    @computed_field
+    @property
+    def resolution_rate(self) -> float:
+        """
+        Calculate complaint resolution rate percentage.
+        
+        Returns:
+            Resolution rate as percentage (0-100)
+        """
+        if self.total_complaints == 0:
+            return 0.0
+        return round(
+            (self.resolved_complaints / self.total_complaints) * 100,
+            2
+        )
+
+    @computed_field
+    @property
+    def sla_compliance_rate(self) -> float:
+        """
+        Calculate SLA compliance rate percentage.
+        
+        Returns:
+            SLA compliance rate as percentage (0-100)
+        """
+        if self.total_complaints == 0:
+            return 100.0
+        
+        compliant = self.total_complaints - self.sla_breached_count
+        return round((compliant / self.total_complaints) * 100, 2)
+
+
+class ComplaintStats(BaseSchema):
+    """
+    Extended complaint statistics with breakdown details.
+    
+    Provides comprehensive analytics for reporting.
+    """
+
+    total: int = Field(ge=0, description="Total complaints")
+    
+    # Status breakdown
+    by_status: dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaint count by status",
+    )
+    
+    # Priority breakdown
+    by_priority: dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaint count by priority",
+    )
+    
+    # Category breakdown
+    by_category: dict[str, int] = Field(
+        default_factory=dict,
+        description="Complaint count by category",
+    )
+    
+    # Time-based metrics
+    avg_resolution_hours: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Average resolution time",
+    )
+    median_resolution_hours: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        description="Median resolution time",
+    )
+    
+    # Performance indicators
+    sla_compliance_percentage: Decimal = Field(
+        ge=0,
+        le=100,
+        description="SLA compliance percentage",
+    )
+    resolution_percentage: Decimal = Field(
+        ge=0,
+        le=100,
+        description="Resolution percentage",
+    )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\__init__.py ---
+"""
+Complaint schemas package.
+
+Comprehensive complaint management schemas including creation, updates,
+assignments, resolution, escalation, feedback, and analytics.
+
+Example:
+    from app.schemas.complaint import ComplaintCreate, ComplaintDetail
+"""
+
+from __future__ import annotations
+
+from app.schemas.complaint.complaint_analytics import (
+    CategoryAnalysis,
+    CategoryMetrics,
+    ComplaintAnalytics,
+    ComplaintHeatmap,
+    ComplaintTrendPoint,
+    ResolutionMetrics,
+    RoomComplaintCount,
+    StaffPerformance,
+)
+from app.schemas.complaint.complaint_assignment import (
+    AssignmentHistory,
+    AssignmentRequest,
+    AssignmentResponse,
+    BulkAssignment,
+    ReassignmentRequest,
+    UnassignRequest,
+)
+from app.schemas.complaint.complaint_base import (
+    ComplaintBase,
+    ComplaintCreate,
+    ComplaintStatusUpdate,
+    ComplaintUpdate,
+)
+from app.schemas.complaint.complaint_comments import (
+    CommentCreate,
+    CommentDelete,
+    CommentList,
+    CommentResponse,
+    CommentUpdate,
+    MentionNotification,
+)
+from app.schemas.complaint.complaint_escalation import (
+    AutoEscalationRule,
+    EscalationEntry,
+    EscalationHistory,
+    EscalationRequest,
+    EscalationResponse,
+)
+from app.schemas.complaint.complaint_feedback import (
+    FeedbackAnalysis,
+    FeedbackRequest,
+    FeedbackResponse,
+    FeedbackSummary,
+    RatingTrendPoint,
+)
+from app.schemas.complaint.complaint_filters import (
+    ComplaintExportRequest,
+    ComplaintFilterParams,
+    ComplaintSearchRequest,
+    ComplaintSortOptions,
+)
+from app.schemas.complaint.complaint_resolution import (
+    CloseRequest,
+    ReopenRequest,
+    ResolutionRequest,
+    ResolutionResponse,
+    ResolutionUpdate,
+)
+from app.schemas.complaint.complaint_response import (
+    ComplaintDetail,
+    ComplaintListItem,
+    ComplaintResponse,
+    ComplaintStats,
+    ComplaintSummary,
+)
+
+__all__ = [
+    # Base schemas
+    "ComplaintBase",
+    "ComplaintCreate",
+    "ComplaintUpdate",
+    "ComplaintStatusUpdate",
+    # Response schemas
+    "ComplaintResponse",
+    "ComplaintDetail",
+    "ComplaintListItem",
+    "ComplaintSummary",
+    "ComplaintStats",
+    # Assignment schemas
     "AssignmentRequest",
     "AssignmentResponse",
     "ReassignmentRequest",
-    
-    # Resolution
+    "BulkAssignment",
+    "UnassignRequest",
+    "AssignmentHistory",
+    # Resolution schemas
     "ResolutionRequest",
     "ResolutionResponse",
     "ResolutionUpdate",
-    
-    # Escalation
+    "ReopenRequest",
+    "CloseRequest",
+    # Escalation schemas
     "EscalationRequest",
     "EscalationResponse",
     "EscalationHistory",
-    
-    # Feedback
+    "EscalationEntry",
+    "AutoEscalationRule",
+    # Feedback schemas
     "FeedbackRequest",
     "FeedbackResponse",
     "FeedbackSummary",
-    
-    # Comments
+    "FeedbackAnalysis",
+    "RatingTrendPoint",
+    # Comment schemas
     "CommentCreate",
     "CommentResponse",
     "CommentList",
-    
-    # Filters
+    "CommentUpdate",
+    "CommentDelete",
+    "MentionNotification",
+    # Filter schemas
     "ComplaintFilterParams",
     "ComplaintSearchRequest",
     "ComplaintSortOptions",
-    
-    # Analytics
+    "ComplaintExportRequest",
+    # Analytics schemas
     "ComplaintAnalytics",
     "ResolutionMetrics",
     "CategoryAnalysis",
+    "CategoryMetrics",
+    "ComplaintTrendPoint",
+    "StaffPerformance",
+    "ComplaintHeatmap",
+    "RoomComplaintCount",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\complaint\__pycache__ =====

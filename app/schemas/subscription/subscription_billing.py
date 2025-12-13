@@ -8,13 +8,13 @@ and invoice tracking for subscriptions.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field, HttpUrl, model_validator
+from pydantic import Field, HttpUrl, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -259,15 +259,16 @@ class InvoiceInfo(BaseSchema):
 
         return self
 
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if invoice is overdue based on current date."""
-        from datetime import date as date_type
         return (
             self.status not in (InvoiceStatus.PAID, InvoiceStatus.CANCELLED)
-            and date_type.today() > self.due_date
+            and date.today() > self.due_date
         )
 
+    @computed_field  # type: ignore[misc]
     @property
     def is_fully_paid(self) -> bool:
         """Check if invoice is fully paid."""

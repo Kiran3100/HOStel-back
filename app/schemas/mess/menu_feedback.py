@@ -129,7 +129,7 @@ class FeedbackRequest(BaseCreateSchema):
         description="Would recommend this menu to others",
     )
 
-    @field_validator("comments", "improvement_suggestions")
+    @field_validator("comments", "improvement_suggestions", mode="before")
     @classmethod
     def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
         """Validate and normalize text fields."""
@@ -143,7 +143,7 @@ class FeedbackRequest(BaseCreateSchema):
             return v if v else None
         return None
 
-    @field_validator("liked_items", "disliked_items")
+    @field_validator("liked_items", "disliked_items", mode="after")
     @classmethod
     def validate_item_lists(cls, v: List[str]) -> List[str]:
         """Validate and normalize item lists."""
@@ -258,7 +258,6 @@ class ItemRating(BaseSchema):
         ...,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average rating for this item",
     )
     feedback_count: int = Field(
@@ -286,6 +285,12 @@ class ItemRating(BaseSchema):
         None,
         description="Last date item was served",
     )
+
+    @field_validator("average_rating", "popularity_score", mode="after")
+    @classmethod
+    def round_decimals(cls, v: Decimal) -> Decimal:
+        """Round decimal values to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @computed_field
     @property
@@ -348,7 +353,6 @@ class RatingsSummary(BaseSchema):
         ...,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Overall average rating",
     )
     median_rating: Optional[Decimal] = Field(
@@ -363,7 +367,6 @@ class RatingsSummary(BaseSchema):
         None,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Breakfast average rating",
     )
     breakfast_feedback_count: int = Field(
@@ -376,7 +379,6 @@ class RatingsSummary(BaseSchema):
         None,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Lunch average rating",
     )
     lunch_feedback_count: int = Field(
@@ -389,7 +391,6 @@ class RatingsSummary(BaseSchema):
         None,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Snacks average rating",
     )
     snacks_feedback_count: int = Field(
@@ -402,7 +403,6 @@ class RatingsSummary(BaseSchema):
         None,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Dinner average rating",
     )
     dinner_feedback_count: int = Field(
@@ -443,42 +443,36 @@ class RatingsSummary(BaseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average taste rating",
     )
     average_quantity_rating: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average quantity rating",
     )
     average_quality_rating: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average quality rating",
     )
     average_hygiene_rating: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average hygiene rating",
     )
     average_presentation_rating: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average presentation rating",
     )
     average_service_rating: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average service rating",
     )
     
@@ -487,9 +481,23 @@ class RatingsSummary(BaseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=100,
-        decimal_places=2,
         description="Percentage who would recommend",
     )
+
+    @field_validator(
+        "average_rating", "median_rating", "breakfast_rating", "lunch_rating",
+        "snacks_rating", "dinner_rating", "average_taste_rating",
+        "average_quantity_rating", "average_quality_rating",
+        "average_hygiene_rating", "average_presentation_rating",
+        "average_service_rating", "would_recommend_percentage",
+        mode="after"
+    )
+    @classmethod
+    def round_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property
@@ -558,14 +566,12 @@ class SentimentAnalysis(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Positive sentiment percentage",
     )
     negative_percentage: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Negative sentiment percentage",
     )
     
@@ -580,6 +586,12 @@ class SentimentAnalysis(BaseSchema):
         max_length=20,
         description="Most frequent negative keywords",
     )
+
+    @field_validator("positive_percentage", "negative_percentage", mode="after")
+    @classmethod
+    def round_percentages(cls, v: Decimal) -> Decimal:
+        """Round percentage values to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class QualityMetrics(BaseSchema):
@@ -612,7 +624,6 @@ class QualityMetrics(BaseSchema):
         ...,
         ge=0,
         le=5,
-        decimal_places=2,
         description="Overall average rating for period",
     )
     total_feedbacks: int = Field(
@@ -634,7 +645,6 @@ class QualityMetrics(BaseSchema):
     )
     trend_percentage: Optional[Decimal] = Field(
         None,
-        decimal_places=2,
         description="Trend change percentage",
     )
     
@@ -693,6 +703,18 @@ class QualityMetrics(BaseSchema):
         description="Percentage of ratings <= 2 stars",
     )
 
+    @field_validator(
+        "overall_average_rating", "trend_percentage",
+        "satisfaction_rate", "dissatisfaction_rate",
+        mode="after"
+    )
+    @classmethod
+    def round_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
+
     @computed_field
     @property
     def quality_score(self) -> Decimal:
@@ -734,14 +756,12 @@ class FeedbackAnalysis(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Positive feedback percentage",
     )
     negative_feedback_percentage: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Negative feedback percentage",
     )
     neutral_feedback_percentage: Decimal = Field(
@@ -829,3 +849,13 @@ class FeedbackAnalysis(BaseSchema):
         default_factory=list,
         description="Meals with low feedback participation",
     )
+
+    @field_validator(
+        "positive_feedback_percentage", "negative_feedback_percentage",
+        "neutral_feedback_percentage",
+        mode="after"
+    )
+    @classmethod
+    def round_percentages(cls, v: Decimal) -> Decimal:
+        """Round percentage values to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))

@@ -1,192 +1,1550 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure\fee_base.py ---
+# --- File: app/schemas/fee_structure/fee_base.py ---
 """
-Base fee structure schemas
+Base fee structure schemas with comprehensive validation.
+
+This module defines the core fee structure schemas for managing
+hostel pricing across different room types and billing frequencies.
 """
-from datetime import date
+
+from __future__ import annotations
+
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
-from pydantic import Field
 from uuid import UUID
 
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseUpdateSchema
-from app.schemas.common.enums import RoomType, FeeType, ChargeType
+from pydantic import Field, field_validator, model_validator, computed_field
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import ChargeType, FeeType, RoomType
+
+__all__ = [
+    "FeeStructureBase",
+    "FeeStructureCreate",
+    "FeeStructureUpdate",
+]
 
 
 class FeeStructureBase(BaseSchema):
-    """Base fee structure per hostel & room type"""
-    hostel_id: UUID = Field(..., description="Hostel ID")
-    room_type: RoomType = Field(..., description="Room type to which this fee applies")
-    fee_type: FeeType = Field(..., description="Billing frequency")
+    """
+    Base fee structure schema.
+    
+    Defines pricing and charges for a specific hostel and room type,
+    including base rent, security deposit, utilities, and mess charges.
+    """
 
-    amount: Decimal = Field(..., ge=0, description="Base rent amount per period")
-    security_deposit: Decimal = Field(Decimal("0.00"), ge=0)
+    hostel_id: UUID = Field(
+        ...,
+        description="Unique identifier of the hostel",
+    )
+    room_type: RoomType = Field(
+        ...,
+        description="Type of room this fee structure applies to",
+    )
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency (monthly, quarterly, yearly, etc.)",
+    )
 
-    includes_mess: bool = Field(False, description="Whether mess is included")
-    mess_charges_monthly: Decimal = Field(Decimal("0.00"), ge=0)
+    # Base Charges
+    amount: Decimal = Field(
+        ...,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Base rent amount per billing period",
+    )
+    security_deposit: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Refundable security deposit amount",
+    )
 
-    # Utility charges
+    # Mess Charges
+    includes_mess: bool = Field(
+        False,
+        description="Whether mess/food is included in base rent",
+    )
+    mess_charges_monthly: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Monthly mess charges (if not included)",
+    )
+
+    # Utility Charges - Electricity
     electricity_charges: ChargeType = Field(
-        ChargeType.INCLUDED, description="How electricity is billed"
+        ChargeType.INCLUDED,
+        description="How electricity is billed (included/actual/fixed)",
     )
-    electricity_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+    electricity_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Fixed monthly electricity charge (if applicable)",
+    )
 
+    # Utility Charges - Water
     water_charges: ChargeType = Field(
-        ChargeType.INCLUDED, description="How water is billed"
+        ChargeType.INCLUDED,
+        description="How water is billed (included/actual/fixed)",
     )
-    water_fixed_amount: Optional[Decimal] = Field(None, ge=0)
+    water_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Fixed monthly water charge (if applicable)",
+    )
 
-    effective_from: date = Field(..., description="Fee effective start date")
-    effective_to: Optional[date] = Field(None, description="End date (if any)")
+    # Validity Period
+    effective_from: date = Field(
+        ...,
+        description="Date from which this fee structure is effective",
+    )
+    effective_to: Optional[date] = Field(
+        None,
+        description="End date of fee structure validity (null for indefinite)",
+    )
 
-    is_active: bool = Field(True)
+    # Status
+    is_active: bool = Field(
+        True,
+        description="Whether this fee structure is currently active",
+    )
+
+    @field_validator("amount")
+    @classmethod
+    def validate_amount(cls, v: Decimal) -> Decimal:
+        """Validate base amount is reasonable."""
+        if v <= 0:
+            raise ValueError("Base rent amount must be greater than zero")
+        
+        # Sanity check: Minimum and maximum rent
+        min_rent = Decimal("500.00")
+        max_rent = Decimal("100000.00")
+        
+        if v < min_rent:
+            raise ValueError(f"Rent amount (₹{v}) is below minimum (₹{min_rent})")
+        if v > max_rent:
+            raise ValueError(f"Rent amount (₹{v}) exceeds maximum (₹{max_rent})")
+        
+        return v.quantize(Decimal("0.01"))
+
+    @field_validator("security_deposit")
+    @classmethod
+    def validate_security_deposit(cls, v: Decimal) -> Decimal:
+        """Validate security deposit amount."""
+        if v < 0:
+            raise ValueError("Security deposit cannot be negative")
+        
+        # Typically security deposit is 1-3 months rent
+        # This will be validated in model_validator with access to amount
+        return v.quantize(Decimal("0.01"))
+
+    @field_validator("mess_charges_monthly")
+    @classmethod
+    def validate_mess_charges(cls, v: Decimal) -> Decimal:
+        """Validate mess charges."""
+        if v < 0:
+            raise ValueError("Mess charges cannot be negative")
+        
+        # Sanity check
+        max_mess = Decimal("10000.00")
+        if v > max_mess:
+            raise ValueError(
+                f"Mess charges (₹{v}) exceed reasonable maximum (₹{max_mess})"
+            )
+        
+        return v.quantize(Decimal("0.01"))
+
+    @model_validator(mode="after")
+    def validate_security_deposit_ratio(self) -> "FeeStructureBase":
+        """Validate security deposit is reasonable relative to rent."""
+        if self.security_deposit > 0:
+            # Security deposit typically ranges from 1-3 months rent
+            max_security = self.amount * 3
+            
+            if self.security_deposit > max_security:
+                raise ValueError(
+                    f"Security deposit (₹{self.security_deposit}) exceeds "
+                    f"3 times the base rent (₹{self.amount}). "
+                    f"Maximum allowed: ₹{max_security}"
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_electricity_charges(self) -> "FeeStructureBase":
+        """Validate electricity charge configuration."""
+        if self.electricity_charges == ChargeType.FIXED_MONTHLY:
+            if not self.electricity_fixed_amount:
+                raise ValueError(
+                    "electricity_fixed_amount is required when "
+                    "electricity_charges is FIXED_MONTHLY"
+                )
+            if self.electricity_fixed_amount <= 0:
+                raise ValueError("Fixed electricity amount must be greater than zero")
+        
+        # Clear fixed amount if not fixed type
+        if self.electricity_charges != ChargeType.FIXED_MONTHLY:
+            if self.electricity_fixed_amount is not None:
+                # Automatically clear it
+                self.electricity_fixed_amount = None
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_water_charges(self) -> "FeeStructureBase":
+        """Validate water charge configuration."""
+        if self.water_charges == ChargeType.FIXED_MONTHLY:
+            if not self.water_fixed_amount:
+                raise ValueError(
+                    "water_fixed_amount is required when "
+                    "water_charges is FIXED_MONTHLY"
+                )
+            if self.water_fixed_amount <= 0:
+                raise ValueError("Fixed water amount must be greater than zero")
+        
+        # Clear fixed amount if not fixed type
+        if self.water_charges != ChargeType.FIXED_MONTHLY:
+            if self.water_fixed_amount is not None:
+                # Automatically clear it
+                self.water_fixed_amount = None
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_mess_configuration(self) -> "FeeStructureBase":
+        """Validate mess configuration consistency."""
+        if self.includes_mess:
+            # If mess is included, charges should be 0
+            if self.mess_charges_monthly > 0:
+                raise ValueError(
+                    "mess_charges_monthly should be 0 when includes_mess is True. "
+                    "The mess cost is already included in base rent."
+                )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_effective_dates(self) -> "FeeStructureBase":
+        """Validate effective date range."""
+        if self.effective_to is not None:
+            if self.effective_to <= self.effective_from:
+                raise ValueError(
+                    f"effective_to ({self.effective_to}) must be after "
+                    f"effective_from ({self.effective_from})"
+                )
+            
+            # Check if date range is reasonable (not too long)
+            days_diff = (self.effective_to - self.effective_from).days
+            max_validity_days = 1825  # 5 years
+            
+            if days_diff > max_validity_days:
+                raise ValueError(
+                    f"Fee structure validity period ({days_diff} days) exceeds "
+                    f"maximum allowed ({max_validity_days} days / ~5 years)"
+                )
+        
+        return self
+
+    @field_validator("effective_from")
+    @classmethod
+    def validate_effective_from(cls, v: date) -> date:
+        """Validate effective_from date."""
+        # Allow backdated fee structures but warn if too old
+        days_ago = (date.today() - v).days
+        if days_ago > 365:
+            # Log warning - might be data migration
+            pass
+        
+        return v
+
+    @computed_field
+    @property
+    def is_currently_effective(self) -> bool:
+        """Check if fee structure is currently within effective date range."""
+        today = date.today()
+        if today < self.effective_from:
+            return False
+        if self.effective_to is not None and today > self.effective_to:
+            return False
+        return True
+
+    @computed_field
+    @property
+    def days_until_effective(self) -> int:
+        """Calculate days until fee structure becomes effective."""
+        if self.effective_from > date.today():
+            return (self.effective_from - date.today()).days
+        return 0
+
+    @computed_field
+    @property
+    def days_remaining(self) -> Optional[int]:
+        """Calculate days remaining until fee structure expires."""
+        if self.effective_to is None:
+            return None
+        if self.effective_to < date.today():
+            return 0
+        return (self.effective_to - date.today()).days
+
+    @computed_field
+    @property
+    def monthly_total_minimum(self) -> Decimal:
+        """
+        Calculate minimum monthly total.
+        
+        Includes base rent + mess + minimum utilities (if fixed).
+        """
+        total = self.amount
+        
+        if not self.includes_mess:
+            total += self.mess_charges_monthly
+        
+        if self.electricity_charges == ChargeType.FIXED_MONTHLY and self.electricity_fixed_amount:
+            total += self.electricity_fixed_amount
+        
+        if self.water_charges == ChargeType.FIXED_MONTHLY and self.water_fixed_amount:
+            total += self.water_fixed_amount
+        
+        return total.quantize(Decimal("0.01"))
 
 
 class FeeStructureCreate(FeeStructureBase, BaseCreateSchema):
-    """Create fee structure entry"""
-    pass
+    """
+    Schema for creating a new fee structure.
+    
+    All base fields are inherited. Additional creation-time
+    validations can be added here.
+    """
+
+    @model_validator(mode="after")
+    def validate_no_overlapping_periods(self) -> "FeeStructureCreate":
+        """
+        Validate that new fee structure doesn't overlap with existing ones.
+        
+        Note: This validation requires database access and should be
+        implemented at the service layer. This is a placeholder.
+        """
+        # In production, check for overlaps with existing fee structures
+        # for the same hostel_id and room_type
+        return self
 
 
 class FeeStructureUpdate(BaseUpdateSchema):
-    """Update fee structure"""
-    amount: Optional[Decimal] = Field(None, ge=0)
-    security_deposit: Optional[Decimal] = Field(None, ge=0)
-    includes_mess: Optional[bool] = None
-    mess_charges_monthly: Optional[Decimal] = Field(None, ge=0)
-    electricity_charges: Optional[ChargeType] = None
-    electricity_fixed_amount: Optional[Decimal] = Field(None, ge=0)
-    water_charges: Optional[ChargeType] = None
-    water_fixed_amount: Optional[Decimal] = Field(None, ge=0)
-    effective_from: Optional[date] = None
-    effective_to: Optional[date] = None
-    is_active: Optional[bool] = None
+    """
+    Schema for updating an existing fee structure.
+    
+    All fields are optional, allowing partial updates.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_config.py ---
+    # Pricing
+    amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Update base rent amount",
+    )
+    security_deposit: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Update security deposit",
+    )
+
+    # Mess
+    includes_mess: Optional[bool] = Field(
+        None,
+        description="Update mess inclusion",
+    )
+    mess_charges_monthly: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Update mess charges",
+    )
+
+    # Utilities
+    electricity_charges: Optional[ChargeType] = Field(
+        None,
+        description="Update electricity billing method",
+    )
+    electricity_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Update fixed electricity amount",
+    )
+
+    water_charges: Optional[ChargeType] = Field(
+        None,
+        description="Update water billing method",
+    )
+    water_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Update fixed water amount",
+    )
+
+    # Validity
+    effective_from: Optional[date] = Field(
+        None,
+        description="Update effective start date",
+    )
+    effective_to: Optional[date] = Field(
+        None,
+        description="Update effective end date",
+    )
+
+    # Status
+    is_active: Optional[bool] = Field(
+        None,
+        description="Update active status",
+    )
+
+    @field_validator("amount", "security_deposit", "mess_charges_monthly")
+    @classmethod
+    def validate_amounts(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Validate monetary amounts if provided."""
+        if v is not None:
+            if v < 0:
+                raise ValueError("Amount cannot be negative")
+            return v.quantize(Decimal("0.01"))
+        return v
+
+    @model_validator(mode="after")
+    def validate_partial_updates(self) -> "FeeStructureUpdate":
+        """Validate consistency in partial updates."""
+        # If electricity is being changed to FIXED_MONTHLY, amount must be provided
+        if self.electricity_charges == ChargeType.FIXED_MONTHLY:
+            if self.electricity_fixed_amount is None:
+                raise ValueError(
+                    "electricity_fixed_amount must be provided when changing "
+                    "electricity_charges to FIXED_MONTHLY"
+                )
+        
+        # If water is being changed to FIXED_MONTHLY, amount must be provided
+        if self.water_charges == ChargeType.FIXED_MONTHLY:
+            if self.water_fixed_amount is None:
+                raise ValueError(
+                    "water_fixed_amount must be provided when changing "
+                    "water_charges to FIXED_MONTHLY"
+                )
+        
+        # Validate date range if both dates are being updated
+        if self.effective_from is not None and self.effective_to is not None:
+            if self.effective_to <= self.effective_from:
+                raise ValueError(
+                    "effective_to must be after effective_from"
+                )
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure\fee_config.py ---
+# --- File: app/schemas/fee_structure/fee_config.py ---
 """
-Fee configuration & breakdown schemas
+Fee configuration and breakdown schemas.
+
+This module defines schemas for fee calculations, breakdowns,
+and comprehensive fee configurations.
 """
+
+from __future__ import annotations
+
 from decimal import Decimal
-from typing import Optional
-from pydantic import Field
+from typing import Dict, Optional
 from uuid import UUID
 
+from pydantic import Field, computed_field, field_validator
+
 from app.schemas.common.base import BaseSchema
-from app.schemas.common.enums import RoomType, FeeType, ChargeType
+from app.schemas.common.enums import ChargeType, FeeType, RoomType
+
+__all__ = [
+    "ChargesBreakdown",
+    "FeeConfiguration",
+    "FeeComparison",
+    "DiscountConfiguration",
+]
 
 
 class ChargesBreakdown(BaseSchema):
-    """Breakdown of all components of a fee"""
-    base_rent: Decimal
-    mess_charges: Decimal
-    electricity_charges: Decimal
-    water_charges: Decimal
-    other_charges: Decimal = Field(Decimal("0.00"))
+    """
+    Detailed breakdown of all fee components.
+    
+    Provides transparent itemization of all charges that make up
+    the total fee for a student.
+    """
 
-    total_monthly: Decimal
-    total_first_month: Decimal
-    security_deposit: Decimal
+    # Base Components
+    base_rent: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Base rent per period",
+    )
+    mess_charges: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Mess/food charges",
+    )
+    electricity_charges: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Electricity charges",
+    )
+    water_charges: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Water charges",
+    )
+    other_charges: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        decimal_places=2,
+        description="Other miscellaneous charges",
+    )
+
+    # Totals
+    total_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total monthly recurring charges",
+    )
+    total_first_month: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total for first month (may include one-time charges)",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="One-time refundable security deposit",
+    )
+
+    # Optional Discount
+    discount_amount: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        decimal_places=2,
+        description="Total discount applied",
+    )
+    discount_percentage: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Discount as percentage",
+    )
+
+    # Tax (if applicable)
+    tax_amount: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        decimal_places=2,
+        description="Tax amount (GST, etc.)",
+    )
+    tax_percentage: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Tax rate as percentage",
+    )
+
+    @computed_field
+    @property
+    def subtotal(self) -> Decimal:
+        """Calculate subtotal before discount and tax."""
+        return (
+            self.base_rent
+            + self.mess_charges
+            + self.electricity_charges
+            + self.water_charges
+            + self.other_charges
+        ).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def total_after_discount(self) -> Decimal:
+        """Calculate total after applying discount."""
+        return (self.total_monthly - self.discount_amount).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def grand_total(self) -> Decimal:
+        """Calculate grand total including tax."""
+        return (self.total_after_discount + self.tax_amount).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def total_upfront_payment(self) -> Decimal:
+        """
+        Calculate total upfront payment required.
+        
+        Includes security deposit + first month charges.
+        """
+        return (self.security_deposit + self.total_first_month).quantize(
+            Decimal("0.01")
+        )
 
 
 class FeeConfiguration(BaseSchema):
-    """Configuration for calculating total fees for a given booking/student"""
-    hostel_id: UUID
-    room_type: RoomType
-    fee_type: FeeType
+    """
+    Complete fee configuration for a hostel/room combination.
+    
+    Contains all pricing information and calculated breakdowns
+    for a specific booking or student assignment.
+    """
 
-    # Components
-    base_amount: Decimal
-    security_deposit: Decimal
-    includes_mess: bool
-    mess_charges_monthly: Decimal
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency",
+    )
 
-    electricity_charges: ChargeType
-    electricity_fixed_amount: Optional[Decimal]
-    water_charges: ChargeType
-    water_fixed_amount: Optional[Decimal]
+    # Base Components
+    base_amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Base rent amount",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Security deposit",
+    )
 
-    # Derived breakdown
-    breakdown: ChargesBreakdown
+    # Mess Configuration
+    includes_mess: bool = Field(
+        ...,
+        description="Whether mess is included",
+    )
+    mess_charges_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Monthly mess charges",
+    )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\fee_response.py ---
+    # Utility Configurations
+    electricity_charges: ChargeType = Field(
+        ...,
+        description="Electricity billing method",
+    )
+    electricity_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Fixed electricity amount",
+    )
+
+    water_charges: ChargeType = Field(
+        ...,
+        description="Water billing method",
+    )
+    water_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Fixed water amount",
+    )
+
+    # Calculated Breakdown
+    breakdown: ChargesBreakdown = Field(
+        ...,
+        description="Detailed charges breakdown",
+    )
+
+    # Additional Configuration
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Configuration description or notes",
+    )
+
+    @computed_field
+    @property
+    def has_variable_charges(self) -> bool:
+        """Check if configuration includes variable/actual charges."""
+        return (
+            self.electricity_charges == ChargeType.ACTUAL
+            or self.water_charges == ChargeType.ACTUAL
+        )
+
+    @computed_field
+    @property
+    def is_all_inclusive(self) -> bool:
+        """Check if all charges are included in base rent."""
+        return (
+            self.includes_mess
+            and self.electricity_charges == ChargeType.INCLUDED
+            and self.water_charges == ChargeType.INCLUDED
+        )
+
+
+class DiscountConfiguration(BaseSchema):
+    """
+    Discount configuration schema.
+    
+    Defines various types of discounts that can be applied
+    to fee structures.
+    """
+
+    discount_name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        description="Name of the discount",
+    )
+    discount_type: str = Field(
+        ...,
+        pattern=r"^(percentage|fixed_amount|waiver)$",
+        description="Type of discount",
+    )
+
+    # Discount Value
+    discount_percentage: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=100,
+        decimal_places=2,
+        description="Discount percentage (if type is percentage)",
+    )
+    discount_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Fixed discount amount (if type is fixed_amount)",
+    )
+
+    # Applicability
+    applies_to: str = Field(
+        ...,
+        pattern=r"^(base_rent|mess_charges|total|security_deposit)$",
+        description="What the discount applies to",
+    )
+
+    # Conditions
+    minimum_stay_months: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Minimum stay required for discount",
+    )
+    valid_for_new_students_only: bool = Field(
+        False,
+        description="Whether discount is only for new students",
+    )
+
+    # Validity
+    valid_from: Optional[date] = Field(
+        None,
+        description="Discount valid from date",
+    )
+    valid_to: Optional[date] = Field(
+        None,
+        description="Discount valid until date",
+    )
+
+    is_active: bool = Field(
+        True,
+        description="Whether discount is currently active",
+    )
+
+    @field_validator("discount_type")
+    @classmethod
+    def validate_discount_type(cls, v: str) -> str:
+        """Normalize discount type."""
+        return v.lower()
+
+    @field_validator("discount_name")
+    @classmethod
+    def validate_discount_name(cls, v: str) -> str:
+        """Validate discount name."""
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Discount name must be at least 3 characters")
+        return v
+
+    @computed_field
+    @property
+    def is_currently_valid(self) -> bool:
+        """Check if discount is currently valid."""
+        if not self.is_active:
+            return False
+        
+        today = date.today()
+        
+        if self.valid_from and today < self.valid_from:
+            return False
+        
+        if self.valid_to and today > self.valid_to:
+            return False
+        
+        return True
+
+
+class FeeComparison(BaseSchema):
+    """
+    Fee comparison schema for comparing different room types or periods.
+    
+    Useful for displaying pricing comparisons to potential students.
+    """
+
+    room_types: Dict[str, ChargesBreakdown] = Field(
+        ...,
+        description="Breakdown by room type",
+    )
+
+    # Comparison Metadata
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel being compared",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency for comparison",
+    )
+
+    # Recommendations
+    most_economical: str = Field(
+        ...,
+        description="Most economical room type",
+    )
+    most_popular: Optional[str] = Field(
+        None,
+        description="Most popular room type",
+    )
+    best_value: Optional[str] = Field(
+        None,
+        description="Best value room type",
+    )
+
+    @computed_field
+    @property
+    def price_range(self) -> str:
+        """Get price range across all room types."""
+        if not self.room_types:
+            return "Not available"
+        
+        prices = [breakdown.total_monthly for breakdown in self.room_types.values()]
+        min_price = min(prices)
+        max_price = max(prices)
+        
+        return f"₹{min_price:,.2f} - ₹{max_price:,.2f}"
+
+    @computed_field
+    @property
+    def average_price(self) -> Decimal:
+        """Calculate average price across room types."""
+        if not self.room_types:
+            return Decimal("0.00")
+        
+        total = sum(breakdown.total_monthly for breakdown in self.room_types.values())
+        return (total / len(self.room_types)).quantize(Decimal("0.01"))
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure\fee_response.py ---
+# --- File: app/schemas/fee_structure/fee_response.py ---
 """
-Fee structure response schemas
+Fee structure response schemas for API responses.
+
+This module defines response schemas for fee structure data including
+basic responses, detailed information, and list views.
 """
+
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
-from pydantic import Field
+from typing import Dict, List, Optional
 from uuid import UUID
 
+from pydantic import Field, computed_field
+
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import RoomType, FeeType, ChargeType
+from app.schemas.common.enums import ChargeType, FeeType, RoomType
+
+__all__ = [
+    "FeeStructureResponse",
+    "FeeDetail",
+    "FeeStructureList",
+    "FeeHistory",
+    "FeeHistoryItem",
+    "FeeCalculation",
+]
 
 
 class FeeStructureResponse(BaseResponseSchema):
-    """Fee structure response"""
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Standard fee structure response schema.
+    
+    Contains core fee structure information for API responses.
+    """
 
-    room_type: RoomType
-    fee_type: FeeType
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
 
-    amount: Decimal
-    security_deposit: Decimal
+    # Fee Configuration
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency",
+    )
 
-    includes_mess: bool
-    mess_charges_monthly: Decimal
+    # Base Charges
+    amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Base rent amount",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Security deposit",
+    )
 
-    electricity_charges: ChargeType
-    electricity_fixed_amount: Optional[Decimal]
+    # Mess Charges
+    includes_mess: bool = Field(
+        ...,
+        description="Whether mess is included",
+    )
+    mess_charges_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Monthly mess charges",
+    )
 
-    water_charges: ChargeType
-    water_fixed_amount: Optional[Decimal]
+    # Utility Charges
+    electricity_charges: ChargeType = Field(
+        ...,
+        description="Electricity billing method",
+    )
+    electricity_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Fixed electricity amount",
+    )
 
-    effective_from: date
-    effective_to: Optional[date]
-    is_active: bool
+    water_charges: ChargeType = Field(
+        ...,
+        description="Water billing method",
+    )
+    water_fixed_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Fixed water amount",
+    )
+
+    # Validity Period
+    effective_from: date = Field(
+        ...,
+        description="Effective start date",
+    )
+    effective_to: Optional[date] = Field(
+        None,
+        description="Effective end date",
+    )
+
+    # Status
+    is_active: bool = Field(
+        ...,
+        description="Active status",
+    )
+
+    @computed_field
+    @property
+    def total_monthly_minimum(self) -> Decimal:
+        """
+        Calculate minimum monthly total.
+        
+        Includes all fixed charges that apply monthly.
+        """
+        total = self.amount
+        
+        # Add mess charges if not included
+        if not self.includes_mess:
+            total += self.mess_charges_monthly
+        
+        # Add fixed utility charges
+        if self.electricity_charges == ChargeType.FIXED_MONTHLY and self.electricity_fixed_amount:
+            total += self.electricity_fixed_amount
+        
+        if self.water_charges == ChargeType.FIXED_MONTHLY and self.water_fixed_amount:
+            total += self.water_fixed_amount
+        
+        return total.quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def is_currently_effective(self) -> bool:
+        """Check if fee structure is currently in effect."""
+        today = date.today()
+        
+        if today < self.effective_from:
+            return False
+        
+        if self.effective_to is not None and today > self.effective_to:
+            return False
+        
+        return True
+
+    @computed_field
+    @property
+    def status_display(self) -> str:
+        """Get user-friendly status display."""
+        if not self.is_active:
+            return "Inactive"
+        
+        if not self.is_currently_effective:
+            if date.today() < self.effective_from:
+                return "Scheduled"
+            else:
+                return "Expired"
+        
+        return "Active"
+
+    @computed_field
+    @property
+    def has_variable_charges(self) -> bool:
+        """Check if structure includes variable charges."""
+        return (
+            self.electricity_charges == ChargeType.ACTUAL
+            or self.water_charges == ChargeType.ACTUAL
+        )
 
 
 class FeeDetail(BaseSchema):
-    """Full fee detail for a room type (assembled for UI)"""
-    room_type: RoomType
-    fee_type: FeeType
-    amount: Decimal
-    security_deposit: Decimal
-    includes_mess: bool
-    mess_charges_monthly: Decimal
-    total_first_month_payable: Decimal
-    total_recurring_monthly: Decimal
+    """
+    Detailed fee information for a room type.
+    
+    Assembled view optimized for UI display with all calculations
+    pre-computed.
+    """
+
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+    room_type_display: str = Field(
+        ...,
+        description="Human-readable room type name",
+    )
+
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency",
+    )
+
+    # Breakdown
+    amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Base rent amount",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Security deposit",
+    )
+
+    includes_mess: bool = Field(
+        ...,
+        description="Mess included",
+    )
+    mess_charges_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Monthly mess charges",
+    )
+
+    # Calculated Totals
+    total_first_month_payable: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total amount due for first month (including security deposit)",
+    )
+    total_recurring_monthly: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Recurring monthly charges",
+    )
+
+    # Utility Information
+    utilities_included: bool = Field(
+        ...,
+        description="Whether utilities are included in base rent",
+    )
+    utilities_description: str = Field(
+        ...,
+        description="Description of utility billing",
+    )
+
+    # Availability
+    available_beds: int = Field(
+        ...,
+        ge=0,
+        description="Number of available beds for this room type",
+    )
+
+    # Discounts
+    has_discounts: bool = Field(
+        False,
+        description="Whether discounts are available",
+    )
+    discount_info: Optional[str] = Field(
+        None,
+        description="Discount information",
+    )
+
+    @computed_field
+    @property
+    def is_available(self) -> bool:
+        """Check if room type has availability."""
+        return self.available_beds > 0
+
+    @computed_field
+    @property
+    def savings_with_longer_stay(self) -> Optional[Decimal]:
+        """Calculate potential savings with longer billing periods."""
+        # This would be calculated based on quarterly/yearly discounts
+        # Placeholder for business logic
+        return None
 
 
 class FeeStructureList(BaseSchema):
-    """List of fee structures for a hostel"""
-    hostel_id: UUID
-    hostel_name: str
-    items: List[FeeStructureResponse] = Field(default_factory=list)
+    """
+    List of fee structures for a hostel.
+    
+    Provides organized view of all fee structures.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\fee_structure\__init__.py ---
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+
+    # Fee Structures
+    items: List[FeeStructureResponse] = Field(
+        default_factory=list,
+        description="List of fee structures",
+    )
+
+    # Summary Statistics
+    total_structures: int = Field(
+        ...,
+        ge=0,
+        description="Total number of fee structures",
+    )
+    active_structures: int = Field(
+        ...,
+        ge=0,
+        description="Number of active structures",
+    )
+
+    # Price Range
+    min_monthly_rent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Minimum monthly rent across all room types",
+    )
+    max_monthly_rent: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Maximum monthly rent across all room types",
+    )
+
+    @computed_field
+    @property
+    def price_range_display(self) -> str:
+        """Get formatted price range."""
+        if self.min_monthly_rent is None or self.max_monthly_rent is None:
+            return "Not available"
+        
+        if self.min_monthly_rent == self.max_monthly_rent:
+            return f"₹{self.min_monthly_rent:,.2f}/month"
+        
+        return f"₹{self.min_monthly_rent:,.2f} - ₹{self.max_monthly_rent:,.2f}/month"
+
+    @computed_field
+    @property
+    def room_types_available(self) -> List[str]:
+        """Get list of available room types."""
+        return list(set(item.room_type.value for item in self.items if item.is_active))
+
+
+class FeeHistoryItem(BaseSchema):
+    """
+    Individual fee history entry.
+    
+    Represents a single historical fee structure.
+    """
+
+    fee_structure_id: UUID = Field(
+        ...,
+        description="Fee structure ID",
+    )
+
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+
+    amount: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Rent amount",
+    )
+
+    effective_from: date = Field(
+        ...,
+        description="Effective start date",
+    )
+    effective_to: Optional[date] = Field(
+        None,
+        description="Effective end date",
+    )
+
+    # Change Information
+    changed_by: Optional[UUID] = Field(
+        None,
+        description="Admin who made the change",
+    )
+    changed_by_name: Optional[str] = Field(
+        None,
+        description="Name of admin who made change",
+    )
+    change_reason: Optional[str] = Field(
+        None,
+        description="Reason for change",
+    )
+
+    # Previous Value (for comparison)
+    previous_amount: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        decimal_places=2,
+        description="Previous rent amount",
+    )
+
+    @computed_field
+    @property
+    def amount_change(self) -> Optional[Decimal]:
+        """Calculate amount change from previous."""
+        if self.previous_amount is None:
+            return None
+        return (self.amount - self.previous_amount).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def amount_change_percentage(self) -> Optional[Decimal]:
+        """Calculate percentage change."""
+        if self.previous_amount is None or self.previous_amount == 0:
+            return None
+        
+        change = ((self.amount - self.previous_amount) / self.previous_amount) * 100
+        return Decimal(change).quantize(Decimal("0.01"))
+
+    @computed_field
+    @property
+    def is_increase(self) -> bool:
+        """Check if this was a price increase."""
+        if self.amount_change is None:
+            return False
+        return self.amount_change > 0
+
+
+class FeeHistory(BaseSchema):
+    """
+    Fee history for a hostel/room type.
+    
+    Tracks all historical changes to fee structures.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel ID",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+
+    # History Entries
+    history: List[FeeHistoryItem] = Field(
+        default_factory=list,
+        description="List of historical fee structures (ordered by date)",
+    )
+
+    # Statistics
+    total_changes: int = Field(
+        ...,
+        ge=0,
+        description="Total number of fee changes",
+    )
+    average_change_interval_days: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Average days between fee changes",
+    )
+
+    @computed_field
+    @property
+    def current_fee(self) -> Optional[FeeHistoryItem]:
+        """Get current active fee structure."""
+        today = date.today()
+        
+        for entry in self.history:
+            if entry.effective_from <= today:
+                if entry.effective_to is None or entry.effective_to >= today:
+                    return entry
+        
+        return None
+
+    @computed_field
+    @property
+    def total_increases(self) -> int:
+        """Count number of price increases."""
+        return sum(1 for entry in self.history if entry.is_increase)
+
+    @computed_field
+    @property
+    def total_decreases(self) -> int:
+        """Count number of price decreases."""
+        return sum(
+            1 for entry in self.history 
+            if entry.amount_change is not None and entry.amount_change < 0
+        )
+
+
+class FeeCalculation(BaseSchema):
+    """
+    Fee calculation result.
+    
+    Contains detailed calculation for a specific student booking
+    or fee estimation.
+    """
+
+    # Input Parameters
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel ID",
+    )
+    room_type: RoomType = Field(
+        ...,
+        description="Room type",
+    )
+    fee_type: FeeType = Field(
+        ...,
+        description="Billing frequency",
+    )
+    stay_duration_months: int = Field(
+        ...,
+        ge=1,
+        description="Stay duration in months",
+    )
+
+    # Base Charges
+    monthly_rent: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Monthly rent",
+    )
+    security_deposit: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Security deposit",
+    )
+
+    # Additional Charges
+    mess_charges_total: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total mess charges for duration",
+    )
+    utility_charges_estimated: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        decimal_places=2,
+        description="Estimated utility charges",
+    )
+
+    # Discounts
+    discount_applied: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        decimal_places=2,
+        description="Total discount amount",
+    )
+    discount_description: Optional[str] = Field(
+        None,
+        description="Discount details",
+    )
+
+    # Totals
+    subtotal: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Subtotal before discount",
+    )
+    total_payable: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Total amount payable",
+    )
+    first_month_total: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Amount due for first month",
+    )
+
+    # Payment Schedule
+    monthly_recurring: Decimal = Field(
+        ...,
+        ge=0,
+        decimal_places=2,
+        description="Recurring monthly amount",
+    )
+
+    # Breakdown by Period
+    payment_schedule: Dict[int, Decimal] = Field(
+        default_factory=dict,
+        description="Payment schedule by month number",
+    )
+
+    @computed_field
+    @property
+    def average_monthly_cost(self) -> Decimal:
+        """Calculate average monthly cost including all charges."""
+        if self.stay_duration_months == 0:
+            return Decimal("0.00")
+        
+        # Exclude security deposit from average (it's refundable)
+        total_without_deposit = self.total_payable - self.security_deposit
+        
+        return (total_without_deposit / self.stay_duration_months).quantize(
+            Decimal("0.01")
+        )
+
+    @computed_field
+    @property
+    def total_savings(self) -> Decimal:
+        """Calculate total savings from discounts."""
+        return self.discount_applied
+
+    @computed_field
+    @property
+    def savings_percentage(self) -> Decimal:
+        """Calculate savings as percentage of original amount."""
+        if self.subtotal == 0:
+            return Decimal("0.00")
+        
+        return ((self.discount_applied / self.subtotal) * 100).quantize(
+            Decimal("0.01")
+        )
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure\__init__.py ---
+# --- File: app/schemas/fee_structure/__init__.py ---
 """
-Fee structure & configuration schemas package
+Fee structure and configuration schemas package.
+
+This module exports all fee structure-related schemas for easy importing
+across the application.
 """
+
+from __future__ import annotations
 
 from app.schemas.fee_structure.fee_base import (
     FeeStructureBase,
     FeeStructureCreate,
     FeeStructureUpdate,
 )
-from app.schemas.fee_structure.fee_response import (
-    FeeStructureResponse,
-    FeeDetail,
-    FeeStructureList,
-)
 from app.schemas.fee_structure.fee_config import (
-    FeeConfiguration,
     ChargesBreakdown,
+    DiscountConfiguration,
+    FeeComparison,
+    FeeConfiguration,
+)
+from app.schemas.fee_structure.fee_response import (
+    FeeCalculation,
+    FeeDetail,
+    FeeHistory,
+    FeeHistoryItem,
+    FeeStructureList,
+    FeeStructureResponse,
 )
 
 __all__ = [
@@ -198,7 +1556,15 @@ __all__ = [
     "FeeStructureResponse",
     "FeeDetail",
     "FeeStructureList",
-    # Config
+    "FeeHistory",
+    "FeeHistoryItem",
+    "FeeCalculation",
+    # Configuration
     "FeeConfiguration",
     "ChargesBreakdown",
+    "DiscountConfiguration",
+    "FeeComparison",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\fee_structure\__pycache__ =====

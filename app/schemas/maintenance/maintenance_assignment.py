@@ -12,7 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -34,6 +34,19 @@ class TaskAssignment(BaseSchema):
     Tracks assignment of maintenance tasks to hostel staff
     with deadlines and instructions.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "assigned_to_name": "John Technician",
+                "assigned_by_name": "Supervisor Smith",
+                "deadline": "2024-12-31",
+                "priority_level": "high"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -139,6 +152,19 @@ class VendorAssignment(BaseCreateSchema):
     Manages outsourced maintenance work with contract terms,
     quotes, and payment details.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "vendor_name": "ABC Contractors Ltd",
+                "vendor_contact": "+919876543210",
+                "quoted_amount": "15000.00",
+                "estimated_completion_date": "2024-12-31",
+                "payment_terms": "50% advance, 50% on completion"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -174,7 +200,6 @@ class VendorAssignment(BaseCreateSchema):
     quoted_amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Vendor quoted amount",
     )
@@ -202,7 +227,6 @@ class VendorAssignment(BaseCreateSchema):
     advance_payment_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Advance payment amount",
     )
@@ -363,6 +387,17 @@ class AssignmentUpdate(BaseCreateSchema):
     
     Allows reassignment, deadline changes, and additional instructions.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "new_assigned_to": "123e4567-e89b-12d3-a456-426614174222",
+                "reassignment_reason": "Original assignee is on leave",
+                "updated_by": "123e4567-e89b-12d3-a456-426614174111"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -476,6 +511,21 @@ class BulkAssignment(BaseCreateSchema):
     
     Efficient bulk assignment for batch processing of similar issues.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_ids": [
+                    "123e4567-e89b-12d3-a456-426614174000",
+                    "123e4567-e89b-12d3-a456-426614174001"
+                ],
+                "assigned_to": "123e4567-e89b-12d3-a456-426614174222",
+                "assigned_by": "123e4567-e89b-12d3-a456-426614174111",
+                "common_deadline": "2024-12-31",
+                "priority_level": "medium"
+            }
+        }
+    )
 
     maintenance_ids: List[UUID] = Field(
         ...,
@@ -562,6 +612,19 @@ class AssignmentEntry(BaseSchema):
     
     Represents a single assignment in the history timeline.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "assignment_id": "123e4567-e89b-12d3-a456-426614174000",
+                "assigned_to_name": "John Technician",
+                "assigned_by_name": "Supervisor Smith",
+                "assigned_at": "2024-01-15T10:00:00",
+                "completed": True,
+                "was_on_time": True
+            }
+        }
+    )
 
     assignment_id: UUID = Field(
         ...,
@@ -673,6 +736,18 @@ class AssignmentHistory(BaseSchema):
     Tracks all assignments, reassignments, and completions
     for audit trail and performance analysis.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "total_assignments": 2,
+                "current_assignee": "John Technician",
+                "total_reassignments": 1
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,

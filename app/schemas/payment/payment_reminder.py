@@ -8,7 +8,7 @@ logging, manual sending, and statistics.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -202,7 +202,7 @@ class ReminderLog(BaseResponseSchema):
         description="Error message if delivery failed",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def was_successful(self) -> bool:
         """Check if reminder was successfully delivered."""
@@ -351,7 +351,7 @@ class ReminderBatch(BaseSchema):
         description="Batch processing status",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def success_rate(self) -> float:
         """Calculate success rate as percentage."""
@@ -360,7 +360,7 @@ class ReminderBatch(BaseSchema):
             return 0.0
         return round((self.reminders_sent / total) * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_channels_used(self) -> int:
         """Count total reminder sends across all channels."""
@@ -441,7 +441,7 @@ class ReminderStats(BaseSchema):
         description="Average days from reminder to payment",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def most_effective_channel(self) -> str:
         """Determine most used channel."""
@@ -450,4 +450,4 @@ class ReminderStats(BaseSchema):
             "sms": self.sms_reminders,
             "push": self.push_reminders,
         }
-        return max(channels, key=channels.get)
+        return max(channels, key=channels.get)  # type: ignore

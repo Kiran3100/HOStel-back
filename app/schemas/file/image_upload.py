@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
+from pydantic import Field, HttpUrl, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.file.file_upload import FileUploadInitResponse
@@ -45,8 +45,8 @@ class ImageUploadInitRequest(BaseCreateSchema):
     )
 
     uploaded_by_user_id: str = Field(...)
-    hostel_id: Optional[str] = Field(None)
-    student_id: Optional[str] = Field(None)
+    hostel_id: Optional[str] = Field(default=None)
+    student_id: Optional[str] = Field(default=None)
 
     # Image context
     usage: str = Field(
@@ -138,11 +138,11 @@ class ImageVariant(BaseSchema):
     url: HttpUrl = Field(..., description="Variant URL")
 
     # Dimensions
-    width: int = Field(ge=1, description="Width in pixels")
-    height: int = Field(ge=1, description="Height in pixels")
+    width: int = Field(..., ge=1, description="Width in pixels")
+    height: int = Field(..., ge=1, description="Height in pixels")
 
     # File information
-    size_bytes: int = Field(ge=0, description="Variant file size")
+    size_bytes: int = Field(..., ge=0, description="Variant file size")
     format: str = Field(..., description="Image format", examples=["jpeg", "png", "webp"])
 
     # Processing
@@ -151,7 +151,7 @@ class ImageVariant(BaseSchema):
         description="Whether variant was optimized",
     )
     quality: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=100,
         description="Quality setting used",
@@ -195,7 +195,7 @@ class ImageUploadInitResponse(FileUploadInitResponse):
         description="Whether format conversion will occur",
     )
     target_format: Optional[str] = Field(
-        None,
+        default=None,
         description="Target format if converting",
         examples=["webp", "jpeg"],
     )
@@ -213,9 +213,9 @@ class ImageProcessingResult(BaseSchema):
 
     # Original image
     original_url: HttpUrl = Field(..., description="Original image URL")
-    original_width: int = Field(ge=1, description="Original width")
-    original_height: int = Field(ge=1, description="Original height")
-    original_size_bytes: int = Field(ge=0, description="Original file size")
+    original_width: int = Field(..., ge=1, description="Original width")
+    original_height: int = Field(..., ge=1, description="Original height")
+    original_size_bytes: int = Field(..., ge=0, description="Original file size")
 
     # Generated variants
     variants: List[ImageVariant] = Field(
@@ -230,12 +230,12 @@ class ImageProcessingResult(BaseSchema):
         examples=["completed", "failed", "partial"],
     )
     processing_time_seconds: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         description="Time taken to process",
     )
     processing_error: Optional[str] = Field(
-        None,
+        default=None,
         description="Error message if processing failed",
     )
 
@@ -245,7 +245,7 @@ class ImageProcessingResult(BaseSchema):
         description="Whether optimization was applied",
     )
     size_reduction_percentage: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         le=100,
         description="Percentage of size reduction from optimization",
@@ -328,7 +328,7 @@ class ImageProcessingOptions(BaseSchema):
 
     # Watermark
     watermark_enabled: bool = Field(default=False)
-    watermark_text: Optional[str] = Field(None, max_length=50)
+    watermark_text: Optional[str] = Field(default=None, max_length=50)
     watermark_position: str = Field(
         default="bottom-right",
         pattern=r"^(top-left|top-right|bottom-left|bottom-right|center)$",
@@ -344,11 +344,11 @@ class ImageMetadata(BaseSchema):
     """
 
     # Basic properties
-    width: int = Field(ge=1, description="Width in pixels")
-    height: int = Field(ge=1, description="Height in pixels")
+    width: int = Field(..., ge=1, description="Width in pixels")
+    height: int = Field(..., ge=1, description="Height in pixels")
     format: str = Field(..., description="Image format")
     mode: Optional[str] = Field(
-        None,
+        default=None,
         description="Color mode (RGB, RGBA, L, etc.)",
     )
 
@@ -358,18 +358,17 @@ class ImageMetadata(BaseSchema):
         description="Whether image has alpha channel",
     )
     color_space: Optional[str] = Field(
-        None,
+        default=None,
         description="Color space (sRGB, Adobe RGB, etc.)",
     )
 
     # EXIF data (if preserved)
-    camera_make: Optional[str] = Field(None, description="Camera manufacturer")
-    camera_model: Optional[str] = Field(None, description="Camera model")
-    date_taken: Optional[str] = Field(None, description="Date photo was taken")
-    gps_latitude: Optional[float] = Field(None, description="GPS latitude")
-    gps_longitude: Optional[float] = Field(None, description="GPS longitude")
+    camera_make: Optional[str] = Field(default=None, description="Camera manufacturer")
+    camera_model: Optional[str] = Field(default=None, description="Camera model")
+    date_taken: Optional[str] = Field(default=None, description="Date photo was taken")
+    gps_latitude: Optional[float] = Field(default=None, description="GPS latitude")
+    gps_longitude: Optional[float] = Field(default=None, description="GPS longitude")
 
-    # Computed properties
     @computed_field
     @property
     def aspect_ratio(self) -> str:

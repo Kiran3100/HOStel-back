@@ -9,10 +9,10 @@ basic responses, detailed information, and list items.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Dict, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field
+from pydantic import ConfigDict, Field, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
@@ -31,6 +31,24 @@ class InquiryResponse(BaseResponseSchema):
     
     Contains core inquiry information for API responses.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174001",
+                "hostel_name": "North Campus Hostel A",
+                "visitor_name": "John Smith",
+                "visitor_email": "john.smith@example.com",
+                "visitor_phone": "+919876543210",
+                "preferred_check_in_date": "2024-03-01",
+                "stay_duration_months": 6,
+                "room_type_preference": "single",
+                "status": "new",
+                "created_at": "2024-01-15T10:30:00Z"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -80,25 +98,25 @@ class InquiryResponse(BaseResponseSchema):
         description="When inquiry was created",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def age_days(self) -> int:
         """Calculate age of inquiry in days."""
         return (datetime.utcnow() - self.created_at).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_new(self) -> bool:
         """Check if inquiry is new (less than 24 hours old)."""
         return self.age_days < 1
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_stale(self) -> bool:
         """Check if inquiry is stale (older than 7 days without contact)."""
         return self.age_days > 7 and self.status == InquiryStatus.NEW
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def urgency_level(self) -> str:
         """
@@ -121,6 +139,26 @@ class InquiryDetail(BaseResponseSchema):
     Contains complete inquiry details including contact history,
     notes, and assignment information.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174001",
+                "hostel_name": "North Campus Hostel A",
+                "visitor_name": "John Smith",
+                "visitor_email": "john.smith@example.com",
+                "visitor_phone": "+919876543210",
+                "preferred_check_in_date": "2024-03-01",
+                "stay_duration_months": 6,
+                "message": "I am interested in a single room.",
+                "inquiry_source": "website",
+                "status": "contacted",
+                "contacted_by_name": "Admin User",
+                "created_at": "2024-01-15T10:30:00Z"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -219,25 +257,25 @@ class InquiryDetail(BaseResponseSchema):
         description="Last update timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def age_days(self) -> int:
         """Calculate inquiry age in days."""
         return (datetime.utcnow() - self.created_at).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_been_contacted(self) -> bool:
         """Check if visitor has been contacted."""
         return self.contacted_at is not None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_assigned(self) -> bool:
         """Check if inquiry has been assigned to someone."""
         return self.assigned_to is not None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def response_time_hours(self) -> Optional[float]:
         """Calculate response time in hours if contacted."""
@@ -247,7 +285,7 @@ class InquiryDetail(BaseResponseSchema):
         delta = self.contacted_at - self.created_at
         return round(delta.total_seconds() / 3600, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_since_contact(self) -> Optional[int]:
         """Calculate days since last contact."""
@@ -264,6 +302,22 @@ class InquiryListItem(BaseSchema):
     Optimized schema for displaying multiple inquiries
     with essential information only.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "hostel_name": "North Campus Hostel A",
+                "visitor_name": "John Smith",
+                "visitor_phone": "+919876543210",
+                "preferred_check_in_date": "2024-03-01",
+                "status": "new",
+                "created_at": "2024-01-15T10:30:00Z",
+                "is_urgent": True,
+                "is_assigned": False
+            }
+        }
+    )
 
     id: UUID = Field(
         ...,
@@ -316,13 +370,13 @@ class InquiryListItem(BaseSchema):
         description="Whether inquiry is assigned to someone",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def age_days(self) -> int:
         """Calculate inquiry age."""
         return (datetime.utcnow() - self.created_at).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_badge_color(self) -> str:
         """Get color code for status badge."""
@@ -342,6 +396,25 @@ class InquiryStats(BaseSchema):
     
     Provides metrics about inquiry performance and conversion.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_inquiries": 150,
+                "new_inquiries": 25,
+                "contacted_inquiries": 100,
+                "converted_inquiries": 50,
+                "average_response_time_hours": 4.5,
+                "conversion_rate": 50.0,
+                "interest_rate": 75.0,
+                "inquiries_by_source": {
+                    "website": 80,
+                    "phone": 40,
+                    "walkin": 30
+                }
+            }
+        }
+    )
 
     # Volume Metrics
     total_inquiries: int = Field(
@@ -387,18 +460,18 @@ class InquiryStats(BaseSchema):
     )
 
     # Source Breakdown
-    inquiries_by_source: dict = Field(
+    inquiries_by_source: Dict[str, int] = Field(
         default_factory=dict,
         description="Breakdown of inquiries by source",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def pending_action_count(self) -> int:
         """Count inquiries needing action (NEW + CONTACTED)."""
         return self.new_inquiries + self.contacted_inquiries
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def response_rate(self) -> float:
         """Calculate percentage of inquiries that were contacted."""

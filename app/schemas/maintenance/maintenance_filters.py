@@ -8,11 +8,12 @@ for searches, exports, and advanced queries.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseFilterSchema
@@ -38,6 +39,18 @@ class MaintenanceFilterParams(BaseFilterSchema):
     Supports multi-dimensional filtering for maintenance requests
     with text search, date ranges, and status filters.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "search": "ceiling fan",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "status": "pending",
+                "category": "electrical",
+                "priority": "high"
+            }
+        }
+    )
 
     # Text search
     search: Optional[str] = Field(
@@ -333,6 +346,19 @@ class SearchRequest(BaseFilterSchema):
     
     Optimized for text-based searches with field-specific targeting.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "ceiling fan not working",
+                "search_in_title": True,
+                "search_in_description": True,
+                "status": "pending",
+                "page": 1,
+                "page_size": 20
+            }
+        }
+    )
 
     query: str = Field(
         ...,
@@ -433,6 +459,18 @@ class AdvancedFilterParams(MaintenanceFilterParams):
     
     Extends basic filters with complex queries and analytics filters.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "search": "electrical",
+                "created_in_last_days": 30,
+                "over_budget": True,
+                "sort_by": "created_at",
+                "sort_order": "desc"
+            }
+        }
+    )
 
     # Time-based filters
     created_in_last_days: Optional[int] = Field(
@@ -564,6 +602,19 @@ class MaintenanceExportRequest(BaseFilterSchema):
     Supports multiple export formats with customizable content
     and field selection.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "format": "csv",
+                "include_cost_details": True,
+                "include_summary": True,
+                "date_from": "2024-01-01",
+                "date_to": "2024-12-31",
+                "max_records": 1000
+            }
+        }
+    )
 
     hostel_id: Optional[UUID] = Field(
         None,
@@ -684,7 +735,6 @@ class MaintenanceExportRequest(BaseFilterSchema):
     def validate_filename(cls, v: Optional[str]) -> Optional[str]:
         """Validate and sanitize filename."""
         if v is not None:
-            import re
             # Remove invalid characters
             v = re.sub(r'[<>:"/\\|?*]', '', v)
             v = v.strip()

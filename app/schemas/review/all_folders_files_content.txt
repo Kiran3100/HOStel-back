@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\review ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\review =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_analytics.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_analytics.py ---
 # --- File: app/schemas/review/review_analytics.py ---
 """
 Review analytics schemas with comprehensive metrics and trend analysis.
@@ -677,7 +677,7 @@ class ReviewAnalytics(BaseSchema):
         else:
             return "poor"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_base.py ---
 # --- File: app/schemas/review/review_base.py ---
 """
 Base review schemas with comprehensive validation.
@@ -1099,7 +1099,7 @@ class ReviewUpdate(BaseUpdateSchema):
         
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_filters.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_filters.py ---
 # --- File: app/schemas/review/review_filters.py ---
 """
 Review filter and search schemas with advanced filtering options.
@@ -1410,7 +1410,7 @@ class ReviewExportRequest(BaseFilterSchema):
             raise ValueError("date_to must be on or after date_from")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_moderation.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_moderation.py ---
 # --- File: app/schemas/review/review_moderation.py ---
 """
 Review moderation and approval workflow schemas.
@@ -1866,7 +1866,7 @@ class ModerationStats(BaseSchema):
             raise ValueError("period_end must be on or after period_start")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_response.py ---
 # --- File: app/schemas/review/review_response.py ---
 """
 Review response schemas for API responses.
@@ -2242,7 +2242,7 @@ class ReviewSummary(BaseSchema):
         else:
             return "poor"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_response_schema.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_response_schema.py ---
 # --- File: app/schemas/review/review_response_schema.py ---
 """
 Hostel response to review schemas.
@@ -2648,7 +2648,7 @@ class ResponseTemplate(BaseSchema):
         """Normalize category to lowercase."""
         return v.lower().strip()
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_submission.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_submission.py ---
 # --- File: app/schemas/review/review_submission.py ---
 """
 Review submission and verification schemas.
@@ -3201,7 +3201,7 @@ class ReviewDraft(BaseSchema):
         """Check if draft is expired."""
         return datetime.utcnow() > self.expires_at
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\review_voting.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\review_voting.py ---
 # --- File: app/schemas/review/review_voting.py ---
 """
 Review voting (helpful/not helpful) schemas.
@@ -3544,7 +3544,7 @@ class VotingStats(BaseSchema):
         else:
             return "negative"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\review\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\__init__.py ---
 # --- File: app/schemas/review/__init__.py ---
 """
 Review schemas package.
@@ -3715,4 +3715,4 @@ __all__ = [
 ]
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\review\__pycache__ =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\review\__pycache__ =====

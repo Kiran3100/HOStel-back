@@ -8,6 +8,7 @@ and comprehensive fee configurations.
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from typing import Dict, Optional
 from uuid import UUID
@@ -36,31 +37,31 @@ class ChargesBreakdown(BaseSchema):
     # Base Components
     base_rent: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Base rent per period",
     )
     mess_charges: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Mess/food charges",
     )
     electricity_charges: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Electricity charges",
     )
     water_charges: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Water charges",
     )
     other_charges: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         decimal_places=2,
         description="Other miscellaneous charges",
     )
@@ -68,49 +69,49 @@ class ChargesBreakdown(BaseSchema):
     # Totals
     total_monthly: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total monthly recurring charges",
     )
     total_first_month: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total for first month (may include one-time charges)",
     )
     security_deposit: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="One-time refundable security deposit",
     )
 
     # Optional Discount
     discount_amount: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total discount applied",
     )
     discount_percentage: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
-        le=100,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        le=Decimal("100"),
         decimal_places=2,
         description="Discount as percentage",
     )
 
     # Tax (if applicable)
     tax_amount: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         decimal_places=2,
         description="Tax amount (GST, etc.)",
     )
     tax_percentage: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
-        le=100,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        le=Decimal("100"),
         decimal_places=2,
         description="Tax rate as percentage",
     )
@@ -176,13 +177,13 @@ class FeeConfiguration(BaseSchema):
     # Base Components
     base_amount: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Base rent amount",
     )
     security_deposit: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Security deposit",
     )
@@ -194,7 +195,7 @@ class FeeConfiguration(BaseSchema):
     )
     mess_charges_monthly: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Monthly mess charges",
     )
@@ -205,8 +206,8 @@ class FeeConfiguration(BaseSchema):
         description="Electricity billing method",
     )
     electricity_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Fixed electricity amount",
     )
@@ -216,8 +217,8 @@ class FeeConfiguration(BaseSchema):
         description="Water billing method",
     )
     water_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Fixed water amount",
     )
@@ -230,7 +231,7 @@ class FeeConfiguration(BaseSchema):
 
     # Additional Configuration
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Configuration description or notes",
     )
@@ -277,15 +278,15 @@ class DiscountConfiguration(BaseSchema):
 
     # Discount Value
     discount_percentage: Optional[Decimal] = Field(
-        None,
-        ge=0,
-        le=100,
+        default=None,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         decimal_places=2,
         description="Discount percentage (if type is percentage)",
     )
     discount_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Fixed discount amount (if type is fixed_amount)",
     )
@@ -299,27 +300,27 @@ class DiscountConfiguration(BaseSchema):
 
     # Conditions
     minimum_stay_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Minimum stay required for discount",
     )
     valid_for_new_students_only: bool = Field(
-        False,
+        default=False,
         description="Whether discount is only for new students",
     )
 
     # Validity
     valid_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Discount valid from date",
     )
     valid_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Discount valid until date",
     )
 
     is_active: bool = Field(
-        True,
+        default=True,
         description="Whether discount is currently active",
     )
 
@@ -388,11 +389,11 @@ class FeeComparison(BaseSchema):
         description="Most economical room type",
     )
     most_popular: Optional[str] = Field(
-        None,
+        default=None,
         description="Most popular room type",
     )
     best_value: Optional[str] = Field(
-        None,
+        default=None,
         description="Best value room type",
     )
 

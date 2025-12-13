@@ -70,19 +70,19 @@ class PlanResponse(BaseResponseSchema):
     # Trial
     trial_days: int = Field(default=0, description="Trial period days")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def price_monthly_formatted(self) -> str:
         """Format monthly price with currency."""
         return f"{self.currency} {self.price_monthly:,.2f}"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def price_yearly_formatted(self) -> str:
         """Format yearly price with currency."""
         return f"{self.currency} {self.price_yearly:,.2f}"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def yearly_savings(self) -> Decimal:
         """Calculate yearly savings vs monthly billing."""
@@ -90,7 +90,7 @@ class PlanResponse(BaseResponseSchema):
             Decimal("0.01")
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def yearly_discount_percent(self) -> Decimal:
         """Calculate yearly discount percentage."""
@@ -103,13 +103,13 @@ class PlanResponse(BaseResponseSchema):
             (monthly_yearly - self.price_yearly) / monthly_yearly * 100
         ).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_trial(self) -> bool:
         """Check if plan offers trial."""
         return self.trial_days > 0
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def limits_display(self) -> Dict[str, str]:
         """Format limits for display."""

@@ -50,7 +50,7 @@ class ResolutionRequest(BaseCreateSchema):
     )
 
     actual_resolution_time: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Actual time resolution was completed",
     )
 
@@ -60,11 +60,11 @@ class ResolutionRequest(BaseCreateSchema):
         description="Whether follow-up check is needed",
     )
     follow_up_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Scheduled follow-up date",
     )
     follow_up_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Follow-up instructions",
     )
@@ -140,6 +140,7 @@ class ResolutionResponse(BaseSchema):
 
     # Performance metrics
     time_to_resolve_hours: int = Field(
+        ...,
         ge=0,
         description="Total resolution time in hours",
     )
@@ -168,18 +169,18 @@ class ResolutionUpdate(BaseCreateSchema):
     )
 
     resolution_notes: Optional[str] = Field(
-        None,
+        default=None,
         min_length=20,
         max_length=2000,
         description="Updated resolution notes",
     )
     resolution_attachments: Optional[List[HttpUrl]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Updated resolution attachments",
     )
     follow_up_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Updated follow-up notes",
     )
@@ -250,7 +251,7 @@ class ReopenRequest(BaseCreateSchema):
     )
 
     additional_issues: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Additional issues discovered",
     )
@@ -311,7 +312,7 @@ class CloseRequest(BaseCreateSchema):
     )
 
     closure_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Final closure notes",
     )

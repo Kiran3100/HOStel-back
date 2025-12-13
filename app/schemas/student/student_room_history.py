@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_room_history.py ---
 """
 Student room history and transfer schemas with enhanced validation.
 

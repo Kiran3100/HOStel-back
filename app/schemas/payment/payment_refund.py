@@ -41,7 +41,6 @@ class RefundRequest(BaseCreateSchema):
     refund_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount to refund (must not exceed payment amount)",
     )
 
@@ -158,7 +157,6 @@ class RefundResponse(BaseResponseSchema):
     refund_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Refund amount",
     )
     refund_status: str = Field(
@@ -226,7 +224,6 @@ class RefundStatus(BaseSchema):
     refund_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Refund amount",
     )
     currency: str = Field(
@@ -277,13 +274,13 @@ class RefundStatus(BaseSchema):
         description="Expected completion date",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_completed(self) -> bool:
         """Check if refund is completed."""
         return self.status == "completed"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_pending_approval(self) -> bool:
         """Check if refund is pending approval."""
@@ -357,7 +354,6 @@ class RefundListItem(BaseSchema):
     refund_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Refund amount",
     )
     status: str = Field(..., description="Refund status")
@@ -365,7 +361,7 @@ class RefundListItem(BaseSchema):
     requested_at: datetime = Field(..., description="Request timestamp")
     completed_at: Optional[datetime] = Field(None, description="Completion timestamp")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def processing_days(self) -> int:
         """Calculate days taken to process."""
@@ -389,7 +385,6 @@ class RefundList(BaseSchema):
     total_amount_refunded: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total amount refunded",
     )
 
@@ -398,7 +393,7 @@ class RefundList(BaseSchema):
         description="List of refund items",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def average_refund_amount(self) -> Decimal:
         """Calculate average refund amount."""

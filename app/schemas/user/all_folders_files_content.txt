@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\user ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\user =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_base.py ---
 # --- File: app/schemas/user/user_base.py ---
 """
 User base schemas with enhanced validation and type safety.
@@ -12,7 +12,7 @@ User base schemas with enhanced validation and type safety.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -69,7 +69,7 @@ class UserBase(BaseSchema):
         default=None,
         description="Gender (optional)",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -110,7 +110,7 @@ class UserBase(BaseSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """
         Validate user age constraints.
         
@@ -119,7 +119,7 @@ class UserBase(BaseSchema):
         if v is None:
             return v
 
-        today = date.today()
+        today = Date.today()
         
         # Check if date is in the future
         if v >= today:
@@ -209,7 +209,7 @@ class UserUpdate(BaseUpdateSchema):
         default=None,
         description="Gender",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -253,7 +253,7 @@ class UserUpdate(BaseUpdateSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate user age constraints."""
         if v is not None:
             today = date.today()
@@ -352,7 +352,7 @@ class UserEmergencyContactUpdate(EmergencyContactMixin, BaseUpdateSchema):
             return v.replace(" ", "").replace("-", "").strip()
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_profile.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_profile.py ---
 # --- File: app/schemas/user/user_profile.py ---
 """
 User profile update schemas with comprehensive field validation.
@@ -360,7 +360,7 @@ User profile update schemas with comprehensive field validation.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 
 from pydantic import EmailStr, Field, HttpUrl, field_validator
@@ -394,7 +394,7 @@ class ProfileUpdate(BaseUpdateSchema):
         default=None,
         description="Gender",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth",
     )
@@ -449,10 +449,10 @@ class ProfileUpdate(BaseUpdateSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate date of birth for reasonable age constraints."""
         if v is not None:
-            today = date.today()
+            today = Date.today()
             if v >= today:
                 raise ValueError("Date of birth cannot be in the future")
 
@@ -629,7 +629,7 @@ class NotificationPreferencesUpdate(BaseUpdateSchema):
             return v.lower().strip()
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_response.py ---
 # --- File: app/schemas/user/user_response.py ---
 """
 User response schemas with comprehensive user information.
@@ -637,7 +637,7 @@ User response schemas with comprehensive user information.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -713,7 +713,7 @@ class UserDetail(BaseResponseSchema):
     full_name: str = Field(..., description="Full name")
     user_role: UserRole = Field(..., description="User role")
     gender: Optional[Gender] = Field(default=None, description="Gender")
-    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    date_of_birth: Optional[Date] = Field(default=None, description="Date of birth")
     profile_image_url: Optional[str] = Field(
         default=None,
         description="Profile image URL",
@@ -871,7 +871,7 @@ class UserStats(BaseSchema):
         description="Last activity timestamp",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_session.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_session.py ---
 # --- File: app/schemas/user/user_session.py ---
 """
 User session schemas with enhanced tracking and management.
@@ -1085,7 +1085,7 @@ class CreateSessionRequest(BaseCreateSchema):
                 raise ValueError("Invalid IP address format")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\__init__.py ---
 # --- File: app/schemas/user/__init__.py ---
 """
 User schemas package.
@@ -1153,3 +1153,6 @@ __all__ = [
     "RevokeAllSessionsRequest",
     "CreateSessionRequest",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\__pycache__ =====

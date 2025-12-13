@@ -7,9 +7,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import Field, field_validator
+from pydantic.functional_validators import field_validator
 
 from app.schemas.common.base import BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import HostelStatus, SubscriptionPlan, SubscriptionStatus

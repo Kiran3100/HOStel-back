@@ -60,7 +60,7 @@ class RoomResponse(BaseResponseSchema):
         description="Available for booking",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -214,7 +214,7 @@ class RoomDetail(BaseResponseSchema):
         description="Detailed bed information",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate current occupancy percentage."""
@@ -224,13 +224,13 @@ class RoomDetail(BaseResponseSchema):
             (self.occupied_beds / self.total_beds * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def is_fully_occupied(self) -> bool:
         """Check if room is fully occupied."""
         return self.occupied_beds >= self.total_beds
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def discount_percentage_quarterly(self) -> Optional[Decimal]:
         """Calculate quarterly discount percentage."""
@@ -244,7 +244,7 @@ class RoomDetail(BaseResponseSchema):
         )
         return Decimal(discount).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def discount_percentage_yearly(self) -> Optional[Decimal]:
         """Calculate yearly discount percentage."""
@@ -279,7 +279,7 @@ class RoomListItem(BaseSchema):
     is_available_for_booking: bool = Field(..., description="Bookable")
     primary_image: Optional[str] = Field(default=None, description="Cover image")
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -331,7 +331,7 @@ class RoomWithBeds(BaseResponseSchema):
         description="Bed details",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate occupancy rate."""
@@ -386,7 +386,7 @@ class RoomOccupancyStats(BaseSchema):
         description="Last occupancy change timestamp",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -396,7 +396,7 @@ class RoomOccupancyStats(BaseSchema):
             (self.occupied_beds / self.total_beds * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def revenue_percentage(self) -> Decimal:
         """Calculate revenue realization percentage."""
@@ -406,7 +406,7 @@ class RoomOccupancyStats(BaseSchema):
             (self.current_revenue / self.potential_revenue * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def lost_revenue(self) -> Decimal:
         """Calculate lost revenue due to vacancy."""
@@ -479,7 +479,7 @@ class RoomFinancialSummary(BaseSchema):
         description="Projected yearly revenue",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def collection_rate(self) -> Decimal:
         """Calculate collection rate for current month."""
@@ -489,7 +489,7 @@ class RoomFinancialSummary(BaseSchema):
             (self.current_month_collected / self.current_month_revenue * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate."""

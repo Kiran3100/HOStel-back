@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import time
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
@@ -40,7 +40,7 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
         min_length=3,
         max_length=255,
         description="Hostel name",
-        examples=["Green Valley Hostel"],
+        json_schema_extra={"examples": ["Green Valley Hostel"]},
     )
     slug: str = Field(
         ...,
@@ -48,7 +48,7 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
         max_length=255,
         pattern=r"^[a-z0-9-]+$",
         description="URL-friendly slug (lowercase, alphanumeric, hyphens only)",
-        examples=["green-valley-hostel"],
+        json_schema_extra={"examples": ["green-valley-hostel"]},
     )
     description: Optional[str] = Field(
         default=None,
@@ -82,24 +82,24 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
         max_length=3,
         pattern=r"^[A-Z]{3}$",
         description="Currency code (ISO 4217)",
-        examples=["INR", "USD"],
+        json_schema_extra={"examples": ["INR", "USD"]},
     )
 
     # Amenities and facilities
     amenities: List[str] = Field(
         default_factory=list,
         description="List of amenities (WiFi, AC, etc.)",
-        examples=[["WiFi", "AC", "Laundry", "Hot Water"]],
+        json_schema_extra={"examples": [["WiFi", "AC", "Laundry", "Hot Water"]]},
     )
     facilities: List[str] = Field(
         default_factory=list,
         description="List of facilities (Gym, Library, etc.)",
-        examples=[["Gym", "Library", "Common Room"]],
+        json_schema_extra={"examples": [["Gym", "Library", "Common Room"]]},
     )
     security_features: List[str] = Field(
         default_factory=list,
         description="Security features (CCTV, Guards, etc.)",
-        examples=[["CCTV", "24/7 Security", "Biometric Access"]],
+        json_schema_extra={"examples": [["CCTV", "24/7 Security", "Biometric Access"]]},
     )
 
     # Policies
@@ -111,12 +111,12 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
     check_in_time: Optional[time] = Field(
         default=None,
         description="Standard check-in time",
-        examples=["10:00:00"],
+        json_schema_extra={"examples": ["10:00:00"]},
     )
     check_out_time: Optional[time] = Field(
         default=None,
         description="Standard check-out time",
-        examples=["11:00:00"],
+        json_schema_extra={"examples": ["11:00:00"]},
     )
     visitor_policy: Optional[str] = Field(
         default=None,
@@ -133,7 +133,7 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
     nearby_landmarks: List[Dict[str, str]] = Field(
         default_factory=list,
         description="Nearby landmarks with name, type, and distance",
-        examples=[[{"name": "Metro Station", "type": "transport", "distance": "500m"}]],
+        json_schema_extra={"examples": [[{"name": "Metro Station", "type": "transport", "distance": "500m"}]]},
     )
     connectivity_info: Optional[str] = Field(
         default=None,
@@ -468,13 +468,19 @@ class HostelUpdate(BaseUpdateSchema):
     )
 
     # Apply same validators as base
-    _validate_slug = field_validator("slug")(HostelBase.validate_slug.__func__)
-    _validate_name = field_validator("name")(HostelBase.validate_name.__func__)
+    _validate_slug = field_validator("slug", mode="after")(
+        lambda cls, v: HostelBase.validate_slug(cls, v) if v is not None else v
+    )
+    _validate_name = field_validator("name", mode="after")(
+        lambda cls, v: HostelBase.validate_name(cls, v) if v is not None else v
+    )
     _validate_lists = field_validator(
-        "amenities", "facilities", "security_features"
-    )(HostelBase.validate_and_clean_lists.__func__)
-    _validate_currency = field_validator("currency")(
-        HostelBase.validate_currency.__func__
+        "amenities", "facilities", "security_features", mode="after"
+    )(
+        lambda cls, v: HostelBase.validate_and_clean_lists(cls, v) if v is not None else v
+    )
+    _validate_currency = field_validator("currency", mode="after")(
+        lambda cls, v: HostelBase.validate_currency(cls, v) if v is not None else v
     )
 
     @field_validator("contact_phone", "alternate_phone")
@@ -499,7 +505,7 @@ class HostelMediaUpdate(BaseUpdateSchema):
     )
     gallery_images: List[str] = Field(
         default_factory=list,
-        max_items=20,
+        max_length=20,
         description="Gallery image URLs (max 20)",
     )
     virtual_tour_url: Optional[HttpUrl] = Field(
@@ -508,7 +514,7 @@ class HostelMediaUpdate(BaseUpdateSchema):
     )
     video_urls: Optional[List[HttpUrl]] = Field(
         default=None,
-        max_items=5,
+        max_length=5,
         description="Video URLs (max 5)",
     )
 

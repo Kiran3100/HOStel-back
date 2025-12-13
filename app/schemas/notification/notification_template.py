@@ -9,7 +9,7 @@ with variable substitution and template rendering.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator

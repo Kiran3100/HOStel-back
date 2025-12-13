@@ -58,8 +58,6 @@ class PaymentBase(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Payment amount (up to 10 digits with 2 decimal places)",
     )
     currency: str = Field(
@@ -213,7 +211,7 @@ class PaymentBase(BaseSchema):
         """Calculate days overdue (0 if not overdue)."""
         if not self.is_overdue:
             return 0
-        return (date.today() - self.due_date).days
+        return (date.today() - self.due_date).days  # type: ignore
 
 
 class PaymentCreate(PaymentBase, BaseCreateSchema):

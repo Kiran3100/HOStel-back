@@ -66,7 +66,6 @@ class PaymentSchedule(BaseResponseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount per period",
     )
 
@@ -94,19 +93,19 @@ class PaymentSchedule(BaseResponseSchema):
         description="Whether schedule is currently active",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_indefinite(self) -> bool:
         """Check if schedule has no end date."""
         return self.end_date is None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_next_payment(self) -> int:
         """Calculate days until next payment."""
         return (self.next_due_date - date.today()).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if next payment is overdue."""
@@ -137,7 +136,6 @@ class ScheduleCreate(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount to charge per period",
     )
 
@@ -241,7 +239,6 @@ class ScheduleUpdate(BaseUpdateSchema):
     amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Update amount per period",
     )
     next_due_date: Optional[date] = Field(
@@ -360,13 +357,13 @@ class ScheduledPaymentGenerated(BaseSchema):
         description="When next generation should occur",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_processed(self) -> int:
         """Calculate total payments processed."""
         return self.payments_generated + self.payments_skipped
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def generation_success_rate(self) -> float:
         """Calculate percentage of successful generations."""
@@ -401,7 +398,6 @@ class BulkScheduleCreate(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount per period for all schedules",
     )
 

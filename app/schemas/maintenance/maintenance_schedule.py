@@ -12,7 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator,computed_field
+from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import (
@@ -42,6 +42,18 @@ class ScheduleChecklistItem(BaseSchema):
     
     Defines specific checks to be performed during maintenance.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "item_description": "Check electrical connections",
+                "is_required": True,
+                "is_critical": True,
+                "item_order": 1,
+                "estimated_time_minutes": 15
+            }
+        }
+    )
 
     item_id: Optional[str] = Field(
         None,
@@ -102,6 +114,20 @@ class PreventiveSchedule(BaseResponseSchema):
     Defines recurring maintenance tasks with scheduling
     and assignment information.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "hostel_name": "North Campus Hostel A",
+                "title": "Monthly electrical inspection",
+                "category": "electrical",
+                "recurrence": "monthly",
+                "next_due_date": "2024-02-01",
+                "is_active": True
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -177,13 +203,13 @@ class PreventiveSchedule(BaseResponseSchema):
         description="Default priority level",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if schedule is overdue."""
         return self.next_due_date < date.today()
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_due(self) -> int:
         """Calculate days until next due date."""
@@ -196,6 +222,20 @@ class ScheduleCreate(BaseCreateSchema):
     
     Defines new recurring maintenance with checklist and recurrence rules.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Monthly electrical inspection",
+                "category": "electrical",
+                "recurrence": "monthly",
+                "start_date": "2024-01-01",
+                "estimated_cost": "5000.00",
+                "auto_create_requests": True
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -240,7 +280,6 @@ class ScheduleCreate(BaseCreateSchema):
     estimated_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Estimated cost per execution",
     )
@@ -343,6 +382,17 @@ class RecurrenceConfig(BaseSchema):
     
     Defines detailed recurrence rules for complex scheduling patterns.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "recurrence_type": "weekly",
+                "day_of_week": 0,
+                "skip_weekends": False,
+                "skip_holidays": True
+            }
+        }
+    )
 
     recurrence_type: MaintenanceRecurrence = Field(
         ...,
@@ -433,6 +483,17 @@ class ChecklistResult(BaseSchema):
     
     Records completion status and findings for checklist item.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "item_description": "Check electrical connections",
+                "completed": True,
+                "status": "pass",
+                "notes": "All connections secure"
+            }
+        }
+    )
 
     item_id: Optional[str] = Field(
         None,
@@ -490,6 +551,19 @@ class ScheduleExecution(BaseCreateSchema):
     Records execution of scheduled maintenance with results
     and next occurrence scheduling.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "schedule_id": "123e4567-e89b-12d3-a456-426614174000",
+                "execution_date": "2024-01-15",
+                "executed_by": "123e4567-e89b-12d3-a456-426614174222",
+                "completed": True,
+                "completion_notes": "All checks passed successfully",
+                "actual_cost": "4500.00"
+            }
+        }
+    )
 
     schedule_id: UUID = Field(
         ...,
@@ -515,7 +589,6 @@ class ScheduleExecution(BaseCreateSchema):
     actual_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Actual cost incurred",
     )
@@ -629,6 +702,17 @@ class ScheduleUpdate(BaseUpdateSchema):
     
     Allows modification of schedule parameters and status.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "Updated monthly electrical inspection",
+                "recurrence": "monthly",
+                "estimated_cost": "6000.00",
+                "is_active": True
+            }
+        }
+    )
 
     title: Optional[str] = Field(
         None,
@@ -656,7 +740,6 @@ class ScheduleUpdate(BaseUpdateSchema):
     estimated_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Updated estimated cost",
     )
@@ -722,6 +805,19 @@ class ExecutionHistoryItem(BaseSchema):
     
     Represents single execution in schedule history.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "execution_id": "123e4567-e89b-12d3-a456-426614174000",
+                "execution_date": "2024-01-15",
+                "executed_by_name": "John Technician",
+                "completed": True,
+                "was_on_time": True,
+                "actual_cost": "4500.00"
+            }
+        }
+    )
 
     execution_id: UUID = Field(
         ...,
@@ -784,7 +880,7 @@ class ExecutionHistoryItem(BaseSchema):
         description="Quality rating for execution",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def execution_status(self) -> str:
         """Get execution status summary."""
@@ -802,6 +898,19 @@ class ScheduleHistory(BaseSchema):
     
     Tracks all executions with statistics and trends.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "schedule_id": "123e4567-e89b-12d3-a456-426614174000",
+                "schedule_title": "Monthly electrical inspection",
+                "total_executions": 12,
+                "completed_executions": 11,
+                "on_time_executions": 10,
+                "total_cost": "54000.00"
+            }
+        }
+    )
 
     schedule_id: UUID = Field(
         ...,
@@ -866,7 +975,7 @@ class ScheduleHistory(BaseSchema):
         description="Average quality rating",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate percentage."""
@@ -877,7 +986,7 @@ class ScheduleHistory(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def on_time_rate(self) -> Decimal:
         """Calculate on-time execution rate."""

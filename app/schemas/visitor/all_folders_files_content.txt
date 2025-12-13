@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\visitor_base.py ---
 # --- File: app/schemas/visitor/visitor_base.py ---
 """
 Visitor base schemas with comprehensive validation and documentation.
@@ -348,7 +348,7 @@ class VisitorUpdate(BaseUpdateSchema):
 
         return unique_amenities
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_dashboard.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\visitor_dashboard.py ---
 # --- File: app/schemas/visitor/visitor_dashboard.py ---
 """
 Visitor dashboard schemas for comprehensive dashboard views.
@@ -359,7 +359,8 @@ booking history, recent activity, recommendations, and alerts.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import  datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -554,7 +555,7 @@ class BookingHistoryItem(BaseSchema):
         ...,
         description="When booking was made",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
         description="Check-in date",
     )
@@ -592,7 +593,7 @@ class BookingHistoryItem(BaseSchema):
 
     @computed_field
     @property
-    def check_out_date(self) -> date:
+    def check_out_date(self) -> Date:
         """Calculate check-out date based on duration."""
         from dateutil.relativedelta import relativedelta
 
@@ -602,13 +603,13 @@ class BookingHistoryItem(BaseSchema):
     @property
     def days_until_checkin(self) -> int:
         """Calculate days until check-in."""
-        return (self.check_in_date - date.today()).days
+        return (self.check_in_date - Date.today()).days
 
     @computed_field
     @property
     def is_upcoming(self) -> bool:
         """Check if booking is upcoming."""
-        return self.check_in_date > date.today()
+        return self.check_in_date > Date.today()
 
 
 class BookingHistory(BaseSchema):
@@ -1009,7 +1010,7 @@ class VisitorDashboard(BaseSchema):
             or self.total_bookings > 0
         )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_favorites.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\visitor_favorites.py ---
 # --- File: app/schemas/visitor/visitor_favorites.py ---
 """
 Visitor favorites/wishlist schemas.
@@ -1359,7 +1360,7 @@ class FavoriteComparison(BaseSchema):
 
         return unique_ids
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_preferences.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\visitor_preferences.py ---
 # --- File: app/schemas/visitor/visitor_preferences.py ---
 """
 Visitor preferences schemas for detailed preference management.
@@ -1371,7 +1372,8 @@ and saved search criteria.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import  datetime
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -1481,7 +1483,7 @@ class VisitorPreferences(BaseSchema):
     )
 
     # Move-in Details
-    earliest_move_in_date: Optional[date] = Field(
+    earliest_move_in_date: Optional[Date] = Field(
         None,
         description="Earliest date willing to move in",
     )
@@ -1544,9 +1546,9 @@ class VisitorPreferences(BaseSchema):
 
     @field_validator("earliest_move_in_date")
     @classmethod
-    def validate_move_in_date(cls, v: Optional[date]) -> Optional[date]:
+    def validate_move_in_date(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate move-in date is not in the past."""
-        if v is not None and v < date.today():
+        if v is not None and v < Date.today():
             raise ValueError("Move-in date cannot be in the past")
         return v
 
@@ -1878,7 +1880,7 @@ class SavedSearch(BaseSchema):
             raise ValueError("Search criteria cannot be empty")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\visitor_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\visitor_response.py ---
 # --- File: app/schemas/visitor/visitor_response.py ---
 """
 Visitor response schemas for API responses.
@@ -2333,7 +2335,7 @@ class VisitorStats(BaseSchema):
         else:
             return "low"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\visitor\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\__init__.py ---
 # --- File: app/schemas/visitor/__init__.py ---
 """
 Visitor schemas package.
@@ -2416,3 +2418,6 @@ __all__ = [
     "FavoritesExport",
     "FavoriteComparison",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\visitor\__pycache__ =====

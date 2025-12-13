@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\booking ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\booking =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_approval.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_approval.py ---
 # --- File: app/schemas/booking/booking_approval.py ---
 """
 Booking approval schemas for admin approval workflow.
@@ -451,7 +451,7 @@ class ApprovalSettings(BaseSchema):
             raise ValueError("Auto-approve conditions must be a dictionary")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_assignment.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_assignment.py ---
 # --- File: app/schemas/booking/booking_assignment.py ---
 """
 Booking room and bed assignment schemas.
@@ -789,7 +789,7 @@ class ReassignmentRequest(BaseCreateSchema):
             )
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_base.py ---
 # --- File: app/schemas/booking/booking_base.py ---
 """
 Booking base schemas with comprehensive validation.
@@ -1237,7 +1237,7 @@ class BookingUpdate(BaseUpdateSchema):
                 return None
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_calendar.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_calendar.py ---
 # --- File: app/schemas/booking/booking_calendar.py ---
 """
 Booking calendar schemas for calendar views and availability tracking.
@@ -1248,7 +1248,7 @@ and availability tracking across dates.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+import datetime as dt
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -1346,7 +1346,7 @@ class DayBookings(BaseSchema):
     for a single calendar day.
     """
 
-    day_date: date = Field(
+    day_date: dt.date = Field(
         ...,
         description="Date for this day's bookings",
     )
@@ -1444,7 +1444,7 @@ class CalendarView(BaseSchema):
         ge=0,
         description="Total check-outs scheduled this month",
     )
-    peak_occupancy_date: Optional[date] = Field(
+    peak_occupancy_date: Optional[dt.date] = Field(
         None,
         description="Date with highest occupancy this month",
     )
@@ -1517,11 +1517,11 @@ class CalendarEvent(BaseSchema):
         max_length=255,
         description="Event title",
     )
-    start_date: date = Field(
+    start_date: dt.date = Field(
         ...,
         description="Event start date",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[dt.date] = Field(
         None,
         description="Event end date (for multi-day events)",
     )
@@ -1572,7 +1572,7 @@ class CalendarEvent(BaseSchema):
     def is_past_event(self) -> bool:
         """Check if event is in the past."""
         event_end = self.end_date or self.start_date
-        return event_end < date.today()
+        return event_end < dt.date.today()
 
 
 class DayAvailability(BaseSchema):
@@ -1582,7 +1582,7 @@ class DayAvailability(BaseSchema):
     Tracks available and booked beds for capacity planning.
     """
 
-    day_date: date = Field(
+    day_date: dt.date = Field(
         ...,
         description="Date for this availability snapshot",
     )
@@ -1751,10 +1751,10 @@ class BookingInfo(BaseSchema):
     
     booking_id: UUID = Field(..., description="Booking identifier")
     student_name: str = Field(..., description="Student/guest name")
-    check_in_date: date = Field(..., description="Check-in date")
-    check_out_date: date = Field(..., description="Check-out date")
+    check_in_date: dt.date = Field(..., description="Check-in date")
+    check_out_date: dt.date = Field(..., description="Check-out date")
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_cancellation.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_cancellation.py ---
 # --- File: app/schemas/booking/booking_cancellation.py ---
 """
 Booking cancellation schemas.
@@ -2111,7 +2111,7 @@ class BulkCancellation(BaseCreateSchema):
             raise ValueError("Cancellation reason must be at least 10 characters")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_conversion.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_conversion.py ---
 # --- File: app/schemas/booking/booking_conversion.py ---
 """
 Booking to student conversion schemas.
@@ -2505,7 +2505,7 @@ class ConversionRollback(BaseCreateSchema):
             )
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_filters.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_filters.py ---
 # --- File: app/schemas/booking/booking_filters.py ---
 """
 Booking filter and search schemas.
@@ -2834,7 +2834,7 @@ class BookingAnalyticsRequest(BaseFilterSchema):
         """Normalize group_by value."""
         return v.lower()
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_modification.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_modification.py ---
 # --- File: app/schemas/booking/booking_modification.py ---
 """
 Booking modification schemas.
@@ -3219,7 +3219,7 @@ class ModificationApproval(BaseCreateSchema):
                 )
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_request.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_request.py ---
 # --- File: app/schemas/booking/booking_request.py ---
 """
 Booking request schemas for initiating bookings.
@@ -3614,7 +3614,7 @@ class QuickBookingRequest(BaseCreateSchema):
             raise ValueError("Name should not contain numbers")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_response.py ---
 # --- File: app/schemas/booking/booking_response.py ---
 """
 Booking response schemas for API responses.
@@ -4208,7 +4208,7 @@ class BookingConfirmation(BaseSchema):
         """Check if payment is still pending."""
         return self.balance_amount > Decimal("0")
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\booking_waitlist.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\booking_waitlist.py ---
 # --- File: app/schemas/booking/booking_waitlist.py ---
 """
 Booking waitlist schemas for managing waiting lists.
@@ -4680,7 +4680,7 @@ class WaitlistManagement(BaseSchema):
         
         return max(entry.days_waiting for entry in self.entries)
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\__init__.py ---
 # --- File: app/schemas/booking/__init__.py ---
 """
 Booking schemas package.
@@ -4850,4 +4850,4 @@ __all__ = [
 ]
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\booking\__pycache__ =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\booking\__pycache__ =====

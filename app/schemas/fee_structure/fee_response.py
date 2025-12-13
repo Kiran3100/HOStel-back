@@ -57,13 +57,13 @@ class FeeStructureResponse(BaseResponseSchema):
     # Base Charges
     amount: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Base rent amount",
     )
     security_deposit: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Security deposit",
     )
@@ -75,7 +75,7 @@ class FeeStructureResponse(BaseResponseSchema):
     )
     mess_charges_monthly: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Monthly mess charges",
     )
@@ -86,8 +86,8 @@ class FeeStructureResponse(BaseResponseSchema):
         description="Electricity billing method",
     )
     electricity_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Fixed electricity amount",
     )
@@ -97,8 +97,8 @@ class FeeStructureResponse(BaseResponseSchema):
         description="Water billing method",
     )
     water_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Fixed water amount",
     )
@@ -109,7 +109,7 @@ class FeeStructureResponse(BaseResponseSchema):
         description="Effective start date",
     )
     effective_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Effective end date",
     )
 
@@ -206,13 +206,13 @@ class FeeDetail(BaseSchema):
     # Breakdown
     amount: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Base rent amount",
     )
     security_deposit: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Security deposit",
     )
@@ -223,7 +223,7 @@ class FeeDetail(BaseSchema):
     )
     mess_charges_monthly: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Monthly mess charges",
     )
@@ -231,13 +231,13 @@ class FeeDetail(BaseSchema):
     # Calculated Totals
     total_first_month_payable: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total amount due for first month (including security deposit)",
     )
     total_recurring_monthly: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Recurring monthly charges",
     )
@@ -261,11 +261,11 @@ class FeeDetail(BaseSchema):
 
     # Discounts
     has_discounts: bool = Field(
-        False,
+        default=False,
         description="Whether discounts are available",
     )
     discount_info: Optional[str] = Field(
-        None,
+        default=None,
         description="Discount information",
     )
 
@@ -320,14 +320,14 @@ class FeeStructureList(BaseSchema):
 
     # Price Range
     min_monthly_rent: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Minimum monthly rent across all room types",
     )
     max_monthly_rent: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Maximum monthly rent across all room types",
     )
@@ -370,7 +370,7 @@ class FeeHistoryItem(BaseSchema):
 
     amount: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Rent amount",
     )
@@ -380,28 +380,28 @@ class FeeHistoryItem(BaseSchema):
         description="Effective start date",
     )
     effective_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Effective end date",
     )
 
     # Change Information
     changed_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin who made the change",
     )
     changed_by_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Name of admin who made change",
     )
     change_reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Reason for change",
     )
 
     # Previous Value (for comparison)
     previous_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Previous rent amount",
     )
@@ -422,7 +422,7 @@ class FeeHistoryItem(BaseSchema):
             return None
         
         change = ((self.amount - self.previous_amount) / self.previous_amount) * 100
-        return Decimal(change).quantize(Decimal("0.01"))
+        return Decimal(str(change)).quantize(Decimal("0.01"))
 
     @computed_field
     @property
@@ -466,7 +466,7 @@ class FeeHistory(BaseSchema):
         description="Total number of fee changes",
     )
     average_change_interval_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Average days between fee changes",
     )
@@ -530,13 +530,13 @@ class FeeCalculation(BaseSchema):
     # Base Charges
     monthly_rent: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Monthly rent",
     )
     security_deposit: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Security deposit",
     )
@@ -544,45 +544,45 @@ class FeeCalculation(BaseSchema):
     # Additional Charges
     mess_charges_total: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total mess charges for duration",
     )
     utility_charges_estimated: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         decimal_places=2,
         description="Estimated utility charges",
     )
 
     # Discounts
     discount_applied: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total discount amount",
     )
     discount_description: Optional[str] = Field(
-        None,
+        default=None,
         description="Discount details",
     )
 
     # Totals
     subtotal: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Subtotal before discount",
     )
     total_payable: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Total amount payable",
     )
     first_month_total: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Amount due for first month",
     )
@@ -590,7 +590,7 @@ class FeeCalculation(BaseSchema):
     # Payment Schedule
     monthly_recurring: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         decimal_places=2,
         description="Recurring monthly amount",
     )

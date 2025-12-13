@@ -8,6 +8,7 @@ allergen tracking, and nutritional data management.
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -142,7 +143,7 @@ class MenuItem(BaseSchema):
         description="Standard serving size description",
     )
 
-    @field_validator("item_name", "item_name_local", "item_description")
+    @field_validator("item_name", "item_name_local", "item_description", mode="before")
     @classmethod
     def normalize_text(cls, v: Optional[str]) -> Optional[str]:
         """Normalize text fields."""
@@ -222,6 +223,9 @@ class MealItems(BaseSchema):
         max_length=50,
         description="List of menu items for this meal",
     )
+    # Note: Pydantic v2 doesn't support time type in Field directly without proper import
+    # Assuming time is imported from datetime at the top
+    from datetime import time
     serving_start_time: Optional[time] = Field(
         None,
         description="Meal serving start time",
@@ -231,7 +235,7 @@ class MealItems(BaseSchema):
         description="Meal serving end time",
     )
 
-    @field_validator("items")
+    @field_validator("items", mode="after")
     @classmethod
     def validate_unique_items(cls, v: List[MenuItem]) -> List[MenuItem]:
         """Ensure no duplicate item names in the meal."""
@@ -405,43 +409,38 @@ class NutritionalInfo(BaseSchema):
     )
 
     # Macronutrients (grams)
+    # Note: Pydantic v2 removed decimal_places, using Decimal with quantize in validator instead
     protein_g: Optional[Decimal] = Field(
         None,
         ge=0,
         le=1000,
-        decimal_places=2,
         description="Protein in grams",
     )
     carbohydrates_g: Optional[Decimal] = Field(
         None,
         ge=0,
         le=1000,
-        decimal_places=2,
         description="Carbohydrates in grams",
     )
     fat_g: Optional[Decimal] = Field(
         None,
         ge=0,
         le=1000,
-        decimal_places=2,
         description="Total fat in grams",
     )
     saturated_fat_g: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Saturated fat in grams",
     )
     trans_fat_g: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Trans fat in grams",
     )
     fiber_g: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Dietary fiber in grams",
     )
 
@@ -454,7 +453,6 @@ class NutritionalInfo(BaseSchema):
     sugar_g: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Total sugars in grams",
     )
     cholesterol_mg: Optional[Decimal] = Field(
@@ -506,11 +504,24 @@ class NutritionalInfo(BaseSchema):
         description="Preparation method",
     )
 
-    @field_validator("serving_size")
+    @field_validator("serving_size", mode="before")
     @classmethod
     def normalize_serving_size(cls, v: str) -> str:
         """Normalize serving size description."""
         return v.strip()
+
+    # Pydantic v2: Apply decimal precision using a validator
+    @field_validator(
+        "protein_g", "carbohydrates_g", "fat_g", "saturated_fat_g",
+        "trans_fat_g", "fiber_g", "sugar_g",
+        mode="after"
+    )
+    @classmethod
+    def round_to_two_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @model_validator(mode="after")
     def validate_nutritional_data(self) -> "NutritionalInfo":

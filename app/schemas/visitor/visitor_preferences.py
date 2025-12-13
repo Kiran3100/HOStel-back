@@ -9,7 +9,7 @@ and saved search criteria.
 
 from __future__ import annotations
 
-from datetime import  datetime
+from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -43,23 +43,23 @@ class VisitorPreferences(BaseSchema):
 
     # Room Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Preferred room type (single, double, dormitory, etc.)",
     )
     preferred_hostel_type: Optional[HostelType] = Field(
-        None,
+        default=None,
         description="Preferred hostel type (boys, girls, co-ed)",
     )
 
     # Budget Constraints
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Minimum monthly budget in local currency",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Maximum monthly budget in local currency",
@@ -77,7 +77,7 @@ class VisitorPreferences(BaseSchema):
         description="Preferred areas/localities within cities",
     )
     max_distance_from_work_km: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=50,
         description="Maximum acceptable distance from workplace in km",
@@ -97,35 +97,35 @@ class VisitorPreferences(BaseSchema):
 
     # Facility Requirements
     need_parking: bool = Field(
-        False,
+        default=False,
         description="Requires parking facility",
     )
     need_gym: bool = Field(
-        False,
+        default=False,
         description="Requires gym facility",
     )
     need_laundry: bool = Field(
-        False,
+        default=False,
         description="Requires laundry facility",
     )
     need_mess: bool = Field(
-        False,
+        default=False,
         description="Requires mess/dining facility",
     )
 
     # Dietary Preferences
     dietary_preference: Optional[DietaryPreference] = Field(
-        None,
+        default=None,
         description="Dietary preference (vegetarian, non-vegetarian, vegan, jain)",
     )
 
     # Move-in Details
     earliest_move_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Earliest date willing to move in",
     )
     preferred_lease_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=24,
         description="Preferred lease duration in months (1-24)",
@@ -133,29 +133,29 @@ class VisitorPreferences(BaseSchema):
 
     # Notification Preferences
     email_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable email notifications",
     )
     sms_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable SMS notifications",
     )
     push_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable push notifications",
     )
 
     # Specific Notification Types
     notify_on_price_drop: bool = Field(
-        True,
+        default=True,
         description="Notify when saved hostel reduces price",
     )
     notify_on_availability: bool = Field(
-        True,
+        default=True,
         description="Notify when saved hostel has new availability",
     )
     notify_on_new_listings: bool = Field(
-        True,
+        default=True,
         description="Notify about new hostels matching preferences",
     )
 
@@ -256,23 +256,23 @@ class PreferenceUpdate(BaseUpdateSchema):
 
     # Room Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Update preferred room type",
     )
     preferred_hostel_type: Optional[HostelType] = Field(
-        None,
+        default=None,
         description="Update preferred hostel type",
     )
 
     # Budget
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Update minimum budget",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Update maximum budget",
@@ -280,53 +280,53 @@ class PreferenceUpdate(BaseUpdateSchema):
 
     # Location
     preferred_cities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update preferred cities",
     )
     preferred_areas: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update preferred areas",
     )
 
     # Amenities
     required_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update required amenities",
     )
     preferred_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update preferred amenities",
     )
 
     # Dietary
     dietary_preference: Optional[DietaryPreference] = Field(
-        None,
+        default=None,
         description="Update dietary preference",
     )
 
     # Notification Toggles
     email_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update email notification setting",
     )
     sms_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update SMS notification setting",
     )
     push_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update push notification setting",
     )
     notify_on_price_drop: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update price drop alert setting",
     )
     notify_on_availability: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update availability alert setting",
     )
     notify_on_new_listings: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update new listings alert setting",
     )
 
@@ -380,12 +380,12 @@ class SearchPreferences(BaseSchema):
         description="Room types to include",
     )
     min_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum price filter",
     )
     max_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum price filter",
     )
@@ -397,11 +397,11 @@ class SearchPreferences(BaseSchema):
 
     # Alert Settings
     notify_on_new_matches: bool = Field(
-        True,
+        default=True,
         description="Send notifications when new hostels match this search",
     )
     notification_frequency: str = Field(
-        "daily",
+        default="daily",
         pattern=r"^(instant|daily|weekly)$",
         description="How often to send notifications: instant, daily, or weekly",
     )
@@ -489,12 +489,12 @@ class SavedSearch(BaseSchema):
 
     # Statistics
     total_matches: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Current number of hostels matching this search",
     )
     new_matches_since_last_check: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of new matches since last notification",
     )
@@ -505,7 +505,7 @@ class SavedSearch(BaseSchema):
         description="When this search was saved",
     )
     last_checked: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When this search was last executed",
     )
 

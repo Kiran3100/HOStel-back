@@ -8,6 +8,7 @@ bulk operations, and pricing/status management.
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -445,17 +446,67 @@ class RoomUpdate(BaseUpdateSchema):
         description="Room image URLs",
     )
 
-    # Apply same validators as base
-    _validate_room_number = field_validator("room_number")(
-        RoomBase.validate_room_number.__func__
-    )
-    _validate_wing = field_validator("wing")(RoomBase.validate_wing.__func__)
-    _validate_lists = field_validator("amenities", "furnishing")(
-        RoomBase.validate_and_clean_lists.__func__
-    )
-    _validate_images = field_validator("room_images")(
-        RoomBase.validate_room_images.__func__
-    )
+    # Pydantic v2: Reuse validators from base class properly
+    @field_validator("room_number")
+    @classmethod
+    def validate_room_number(cls, v: Optional[str]) -> Optional[str]:
+        """Validate room number format."""
+        if v is not None:
+            v = v.strip().upper()
+            if not v:
+                raise ValueError("Room number cannot be empty")
+            v = " ".join(v.split())
+        return v
+
+    @field_validator("wing")
+    @classmethod
+    def validate_wing(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and normalize wing/block designation."""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            v = " ".join(v.split())
+        return v
+
+    @field_validator("amenities", "furnishing")
+    @classmethod
+    def validate_and_clean_lists(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate and clean list fields."""
+        if v is not None:
+            if not v:
+                return []
+            cleaned = [item.strip() for item in v if item and item.strip()]
+            seen = set()
+            unique = []
+            for item in cleaned:
+                item_lower = item.lower()
+                if item_lower not in seen:
+                    seen.add(item_lower)
+                    unique.append(item)
+            return unique
+        return v
+
+    @field_validator("room_images")
+    @classmethod
+    def validate_room_images(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate room image URLs."""
+        if v is not None:
+            if not v:
+                return []
+            cleaned = []
+            seen = set()
+            for url in v:
+                if not url or not url.strip():
+                    continue
+                url = url.strip()
+                if not (url.startswith("http://") or url.startswith("https://")):
+                    continue
+                if url not in seen:
+                    seen.add(url)
+                    cleaned.append(url)
+            return cleaned[:15]
+        return v
 
 
 class BulkRoomCreate(BaseCreateSchema):
@@ -490,23 +541,22 @@ class BulkRoomCreate(BaseCreateSchema):
             raise ValueError("Room numbers must be unique within the batch")
         return v
 
-    @field_validator("rooms")
-    @classmethod
-    def validate_consistent_hostel(cls, v: List[RoomCreate], info) -> List[RoomCreate]:
+    @model_validator(mode="after")
+    def validate_consistent_hostel(self) -> "BulkRoomCreate":
         """
         Validate all rooms belong to the same hostel.
         
         Ensures consistency in bulk operations.
         """
-        hostel_id = info.data.get("hostel_id")
+        hostel_id = self.hostel_id
         if hostel_id:
-            for room in v:
+            for room in self.rooms:
                 if room.hostel_id != hostel_id:
                     raise ValueError(
                         f"All rooms must belong to hostel {hostel_id}. "
                         f"Found room with hostel_id: {room.hostel_id}"
                     )
-        return v
+        return self
 
 
 class RoomPricingUpdate(BaseUpdateSchema):
@@ -579,8 +629,7 @@ class RoomPricingUpdate(BaseUpdateSchema):
     def validate_effective_date(cls, v: Optional[date]) -> Optional[date]:
         """Validate effective date is not in the past."""
         if v is not None:
-            from datetime import date as dt
-            if v < dt.today():
+            if v < date.today():
                 raise ValueError("Effective date cannot be in the past")
         return v
 

@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\common ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\common =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\base.py ---
 # --- File: app/schemas/common/base.py ---
 """
 Base schema classes with common fields and configurations.
@@ -104,7 +104,7 @@ class BaseFilterSchema(BaseSchema):
     """Base schema for filter parameters."""
     pass
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\enums.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\enums.py ---
 # --- File: app/schemas/common/enums.py ---
 """
 All enumeration types used across the application.
@@ -674,7 +674,7 @@ class ChargeType(str, Enum):
     ACTUAL = "actual"
     FIXED_MONTHLY = "fixed_monthly"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\filters.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\filters.py ---
 # --- File: app/schemas/common/filters.py ---
 """
 Common filter schemas used for query/filter parameters across the API.
@@ -912,7 +912,7 @@ class TextSearchFilter(BaseFilterSchema):
         description="Field boost weights",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\mixins.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\mixins.py ---
 # --- File: app/schemas/common/mixins.py ---
 """
 Reusable schema mixins for address, contact info, media, audit, etc.
@@ -1097,7 +1097,7 @@ class SEOMixin(BaseModel):
         description="SEO keywords",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\pagination.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\pagination.py ---
 # --- File: app/schemas/common/pagination.py ---
 """
 Pagination schemas for page-based and cursor-based responses.
@@ -1276,7 +1276,7 @@ class CursorPaginatedResponse(BaseSchema, Generic[T]):
         description="Cursor pagination metadata",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\response.py ---
 # --- File: app/schemas/common/response.py ---
 """
 Standard API response wrappers for success, error, and bulk operations.
@@ -1506,7 +1506,7 @@ class RateLimitResponse(ErrorResponse):
         description="Time window in seconds",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\common\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\__init__.py ---
 # --- File: app/schemas/common/__init__.py ---
 """
 Common schemas package.
@@ -1645,3 +1645,6 @@ __all__ = [
     "SortOptions",
     "StatusFilter",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\common\__pycache__ =====

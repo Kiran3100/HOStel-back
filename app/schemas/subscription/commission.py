@@ -14,7 +14,7 @@ from enum import Enum
 from typing import Dict, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
@@ -259,6 +259,7 @@ class CommissionSummary(BaseSchema):
             )
         return self
 
+    @computed_field  # type: ignore[misc]
     @property
     def commission_collection_rate(self) -> Decimal:
         """Calculate commission collection rate as percentage."""

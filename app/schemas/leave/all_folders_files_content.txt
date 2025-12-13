@@ -1,304 +1,1939 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\leave ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\leave =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\leave_application.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\leave_application.py ---
+# --- File: app/schemas/leave/leave_application.py ---
 """
-Leave application & cancellation request schemas
+Leave application and cancellation request schemas.
+
+Provides schemas for student-initiated leave requests and cancellations
+with comprehensive validation.
 """
+
+from __future__ import annotations
+
 from datetime import date
 from typing import Optional
-from pydantic import Field
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema
 from app.schemas.common.enums import LeaveType
 
+__all__ = [
+    "LeaveApplicationRequest",
+    "LeaveCancellationRequest",
+]
+
 
 class LeaveApplicationRequest(BaseCreateSchema):
-    """Student-sent leave application request"""
-    student_id: UUID
-    hostel_id: UUID
+    """
+    Student-initiated leave application request.
+    
+    Streamlined schema for students to apply for leave with
+    automatic calculation and validation.
+    """
 
-    leave_type: LeaveType
-    from_date: date
-    to_date: date
-    reason: str = Field(..., min_length=10, max_length=1000)
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Type of leave being requested",
+    )
+    from_date: date = Field(
+        ...,
+        description="Leave start date",
+    )
+    to_date: date = Field(
+        ...,
+        description="Leave end date",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Detailed reason for leave",
+    )
+    contact_during_leave: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Contact phone number during leave",
+    )
+    emergency_contact: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Emergency contact phone number",
+    )
+    emergency_contact_relation: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Relation with emergency contact person",
+    )
+    supporting_document_url: Optional[HttpUrl] = Field(
+        None,
+        description="URL to supporting document",
+    )
+    destination_address: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Destination address during leave",
+    )
+    expected_return_date: Optional[date] = Field(
+        None,
+        description="Expected return date (may differ from to_date)",
+    )
 
-    contact_during_leave: Optional[str] = Field(None, max_length=20)
-    emergency_contact: Optional[str] = Field(None, max_length=20)
+    @field_validator("from_date")
+    @classmethod
+    def validate_from_date(cls, v: date) -> date:
+        """
+        Validate leave start date.
+        
+        Students can apply for leave up to 30 days in advance
+        or up to 7 days in the past (for backdated applications).
+        """
+        today = date.today()
+        
+        # Allow backdated applications up to 7 days
+        days_past = (today - v).days
+        if days_past > 7:
+            raise ValueError(
+                "Cannot apply for leave starting more than 7 days in the past"
+            )
+        
+        # Allow advance applications up to 30 days
+        days_future = (v - today).days
+        if days_future > 30:
+            raise ValueError(
+                "Cannot apply for leave more than 30 days in advance"
+            )
+        
+        return v
 
-    supporting_document_url: Optional[str] = None
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate leave reason is meaningful."""
+        v = v.strip()
+        
+        if len(v) < 10:
+            raise ValueError("Leave reason must be at least 10 characters")
+        
+        # Basic meaningfulness check
+        if len(set(v.lower().replace(" ", ""))) < 5:
+            raise ValueError("Please provide a detailed and meaningful reason")
+        
+        # Check for common placeholder/test text
+        placeholder_patterns = [
+            "test", "testing", "asdf", "qwerty", "aaaa", "bbbb",
+            "xxxx", "leave", "urgent", "personal"
+        ]
+        
+        reason_lower = v.lower()
+        if any(
+            pattern == reason_lower or reason_lower.startswith(pattern + " ")
+            for pattern in placeholder_patterns
+        ):
+            if len(v) < 20:
+                raise ValueError("Please provide a more detailed reason")
+        
+        return v
+
+    @field_validator("contact_during_leave", "emergency_contact")
+    @classmethod
+    def normalize_phone(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize phone numbers."""
+        if v is not None:
+            return v.replace(" ", "").replace("-", "").strip()
+        return None
+
+    @field_validator("destination_address")
+    @classmethod
+    def validate_destination(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize destination address."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+    @model_validator(mode="after")
+    def validate_leave_application(self) -> "LeaveApplicationRequest":
+        """
+        Validate complete leave application.
+        
+        Ensures:
+        - Date range is valid
+        - Duration meets requirements
+        - Required documents are provided
+        - Contact information is sufficient
+        """
+        # Validate date range
+        if self.to_date < self.from_date:
+            raise ValueError("End date must be after or equal to start date")
+        
+        # Calculate duration
+        total_days = (self.to_date - self.from_date).days + 1
+        
+        # Validate duration limits by leave type
+        max_days_by_type = {
+            LeaveType.CASUAL: 30,
+            LeaveType.SICK: 60,
+            LeaveType.EMERGENCY: 15,
+            LeaveType.VACATION: 90,
+            LeaveType.OTHER: 30,
+        }
+        
+        max_allowed = max_days_by_type.get(self.leave_type, 30)
+        if total_days > max_allowed:
+            raise ValueError(
+                f"{self.leave_type.value} leave cannot exceed {max_allowed} days"
+            )
+        
+        # Document requirements
+        if self.leave_type == LeaveType.SICK and total_days > 3:
+            if not self.supporting_document_url:
+                raise ValueError(
+                    "Medical certificate required for sick leave exceeding 3 days"
+                )
+        
+        if total_days > 15:
+            if not self.supporting_document_url:
+                raise ValueError(
+                    "Supporting documentation required for leave exceeding 15 days"
+                )
+        
+        # Contact information requirements
+        if total_days > 7:
+            if not self.contact_during_leave and not self.emergency_contact:
+                raise ValueError(
+                    "Contact information required for leave exceeding 7 days"
+                )
+        
+        # Emergency contact for long leaves
+        if total_days > 15 and not self.emergency_contact:
+            raise ValueError(
+                "Emergency contact required for leave exceeding 15 days"
+            )
+        
+        # Validate expected return date if provided
+        if self.expected_return_date:
+            if self.expected_return_date < self.to_date:
+                raise ValueError(
+                    "Expected return date cannot be before leave end date"
+                )
+            
+            # Reasonable buffer (max 7 days after scheduled end)
+            days_after = (self.expected_return_date - self.to_date).days
+            if days_after > 7:
+                raise ValueError(
+                    "Expected return date cannot be more than 7 days after leave end date"
+                )
+        
+        return self
 
 
 class LeaveCancellationRequest(BaseCreateSchema):
-    """Student request to cancel an already approved/pending leave"""
-    leave_id: UUID
-    student_id: UUID
+    """
+    Student request to cancel leave application.
+    
+    Allows students to cancel pending or approved leaves with
+    proper justification.
+    """
 
-    cancellation_reason: str = Field(..., min_length=10, max_length=500)
+    leave_id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier (for verification)",
+    )
+    cancellation_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for cancellation",
+    )
+    immediate_return: bool = Field(
+        default=False,
+        description="Whether student is returning immediately (for ongoing leaves)",
+    )
+    actual_return_date: Optional[date] = Field(
+        None,
+        description="Actual return date (for early return from ongoing leave)",
+    )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\leave_approval.py ---
+    @field_validator("cancellation_reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate cancellation reason is meaningful."""
+        v = v.strip()
+        
+        if len(v) < 10:
+            raise ValueError(
+                "Cancellation reason must be at least 10 characters"
+            )
+        
+        # Basic meaningfulness check
+        if len(set(v.lower().replace(" ", ""))) < 5:
+            raise ValueError(
+                "Please provide a detailed reason for cancellation"
+            )
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_cancellation(self) -> "LeaveCancellationRequest":
+        """
+        Validate cancellation request consistency.
+        
+        Ensures immediate return and actual return date are consistent.
+        """
+        # If immediate return, actual_return_date should be today or not provided
+        if self.immediate_return:
+            if self.actual_return_date:
+                if self.actual_return_date > date.today():
+                    raise ValueError(
+                        "immediate_return is True but actual_return_date is in future"
+                    )
+        
+        # If actual_return_date provided, validate it's reasonable
+        if self.actual_return_date:
+            today = date.today()
+            
+            # Can't be in future for cancellation
+            if self.actual_return_date > today:
+                raise ValueError(
+                    "Actual return date cannot be in the future"
+                )
+            
+            # Shouldn't be too far in the past
+            days_past = (today - self.actual_return_date).days
+            if days_past > 30:
+                raise ValueError(
+                    "Actual return date cannot be more than 30 days in the past"
+                )
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\leave_approval.py ---
+# --- File: app/schemas/leave/leave_approval.py ---
 """
-Leave approval & workflow schemas
+Leave approval and workflow schemas.
+
+Provides schemas for supervisor/admin leave approval decisions
+with comprehensive tracking and validation.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
-from pydantic import Field
+
+from pydantic import Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import LeaveStatus
 
+__all__ = [
+    "LeaveApprovalRequest",
+    "LeaveApprovalResponse",
+    "LeaveApprovalAction",
+]
+
 
 class LeaveApprovalRequest(BaseCreateSchema):
-    """Supervisor/admin leave approval/rejection"""
-    leave_id: UUID
-    approver_id: UUID
+    """
+    Supervisor/admin leave approval or rejection request.
+    
+    Handles the approval workflow with proper validation and
+    audit trail requirements.
+    """
 
-    approve: bool
+    leave_id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    approver_id: UUID = Field(
+        ...,
+        description="User ID of approver (supervisor/admin)",
+    )
+    approve: bool = Field(
+        ...,
+        description="True to approve, False to reject",
+    )
     approval_notes: Optional[str] = Field(
-        None, max_length=500, description="Additional notes"
+        None,
+        max_length=500,
+        description="Additional notes or comments from approver",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        min_length=10,
+        max_length=500,
+        description="Detailed reason for rejection (required if rejecting)",
+    )
+    conditions: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Conditions or requirements for approved leave",
+    )
+    notify_student: bool = Field(
+        default=True,
+        description="Send notification to student about decision",
+    )
+    notify_guardian: bool = Field(
+        default=False,
+        description="Send notification to guardian about decision",
     )
 
-    # If rejecting
-    rejection_reason: Optional[str] = Field(None, max_length=500)
+    @field_validator("approval_notes", "rejection_reason", "conditions")
+    @classmethod
+    def validate_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is not None:
+            v = v.strip()
+            return v if v else None
+        return None
+
+    @model_validator(mode="after")
+    def validate_approval_decision(self) -> "LeaveApprovalRequest":
+        """
+        Validate approval decision consistency.
+        
+        Ensures:
+        - Rejection reason is provided when rejecting
+        - Conditions are only set when approving
+        """
+        # Rejection requires reason
+        if not self.approve:
+            if not self.rejection_reason:
+                raise ValueError(
+                    "rejection_reason is required when rejecting leave"
+                )
+            
+            if len(self.rejection_reason.strip()) < 10:
+                raise ValueError(
+                    "Rejection reason must be at least 10 characters"
+                )
+            
+            # Conditions shouldn't be set for rejection
+            if self.conditions:
+                raise ValueError(
+                    "conditions should not be set when rejecting leave"
+                )
+        else:
+            # Approval shouldn't have rejection reason
+            if self.rejection_reason:
+                raise ValueError(
+                    "rejection_reason should not be set when approving leave"
+                )
+        
+        return self
+
+
+class LeaveApprovalAction(BaseCreateSchema):
+    """
+    Alternative approval action schema with explicit status.
+    
+    Provides more flexibility for complex approval workflows.
+    """
+
+    leave_id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    approver_id: UUID = Field(
+        ...,
+        description="Approver user ID",
+    )
+    action: str = Field(
+        ...,
+        pattern=r"^(approve|reject|request_changes|escalate)$",
+        description="Approval action to take",
+    )
+    comments: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Comments explaining the action",
+    )
+    requested_changes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Specific changes requested (if action is 'request_changes')",
+    )
+    escalate_to: Optional[UUID] = Field(
+        None,
+        description="User ID to escalate to (if action is 'escalate')",
+    )
+    conditions: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Approval conditions",
+    )
+    notify_student: bool = Field(
+        default=True,
+        description="Notify student of decision",
+    )
+
+    @field_validator("comments")
+    @classmethod
+    def validate_comments(cls, v: str) -> str:
+        """Validate comments are meaningful."""
+        v = v.strip()
+        
+        if len(v) < 10:
+            raise ValueError("Comments must be at least 10 characters")
+        
+        return v
+
+    @model_validator(mode="after")
+    def validate_action_requirements(self) -> "LeaveApprovalAction":
+        """
+        Validate action-specific requirements.
+        
+        Ensures required fields are provided for each action type.
+        """
+        if self.action == "request_changes":
+            if not self.requested_changes:
+                raise ValueError(
+                    "requested_changes is required for 'request_changes' action"
+                )
+        
+        if self.action == "escalate":
+            if not self.escalate_to:
+                raise ValueError(
+                    "escalate_to is required for 'escalate' action"
+                )
+        
+        if self.action == "approve":
+            # Conditions only make sense for approval
+            pass
+        else:
+            # Other actions shouldn't have conditions
+            if self.conditions:
+                raise ValueError(
+                    f"conditions should not be set for '{self.action}' action"
+                )
+        
+        return self
 
 
 class LeaveApprovalResponse(BaseSchema):
-    """Approval outcome"""
-    leave_id: UUID
-    status: LeaveStatus
+    """
+    Leave approval decision response.
+    
+    Provides complete information about the approval decision
+    with timestamps and responsible parties.
+    """
 
-    approved_by: Optional[UUID]
-    approved_by_name: Optional[str]
-    approved_at: Optional[datetime]
+    leave_id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    student_name: str = Field(
+        ...,
+        description="Student full name",
+    )
+    status: LeaveStatus = Field(
+        ...,
+        description="Updated leave status after decision",
+    )
+    previous_status: Optional[LeaveStatus] = Field(
+        None,
+        description="Previous leave status",
+    )
 
-    rejected_by: Optional[UUID]
-    rejected_by_name: Optional[str]
-    rejected_at: Optional[datetime]
+    # Approval details
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="Approver user ID (if approved)",
+    )
+    approved_by_name: Optional[str] = Field(
+        None,
+        description="Approver full name",
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+    approval_notes: Optional[str] = Field(
+        None,
+        description="Approval notes",
+    )
+    conditions: Optional[str] = Field(
+        None,
+        description="Approval conditions",
+    )
 
-    message: str
+    # Rejection details
+    rejected_by: Optional[UUID] = Field(
+        None,
+        description="Rejector user ID (if rejected)",
+    )
+    rejected_by_name: Optional[str] = Field(
+        None,
+        description="Rejector full name",
+    )
+    rejected_at: Optional[datetime] = Field(
+        None,
+        description="Rejection timestamp",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Rejection reason",
+    )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\leave_balance.py ---
+    # Response metadata
+    message: str = Field(
+        ...,
+        description="Human-readable response message",
+    )
+    notifications_sent: bool = Field(
+        default=False,
+        description="Whether notifications were sent",
+    )
+    notification_recipients: Optional[list[str]] = Field(
+        None,
+        description="List of notification recipients",
+    )
+
+    @model_validator(mode="after")
+    def validate_response_consistency(self) -> "LeaveApprovalResponse":
+        """
+        Validate response data consistency.
+        
+        Ensures approval/rejection fields match the status.
+        """
+        # Approved status should have approval details
+        if self.status == LeaveStatus.APPROVED:
+            if not self.approved_by or not self.approved_at:
+                raise ValueError(
+                    "Approval details required for APPROVED status"
+                )
+            
+            # Shouldn't have rejection details
+            if self.rejected_by or self.rejected_at or self.rejection_reason:
+                raise ValueError(
+                    "Rejection details should not be present for APPROVED status"
+                )
+        
+        # Rejected status should have rejection details
+        elif self.status == LeaveStatus.REJECTED:
+            if not self.rejected_by or not self.rejected_at:
+                raise ValueError(
+                    "Rejection details required for REJECTED status"
+                )
+            
+            if not self.rejection_reason:
+                raise ValueError(
+                    "Rejection reason required for REJECTED status"
+                )
+            
+            # Shouldn't have approval details
+            if self.approved_by or self.approved_at:
+                raise ValueError(
+                    "Approval details should not be present for REJECTED status"
+                )
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\leave_balance.py ---
+# --- File: app/schemas/leave/leave_balance.py ---
 """
-Leave balance schemas
+Leave balance and quota management schemas.
+
+Provides schemas for tracking leave entitlements, usage,
+and remaining balance with validation.
 """
+
+from __future__ import annotations
+
 from datetime import date
-from typing import List
-from pydantic import Field
+from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import Field, computed_field, field_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.enums import LeaveType
 
+__all__ = [
+    "LeaveBalance",
+    "LeaveBalanceSummary",
+    "LeaveQuota",
+    "LeaveUsageDetail",
+]
+
 
 class LeaveBalance(BaseSchema):
-    """Leave balance for a single leave type"""
-    leave_type: LeaveType
-    allocated_per_year: int = Field(..., ge=0)
-    used_days: int = Field(..., ge=0)
-    remaining_days: int = Field(..., ge=0)
+    """
+    Leave balance for a single leave type.
+    
+    Tracks allocation, usage, and remaining balance for
+    a specific leave type.
+    """
+
+    leave_type: LeaveType = Field(
+        ...,
+        description="Type of leave",
+    )
+    allocated_per_year: int = Field(
+        ...,
+        ge=0,
+        le=365,
+        description="Total days allocated per year",
+    )
+    allocated_per_semester: Optional[int] = Field(
+        None,
+        ge=0,
+        le=180,
+        description="Days allocated per semester (if applicable)",
+    )
+    used_days: int = Field(
+        ...,
+        ge=0,
+        description="Days already used/approved",
+    )
+    pending_days: int = Field(
+        default=0,
+        ge=0,
+        description="Days in pending applications",
+    )
+    remaining_days: int = Field(
+        ...,
+        ge=0,
+        description="Days remaining available",
+    )
+    carry_forward_days: int = Field(
+        default=0,
+        ge=0,
+        description="Days carried forward from previous period",
+    )
+    max_consecutive_days: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Maximum consecutive days allowed for this leave type",
+    )
+    requires_approval: bool = Field(
+        default=True,
+        description="Whether this leave type requires approval",
+    )
+
+    @field_validator("remaining_days")
+    @classmethod
+    def validate_remaining_days(cls, v: int, info) -> int:
+        """
+        Validate remaining days calculation.
+        
+        Ensures remaining = allocated + carry_forward - used - pending.
+        """
+        if "allocated_per_year" in info.data and "used_days" in info.data:
+            allocated = info.data["allocated_per_year"]
+            used = info.data["used_days"]
+            pending = info.data.get("pending_days", 0)
+            carry_forward = info.data.get("carry_forward_days", 0)
+            
+            expected_remaining = allocated + carry_forward - used - pending
+            
+            # Allow small discrepancies due to rounding
+            if abs(expected_remaining - v) > 1:
+                raise ValueError(
+                    f"remaining_days ({v}) doesn't match calculation "
+                    f"({expected_remaining})"
+                )
+        
+        return v
+
+    @computed_field
+    @property
+    def usage_percentage(self) -> Decimal:
+        """Calculate usage percentage."""
+        total_available = self.allocated_per_year + self.carry_forward_days
+        if total_available == 0:
+            return Decimal("0.00")
+        
+        return round(
+            Decimal(self.used_days) / Decimal(total_available) * 100,
+            2,
+        )
+
+    @computed_field
+    @property
+    def is_exhausted(self) -> bool:
+        """Check if leave balance is exhausted."""
+        return self.remaining_days <= 0
+
+    @computed_field
+    @property
+    def utilization_status(self) -> str:
+        """Get utilization status indicator."""
+        usage_pct = float(self.usage_percentage)
+        
+        if usage_pct >= 90:
+            return "critical"
+        elif usage_pct >= 75:
+            return "high"
+        elif usage_pct >= 50:
+            return "moderate"
+        elif usage_pct >= 25:
+            return "low"
+        else:
+            return "minimal"
 
 
 class LeaveBalanceSummary(BaseSchema):
-    """Overall leave balance for a student"""
-    student_id: UUID
-    student_name: str
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Comprehensive leave balance summary for a student.
+    
+    Aggregates balance information across all leave types
+    for a specific academic period.
+    """
 
-    academic_year_start: date
-    academic_year_end: date
-
-    balances: List[LeaveBalance] = Field(default_factory=list)
-
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\leave_base.py ---
-"""
-Base leave schemas
-"""
-from datetime import date
-from typing import Optional
-from pydantic import Field, field_validator
-from uuid import UUID
-
-from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseUpdateSchema
-from app.schemas.common.enums import LeaveType, LeaveStatus
-
-
-class LeaveBase(BaseSchema):
-    """Base leave application fields"""
-    student_id: UUID = Field(..., description="Student requesting leave")
-    hostel_id: UUID = Field(..., description="Hostel context")
-
-    leave_type: LeaveType = Field(..., description="Type of leave")
-    from_date: date = Field(..., description="Start of leave")
-    to_date: date = Field(..., description="End of leave")
-    total_days: int = Field(..., ge=1, description="Computed total leave days")
-
-    reason: str = Field(..., min_length=10, max_length=1000, description="Leave reason")
-
-    contact_during_leave: Optional[str] = Field(
-        None, max_length=20, description="Contact phone during leave"
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
     )
-    emergency_contact: Optional[str] = Field(
-        None, max_length=20, description="Emergency contact during leave"
+    student_name: str = Field(
+        ...,
+        description="Student full name",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    room_number: Optional[str] = Field(
+        None,
+        description="Room number",
     )
 
-    supporting_document_url: Optional[str] = Field(
-        None, description="Document URL (e.g. medical certificate)"
+    # Academic period
+    academic_year_start: date = Field(
+        ...,
+        description="Academic year start date",
+    )
+    academic_year_end: date = Field(
+        ...,
+        description="Academic year end date",
+    )
+    current_semester: Optional[str] = Field(
+        None,
+        description="Current semester (if applicable)",
     )
 
-    @field_validator("total_days")
+    # Balance breakdown
+    balances: List[LeaveBalance] = Field(
+        ...,
+        min_length=1,
+        description="Balance for each leave type",
+    )
+
+    # Overall statistics
+    total_allocated: int = Field(
+        ...,
+        ge=0,
+        description="Total days allocated across all types",
+    )
+    total_used: int = Field(
+        ...,
+        ge=0,
+        description="Total days used across all types",
+    )
+    total_pending: int = Field(
+        default=0,
+        ge=0,
+        description="Total days in pending applications",
+    )
+    total_remaining: int = Field(
+        ...,
+        ge=0,
+        description="Total days remaining",
+    )
+
+    # Last updated
+    last_updated: date = Field(
+        ...,
+        description="Last balance update date",
+    )
+
+    @field_validator("academic_year_end")
     @classmethod
-    def validate_total_days(cls, v: int, info):
-        if "from_date" in info.data and "to_date" in info.data:
-            fd = info.data["from_date"]
-            td = info.data["to_date"]
-            days = (td - fd).days + 1
-            if days != v:
-                raise ValueError("total_days must equal (to_date - from_date + 1)")
+    def validate_academic_year(cls, v: date, info) -> date:
+        """Validate academic year dates are logical."""
+        if "academic_year_start" in info.data:
+            if v <= info.data["academic_year_start"]:
+                raise ValueError(
+                    "academic_year_end must be after academic_year_start"
+                )
+        return v
+
+    @computed_field
+    @property
+    def overall_usage_percentage(self) -> Decimal:
+        """Calculate overall usage percentage."""
+        if self.total_allocated == 0:
+            return Decimal("0.00")
+        
+        return round(
+            Decimal(self.total_used) / Decimal(self.total_allocated) * 100,
+            2,
+        )
+
+    @computed_field
+    @property
+    def days_until_year_end(self) -> int:
+        """Calculate days remaining in academic year."""
+        today = date.today()
+        if today > self.academic_year_end:
+            return 0
+        return (self.academic_year_end - today).days
+
+    @computed_field
+    @property
+    def has_pending_applications(self) -> bool:
+        """Check if there are pending applications."""
+        return self.total_pending > 0
+
+
+class LeaveQuota(BaseSchema):
+    """
+    Leave quota configuration for hostel/policy.
+    
+    Defines leave entitlements and rules for different
+    leave types within a hostel.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Leave type",
+    )
+    annual_quota: int = Field(
+        ...,
+        ge=0,
+        le=365,
+        description="Annual leave quota in days",
+    )
+    semester_quota: Optional[int] = Field(
+        None,
+        ge=0,
+        le=180,
+        description="Semester quota (if applicable)",
+    )
+    monthly_quota: Optional[int] = Field(
+        None,
+        ge=0,
+        le=31,
+        description="Monthly quota (if applicable)",
+    )
+    max_consecutive_days: int = Field(
+        ...,
+        ge=1,
+        le=90,
+        description="Maximum consecutive days allowed",
+    )
+    min_notice_days: int = Field(
+        default=0,
+        ge=0,
+        le=30,
+        description="Minimum advance notice required (days)",
+    )
+    requires_document_after_days: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Requires supporting document after N days",
+    )
+    allow_carry_forward: bool = Field(
+        default=False,
+        description="Allow unused quota to carry forward",
+    )
+    carry_forward_max_days: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Maximum days that can be carried forward",
+    )
+    carry_forward_expiry_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=12,
+        description="Months after which carried forward days expire",
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether this quota is currently active",
+    )
+
+    @field_validator("carry_forward_max_days")
+    @classmethod
+    def validate_carry_forward(cls, v: Optional[int], info) -> Optional[int]:
+        """Validate carry forward configuration."""
+        if v is not None:
+            if not info.data.get("allow_carry_forward"):
+                raise ValueError(
+                    "carry_forward_max_days should only be set when allow_carry_forward is True"
+                )
         return v
 
 
+class LeaveUsageDetail(BaseSchema):
+    """
+    Detailed leave usage record for reporting.
+    
+    Provides granular information about leave consumption
+    for analytics and reporting.
+    """
+
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    leave_id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Leave type",
+    )
+    from_date: date = Field(
+        ...,
+        description="Leave start date",
+    )
+    to_date: date = Field(
+        ...,
+        description="Leave end date",
+    )
+    total_days: int = Field(
+        ...,
+        ge=1,
+        description="Total leave days",
+    )
+    applied_at: date = Field(
+        ...,
+        description="Application date",
+    )
+    approved_at: Optional[date] = Field(
+        None,
+        description="Approval date",
+    )
+    days_notice: int = Field(
+        ...,
+        ge=0,
+        description="Days notice given before leave start",
+    )
+    was_backdated: bool = Field(
+        default=False,
+        description="Whether application was backdated",
+    )
+    had_supporting_document: bool = Field(
+        default=False,
+        description="Whether supporting document was provided",
+    )
+
+    @computed_field
+    @property
+    def approval_turnaround_days(self) -> Optional[int]:
+        """Calculate days taken for approval."""
+        if self.approved_at is None:
+            return None
+        return (self.approved_at - self.applied_at).days
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\leave_base.py ---
+# --- File: app/schemas/leave/leave_base.py ---
+"""
+Base leave schemas with comprehensive validation and type safety.
+
+This module provides foundational schemas for leave management including
+applications, updates, and core validation logic.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
+from uuid import UUID
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import LeaveStatus, LeaveType
+
+__all__ = [
+    "LeaveBase",
+    "LeaveCreate",
+    "LeaveUpdate",
+]
+
+
+class LeaveBase(BaseSchema):
+    """
+    Base leave application schema with core fields.
+    
+    Provides common leave attributes and validation logic used across
+    create/update operations.
+    """
+
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier requesting leave",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Type of leave being requested",
+    )
+    from_date: date = Field(
+        ...,
+        description="Leave start date (inclusive)",
+    )
+    to_date: date = Field(
+        ...,
+        description="Leave end date (inclusive)",
+    )
+    total_days: int = Field(
+        ...,
+        ge=1,
+        le=365,
+        description="Total number of leave days (auto-calculated)",
+    )
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Detailed reason for leave request",
+    )
+    contact_during_leave: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Contact phone number during leave period",
+    )
+    emergency_contact: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Emergency contact phone number",
+    )
+    supporting_document_url: Optional[HttpUrl] = Field(
+        None,
+        description="URL to supporting document (e.g., medical certificate)",
+    )
+
+    @field_validator("from_date")
+    @classmethod
+    def validate_from_date(cls, v: date) -> date:
+        """
+        Validate leave start date constraints.
+        
+        Ensures:
+        - Start date is not too far in the past (max 30 days)
+        - Start date is within reasonable future range (max 1 year)
+        """
+        today = date.today()
+        
+        # Don't allow leaves starting more than 30 days in the past
+        days_past = (today - v).days
+        if days_past > 30:
+            raise ValueError(
+                "Leave start date cannot be more than 30 days in the past"
+            )
+        
+        # Don't allow leaves starting more than 1 year in the future
+        days_future = (v - today).days
+        if days_future > 365:
+            raise ValueError(
+                "Leave start date cannot be more than 1 year in the future"
+            )
+        
+        return v
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """
+        Validate and normalize leave reason.
+        
+        Ensures reason is meaningful and properly formatted.
+        """
+        v = v.strip()
+        
+        if len(v) < 10:
+            raise ValueError("Leave reason must be at least 10 characters")
+        
+        # Check if reason is not just repeated characters or meaningless text
+        if len(set(v.lower().replace(" ", ""))) < 5:
+            raise ValueError("Leave reason must be meaningful and descriptive")
+        
+        return v
+
+    @field_validator("contact_during_leave", "emergency_contact")
+    @classmethod
+    def normalize_phone(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize phone numbers by removing spaces and dashes."""
+        if v is not None:
+            return v.replace(" ", "").replace("-", "").strip()
+        return None
+
+    @model_validator(mode="after")
+    def validate_leave_dates(self) -> "LeaveBase":
+        """
+        Validate leave date consistency and calculate total days.
+        
+        Ensures:
+        - End date is after or equal to start date
+        - Total days matches actual duration
+        - Leave duration is reasonable (not too long)
+        """
+        # Validate end date is after start date
+        if self.to_date < self.from_date:
+            raise ValueError("Leave end date must be after or equal to start date")
+        
+        # Calculate expected total days
+        expected_days = (self.to_date - self.from_date).days + 1
+        
+        # Validate total_days matches calculation
+        if self.total_days != expected_days:
+            raise ValueError(
+                f"total_days ({self.total_days}) must equal calculated duration "
+                f"({expected_days} days)"
+            )
+        
+        # Validate reasonable leave duration based on leave type
+        max_days_by_type = {
+            LeaveType.CASUAL: 30,
+            LeaveType.SICK: 60,
+            LeaveType.EMERGENCY: 15,
+            LeaveType.VACATION: 90,
+            LeaveType.OTHER: 30,
+        }
+        
+        max_allowed = max_days_by_type.get(self.leave_type, 30)
+        if self.total_days > max_allowed:
+            raise ValueError(
+                f"{self.leave_type.value} leave cannot exceed {max_allowed} days"
+            )
+        
+        return self
+
+    @model_validator(mode="after")
+    def validate_document_requirement(self) -> "LeaveBase":
+        """
+        Validate supporting document requirements.
+        
+        Certain leave types or durations require supporting documents.
+        """
+        # Sick leave > 3 days requires medical certificate
+        if self.leave_type == LeaveType.SICK and self.total_days > 3:
+            if not self.supporting_document_url:
+                raise ValueError(
+                    "Medical certificate required for sick leave exceeding 3 days"
+                )
+        
+        # Any leave > 15 days requires documentation
+        if self.total_days > 15:
+            if not self.supporting_document_url:
+                raise ValueError(
+                    "Supporting documentation required for leave exceeding 15 days"
+                )
+        
+        return self
+
+
 class LeaveCreate(LeaveBase, BaseCreateSchema):
-    """Create leave application"""
-    pass
+    """
+    Create leave application request.
+    
+    Inherits all validation from LeaveBase and adds creation context.
+    """
+
+    # Override total_days to make it optional (will be auto-calculated)
+    total_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=365,
+        description="Total leave days (auto-calculated if not provided)",
+    )
+
+    @model_validator(mode="after")
+    def calculate_total_days(self) -> "LeaveCreate":
+        """
+        Auto-calculate total_days if not provided.
+        
+        Calculates duration from from_date and to_date.
+        """
+        if self.total_days is None:
+            self.total_days = (self.to_date - self.from_date).days + 1
+        return self
 
 
 class LeaveUpdate(BaseUpdateSchema):
-    """Update leave application (typically before approval)"""
-    leave_type: Optional[LeaveType] = None
-    from_date: Optional[date] = None
-    to_date: Optional[date] = None
-    total_days: Optional[int] = Field(None, ge=1)
-    reason: Optional[str] = None
-    contact_during_leave: Optional[str] = None
-    emergency_contact: Optional[str] = None
-    supporting_document_url: Optional[str] = None
-    status: Optional[LeaveStatus] = None
+    """
+    Update leave application with partial fields.
+    
+    All fields are optional for flexible updates. Typically used
+    before leave approval to modify application details.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\leave_response.py ---
+    leave_type: Optional[LeaveType] = Field(
+        None,
+        description="Updated leave type",
+    )
+    from_date: Optional[date] = Field(
+        None,
+        description="Updated start date",
+    )
+    to_date: Optional[date] = Field(
+        None,
+        description="Updated end date",
+    )
+    total_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=365,
+        description="Updated total days",
+    )
+    reason: Optional[str] = Field(
+        None,
+        min_length=10,
+        max_length=1000,
+        description="Updated leave reason",
+    )
+    contact_during_leave: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Updated contact number",
+    )
+    emergency_contact: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Updated emergency contact",
+    )
+    supporting_document_url: Optional[HttpUrl] = Field(
+        None,
+        description="Updated supporting document URL",
+    )
+    status: Optional[LeaveStatus] = Field(
+        None,
+        description="Updated leave status (restricted to certain roles)",
+    )
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: Optional[str]) -> Optional[str]:
+        """Validate updated reason if provided."""
+        if v is not None:
+            v = v.strip()
+            if len(v) < 10:
+                raise ValueError("Leave reason must be at least 10 characters")
+            if len(set(v.lower().replace(" ", ""))) < 5:
+                raise ValueError("Leave reason must be meaningful")
+            return v
+        return None
+
+    @field_validator("contact_during_leave", "emergency_contact")
+    @classmethod
+    def normalize_phone(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize phone numbers."""
+        if v is not None:
+            return v.replace(" ", "").replace("-", "").strip()
+        return None
+
+    @model_validator(mode="after")
+    def validate_date_consistency(self) -> "LeaveUpdate":
+        """
+        Validate date consistency when both dates are updated.
+        
+        Ensures end date is after start date when both are provided.
+        """
+        # Only validate if both dates are being updated
+        if self.from_date is not None and self.to_date is not None:
+            if self.to_date < self.from_date:
+                raise ValueError("End date must be after or equal to start date")
+            
+            # Recalculate total_days if dates changed but total_days not provided
+            if self.total_days is None:
+                self.total_days = (self.to_date - self.from_date).days + 1
+        
+        return self
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\leave_response.py ---
+# --- File: app/schemas/leave/leave_response.py ---
 """
-Leave response schemas
+Leave response schemas for API responses.
+
+Provides various response formats for leave data including
+detailed, summary, and list views with computed fields.
 """
+
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Optional
-from pydantic import Field
+
+from pydantic import Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
-from app.schemas.common.enums import LeaveType, LeaveStatus
+from app.schemas.common.enums import LeaveStatus, LeaveType
+
+__all__ = [
+    "LeaveResponse",
+    "LeaveDetail",
+    "LeaveListItem",
+    "LeaveSummary",
+]
 
 
 class LeaveResponse(BaseResponseSchema):
-    """Leave list item for basic display"""
-    student_id: UUID
-    student_name: str
-    hostel_id: UUID
-    hostel_name: str
+    """
+    Standard leave response with essential information.
+    
+    Lightweight response schema for list views and basic queries.
+    """
 
-    leave_type: LeaveType
-    from_date: date
-    to_date: date
-    total_days: int
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    student_name: str = Field(
+        ...,
+        description="Student full name",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Type of leave",
+    )
+    from_date: date = Field(
+        ...,
+        description="Leave start date",
+    )
+    to_date: date = Field(
+        ...,
+        description="Leave end date",
+    )
+    total_days: int = Field(
+        ...,
+        description="Total leave days",
+    )
+    status: LeaveStatus = Field(
+        ...,
+        description="Current leave status",
+    )
+    applied_at: datetime = Field(
+        ...,
+        description="Application submission timestamp",
+    )
+    reason: Optional[str] = Field(
+        None,
+        description="Leave reason (truncated for list view)",
+    )
 
-    status: LeaveStatus
-    applied_at: datetime
+    @computed_field
+    @property
+    def status_display(self) -> str:
+        """Human-readable status display."""
+        status_map = {
+            LeaveStatus.PENDING: "Pending Approval",
+            LeaveStatus.APPROVED: "Approved",
+            LeaveStatus.REJECTED: "Rejected",
+            LeaveStatus.CANCELLED: "Cancelled",
+        }
+        return status_map.get(self.status, self.status.value)
+
+    @computed_field
+    @property
+    def leave_type_display(self) -> str:
+        """Human-readable leave type display."""
+        type_map = {
+            LeaveType.CASUAL: "Casual Leave",
+            LeaveType.SICK: "Sick Leave",
+            LeaveType.EMERGENCY: "Emergency Leave",
+            LeaveType.VACATION: "Vacation",
+            LeaveType.OTHER: "Other",
+        }
+        return type_map.get(self.leave_type, self.leave_type.value)
+
+    @computed_field
+    @property
+    def is_active(self) -> bool:
+        """Check if leave is currently active."""
+        if self.status != LeaveStatus.APPROVED:
+            return False
+        
+        today = date.today()
+        return self.from_date <= today <= self.to_date
+
+    @computed_field
+    @property
+    def days_remaining(self) -> Optional[int]:
+        """Calculate remaining days for active leave."""
+        if not self.is_active:
+            return None
+        
+        return (self.to_date - date.today()).days + 1
 
 
 class LeaveDetail(BaseResponseSchema):
-    """Detailed leave view"""
-    student_id: UUID
-    student_name: str
-    student_room: Optional[str]
+    """
+    Detailed leave information with complete metadata.
+    
+    Comprehensive response including all leave details, approval workflow,
+    and supporting information.
+    """
 
-    hostel_id: UUID
-    hostel_name: str
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    student_name: str = Field(
+        ...,
+        description="Student full name",
+    )
+    student_email: Optional[str] = Field(
+        None,
+        description="Student email address",
+    )
+    student_phone: Optional[str] = Field(
+        None,
+        description="Student phone number",
+    )
+    student_room: Optional[str] = Field(
+        None,
+        description="Student room number",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel unique identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
 
-    leave_type: LeaveType
-    from_date: date
-    to_date: date
-    total_days: int
-    reason: str
+    # Leave details
+    leave_type: LeaveType = Field(
+        ...,
+        description="Type of leave",
+    )
+    from_date: date = Field(
+        ...,
+        description="Leave start date",
+    )
+    to_date: date = Field(
+        ...,
+        description="Leave end date",
+    )
+    total_days: int = Field(
+        ...,
+        description="Total leave days",
+    )
+    reason: str = Field(
+        ...,
+        description="Detailed leave reason",
+    )
 
-    contact_during_leave: Optional[str]
-    emergency_contact: Optional[str]
-    supporting_document_url: Optional[str]
+    # Contact information
+    contact_during_leave: Optional[str] = Field(
+        None,
+        description="Contact number during leave",
+    )
+    emergency_contact: Optional[str] = Field(
+        None,
+        description="Emergency contact number",
+    )
+    emergency_contact_relation: Optional[str] = Field(
+        None,
+        description="Relation with emergency contact",
+    )
+    destination_address: Optional[str] = Field(
+        None,
+        description="Destination address",
+    )
 
-    status: LeaveStatus
-    applied_at: datetime
-    approved_at: Optional[datetime]
-    rejected_at: Optional[datetime]
-    cancelled_at: Optional[datetime]
+    # Supporting documents
+    supporting_document_url: Optional[str] = Field(
+        None,
+        description="Supporting document URL",
+    )
 
-    approved_by: Optional[UUID]
-    approved_by_name: Optional[str]
-    rejected_by: Optional[UUID]
-    rejected_by_name: Optional[str]
+    # Status and workflow
+    status: LeaveStatus = Field(
+        ...,
+        description="Current leave status",
+    )
+    applied_at: datetime = Field(
+        ...,
+        description="Application submission timestamp",
+    )
 
-    rejection_reason: Optional[str]
-    cancellation_reason: Optional[str]
+    # Approval details
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="Approval timestamp",
+    )
+    approved_by: Optional[UUID] = Field(
+        None,
+        description="Approver user ID",
+    )
+    approved_by_name: Optional[str] = Field(
+        None,
+        description="Approver name",
+    )
+    approval_notes: Optional[str] = Field(
+        None,
+        description="Approval notes",
+    )
+    conditions: Optional[str] = Field(
+        None,
+        description="Approval conditions",
+    )
+
+    # Rejection details
+    rejected_at: Optional[datetime] = Field(
+        None,
+        description="Rejection timestamp",
+    )
+    rejected_by: Optional[UUID] = Field(
+        None,
+        description="Rejector user ID",
+    )
+    rejected_by_name: Optional[str] = Field(
+        None,
+        description="Rejector name",
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Rejection reason",
+    )
+
+    # Cancellation details
+    cancelled_at: Optional[datetime] = Field(
+        None,
+        description="Cancellation timestamp",
+    )
+    cancelled_by: Optional[UUID] = Field(
+        None,
+        description="User who cancelled",
+    )
+    cancellation_reason: Optional[str] = Field(
+        None,
+        description="Cancellation reason",
+    )
+
+    # Additional metadata
+    last_modified_at: Optional[datetime] = Field(
+        None,
+        description="Last modification timestamp",
+    )
+    last_modified_by: Optional[UUID] = Field(
+        None,
+        description="Last modifier user ID",
+    )
+
+    @computed_field
+    @property
+    def is_active(self) -> bool:
+        """Check if leave is currently active."""
+        if self.status != LeaveStatus.APPROVED:
+            return False
+        
+        today = date.today()
+        return self.from_date <= today <= self.to_date
+
+    @computed_field
+    @property
+    def is_upcoming(self) -> bool:
+        """Check if leave is upcoming."""
+        if self.status != LeaveStatus.APPROVED:
+            return False
+        
+        return self.from_date > date.today()
+
+    @computed_field
+    @property
+    def is_past(self) -> bool:
+        """Check if leave is in the past."""
+        return self.to_date < date.today()
+
+    @computed_field
+    @property
+    def can_be_cancelled(self) -> bool:
+        """Check if leave can be cancelled by student."""
+        # Can only cancel pending or approved (future/ongoing) leaves
+        if self.status not in [LeaveStatus.PENDING, LeaveStatus.APPROVED]:
+            return False
+        
+        # Can't cancel past leaves
+        if self.is_past:
+            return False
+        
+        return True
 
 
 class LeaveListItem(BaseSchema):
-    """List row for leave applications"""
-    id: UUID
-    student_name: str
-    room_number: Optional[str]
-    leave_type: LeaveType
-    from_date: date
-    to_date: date
-    total_days: int
-    status: LeaveStatus
-    applied_at: datetime
+    """
+    Minimal leave list item for efficient list rendering.
+    
+    Optimized for pagination and list views with minimal data transfer.
+    """
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\leave\__init__.py ---
+    id: UUID = Field(
+        ...,
+        description="Leave application unique identifier",
+    )
+    student_id: UUID = Field(
+        ...,
+        description="Student unique identifier",
+    )
+    student_name: str = Field(
+        ...,
+        description="Student name",
+    )
+    room_number: Optional[str] = Field(
+        None,
+        description="Room number",
+    )
+    leave_type: LeaveType = Field(
+        ...,
+        description="Leave type",
+    )
+    from_date: date = Field(
+        ...,
+        description="Start date",
+    )
+    to_date: date = Field(
+        ...,
+        description="End date",
+    )
+    total_days: int = Field(
+        ...,
+        description="Total days",
+    )
+    status: LeaveStatus = Field(
+        ...,
+        description="Leave status",
+    )
+    applied_at: datetime = Field(
+        ...,
+        description="Application date",
+    )
+
+    @computed_field
+    @property
+    def status_badge_color(self) -> str:
+        """Get color code for status badge (for UI rendering)."""
+        color_map = {
+            LeaveStatus.PENDING: "yellow",
+            LeaveStatus.APPROVED: "green",
+            LeaveStatus.REJECTED: "red",
+            LeaveStatus.CANCELLED: "gray",
+        }
+        return color_map.get(self.status, "gray")
+
+    @computed_field
+    @property
+    def is_urgent(self) -> bool:
+        """Check if leave requires urgent attention."""
+        # Pending leaves starting soon are urgent
+        if self.status == LeaveStatus.PENDING:
+            days_until_start = (self.from_date - date.today()).days
+            return days_until_start <= 2
+        return False
+
+
+class LeaveSummary(BaseSchema):
+    """
+    Leave summary statistics for dashboard.
+    
+    Provides aggregated view of leave status for reporting.
+    """
+
+    student_id: Optional[UUID] = Field(
+        None,
+        description="Student ID (if student-specific summary)",
+    )
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Hostel ID (if hostel-specific summary)",
+    )
+    period_start: date = Field(
+        ...,
+        description="Summary period start date",
+    )
+    period_end: date = Field(
+        ...,
+        description="Summary period end date",
+    )
+
+    # Count by status
+    total_applications: int = Field(
+        ...,
+        ge=0,
+        description="Total leave applications",
+    )
+    pending_count: int = Field(
+        ...,
+        ge=0,
+        description="Pending applications",
+    )
+    approved_count: int = Field(
+        ...,
+        ge=0,
+        description="Approved applications",
+    )
+    rejected_count: int = Field(
+        ...,
+        ge=0,
+        description="Rejected applications",
+    )
+    cancelled_count: int = Field(
+        ...,
+        ge=0,
+        description="Cancelled applications",
+    )
+
+    # Count by type
+    casual_count: int = Field(
+        default=0,
+        ge=0,
+        description="Casual leave count",
+    )
+    sick_count: int = Field(
+        default=0,
+        ge=0,
+        description="Sick leave count",
+    )
+    emergency_count: int = Field(
+        default=0,
+        ge=0,
+        description="Emergency leave count",
+    )
+    vacation_count: int = Field(
+        default=0,
+        ge=0,
+        description="Vacation count",
+    )
+
+    # Day statistics
+    total_days_requested: int = Field(
+        ...,
+        ge=0,
+        description="Total days requested across all applications",
+    )
+    total_days_approved: int = Field(
+        ...,
+        ge=0,
+        description="Total days approved",
+    )
+    active_leaves: int = Field(
+        default=0,
+        ge=0,
+        description="Currently active leaves",
+    )
+
+    @computed_field
+    @property
+    def approval_rate(self) -> float:
+        """Calculate approval rate percentage."""
+        total_decided = self.approved_count + self.rejected_count
+        if total_decided == 0:
+            return 0.0
+        return round((self.approved_count / total_decided) * 100, 2)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\__init__.py ---
+# --- File: app/schemas/leave/__init__.py ---
 """
-Leave management schemas package
+Leave management schemas package.
+
+Comprehensive leave application, approval, and balance tracking schemas
+for hostel management system with enhanced validation and type safety.
 """
 
-from app.schemas.leave.leave_base import (
-    LeaveBase,
-    LeaveCreate,
-    LeaveUpdate,
-)
-from app.schemas.leave.leave_response import (
-    LeaveResponse,
-    LeaveDetail,
-    LeaveListItem,
-)
+from __future__ import annotations
+
 from app.schemas.leave.leave_application import (
     LeaveApplicationRequest,
     LeaveCancellationRequest,
 )
 from app.schemas.leave.leave_approval import (
+    LeaveApprovalAction,
     LeaveApprovalRequest,
     LeaveApprovalResponse,
 )
 from app.schemas.leave.leave_balance import (
     LeaveBalance,
     LeaveBalanceSummary,
+    LeaveQuota,
+    LeaveUsageDetail,
+)
+from app.schemas.leave.leave_base import (
+    LeaveBase,
+    LeaveCreate,
+    LeaveUpdate,
+)
+from app.schemas.leave.leave_response import (
+    LeaveDetail,
+    LeaveListItem,
+    LeaveResponse,
+    LeaveSummary,
 )
 
 __all__ = [
-    # Base
+    # Base schemas
     "LeaveBase",
     "LeaveCreate",
     "LeaveUpdate",
-    # Response
+    # Response schemas
     "LeaveResponse",
     "LeaveDetail",
     "LeaveListItem",
-    # Application
+    "LeaveSummary",
+    # Application schemas
     "LeaveApplicationRequest",
     "LeaveCancellationRequest",
-    # Approval
+    # Approval schemas
     "LeaveApprovalRequest",
+    "LeaveApprovalAction",
     "LeaveApprovalResponse",
-    # Balance
+    # Balance schemas
     "LeaveBalance",
     "LeaveBalanceSummary",
+    "LeaveQuota",
+    "LeaveUsageDetail",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\leave\__pycache__ =====

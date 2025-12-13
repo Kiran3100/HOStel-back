@@ -39,6 +39,7 @@ from app.schemas.subscription.subscription_billing import (
 from app.schemas.subscription.subscription_cancellation import (
     CancellationRequest,
     CancellationResponse,
+    CancellationPreview,
 )
 
 # Plan definition schemas
@@ -68,6 +69,7 @@ from app.schemas.subscription.subscription_upgrade import (
     PlanChangeRequest,
     PlanChangePreview,
     PlanChangeType,
+    PlanChangeConfirmation,
 )
 
 __all__ = [
@@ -90,6 +92,7 @@ __all__ = [
     # Cancellation
     "CancellationRequest",
     "CancellationResponse",
+    "CancellationPreview",
     # Plan base
     "SubscriptionPlanBase",
     "PlanCreate",
@@ -106,4 +109,5 @@ __all__ = [
     # Upgrade/downgrade
     "PlanChangeRequest",
     "PlanChangePreview",
+    "PlanChangeConfirmation",
 ]

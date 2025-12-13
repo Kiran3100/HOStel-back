@@ -28,7 +28,39 @@ __all__ = [
     "PushDeliveryStatus",
     "PushStats",
     "BulkPushRequest",
+    "PushAction",
 ]
+
+
+class PushAction(BaseSchema):
+    """
+    Push notification action button.
+
+    Allows users to take quick actions from notification.
+    """
+
+    action_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Unique action identifier",
+    )
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Action button text",
+    )
+    action_url: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="URL to open when action is tapped",
+    )
+    icon: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Action icon identifier",
+    )
 
 
 class PushRequest(BaseCreateSchema):
@@ -99,7 +131,7 @@ class PushRequest(BaseCreateSchema):
         max_length=500,
         description="Deep link or URL to open on tap",
     )
-    actions: List["PushAction"] = Field(
+    actions: List[PushAction] = Field(
         default_factory=list,
         max_length=3,
         description="Action buttons (max 3)",
@@ -223,37 +255,6 @@ class PushRequest(BaseCreateSchema):
         if v is not None and v <= datetime.utcnow():
             raise ValueError("Scheduled send time must be in the future")
         return v
-
-
-class PushAction(BaseSchema):
-    """
-    Push notification action button.
-
-    Allows users to take quick actions from notification.
-    """
-
-    action_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=50,
-        description="Unique action identifier",
-    )
-    title: str = Field(
-        ...,
-        min_length=1,
-        max_length=50,
-        description="Action button text",
-    )
-    action_url: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="URL to open when action is tapped",
-    )
-    icon: Optional[str] = Field(
-        None,
-        max_length=50,
-        description="Action icon identifier",
-    )
 
 
 class PushConfig(BaseSchema):

@@ -99,13 +99,11 @@ class PaymentFilterParams(BaseFilterSchema):
     amount_min: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Minimum payment amount",
     )
     amount_max: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Maximum payment amount",
     )
 
@@ -350,6 +348,7 @@ class PaymentReportRequest(BaseFilterSchema):
     @classmethod
     def validate_date_range(cls, v: date, info) -> date:
         """Validate date range."""
+        # In Pydantic v2, info.data contains the other validated fields
         date_from = info.data.get("date_from")
         if date_from is not None:
             if v < date_from:

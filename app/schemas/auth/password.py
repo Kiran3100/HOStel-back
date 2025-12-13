@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/password.py ---
 """
 Password management schemas with robust validation.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ __all__ = [
     "PasswordChangeResponse",
     "PasswordStrengthCheck",
     "PasswordStrengthResponse",
+    "PasswordValidator",
 ]
 
 
@@ -45,7 +47,7 @@ class PasswordValidator:
         Returns:
             Tuple of (is_valid, list_of_issues)
         """
-        issues = []
+        issues: List[str] = []
 
         if len(password) < cls.MIN_LENGTH:
             issues.append(f"Password must be at least {cls.MIN_LENGTH} characters long")
@@ -289,8 +291,8 @@ class PasswordStrengthResponse(BaseSchema):
         description="Suggestions for improvement",
     )
 
-    @staticmethod
-    def from_password(password: str) -> "PasswordStrengthResponse":
+    @classmethod
+    def from_password(cls, password: str) -> "PasswordStrengthResponse":
         """
         Create response from password analysis.
         
@@ -299,6 +301,9 @@ class PasswordStrengthResponse(BaseSchema):
             
         Returns:
             PasswordStrengthResponse with complete analysis
+            
+        Note:
+            Changed from @staticmethod to @classmethod for Pydantic v2 best practices.
         """
         score = PasswordValidator.calculate_strength_score(password)
         is_valid, issues = PasswordValidator.validate_strength(password)
@@ -315,7 +320,7 @@ class PasswordStrengthResponse(BaseSchema):
         else:
             strength = "very_strong"
 
-        return PasswordStrengthResponse(
+        return cls(
             score=score,
             strength=strength,
             has_minimum_length=len(password) >= PasswordValidator.MIN_LENGTH,

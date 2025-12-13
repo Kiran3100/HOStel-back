@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\auth ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\auth =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\login.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\login.py ---
 # --- File: app/schemas/auth/login.py ---
 """
 Login schemas with enhanced validation and type safety.
@@ -195,7 +195,7 @@ class LoginResponse(BaseSchema):
         description="Authenticated user information",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\otp.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\otp.py ---
 # --- File: app/schemas/auth/otp.py ---
 """
 OTP (One-Time Password) schemas with enhanced validation.
@@ -207,7 +207,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, model_validator
+from pydantic import EmailStr, Field, model_validator, field_validator
+
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import OTPType
@@ -421,7 +422,7 @@ class ResendOTPRequest(BaseCreateSchema):
             )
         return self
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\password.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\password.py ---
 # --- File: app/schemas/auth/password.py ---
 """
 Password management schemas with robust validation.
@@ -755,7 +756,7 @@ class PasswordStrengthResponse(BaseSchema):
             suggestions=issues if not is_valid else [],
         )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\register.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\register.py ---
 # --- File: app/schemas/auth/register.py ---
 """
 Registration schemas with comprehensive validation.
@@ -1037,7 +1038,7 @@ class ResendVerificationRequest(BaseCreateSchema):
         """Normalize verification type to lowercase."""
         return v.lower().strip()
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\social_auth.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\social_auth.py ---
 # --- File: app/schemas/auth/social_auth.py ---
 """
 Social authentication schemas with provider-specific validation.
@@ -1269,7 +1270,7 @@ class SocialAuthResponse(BaseSchema):
         description="Whether this is a new user (first-time registration)",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\token.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\token.py ---
 # --- File: app/schemas/auth/token.py ---
 """
 Token management schemas with enhanced security features.
@@ -1536,7 +1537,7 @@ class LogoutRequest(BaseCreateSchema):
                 raise ValueError("Refresh token cannot be empty if provided")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\auth\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\__init__.py ---
 # --- File: app/schemas/auth/__init__.py ---
 """
 Authentication schemas package.
@@ -1642,3 +1643,6 @@ __all__ = [
     "SocialUserInfo",
     "SocialProfileData",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\auth\__pycache__ =====

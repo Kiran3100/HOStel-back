@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field, field_validator
 
@@ -44,7 +44,7 @@ class FeedbackRequest(BaseCreateSchema):
     )
 
     feedback: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Detailed feedback comments",
     )
@@ -64,7 +64,7 @@ class FeedbackRequest(BaseCreateSchema):
     )
 
     would_recommend: Optional[bool] = Field(
-        None,
+        default=None,
         description="Would you recommend this complaint system?",
     )
 
@@ -80,7 +80,7 @@ class FeedbackRequest(BaseCreateSchema):
 
     @field_validator("rating")
     @classmethod
-    def validate_rating_for_poor_scores(cls, v: int, info) -> int:
+    def validate_rating_for_poor_scores(cls, v: int) -> int:
         """
         Encourage feedback text for low ratings.
         
@@ -102,7 +102,7 @@ class FeedbackResponse(BaseResponseSchema):
     complaint_number: str = Field(..., description="Complaint reference number")
 
     rating: int = Field(..., description="Submitted rating")
-    feedback: Optional[str] = Field(None, description="Submitted feedback")
+    feedback: Optional[str] = Field(default=None, description="Submitted feedback")
 
     submitted_by: str = Field(..., description="Feedback submitter user ID")
     submitted_at: datetime = Field(..., description="Submission timestamp")
@@ -136,98 +136,63 @@ class FeedbackSummary(BaseSchema):
     period_end: date = Field(..., description="Summary period end date")
 
     # Overall statistics
-    total_feedbacks: int = Field(ge=0, description="Total feedback count")
+    total_feedbacks: int = Field(..., ge=0, description="Total feedback count")
     average_rating: Decimal = Field(
-        ge=0,
-        le=5,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("5"),
         description="Average rating (0-5)",
     )
 
     # Rating distribution
-    rating_5_count: int = Field(ge=0, description="5-star rating count")
-    rating_4_count: int = Field(ge=0, description="4-star rating count")
-    rating_3_count: int = Field(ge=0, description="3-star rating count")
-    rating_2_count: int = Field(ge=0, description="2-star rating count")
-    rating_1_count: int = Field(ge=0, description="1-star rating count")
+    rating_5_count: int = Field(..., ge=0, description="5-star rating count")
+    rating_4_count: int = Field(..., ge=0, description="4-star rating count")
+    rating_3_count: int = Field(..., ge=0, description="3-star rating count")
+    rating_2_count: int = Field(..., ge=0, description="2-star rating count")
+    rating_1_count: int = Field(..., ge=0, description="1-star rating count")
 
     # Satisfaction metrics (percentages)
     resolution_satisfaction_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% satisfied with issue resolution",
     )
     response_time_satisfaction_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% satisfied with response time",
     )
     staff_helpfulness_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% who found staff helpful",
     )
 
     # Recommendation
     recommendation_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% who would recommend the system",
     )
 
     # Sentiment analysis
     positive_feedback_count: int = Field(
+        ...,
         ge=0,
         description="Positive feedback count",
     )
     negative_feedback_count: int = Field(
+        ...,
         ge=0,
         description="Negative feedback count",
     )
     common_themes: List[str] = Field(
         default_factory=list,
         description="Common themes from feedback analysis",
-    )
-
-
-class FeedbackAnalysis(BaseSchema):
-    """
-    Detailed feedback analysis with trends.
-    
-    Provides deep insights into feedback patterns.
-    """
-
-    hostel_id: str = Field(..., description="Hostel identifier")
-    period_start: date = Field(..., description="Analysis period start")
-    period_end: date = Field(..., description="Analysis period end")
-
-    # Trend data
-    rating_trend: List["RatingTrendPoint"] = Field(
-        default_factory=list,
-        description="Rating trend over time",
-    )
-
-    # Category analysis
-    feedback_by_category: dict[str, Decimal] = Field(
-        default_factory=dict,
-        description="Average rating by complaint category",
-    )
-
-    # Priority analysis
-    feedback_by_priority: dict[str, Decimal] = Field(
-        default_factory=dict,
-        description="Average rating by priority level",
-    )
-
-    # Response time impact
-    avg_rating_quick_response: Decimal = Field(
-        ge=0,
-        le=5,
-        description="Average rating for quick responses",
-    )
-    avg_rating_slow_response: Decimal = Field(
-        ge=0,
-        le=5,
-        description="Average rating for slow responses",
     )
 
 
@@ -244,11 +209,57 @@ class RatingTrendPoint(BaseSchema):
         examples=["2024-01", "Week 1", "2024-01-15"],
     )
     average_rating: Decimal = Field(
-        ge=0,
-        le=5,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("5"),
         description="Average rating for period",
     )
     feedback_count: int = Field(
+        ...,
         ge=0,
         description="Number of feedbacks in period",
+    )
+
+
+class FeedbackAnalysis(BaseSchema):
+    """
+    Detailed feedback analysis with trends.
+    
+    Provides deep insights into feedback patterns.
+    """
+
+    hostel_id: str = Field(..., description="Hostel identifier")
+    period_start: date = Field(..., description="Analysis period start")
+    period_end: date = Field(..., description="Analysis period end")
+
+    # Trend data
+    rating_trend: List[RatingTrendPoint] = Field(
+        default_factory=list,
+        description="Rating trend over time",
+    )
+
+    # Category analysis
+    feedback_by_category: Dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average rating by complaint category",
+    )
+
+    # Priority analysis
+    feedback_by_priority: Dict[str, Decimal] = Field(
+        default_factory=dict,
+        description="Average rating by priority level",
+    )
+
+    # Response time impact
+    avg_rating_quick_response: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("5"),
+        description="Average rating for quick responses",
+    )
+    avg_rating_slow_response: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("5"),
+        description="Average rating for slow responses",
     )

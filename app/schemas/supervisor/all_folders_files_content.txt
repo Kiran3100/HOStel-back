@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_activity.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_activity.py ---
 # --- File: app/schemas/supervisor/supervisor_activity.py ---
 """
 Supervisor activity and audit log schemas with enhanced tracking.
@@ -684,7 +684,7 @@ class ActivityExportRequest(BaseCreateSchema):
         """Normalize format to lowercase."""
         return v.lower().strip()
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_assignment.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_assignment.py ---
 # --- File: app/schemas/supervisor/supervisor_assignment.py ---
 """
 Supervisor assignment schemas with enhanced validation.
@@ -1081,7 +1081,7 @@ class AssignmentSummary(BaseSchema):
         """Check if hostel needs more supervisor coverage."""
         return self.active_supervisors < 1
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_base.py ---
 # --- File: app/schemas/supervisor/supervisor_base.py ---
 """
 Supervisor base schemas with enhanced validation and type safety.
@@ -1889,7 +1889,7 @@ class SupervisorTermination(BaseCreateSchema):
         
         return self
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_dashboard.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_dashboard.py ---
 # --- File: app/schemas/supervisor/supervisor_dashboard.py ---
 """
 Supervisor dashboard schemas with real-time metrics and insights.
@@ -2689,7 +2689,7 @@ class SupervisorDashboard(BaseSchema):
         else:
             return "Excellent"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_performance.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_performance.py ---
 # --- File: app/schemas/supervisor/supervisor_performance.py ---
 """
 Supervisor performance tracking schemas with comprehensive analytics.
@@ -2702,7 +2702,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, computed_field
 
@@ -3792,7 +3792,7 @@ class PerformanceGoalProgress(BaseSchema):
     
     # Tracking
     last_updated: datetime = Field(..., description="Last progress update")
-    measurement_history: List[Dict[str, any]] = Field(
+    measurement_history: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Historical measurements",
     )
@@ -3926,7 +3926,7 @@ class PerformanceInsights(BaseSchema):
         else:
             return "Balanced performer with mixed results"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_permissions.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_permissions.py ---
 # --- File: app/schemas/supervisor/supervisor_permissions.py ---
 """
 Supervisor permission schemas with comprehensive access control.
@@ -4964,7 +4964,7 @@ class PermissionAuditLog(BaseSchema):
         
         return f"{self.change_type.title()}: {self.changes_count} permission(s) modified"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_profile.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_profile.py ---
 # --- File: app/schemas/supervisor/supervisor_profile.py ---
 """
 Supervisor profile schemas with employment and personal information.
@@ -5504,7 +5504,7 @@ class SupervisorProfileUpdate(BaseUpdateSchema):
             return v.replace(" ", "").replace("-", "").strip()
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\supervisor_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\supervisor_response.py ---
 # --- File: app/schemas/supervisor/supervisor_response.py ---
 """
 Supervisor response schemas for API responses.
@@ -6223,7 +6223,8 @@ class SupervisorStatistics(BaseSchema):
         else:
             return "D (Poor)"
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\supervisor\__init__.py ---
+# app/schemas/supervisor/__init__.py
 """
 Supervisor schemas package
 """
@@ -6263,12 +6264,24 @@ from app.schemas.supervisor.supervisor_activity import (
 from app.schemas.supervisor.supervisor_dashboard import (
     SupervisorDashboard,
     DashboardMetrics,
-    TaskSummary
+    TaskSummary,
+    RecentComplaintItem,
+    RecentMaintenanceItem,
+    PendingLeaveItem,
+    TodaySchedule,
+    ScheduledMaintenanceItem,
+    ScheduledMeeting,
+    DashboardAlert,
+    QuickActions,
+    PerformanceIndicators
 )
 from app.schemas.supervisor.supervisor_performance import (
     PerformanceMetrics,
     PerformanceReport,
-    PerformanceReview
+    PerformanceReview,
+    ComplaintPerformance,
+    AttendancePerformance,
+    MaintenancePerformance
 )
 
 __all__ = [
@@ -6309,12 +6322,21 @@ __all__ = [
     "SupervisorDashboard",
     "DashboardMetrics",
     "TaskSummary",
+    "RecentComplaintItem",
+    "RecentMaintenanceItem",
+    "PendingLeaveItem",
+    "TodaySchedule",
+    "ScheduledMaintenanceItem",
+    "ScheduledMeeting",
+    "DashboardAlert",
+    "QuickActions",
+    "PerformanceIndicators",
     
     # Performance
     "PerformanceMetrics",
     "PerformanceReport",
     "PerformanceReview",
+    "ComplaintPerformance",
+    "AttendancePerformance",
+    "MaintenancePerformance",
 ]
-
-
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\supervisor\__pycache__ =====

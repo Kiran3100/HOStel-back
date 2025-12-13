@@ -141,7 +141,6 @@ class RoutingRule(BaseSchema):
     channels: List[str] = Field(
         ...,
         min_length=1,
-        pattern_items="^(email|sms|push)$",
         description="Notification channels to use",
     )
 

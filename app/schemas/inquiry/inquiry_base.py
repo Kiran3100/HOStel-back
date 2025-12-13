@@ -12,7 +12,7 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, computed_field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
@@ -31,6 +31,23 @@ class InquiryBase(BaseSchema):
     Contains all core inquiry information including hostel selection,
     visitor contact details, preferences, and inquiry metadata.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "visitor_name": "John Smith",
+                "visitor_email": "john.smith@example.com",
+                "visitor_phone": "+919876543210",
+                "preferred_check_in_date": "2024-03-01",
+                "stay_duration_months": 6,
+                "room_type_preference": "single",
+                "message": "I am interested in a single room for my college studies.",
+                "inquiry_source": "website",
+                "status": "new"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -156,21 +173,25 @@ class InquiryBase(BaseSchema):
         
         return v
 
+    @computed_field  # type: ignore[misc]
     @property
     def has_date_preference(self) -> bool:
         """Check if visitor has specified a preferred check-in date."""
         return self.preferred_check_in_date is not None
 
+    @computed_field  # type: ignore[misc]
     @property
     def has_duration_preference(self) -> bool:
         """Check if visitor has specified stay duration."""
         return self.stay_duration_months is not None
 
+    @computed_field  # type: ignore[misc]
     @property
     def has_room_preference(self) -> bool:
         """Check if visitor has specified room type preference."""
         return self.room_type_preference is not None
 
+    @computed_field  # type: ignore[misc]
     @property
     def is_detailed_inquiry(self) -> bool:
         """Check if inquiry has detailed information."""
@@ -187,6 +208,22 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
     
     All base fields are inherited. Status is automatically set to NEW.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "visitor_name": "John Smith",
+                "visitor_email": "john.smith@example.com",
+                "visitor_phone": "+919876543210",
+                "preferred_check_in_date": "2024-03-01",
+                "stay_duration_months": 6,
+                "room_type_preference": "single",
+                "message": "I am interested in a single room for my college studies.",
+                "inquiry_source": "website"
+            }
+        }
+    )
 
     # Override status to always start as NEW
     status: InquiryStatus = Field(
@@ -211,6 +248,17 @@ class InquiryUpdate(BaseUpdateSchema):
     All fields are optional, allowing partial updates.
     Typically used by admins to add notes or update contact info.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "visitor_phone": "+919876543211",
+                "preferred_check_in_date": "2024-04-01",
+                "stay_duration_months": 12,
+                "status": "contacted"
+            }
+        }
+    )
 
     # Visitor Contact (rarely updated, but allowed)
     visitor_name: Optional[str] = Field(

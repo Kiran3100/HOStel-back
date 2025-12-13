@@ -17,7 +17,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -53,7 +53,7 @@ class BasicSearchRequest(BaseFilterSchema):
         examples=["hostels in Mumbai", "PG near me"],
     )
     limit: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Maximum number of results to return",
@@ -94,7 +94,7 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Search query
     query: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Optional search keywords",
         examples=["boys hostel", "PG with meals"],
@@ -102,21 +102,21 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Location filters
     city: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=100,
         description="City name",
         examples=["Mumbai", "Bangalore"],
     )
     state: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=100,
         description="State name",
         examples=["Maharashtra", "Karnataka"],
     )
     pincode: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^\d{6}$",
         description="6-digit Indian pincode",
         examples=["400001", "560001"],
@@ -124,21 +124,21 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Geographic coordinates for proximity search
     latitude: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=-90,
         le=90,
         description="Latitude for proximity search",
         examples=[19.0760],
     )
     longitude: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=-180,
         le=180,
         description="Longitude for proximity search",
         examples=[72.8777],
     )
     radius_km: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0.1,
         le=100,
         description="Search radius in kilometers",
@@ -147,30 +147,30 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Hostel and room type filters
     hostel_type: Optional[HostelType] = Field(
-        None,
+        default=None,
         description="Filter by hostel type (boys/girls/co-ed)",
     )
     room_types: Optional[List[RoomType]] = Field(
-        None,
+        default=None,
         description="Filter by room types (can select multiple)",
         examples=[["single", "double"]],
     )
 
     # Gender preference (for co-ed hostels)
     gender_preference: Optional[Gender] = Field(
-        None,
+        default=None,
         description="Gender preference for room allocation",
     )
 
     # Price range filter
     min_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum monthly price in INR",
         examples=[5000, 10000],
     )
     max_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum monthly price in INR",
         examples=[20000, 30000],
@@ -178,19 +178,19 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Amenities filter
     amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Required amenities (AND logic - hostel must have all)",
         examples=[["wifi", "ac", "parking"]],
     )
     any_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Optional amenities (OR logic - hostel can have any)",
         examples=[["gym", "laundry", "swimming_pool"]],
     )
 
     # Rating filter
     min_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Minimum average rating (0-5)",
@@ -199,43 +199,43 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Availability filters
     verified_only: bool = Field(
-        False,
+        default=False,
         description="Show only verified hostels",
     )
     available_only: bool = Field(
-        False,
+        default=False,
         description="Show only hostels with available beds",
     )
     instant_booking: bool = Field(
-        False,
+        default=False,
         description="Show only hostels with instant booking enabled",
     )
 
     # Date-based availability
     check_in_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Desired check-in date for availability check",
     )
     check_out_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Desired check-out date for availability check",
     )
 
     # Sorting options
     sort_by: str = Field(
-        "relevance",
+        default="relevance",
         pattern=r"^(relevance|price_asc|price_desc|rating_desc|distance_asc|newest|popular)$",
         description="Sort criterion",
     )
 
     # Pagination
     page: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Page number (1-indexed)",
     )
     page_size: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Results per page",
@@ -243,11 +243,11 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
     # Advanced options
     include_nearby_cities: bool = Field(
-        False,
+        default=False,
         description="Include results from nearby cities",
     )
     boost_featured: bool = Field(
-        True,
+        default=True,
         description="Boost featured/promoted hostels in results",
     )
 
@@ -320,6 +320,7 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
         return self
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def has_location_filter(self) -> bool:
         """Check if any location filter is applied."""
@@ -332,11 +333,13 @@ class AdvancedSearchRequest(BaseFilterSchema):
             ]
         )
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def has_price_filter(self) -> bool:
         """Check if price filter is applied."""
         return self.min_price is not None or self.max_price is not None
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def offset(self) -> int:
         """Calculate offset for database queries."""
@@ -363,7 +366,7 @@ class NearbySearchRequest(BaseFilterSchema):
         description="Current longitude",
     )
     radius_km: Decimal = Field(
-        5.0,
+        default=5.0,
         ge=0.1,
         le=50,
         description="Search radius in kilometers",
@@ -371,26 +374,26 @@ class NearbySearchRequest(BaseFilterSchema):
 
     # Optional filters
     hostel_type: Optional[HostelType] = Field(
-        None,
+        default=None,
         description="Filter by hostel type",
     )
     min_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum price filter",
     )
     max_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum price filter",
     )
     available_only: bool = Field(
-        True,
+        default=True,
         description="Show only hostels with available beds",
     )
 
     limit: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Maximum number of results",
@@ -427,11 +430,11 @@ class SavedSearchCreate(BaseCreateSchema):
         description="Serialized search parameters (AdvancedSearchRequest as dict)",
     )
     is_alert_enabled: bool = Field(
-        False,
+        default=False,
         description="Enable notifications when new matching hostels are added",
     )
     alert_frequency: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(daily|weekly|instant)$",
         description="Alert notification frequency",
     )
@@ -461,21 +464,21 @@ class SavedSearchUpdate(BaseUpdateSchema):
     """Update saved search configuration."""
 
     name: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=100,
         description="Updated name",
     )
     search_criteria: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Updated search parameters",
     )
     is_alert_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Enable/disable alerts",
     )
     alert_frequency: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(daily|weekly|instant)$",
         description="Alert frequency",
     )
@@ -497,13 +500,13 @@ class SavedSearchResponse(BaseResponseSchema):
     name: str = Field(..., description="Search name")
     search_criteria: Dict[str, Any] = Field(..., description="Search parameters")
     is_alert_enabled: bool = Field(..., description="Alert status")
-    alert_frequency: Optional[str] = Field(None, description="Alert frequency")
+    alert_frequency: Optional[str] = Field(default=None, description="Alert frequency")
     last_executed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last time this search was executed",
     )
     result_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of results from last execution",
     )
@@ -513,7 +516,7 @@ class SearchHistoryResponse(BaseResponseSchema):
     """Search history entry response."""
 
     user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="User ID (null for anonymous searches)",
     )
     query: str = Field(..., description="Search query")

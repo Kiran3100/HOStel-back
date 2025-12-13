@@ -1,0 +1,1394 @@
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry ###
+
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry =====
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\inquiry_base.py ---
+# --- File: app/schemas/inquiry/inquiry_base.py ---
+"""
+Base visitor inquiry schemas with comprehensive validation.
+
+This module defines the core inquiry schemas for managing visitor
+inquiries about hostel availability and bookings.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import EmailStr, Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
+
+__all__ = [
+    "InquiryBase",
+    "InquiryCreate",
+    "InquiryUpdate",
+]
+
+
+class InquiryBase(BaseSchema):
+    """
+    Base visitor inquiry schema with common fields.
+    
+    Contains all core inquiry information including hostel selection,
+    visitor contact details, preferences, and inquiry metadata.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Unique identifier of the hostel being inquired about",
+    )
+
+    # Visitor Contact Information
+    visitor_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=255,
+        description="Full name of the visitor making the inquiry",
+    )
+    visitor_email: EmailStr = Field(
+        ...,
+        description="Email address for communication",
+    )
+    visitor_phone: str = Field(
+        ...,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Contact phone number (international format supported)",
+    )
+
+    # Inquiry Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred or approximate check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=36,
+        description="Intended stay duration in months (1-36)",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Preferred room type if any",
+    )
+
+    # Inquiry Details
+    message: Optional[str] = Field(
+        None,
+        max_length=2000,
+        description="Additional message or questions from visitor",
+    )
+
+    # Metadata
+    inquiry_source: InquirySource = Field(
+        InquirySource.WEBSITE,
+        description="Source channel of the inquiry",
+    )
+
+    status: InquiryStatus = Field(
+        InquiryStatus.NEW,
+        description="Current status of the inquiry",
+    )
+
+    @field_validator("visitor_name")
+    @classmethod
+    def validate_visitor_name(cls, v: str) -> str:
+        """Validate and normalize visitor name."""
+        v = v.strip()
+        
+        if len(v) < 2:
+            raise ValueError("Visitor name must be at least 2 characters")
+        
+        # Check for at least one word
+        if not v.split():
+            raise ValueError("Visitor name cannot be empty or only whitespace")
+        
+        # Check for numbers (names shouldn't contain digits)
+        if any(char.isdigit() for char in v):
+            raise ValueError("Visitor name should not contain numbers")
+        
+        return v
+
+    @field_validator("visitor_phone")
+    @classmethod
+    def validate_and_normalize_phone(cls, v: str) -> str:
+        """Validate and normalize phone number."""
+        # Remove common formatting characters
+        v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        
+        # Check minimum length
+        if len(v) < 10:
+            raise ValueError("Phone number must be at least 10 digits")
+        
+        return v
+
+    @field_validator("preferred_check_in_date")
+    @classmethod
+    def validate_check_in_date(cls, v: Optional[date]) -> Optional[date]:
+        """Validate preferred check-in date."""
+        if v is not None:
+            # Allow past dates for inquiries (they might be inquiring for future)
+            # but warn if too far in the past
+            days_ago = (date.today() - v).days
+            if days_ago > 7:
+                # This might be an error, but we'll allow it
+                # In production, you might want to log a warning
+                pass
+            
+            # Warn if too far in the future (> 1 year)
+            days_ahead = (v - date.today()).days
+            if days_ahead > 365:
+                # Log warning but allow
+                pass
+        
+        return v
+
+    @field_validator("message")
+    @classmethod
+    def clean_message(cls, v: Optional[str]) -> Optional[str]:
+        """Clean and validate message."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+            
+            # Check for excessive length
+            if len(v) > 2000:
+                raise ValueError("Message cannot exceed 2000 characters")
+        
+        return v
+
+    @property
+    def has_date_preference(self) -> bool:
+        """Check if visitor has specified a preferred check-in date."""
+        return self.preferred_check_in_date is not None
+
+    @property
+    def has_duration_preference(self) -> bool:
+        """Check if visitor has specified stay duration."""
+        return self.stay_duration_months is not None
+
+    @property
+    def has_room_preference(self) -> bool:
+        """Check if visitor has specified room type preference."""
+        return self.room_type_preference is not None
+
+    @property
+    def is_detailed_inquiry(self) -> bool:
+        """Check if inquiry has detailed information."""
+        return (
+            self.has_date_preference
+            and self.has_duration_preference
+            and self.has_room_preference
+        )
+
+
+class InquiryCreate(InquiryBase, BaseCreateSchema):
+    """
+    Schema for creating a new visitor inquiry.
+    
+    All base fields are inherited. Status is automatically set to NEW.
+    """
+
+    # Override status to always start as NEW
+    status: InquiryStatus = Field(
+        InquiryStatus.NEW,
+        description="Status is automatically set to NEW for new inquiries",
+    )
+
+    @field_validator("status")
+    @classmethod
+    def validate_initial_status(cls, v: InquiryStatus) -> InquiryStatus:
+        """Ensure new inquiries start with NEW status."""
+        if v != InquiryStatus.NEW:
+            # Force to NEW regardless of input
+            return InquiryStatus.NEW
+        return v
+
+
+class InquiryUpdate(BaseUpdateSchema):
+    """
+    Schema for updating an existing inquiry.
+    
+    All fields are optional, allowing partial updates.
+    Typically used by admins to add notes or update contact info.
+    """
+
+    # Visitor Contact (rarely updated, but allowed)
+    visitor_name: Optional[str] = Field(
+        None,
+        min_length=2,
+        max_length=255,
+        description="Update visitor name",
+    )
+    visitor_email: Optional[EmailStr] = Field(
+        None,
+        description="Update visitor email",
+    )
+    visitor_phone: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{9,14}$",
+        description="Update visitor phone",
+    )
+
+    # Preferences (can be updated as inquiry is refined)
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Update preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        ge=1,
+        le=36,
+        description="Update stay duration",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Update room type preference",
+    )
+
+    # Message (can be appended or updated)
+    message: Optional[str] = Field(
+        None,
+        max_length=2000,
+        description="Update inquiry message",
+    )
+
+    # Status (usually updated via separate status update endpoint)
+    status: Optional[InquiryStatus] = Field(
+        None,
+        description="Update inquiry status",
+    )
+
+    @field_validator("visitor_name")
+    @classmethod
+    def validate_visitor_name(cls, v: Optional[str]) -> Optional[str]:
+        """Validate visitor name if provided."""
+        if v is not None:
+            v = v.strip()
+            if len(v) < 2:
+                raise ValueError("Visitor name must be at least 2 characters")
+            if any(char.isdigit() for char in v):
+                raise ValueError("Visitor name should not contain numbers")
+        return v
+
+    @field_validator("visitor_phone")
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize phone number if provided."""
+        if v is not None:
+            v = v.replace(" ", "").replace("-", "")
+            if len(v) < 10:
+                raise ValueError("Phone number must be at least 10 digits")
+        return v
+
+    @field_validator("message")
+    @classmethod
+    def clean_message(cls, v: Optional[str]) -> Optional[str]:
+        """Clean message if provided."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+        return v
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\inquiry_filters.py ---
+# --- File: app/schemas/inquiry/inquiry_filters.py ---
+"""
+Inquiry filter and search schemas.
+
+This module defines schemas for filtering, searching, and sorting
+inquiry data.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import Field, field_validator
+
+from app.schemas.common.base import BaseFilterSchema
+from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
+
+__all__ = [
+    "InquiryFilterParams",
+    "InquirySearchRequest",
+    "InquirySortOptions",
+    "InquiryExportRequest",
+]
+
+
+class InquiryFilterParams(BaseFilterSchema):
+    """
+    Comprehensive inquiry filter parameters.
+    
+    Supports filtering by status, dates, hostel, source, and more.
+    """
+
+    # Text Search
+    search: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Search in visitor name, email, or phone",
+    )
+
+    # Hostel Filter
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Filter by specific hostel",
+    )
+    hostel_ids: Optional[List[UUID]] = Field(
+        None,
+        max_length=20,
+        description="Filter by multiple hostels",
+    )
+
+    # Status Filter
+    status: Optional[InquiryStatus] = Field(
+        None,
+        description="Filter by specific status",
+    )
+    statuses: Optional[List[InquiryStatus]] = Field(
+        None,
+        max_length=10,
+        description="Filter by multiple statuses",
+    )
+
+    # Source Filter
+    source: Optional[InquirySource] = Field(
+        None,
+        description="Filter by inquiry source",
+    )
+    sources: Optional[List[InquirySource]] = Field(
+        None,
+        max_length=10,
+        description="Filter by multiple sources",
+    )
+
+    # Date Filters
+    created_from: Optional[date] = Field(
+        None,
+        description="Filter inquiries created from this date",
+    )
+    created_to: Optional[date] = Field(
+        None,
+        description="Filter inquiries created until this date",
+    )
+
+    # Check-in Date Filter
+    check_in_from: Optional[date] = Field(
+        None,
+        description="Filter by preferred check-in date from",
+    )
+    check_in_to: Optional[date] = Field(
+        None,
+        description="Filter by preferred check-in date to",
+    )
+
+    # Room Type Filter
+    room_type: Optional[RoomType] = Field(
+        None,
+        description="Filter by room type preference",
+    )
+
+    # Assignment Filters
+    assigned_to: Optional[UUID] = Field(
+        None,
+        description="Filter by assigned admin",
+    )
+    is_assigned: Optional[bool] = Field(
+        None,
+        description="Filter by assignment status",
+    )
+
+    # Contact Status
+    is_contacted: Optional[bool] = Field(
+        None,
+        description="Filter by whether inquiry has been contacted",
+    )
+
+    # Urgency Filters
+    is_urgent: Optional[bool] = Field(
+        None,
+        description="Show only urgent inquiries (new and recent)",
+    )
+    is_stale: Optional[bool] = Field(
+        None,
+        description="Show only stale inquiries (old without contact)",
+    )
+
+    @field_validator("created_to")
+    @classmethod
+    def validate_created_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate created date range."""
+        created_from = info.data.get("created_from")
+        if v is not None and created_from is not None:
+            if v < created_from:
+                raise ValueError("created_to must be after or equal to created_from")
+        return v
+
+    @field_validator("check_in_to")
+    @classmethod
+    def validate_check_in_date_range(cls, v: Optional[date], info) -> Optional[date]:
+        """Validate check-in date range."""
+        check_in_from = info.data.get("check_in_from")
+        if v is not None and check_in_from is not None:
+            if v < check_in_from:
+                raise ValueError("check_in_to must be after or equal to check_in_from")
+        return v
+
+
+class InquirySearchRequest(BaseFilterSchema):
+    """
+    Inquiry search request with pagination.
+    
+    Supports full-text search across inquiry fields.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Search query string",
+    )
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Limit search to specific hostel",
+    )
+
+    # Search Fields
+    search_in_name: bool = Field(
+        True,
+        description="Search in visitor name",
+    )
+    search_in_email: bool = Field(
+        True,
+        description="Search in email address",
+    )
+    search_in_phone: bool = Field(
+        True,
+        description="Search in phone number",
+    )
+    search_in_message: bool = Field(
+        False,
+        description="Search in inquiry message",
+    )
+
+    # Status Filter
+    status: Optional[InquiryStatus] = Field(
+        None,
+        description="Limit search to specific status",
+    )
+
+    # Pagination
+    page: int = Field(
+        1,
+        ge=1,
+        description="Page number",
+    )
+    page_size: int = Field(
+        20,
+        ge=1,
+        le=100,
+        description="Items per page",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Validate search query."""
+        v = v.strip()
+        if len(v) == 0:
+            raise ValueError("Search query cannot be empty")
+        return v
+
+
+class InquirySortOptions(BaseFilterSchema):
+    """
+    Inquiry sorting options.
+    """
+
+    sort_by: str = Field(
+        "created_at",
+        pattern=r"^(created_at|visitor_name|status|check_in_date)$",
+        description="Field to sort by",
+    )
+    sort_order: str = Field(
+        "desc",
+        pattern=r"^(asc|desc)$",
+        description="Sort order",
+    )
+
+    @field_validator("sort_by", "sort_order")
+    @classmethod
+    def normalize_sort_fields(cls, v: str) -> str:
+        """Normalize sort fields."""
+        return v.lower()
+
+
+class InquiryExportRequest(BaseFilterSchema):
+    """
+    Request to export inquiries data.
+    """
+
+    hostel_id: Optional[UUID] = Field(
+        None,
+        description="Export inquiries for specific hostel",
+    )
+    filters: Optional[InquiryFilterParams] = Field(
+        None,
+        description="Apply filters to export",
+    )
+
+    # Export Format
+    format: str = Field(
+        "csv",
+        pattern=r"^(csv|excel|pdf)$",
+        description="Export format",
+    )
+
+    # Fields to Include
+    include_message: bool = Field(
+        True,
+        description="Include inquiry message",
+    )
+    include_notes: bool = Field(
+        False,
+        description="Include internal notes",
+    )
+    include_timeline: bool = Field(
+        False,
+        description="Include timeline/history",
+    )
+
+    @field_validator("format")
+    @classmethod
+    def normalize_format(cls, v: str) -> str:
+        """Normalize format."""
+        return v.lower()
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\inquiry_response.py ---
+# --- File: app/schemas/inquiry/inquiry_response.py ---
+"""
+Inquiry response schemas for API responses.
+
+This module defines response schemas for inquiry data including
+basic responses, detailed information, and list items.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import Field, computed_field
+
+from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
+
+__all__ = [
+    "InquiryResponse",
+    "InquiryDetail",
+    "InquiryListItem",
+    "InquiryStats",
+]
+
+
+class InquiryResponse(BaseResponseSchema):
+    """
+    Standard inquiry response schema.
+    
+    Contains core inquiry information for API responses.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Name of the hostel",
+    )
+
+    # Visitor Information
+    visitor_name: str = Field(
+        ...,
+        description="Visitor full name",
+    )
+    visitor_email: str = Field(
+        ...,
+        description="Visitor email",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
+
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Intended stay duration",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
+
+    # Status
+    status: InquiryStatus = Field(
+        ...,
+        description="Current inquiry status",
+    )
+
+    created_at: datetime = Field(
+        ...,
+        description="When inquiry was created",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate age of inquiry in days."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def is_new(self) -> bool:
+        """Check if inquiry is new (less than 24 hours old)."""
+        return self.age_days < 1
+
+    @computed_field
+    @property
+    def is_stale(self) -> bool:
+        """Check if inquiry is stale (older than 7 days without contact)."""
+        return self.age_days > 7 and self.status == InquiryStatus.NEW
+
+    @computed_field
+    @property
+    def urgency_level(self) -> str:
+        """
+        Determine urgency level.
+        
+        Returns: "high", "medium", or "low"
+        """
+        if self.status == InquiryStatus.NEW and self.age_days < 1:
+            return "high"
+        elif self.status == InquiryStatus.NEW and self.age_days < 3:
+            return "medium"
+        else:
+            return "low"
+
+
+class InquiryDetail(BaseResponseSchema):
+    """
+    Detailed inquiry information.
+    
+    Contains complete inquiry details including contact history,
+    notes, and assignment information.
+    """
+
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel identifier",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+
+    # Visitor Information
+    visitor_name: str = Field(
+        ...,
+        description="Visitor name",
+    )
+    visitor_email: str = Field(
+        ...,
+        description="Visitor email",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
+
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Stay duration in months",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
+
+    # Inquiry Details
+    message: Optional[str] = Field(
+        None,
+        description="Visitor's message or questions",
+    )
+
+    # Metadata
+    inquiry_source: InquirySource = Field(
+        ...,
+        description="Source of the inquiry",
+    )
+    status: InquiryStatus = Field(
+        ...,
+        description="Current status",
+    )
+
+    # Contact/Follow-up Information
+    contacted_by: Optional[UUID] = Field(
+        None,
+        description="Admin who contacted the visitor",
+    )
+    contacted_by_name: Optional[str] = Field(
+        None,
+        description="Name of admin who made contact",
+    )
+    contacted_at: Optional[datetime] = Field(
+        None,
+        description="When visitor was contacted",
+    )
+
+    # Assignment Information
+    assigned_to: Optional[UUID] = Field(
+        None,
+        description="Admin assigned to handle this inquiry",
+    )
+    assigned_to_name: Optional[str] = Field(
+        None,
+        description="Name of assigned admin",
+    )
+    assigned_at: Optional[datetime] = Field(
+        None,
+        description="When inquiry was assigned",
+    )
+
+    # Internal Notes
+    notes: Optional[str] = Field(
+        None,
+        description="Internal notes about this inquiry",
+    )
+
+    # Timestamps
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+    updated_at: datetime = Field(
+        ...,
+        description="Last update timestamp",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate inquiry age in days."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def has_been_contacted(self) -> bool:
+        """Check if visitor has been contacted."""
+        return self.contacted_at is not None
+
+    @computed_field
+    @property
+    def is_assigned(self) -> bool:
+        """Check if inquiry has been assigned to someone."""
+        return self.assigned_to is not None
+
+    @computed_field
+    @property
+    def response_time_hours(self) -> Optional[float]:
+        """Calculate response time in hours if contacted."""
+        if self.contacted_at is None:
+            return None
+        
+        delta = self.contacted_at - self.created_at
+        return round(delta.total_seconds() / 3600, 2)
+
+    @computed_field
+    @property
+    def days_since_contact(self) -> Optional[int]:
+        """Calculate days since last contact."""
+        if self.contacted_at is None:
+            return None
+        
+        return (datetime.utcnow() - self.contacted_at).days
+
+
+class InquiryListItem(BaseSchema):
+    """
+    Inquiry list item for summary views.
+    
+    Optimized schema for displaying multiple inquiries
+    with essential information only.
+    """
+
+    id: UUID = Field(
+        ...,
+        description="Inquiry ID",
+    )
+    hostel_name: str = Field(
+        ...,
+        description="Hostel name",
+    )
+    visitor_name: str = Field(
+        ...,
+        description="Visitor name",
+    )
+    visitor_phone: str = Field(
+        ...,
+        description="Visitor phone",
+    )
+
+    # Preferences
+    preferred_check_in_date: Optional[date] = Field(
+        None,
+        description="Preferred check-in date",
+    )
+    stay_duration_months: Optional[int] = Field(
+        None,
+        description="Stay duration",
+    )
+    room_type_preference: Optional[RoomType] = Field(
+        None,
+        description="Room type preference",
+    )
+
+    # Status and Timing
+    status: InquiryStatus = Field(
+        ...,
+        description="Current status",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="Creation timestamp",
+    )
+
+    # Quick Indicators
+    is_urgent: bool = Field(
+        ...,
+        description="Whether inquiry requires urgent attention",
+    )
+    is_assigned: bool = Field(
+        ...,
+        description="Whether inquiry is assigned to someone",
+    )
+
+    @computed_field
+    @property
+    def age_days(self) -> int:
+        """Calculate inquiry age."""
+        return (datetime.utcnow() - self.created_at).days
+
+    @computed_field
+    @property
+    def status_badge_color(self) -> str:
+        """Get color code for status badge."""
+        color_map = {
+            InquiryStatus.NEW: "#FFA500",  # Orange
+            InquiryStatus.CONTACTED: "#2196F3",  # Blue
+            InquiryStatus.INTERESTED: "#4CAF50",  # Green
+            InquiryStatus.NOT_INTERESTED: "#9E9E9E",  # Gray
+            InquiryStatus.CONVERTED: "#9C27B0",  # Purple
+        }
+        return color_map.get(self.status, "#000000")
+
+
+class InquiryStats(BaseSchema):
+    """
+    Inquiry statistics and analytics.
+    
+    Provides metrics about inquiry performance and conversion.
+    """
+
+    # Volume Metrics
+    total_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Total number of inquiries",
+    )
+    new_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries with NEW status",
+    )
+    contacted_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries that have been contacted",
+    )
+    converted_inquiries: int = Field(
+        ...,
+        ge=0,
+        description="Inquiries converted to bookings",
+    )
+
+    # Response Metrics
+    average_response_time_hours: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Average time to first contact in hours",
+    )
+    
+    # Conversion Metrics
+    conversion_rate: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Inquiry to booking conversion rate (%)",
+    )
+    interest_rate: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Percentage of inquiries showing interest",
+    )
+
+    # Source Breakdown
+    inquiries_by_source: dict = Field(
+        default_factory=dict,
+        description="Breakdown of inquiries by source",
+    )
+
+    @computed_field
+    @property
+    def pending_action_count(self) -> int:
+        """Count inquiries needing action (NEW + CONTACTED)."""
+        return self.new_inquiries + self.contacted_inquiries
+
+    @computed_field
+    @property
+    def response_rate(self) -> float:
+        """Calculate percentage of inquiries that were contacted."""
+        if self.total_inquiries == 0:
+            return 0.0
+        return round((self.contacted_inquiries / self.total_inquiries) * 100, 2)
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\inquiry_status.py ---
+# --- File: app/schemas/inquiry/inquiry_status.py ---
+"""
+Inquiry status management schemas.
+
+This module defines schemas for managing inquiry status changes,
+assignments, timeline tracking, and follow-ups.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import Field, field_validator, model_validator
+
+from app.schemas.common.base import BaseCreateSchema, BaseSchema
+from app.schemas.common.enums import InquiryStatus
+
+__all__ = [
+    "InquiryStatusUpdate",
+    "InquiryAssignment",
+    "InquiryFollowUp",
+    "InquiryTimelineEntry",
+    "InquiryConversion",
+    "BulkInquiryStatusUpdate",
+]
+
+
+class InquiryStatusUpdate(BaseCreateSchema):
+    """
+    Update inquiry status with notes.
+    
+    Used to track status changes throughout the inquiry lifecycle.
+    """
+
+    inquiry_id: UUID = Field(
+        ...,
+        description="Inquiry ID to update",
+    )
+    new_status: InquiryStatus = Field(
+        ...,
+        description="New status to set",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notes about status change",
+    )
+
+    # Metadata
+    updated_by: Optional[UUID] = Field(
+        None,
+        description="Admin updating the status",
+    )
+
+    @field_validator("notes")
+    @classmethod
+    def clean_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Clean notes field."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+        return v
+
+    @model_validator(mode="after")
+    def validate_status_transition(self) -> "InquiryStatusUpdate":
+        """
+        Validate status transition is logical.
+        
+        Note: This is a soft validation - enforces best practices
+        but doesn't block unusual transitions (admin override).
+        """
+        # Define logical status transitions
+        valid_transitions = {
+            InquiryStatus.NEW: [
+                InquiryStatus.CONTACTED,
+                InquiryStatus.NOT_INTERESTED,
+            ],
+            InquiryStatus.CONTACTED: [
+                InquiryStatus.INTERESTED,
+                InquiryStatus.NOT_INTERESTED,
+                InquiryStatus.CONVERTED,
+            ],
+            InquiryStatus.INTERESTED: [
+                InquiryStatus.CONVERTED,
+                InquiryStatus.NOT_INTERESTED,
+            ],
+            InquiryStatus.NOT_INTERESTED: [],  # Terminal state
+            InquiryStatus.CONVERTED: [],  # Terminal state
+        }
+        
+        # This validation would need access to current status
+        # In practice, this would be validated at the service layer
+        # where we have access to the current inquiry data
+        
+        return self
+
+
+class InquiryAssignment(BaseCreateSchema):
+    """
+    Assign inquiry to an admin/staff member.
+    
+    Used for distributing inquiries among team members
+    for follow-up.
+    """
+
+    inquiry_id: UUID = Field(
+        ...,
+        description="Inquiry ID to assign",
+    )
+    assigned_to: UUID = Field(
+        ...,
+        description="Admin/staff member to assign to",
+    )
+    assigned_by: UUID = Field(
+        ...,
+        description="Admin making the assignment",
+    )
+
+    assignment_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notes about the assignment",
+    )
+
+    # Due Date for Follow-up
+    follow_up_due: Optional[datetime] = Field(
+        None,
+        description="When follow-up should be completed by",
+    )
+
+    @field_validator("assignment_notes")
+    @classmethod
+    def clean_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Clean assignment notes."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+        return v
+
+    @field_validator("follow_up_due")
+    @classmethod
+    def validate_follow_up_due(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Validate follow-up due date."""
+        if v is not None:
+            if v < datetime.utcnow():
+                raise ValueError("Follow-up due date cannot be in the past")
+        return v
+
+
+class InquiryFollowUp(BaseCreateSchema):
+    """
+    Record a follow-up action on an inquiry.
+    
+    Used to track all interactions with the visitor.
+    """
+
+    inquiry_id: UUID = Field(
+        ...,
+        description="Inquiry ID",
+    )
+    followed_up_by: UUID = Field(
+        ...,
+        description="Admin who performed follow-up",
+    )
+
+    # Follow-up Details
+    contact_method: str = Field(
+        ...,
+        pattern=r"^(phone|email|sms|whatsapp|in_person|other)$",
+        description="Method of contact",
+    )
+    contact_outcome: str = Field(
+        ...,
+        pattern=r"^(connected|no_answer|voicemail|email_sent|interested|not_interested|callback_requested)$",
+        description="Outcome of the follow-up attempt",
+    )
+
+    # Notes
+    notes: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Detailed notes about the follow-up",
+    )
+
+    # Next Steps
+    next_follow_up_date: Optional[datetime] = Field(
+        None,
+        description="When next follow-up should occur",
+    )
+
+    @field_validator("notes")
+    @classmethod
+    def validate_notes(cls, v: str) -> str:
+        """Validate notes are meaningful."""
+        v = v.strip()
+        if len(v) < 10:
+            raise ValueError("Follow-up notes must be at least 10 characters")
+        return v
+
+    @field_validator("next_follow_up_date")
+    @classmethod
+    def validate_next_follow_up(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Validate next follow-up date."""
+        if v is not None:
+            if v < datetime.utcnow():
+                raise ValueError("Next follow-up date cannot be in the past")
+        return v
+
+
+class InquiryTimelineEntry(BaseSchema):
+    """
+    Timeline entry for inquiry lifecycle.
+    
+    Represents a single event in the inquiry's history.
+    """
+
+    event_type: str = Field(
+        ...,
+        pattern=r"^(status_change|assignment|follow_up|note_added|conversion)$",
+        description="Type of timeline event",
+    )
+    status: Optional[InquiryStatus] = Field(
+        None,
+        description="Status at this point (for status_change events)",
+    )
+    timestamp: datetime = Field(
+        ...,
+        description="When this event occurred",
+    )
+    changed_by: Optional[UUID] = Field(
+        None,
+        description="Admin who triggered this event",
+    )
+    changed_by_name: Optional[str] = Field(
+        None,
+        description="Name of admin who triggered event",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Notes about this event",
+    )
+
+    # Additional Context
+    metadata: dict = Field(
+        default_factory=dict,
+        description="Additional event metadata",
+    )
+
+
+class InquiryConversion(BaseCreateSchema):
+    """
+    Record inquiry conversion to booking.
+    
+    Links inquiry to the resulting booking.
+    """
+
+    inquiry_id: UUID = Field(
+        ...,
+        description="Inquiry ID that converted",
+    )
+    booking_id: UUID = Field(
+        ...,
+        description="Resulting booking ID",
+    )
+    converted_by: UUID = Field(
+        ...,
+        description="Admin who facilitated conversion",
+    )
+
+    conversion_notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notes about the conversion",
+    )
+
+    @field_validator("conversion_notes")
+    @classmethod
+    def clean_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Clean conversion notes."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+        return v
+
+
+class BulkInquiryStatusUpdate(BaseCreateSchema):
+    """
+    Update status of multiple inquiries.
+    
+    Used for batch operations on inquiries.
+    """
+
+    inquiry_ids: List[UUID] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="List of inquiry IDs to update (max 100)",
+    )
+    new_status: InquiryStatus = Field(
+        ...,
+        description="New status for all inquiries",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Common notes for all updates",
+    )
+
+    updated_by: UUID = Field(
+        ...,
+        description="Admin performing bulk update",
+    )
+
+    @field_validator("inquiry_ids")
+    @classmethod
+    def validate_inquiry_ids(cls, v: List[UUID]) -> List[UUID]:
+        """Validate inquiry IDs list."""
+        if len(v) == 0:
+            raise ValueError("At least one inquiry ID is required")
+        
+        if len(v) > 100:
+            raise ValueError("Maximum 100 inquiries can be updated at once")
+        
+        # Remove duplicates
+        unique_ids = list(dict.fromkeys(v))
+        
+        return unique_ids
+
+    @field_validator("notes")
+    @classmethod
+    def clean_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Clean notes."""
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+        return v
+
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\__init__.py ---
+# --- File: app/schemas/inquiry/__init__.py ---
+"""
+Visitor inquiry and contact schemas package.
+
+This module exports all inquiry-related schemas for easy importing
+across the application.
+"""
+
+from __future__ import annotations
+
+from app.schemas.inquiry.inquiry_base import (
+    InquiryBase,
+    InquiryCreate,
+    InquiryUpdate,
+)
+from app.schemas.inquiry.inquiry_filters import (
+    InquiryExportRequest,
+    InquiryFilterParams,
+    InquirySearchRequest,
+    InquirySortOptions,
+)
+from app.schemas.inquiry.inquiry_response import (
+    InquiryDetail,
+    InquiryListItem,
+    InquiryResponse,
+    InquiryStats,
+)
+from app.schemas.inquiry.inquiry_status import (
+    BulkInquiryStatusUpdate,
+    InquiryAssignment,
+    InquiryConversion,
+    InquiryFollowUp,
+    InquiryStatusUpdate,
+    InquiryTimelineEntry,
+)
+
+__all__ = [
+    # Base schemas
+    "InquiryBase",
+    "InquiryCreate",
+    "InquiryUpdate",
+    # Response
+    "InquiryResponse",
+    "InquiryDetail",
+    "InquiryListItem",
+    "InquiryStats",
+    # Status Management
+    "InquiryStatusUpdate",
+    "InquiryAssignment",
+    "InquiryFollowUp",
+    "InquiryTimelineEntry",
+    "InquiryConversion",
+    "BulkInquiryStatusUpdate",
+    # Filters
+    "InquiryFilterParams",
+    "InquirySearchRequest",
+    "InquirySortOptions",
+    "InquiryExportRequest",
+]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\inquiry\__pycache__ =====

@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/__init__.py ---
 """
 Authentication schemas package.
+Pydantic v2 compliant.
 
 Re-exports commonly used auth-related schemas for convenient imports.
 

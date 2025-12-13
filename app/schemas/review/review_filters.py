@@ -9,7 +9,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator,model_validator
+from pydantic import Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseFilterSchema
@@ -31,30 +31,30 @@ class ReviewFilterParams(BaseFilterSchema):
     
     # Hostel filters
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific hostel",
     )
     hostel_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by multiple hostels (max 50)",
     )
     
     # Rating filters
     min_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("1.0"),
         le=Decimal("5.0"),
         description="Minimum overall rating",
     )
     max_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("1.0"),
         le=Decimal("5.0"),
         description="Maximum overall rating",
     )
     rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Exact rating (1-5 stars)",
@@ -62,46 +62,46 @@ class ReviewFilterParams(BaseFilterSchema):
     
     # Verification filters
     verified_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only verified stay reviews",
     )
     
     # Date filters
     posted_date_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Reviews posted on or after this date",
     )
     posted_date_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Reviews posted on or before this date",
     )
     
     # Status filters
     approved_only: bool = Field(
-        True,
+        default=True,
         description="Show only approved/published reviews",
     )
     flagged_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only flagged reviews",
     )
     
     # Response filter
     with_hostel_response: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by presence of hostel response",
     )
     
     # Engagement filters
     min_helpful_count: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum helpful vote count",
     )
     
     # Media filter
     with_photos_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only reviews with photos",
     )
     
@@ -113,25 +113,23 @@ class ReviewFilterParams(BaseFilterSchema):
             raise ValueError("Maximum 50 hostel IDs allowed")
         return v
     
-    @field_validator("max_rating")
-    @classmethod
-    def validate_rating_range(cls, v: Optional[Decimal], info) -> Optional[Decimal]:
+    @model_validator(mode="after")
+    def validate_rating_range(self) -> "ReviewFilterParams":
         """Validate that max_rating >= min_rating."""
-        min_rating = info.data.get("min_rating")
-        if v is not None and min_rating is not None and v < min_rating:
-            raise ValueError("max_rating must be greater than or equal to min_rating")
-        return v
+        if self.max_rating is not None and self.min_rating is not None:
+            if self.max_rating < self.min_rating:
+                raise ValueError("max_rating must be greater than or equal to min_rating")
+        return self
     
-    @field_validator("posted_date_to")
-    @classmethod
-    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "ReviewFilterParams":
         """Validate that posted_date_to >= posted_date_from."""
-        posted_date_from = info.data.get("posted_date_from")
-        if v is not None and posted_date_from is not None and v < posted_date_from:
-            raise ValueError(
-                "posted_date_to must be on or after posted_date_from"
-            )
-        return v
+        if self.posted_date_to is not None and self.posted_date_from is not None:
+            if self.posted_date_to < self.posted_date_from:
+                raise ValueError(
+                    "posted_date_to must be on or after posted_date_from"
+                )
+        return self
 
 
 class ReviewSearchRequest(BaseFilterSchema):
@@ -149,40 +147,40 @@ class ReviewSearchRequest(BaseFilterSchema):
         examples=["clean rooms", "friendly staff"],
     )
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Limit search to specific hostel",
     )
     
     # Search scope
     search_in_title: bool = Field(
-        True,
+        default=True,
         description="Include review titles in search",
     )
     search_in_content: bool = Field(
-        True,
+        default=True,
         description="Include review text in search",
     )
     
     # Additional filters
     min_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("1.0"),
         le=Decimal("5.0"),
         description="Filter by minimum rating",
     )
     verified_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only verified reviews",
     )
     
     # Pagination
     page: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Page number",
     )
     page_size: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Results per page",
@@ -216,22 +214,22 @@ class ReviewSortOptions(BaseFilterSchema):
     """
     
     sort_by: str = Field(
-        "helpful",
+        default="helpful",
         pattern=r"^(helpful|recent|rating_high|rating_low|verified|oldest)$",
         description="Sort method",
     )
     
     # Priority options
     verified_first: bool = Field(
-        True,
+        default=True,
         description="Prioritize verified reviews in results",
     )
     with_photos_first: bool = Field(
-        False,
+        default=False,
         description="Prioritize reviews with photos",
     )
     with_response_first: bool = Field(
-        False,
+        default=False,
         description="Prioritize reviews with hostel responses",
     )
     
@@ -254,42 +252,42 @@ class ReviewExportRequest(BaseFilterSchema):
         description="Hostel to export reviews for",
     )
     filters: Optional[ReviewFilterParams] = Field(
-        None,
+        default=None,
         description="Additional filters to apply",
     )
     
     # Export format
     format: str = Field(
-        "csv",
+        default="csv",
         pattern=r"^(csv|excel|pdf|json)$",
         description="Export format",
     )
     
     # Content options
     include_detailed_ratings: bool = Field(
-        True,
+        default=True,
         description="Include aspect-specific ratings",
     )
     include_hostel_responses: bool = Field(
-        True,
+        default=True,
         description="Include hostel responses to reviews",
     )
     include_voter_stats: bool = Field(
-        False,
+        default=False,
         description="Include helpful vote statistics",
     )
     include_reviewer_info: bool = Field(
-        True,
+        default=True,
         description="Include reviewer name and verification status",
     )
     
     # Date range for export
     date_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Export reviews from this date onwards",
     )
     date_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Export reviews up to this date",
     )
     
@@ -299,11 +297,10 @@ class ReviewExportRequest(BaseFilterSchema):
         """Normalize format to lowercase."""
         return v.lower().strip()
     
-    @field_validator("date_to")
-    @classmethod
-    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "ReviewExportRequest":
         """Validate export date range."""
-        date_from = info.data.get("date_from")
-        if v is not None and date_from is not None and v < date_from:
-            raise ValueError("date_to must be on or after date_from")
-        return v
+        if self.date_to is not None and self.date_from is not None:
+            if self.date_to < self.date_from:
+                raise ValueError("date_to must be on or after date_from")
+        return self

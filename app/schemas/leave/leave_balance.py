@@ -12,7 +12,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import ConfigDict, Field, computed_field, field_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -33,6 +33,19 @@ class LeaveBalance(BaseSchema):
     Tracks allocation, usage, and remaining balance for
     a specific leave type.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "leave_type": "casual",
+                "allocated_per_year": 15,
+                "used_days": 5,
+                "pending_days": 2,
+                "remaining_days": 8,
+                "requires_approval": True
+            }
+        }
+    )
 
     leave_type: LeaveType = Field(
         ...,
@@ -105,7 +118,7 @@ class LeaveBalance(BaseSchema):
         
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def usage_percentage(self) -> Decimal:
         """Calculate usage percentage."""
@@ -118,13 +131,13 @@ class LeaveBalance(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_exhausted(self) -> bool:
         """Check if leave balance is exhausted."""
         return self.remaining_days <= 0
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def utilization_status(self) -> str:
         """Get utilization status indicator."""
@@ -149,6 +162,19 @@ class LeaveBalanceSummary(BaseSchema):
     Aggregates balance information across all leave types
     for a specific academic period.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "student_name": "John Student",
+                "hostel_name": "North Campus Hostel A",
+                "total_allocated": 60,
+                "total_used": 15,
+                "total_remaining": 45,
+                "last_updated": "2024-01-15"
+            }
+        }
+    )
 
     student_id: UUID = Field(
         ...,
@@ -231,7 +257,7 @@ class LeaveBalanceSummary(BaseSchema):
                 )
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_usage_percentage(self) -> Decimal:
         """Calculate overall usage percentage."""
@@ -243,7 +269,7 @@ class LeaveBalanceSummary(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_year_end(self) -> int:
         """Calculate days remaining in academic year."""
@@ -252,7 +278,7 @@ class LeaveBalanceSummary(BaseSchema):
             return 0
         return (self.academic_year_end - today).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_pending_applications(self) -> bool:
         """Check if there are pending applications."""
@@ -266,6 +292,20 @@ class LeaveQuota(BaseSchema):
     Defines leave entitlements and rules for different
     leave types within a hostel.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "leave_type": "casual",
+                "annual_quota": 15,
+                "max_consecutive_days": 5,
+                "min_notice_days": 2,
+                "allow_carry_forward": False,
+                "is_active": True
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -349,6 +389,21 @@ class LeaveUsageDetail(BaseSchema):
     Provides granular information about leave consumption
     for analytics and reporting.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "student_id": "123e4567-e89b-12d3-a456-426614174000",
+                "leave_id": "123e4567-e89b-12d3-a456-426614174001",
+                "leave_type": "casual",
+                "from_date": "2024-01-10",
+                "to_date": "2024-01-12",
+                "total_days": 3,
+                "days_notice": 5,
+                "was_backdated": False
+            }
+        }
+    )
 
     student_id: UUID = Field(
         ...,
@@ -397,7 +452,7 @@ class LeaveUsageDetail(BaseSchema):
         description="Whether supporting document was provided",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def approval_turnaround_days(self) -> Optional[int]:
         """Calculate days taken for approval."""

@@ -9,7 +9,8 @@ and response tracking.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional
+from decimal import Decimal
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -116,7 +117,7 @@ class CancellationPreview(BaseSchema):
     currency: str = Field(default="INR")
 
     # Warnings
-    warnings: list[str] = Field(
+    warnings: List[str] = Field(
         default_factory=list,
         description="Warnings about cancellation impact",
     )
@@ -125,10 +126,6 @@ class CancellationPreview(BaseSchema):
     access_ends_at: datetime = Field(
         ..., description="When service access ends"
     )
-
-
-# Import Decimal for CancellationPreview
-from decimal import Decimal
 
 
 class CancellationResponse(BaseSchema):

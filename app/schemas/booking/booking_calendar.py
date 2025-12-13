@@ -24,6 +24,7 @@ __all__ = [
     "CalendarEvent",
     "AvailabilityCalendar",
     "DayAvailability",
+    "BookingInfo",
 ]
 
 
@@ -244,7 +245,7 @@ class CalendarView(BaseSchema):
 
     @computed_field
     @property
-    def busiest_week_start(self) -> Optional[date]:
+    def busiest_week_start(self) -> Optional[dt.date]:
         """Find the start date of the busiest week."""
         if not self.days:
             return None
@@ -309,7 +310,7 @@ class CalendarEvent(BaseSchema):
 
     @field_validator("end_date")
     @classmethod
-    def validate_end_date(cls, v: Optional[date], info) -> Optional[date]:
+    def validate_end_date(cls, v: Optional[dt.date], info) -> Optional[dt.date]:
         """Validate end date is after or equal to start date."""
         start_date = info.data.get("start_date")
         if v is not None and start_date is not None:
@@ -505,7 +506,8 @@ class AvailabilityCalendar(BaseSchema):
             key=lambda x: x[1].occupancy_rate
         )
         return peak_day[0]
-    
+
+
 class BookingInfo(BaseSchema):
     """Basic booking information for availability calendar."""
     

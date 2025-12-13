@@ -9,9 +9,9 @@ with comprehensive tracking and validation.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -31,6 +31,18 @@ class LeaveApprovalRequest(BaseCreateSchema):
     Handles the approval workflow with proper validation and
     audit trail requirements.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "leave_id": "123e4567-e89b-12d3-a456-426614174000",
+                "approver_id": "123e4567-e89b-12d3-a456-426614174001",
+                "approve": True,
+                "approval_notes": "Approved as requested",
+                "notify_student": True
+            }
+        }
+    )
 
     leave_id: UUID = Field(
         ...,
@@ -120,6 +132,18 @@ class LeaveApprovalAction(BaseCreateSchema):
     
     Provides more flexibility for complex approval workflows.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "leave_id": "123e4567-e89b-12d3-a456-426614174000",
+                "approver_id": "123e4567-e89b-12d3-a456-426614174001",
+                "action": "approve",
+                "comments": "Leave approved as per hostel policy",
+                "notify_student": True
+            }
+        }
+    )
 
     leave_id: UUID = Field(
         ...,
@@ -209,6 +233,19 @@ class LeaveApprovalResponse(BaseSchema):
     Provides complete information about the approval decision
     with timestamps and responsible parties.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "leave_id": "123e4567-e89b-12d3-a456-426614174000",
+                "student_id": "123e4567-e89b-12d3-a456-426614174001",
+                "student_name": "John Student",
+                "status": "approved",
+                "approved_by_name": "Supervisor Smith",
+                "message": "Leave application has been approved"
+            }
+        }
+    )
 
     leave_id: UUID = Field(
         ...,
@@ -280,7 +317,7 @@ class LeaveApprovalResponse(BaseSchema):
         default=False,
         description="Whether notifications were sent",
     )
-    notification_recipients: Optional[list[str]] = Field(
+    notification_recipients: Optional[List[str]] = Field(
         None,
         description="List of notification recipients",
     )

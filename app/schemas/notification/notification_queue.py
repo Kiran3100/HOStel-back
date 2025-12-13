@@ -121,13 +121,13 @@ class QueueStatus(BaseSchema):
         description="When status was checked",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_in_system(self) -> int:
         """Calculate total notifications in the system."""
         return self.total_queued + self.total_processing + self.total_failed
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def queue_utilization_percent(self) -> float:
         """Calculate queue utilization as a percentage."""
@@ -219,13 +219,13 @@ class QueuedNotification(BaseSchema):
         description="Last error message if failed",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def age_minutes(self) -> int:
         """Calculate how long notification has been in queue."""
         return int((datetime.utcnow() - self.queued_at).total_seconds() / 60)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def can_retry(self) -> bool:
         """Check if notification can be retried."""
@@ -336,7 +336,7 @@ class BatchProcessing(BaseSchema):
         description="Summary of errors encountered",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def progress_percentage(self) -> float:
         """Calculate batch progress percentage."""
@@ -344,7 +344,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.processed / self.total_notifications) * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def success_rate(self) -> float:
         """Calculate success rate percentage."""
@@ -352,7 +352,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.successful / self.processed) * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def failure_rate(self) -> float:
         """Calculate failure rate percentage."""
@@ -360,7 +360,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.failed / self.processed) * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_complete(self) -> bool:
         """Check if batch processing is complete."""
@@ -494,13 +494,13 @@ class QueueStats(BaseSchema):
         description="When statistics were generated",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_workers(self) -> int:
         """Calculate total number of workers."""
         return self.active_workers + self.idle_workers
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def worker_utilization_percent(self) -> float:
         """Calculate worker utilization percentage."""
@@ -597,13 +597,13 @@ class QueueHealth(BaseSchema):
         description="When health check was performed",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_critical_issues(self) -> bool:
         """Check if there are any critical issues."""
         return len(self.active_issues) > 0
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def needs_attention(self) -> bool:
         """Check if queue needs administrator attention."""
@@ -672,7 +672,7 @@ class QueuePriority(BaseSchema):
         description="Percentage meeting SLA",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_meeting_sla(self) -> bool:
         """Check if priority level is meeting SLA targets."""

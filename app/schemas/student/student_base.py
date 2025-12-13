@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_base.py ---
 """
 Student base schemas with enhanced validation and type safety.
 
@@ -550,24 +549,39 @@ class StudentUpdate(BaseUpdateSchema):
     )
 
     # Apply same validators as base
-    _validate_guardian_name = field_validator("guardian_name")(
-        StudentBase.validate_guardian_name.__func__
-    )
-    _normalize_guardian_phone = field_validator("guardian_phone")(
-        StudentBase.normalize_guardian_phone.__func__
-    )
-    _normalize_guardian_email = field_validator("guardian_email")(
-        StudentBase.normalize_guardian_email.__func__
-    )
-    _validate_id_proof = field_validator("id_proof_number")(
-        StudentBase.validate_id_proof_number.__func__
-    )
-    _normalize_text = field_validator(
+    @field_validator("guardian_name")
+    @classmethod
+    def validate_guardian_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return StudentBase.validate_guardian_name(v)
+        return v
+
+    @field_validator("guardian_phone")
+    @classmethod
+    def normalize_guardian_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return StudentBase.normalize_guardian_phone(v)
+        return v
+
+    @field_validator("guardian_email")
+    @classmethod
+    def normalize_guardian_email(cls, v: Optional[str]) -> Optional[str]:
+        return StudentBase.normalize_guardian_email(v)
+
+    @field_validator("id_proof_number")
+    @classmethod
+    def validate_id_proof_number(cls, v: Optional[str]) -> Optional[str]:
+        return StudentBase.validate_id_proof_number(v)
+
+    @field_validator(
         "institution_name",
         "course",
         "company_name",
         "designation",
-    )(StudentBase.normalize_text_fields.__func__)
+    )
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        return StudentBase.normalize_text_fields(v)
 
 
 class StudentCheckInRequest(BaseCreateSchema):

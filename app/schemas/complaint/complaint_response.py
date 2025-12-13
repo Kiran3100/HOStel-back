@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field, computed_field
 
@@ -57,7 +57,7 @@ class ComplaintResponse(BaseResponseSchema):
         description="Display name of complainant",
     )
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Student ID if applicable",
     )
 
@@ -81,11 +81,11 @@ class ComplaintResponse(BaseResponseSchema):
 
     # Assignment
     assigned_to: Optional[str] = Field(
-        None,
+        default=None,
         description="Assigned staff member ID",
     )
     assigned_to_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Assigned staff member name",
     )
 
@@ -95,7 +95,7 @@ class ComplaintResponse(BaseResponseSchema):
         description="Complaint creation timestamp",
     )
     resolved_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Resolution timestamp",
     )
 
@@ -153,20 +153,20 @@ class ComplaintDetail(BaseResponseSchema):
     raised_by_email: str = Field(..., description="Complainant email")
     raised_by_phone: str = Field(..., description="Complainant phone")
 
-    student_id: Optional[str] = Field(None, description="Student ID")
-    student_name: Optional[str] = Field(None, description="Student name")
-    room_number: Optional[str] = Field(None, description="Room number")
+    student_id: Optional[str] = Field(default=None, description="Student ID")
+    student_name: Optional[str] = Field(default=None, description="Student name")
+    room_number: Optional[str] = Field(default=None, description="Room number")
 
     # Complaint content
     title: str = Field(..., description="Complaint title")
     description: str = Field(..., description="Detailed description")
     category: ComplaintCategory = Field(..., description="Category")
-    sub_category: Optional[str] = Field(None, description="Sub-category")
+    sub_category: Optional[str] = Field(default=None, description="Sub-category")
     priority: Priority = Field(..., description="Priority level")
 
     # Location
-    room_id: Optional[str] = Field(None, description="Room ID")
-    location_details: Optional[str] = Field(None, description="Location details")
+    room_id: Optional[str] = Field(default=None, description="Room ID")
+    location_details: Optional[str] = Field(default=None, description="Location details")
 
     # Media
     attachments: List[str] = Field(
@@ -175,11 +175,11 @@ class ComplaintDetail(BaseResponseSchema):
     )
 
     # Assignment history
-    assigned_to: Optional[str] = Field(None, description="Current assignee ID")
-    assigned_to_name: Optional[str] = Field(None, description="Current assignee name")
-    assigned_by: Optional[str] = Field(None, description="Assigned by user ID")
-    assigned_by_name: Optional[str] = Field(None, description="Assigned by name")
-    assigned_at: Optional[datetime] = Field(None, description="Assignment timestamp")
+    assigned_to: Optional[str] = Field(default=None, description="Current assignee ID")
+    assigned_to_name: Optional[str] = Field(default=None, description="Current assignee name")
+    assigned_by: Optional[str] = Field(default=None, description="Assigned by user ID")
+    assigned_by_name: Optional[str] = Field(default=None, description="Assigned by name")
+    assigned_at: Optional[datetime] = Field(default=None, description="Assignment timestamp")
     reassigned_count: int = Field(
         default=0,
         ge=0,
@@ -190,20 +190,20 @@ class ComplaintDetail(BaseResponseSchema):
     status: ComplaintStatus = Field(..., description="Current status")
     opened_at: datetime = Field(..., description="Creation timestamp")
     in_progress_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When complaint moved to in-progress",
     )
     resolved_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Resolution timestamp",
     )
-    closed_at: Optional[datetime] = Field(None, description="Closure timestamp")
-    closed_by: Optional[str] = Field(None, description="User who closed complaint")
-    closed_by_name: Optional[str] = Field(None, description="Closer name")
+    closed_at: Optional[datetime] = Field(default=None, description="Closure timestamp")
+    closed_by: Optional[str] = Field(default=None, description="User who closed complaint")
+    closed_by_name: Optional[str] = Field(default=None, description="Closer name")
 
     # Resolution details
     resolution_notes: Optional[str] = Field(
-        None,
+        default=None,
         description="Resolution description",
     )
     resolution_attachments: List[str] = Field(
@@ -211,52 +211,52 @@ class ComplaintDetail(BaseResponseSchema):
         description="Resolution proof URLs",
     )
     estimated_resolution_time: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Estimated resolution time",
     )
     actual_resolution_time: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Actual resolution time",
     )
 
     # Feedback
-    student_feedback: Optional[str] = Field(None, description="Student feedback")
+    student_feedback: Optional[str] = Field(default=None, description="Student feedback")
     student_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Student rating (1-5)",
     )
     feedback_submitted_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Feedback submission timestamp",
     )
 
     # SLA tracking
     sla_breach: bool = Field(..., description="SLA breach status")
     sla_breach_reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Reason for SLA breach",
     )
 
     # Escalation
     escalated: bool = Field(default=False, description="Escalation status")
-    escalated_to: Optional[str] = Field(None, description="Escalated to user ID")
-    escalated_to_name: Optional[str] = Field(None, description="Escalated to name")
-    escalated_at: Optional[datetime] = Field(None, description="Escalation timestamp")
-    escalation_reason: Optional[str] = Field(None, description="Escalation reason")
+    escalated_to: Optional[str] = Field(default=None, description="Escalated to user ID")
+    escalated_to_name: Optional[str] = Field(default=None, description="Escalated to name")
+    escalated_at: Optional[datetime] = Field(default=None, description="Escalation timestamp")
+    escalation_reason: Optional[str] = Field(default=None, description="Escalation reason")
 
     # Admin override
     overridden_by_admin: bool = Field(
         default=False,
         description="Admin override flag",
     )
-    override_admin_id: Optional[str] = Field(None, description="Override admin ID")
+    override_admin_id: Optional[str] = Field(default=None, description="Override admin ID")
     override_timestamp: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Override timestamp",
     )
-    override_reason: Optional[str] = Field(None, description="Override reason")
+    override_reason: Optional[str] = Field(default=None, description="Override reason")
 
     # Engagement metrics
     total_comments: int = Field(
@@ -266,9 +266,9 @@ class ComplaintDetail(BaseResponseSchema):
     )
 
     # Time metrics
-    age_hours: int = Field(ge=0, description="Complaint age in hours")
+    age_hours: int = Field(..., ge=0, description="Complaint age in hours")
     time_to_resolve_hours: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Time taken to resolve (hours)",
     )
@@ -315,7 +315,7 @@ class ComplaintDetail(BaseResponseSchema):
             return "good"
         elif hours <= threshold["average"]:
             return "average"
-        else:
+                else:
             return "poor"
 
 
@@ -336,12 +336,12 @@ class ComplaintListItem(BaseSchema):
     status: ComplaintStatus = Field(..., description="Current status")
 
     raised_by_name: str = Field(..., description="Complainant name")
-    room_number: Optional[str] = Field(None, description="Room number")
+    room_number: Optional[str] = Field(default=None, description="Room number")
 
-    assigned_to_name: Optional[str] = Field(None, description="Assignee name")
+    assigned_to_name: Optional[str] = Field(default=None, description="Assignee name")
 
     opened_at: datetime = Field(..., description="Creation timestamp")
-    age_hours: int = Field(ge=0, description="Age in hours")
+    age_hours: int = Field(..., ge=0, description="Age in hours")
 
     sla_breach: bool = Field(..., description="SLA breach status")
 
@@ -393,18 +393,19 @@ class ComplaintSummary(BaseSchema):
 
     hostel_id: str = Field(..., description="Hostel identifier")
 
-    total_complaints: int = Field(ge=0, description="Total complaint count")
-    open_complaints: int = Field(ge=0, description="Open complaints")
-    in_progress_complaints: int = Field(ge=0, description="In-progress complaints")
-    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+    total_complaints: int = Field(..., ge=0, description="Total complaint count")
+    open_complaints: int = Field(..., ge=0, description="Open complaints")
+    in_progress_complaints: int = Field(..., ge=0, description="In-progress complaints")
+    resolved_complaints: int = Field(..., ge=0, description="Resolved complaints")
 
-    high_priority_count: int = Field(ge=0, description="High priority count")
-    urgent_priority_count: int = Field(ge=0, description="Urgent priority count")
+    high_priority_count: int = Field(..., ge=0, description="High priority count")
+    urgent_priority_count: int = Field(..., ge=0, description="Urgent priority count")
 
-    sla_breached_count: int = Field(ge=0, description="SLA breached count")
+    sla_breached_count: int = Field(..., ge=0, description="SLA breached count")
 
     average_resolution_time_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Average resolution time in hours",
     )
 
@@ -447,46 +448,49 @@ class ComplaintStats(BaseSchema):
     Provides comprehensive analytics for reporting.
     """
 
-    total: int = Field(ge=0, description="Total complaints")
+    total: int = Field(..., ge=0, description="Total complaints")
     
     # Status breakdown
-    by_status: dict[str, int] = Field(
+    by_status: Dict[str, int] = Field(
         default_factory=dict,
         description="Complaint count by status",
     )
     
     # Priority breakdown
-    by_priority: dict[str, int] = Field(
+    by_priority: Dict[str, int] = Field(
         default_factory=dict,
         description="Complaint count by priority",
     )
     
     # Category breakdown
-    by_category: dict[str, int] = Field(
+    by_category: Dict[str, int] = Field(
         default_factory=dict,
         description="Complaint count by category",
     )
     
     # Time-based metrics
     avg_resolution_hours: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         description="Average resolution time",
     )
     median_resolution_hours: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         description="Median resolution time",
     )
     
     # Performance indicators
     sla_compliance_percentage: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="SLA compliance percentage",
     )
     resolution_percentage: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Resolution percentage",
     )
+        

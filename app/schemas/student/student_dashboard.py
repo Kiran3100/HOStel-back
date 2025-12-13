@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_dashboard.py ---
 """
 Student dashboard schemas with comprehensive overview data.
 

@@ -12,7 +12,7 @@ from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
@@ -31,6 +31,19 @@ class InquiryFilterParams(BaseFilterSchema):
     
     Supports filtering by status, dates, hostel, source, and more.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "search": "John",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "status": "new",
+                "source": "website",
+                "created_from": "2024-01-01",
+                "created_to": "2024-12-31"
+            }
+        }
+    )
 
     # Text Search
     search: Optional[str] = Field(
@@ -151,6 +164,20 @@ class InquirySearchRequest(BaseFilterSchema):
     
     Supports full-text search across inquiry fields.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "john smith",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "search_in_name": True,
+                "search_in_email": True,
+                "status": "new",
+                "page": 1,
+                "page_size": 20
+            }
+        }
+    )
 
     query: str = Field(
         ...,
@@ -214,6 +241,15 @@ class InquirySortOptions(BaseFilterSchema):
     """
     Inquiry sorting options.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sort_by": "created_at",
+                "sort_order": "desc"
+            }
+        }
+    )
 
     sort_by: str = Field(
         "created_at",
@@ -237,6 +273,18 @@ class InquiryExportRequest(BaseFilterSchema):
     """
     Request to export inquiries data.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "format": "csv",
+                "include_message": True,
+                "include_notes": False,
+                "include_timeline": False
+            }
+        }
+    )
 
     hostel_id: Optional[UUID] = Field(
         None,

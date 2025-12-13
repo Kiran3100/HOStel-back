@@ -328,6 +328,7 @@ class ReassignmentRequest(BaseCreateSchema):
     @classmethod
     def validate_different_room(cls, v: UUID, info) -> UUID:
         """Ensure new room is different from current."""
+        # In Pydantic v2, info.data contains previously validated fields
         current_room_id = info.data.get("current_room_id")
         if current_room_id and v == current_room_id:
             raise ValueError(

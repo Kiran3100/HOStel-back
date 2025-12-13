@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Dict, List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator,computed_field
+from pydantic import Field, HttpUrl, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import IDProofType
@@ -52,11 +52,11 @@ class DocumentUploadInitRequest(BaseCreateSchema):
 
     uploaded_by_user_id: str = Field(...)
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Student ID if document belongs to student",
     )
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Hostel ID if document is hostel-related",
     )
 
@@ -69,30 +69,30 @@ class DocumentUploadInitRequest(BaseCreateSchema):
         description="Type of document being uploaded",
     )
     document_subtype: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Specific subtype (e.g., 'aadhaar', 'passport' for id_proof)",
     )
 
     # Metadata
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Document description or notes",
     )
     reference_number: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Document reference/ID number",
     )
 
     # Dates
     issue_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Document issue date",
     )
     expiry_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Document expiry date (if applicable)",
     )
 
@@ -179,7 +179,7 @@ class DocumentUploadInitResponse(FileUploadInitResponse):
     
     # Expected processing time
     estimated_processing_time_seconds: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Estimated time for document processing",
     )
@@ -198,6 +198,7 @@ class DocumentValidationResult(BaseSchema):
     # Validation status
     is_valid: bool = Field(..., description="Overall validation status")
     validation_score: int = Field(
+        ...,
         ge=0,
         le=100,
         description="Validation confidence score (0-100)",
@@ -219,25 +220,25 @@ class DocumentValidationResult(BaseSchema):
 
     # Failure details
     reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Primary reason if invalid",
     )
     error_details: Optional[str] = Field(
-        None,
+        default=None,
         description="Detailed error information",
     )
 
     # Extracted metadata (non-PII summary)
     extracted_metadata: Optional[Dict[str, str]] = Field(
-        None,
+        default=None,
         description="Extracted document metadata",
     )
     detected_type: Optional[str] = Field(
-        None,
+        default=None,
         description="Auto-detected document type",
     )
     confidence_level: Optional[str] = Field(
-        None,
+        default=None,
         description="Detection confidence",
         examples=["high", "medium", "low"],
     )
@@ -262,30 +263,30 @@ class DocumentInfo(BaseResponseSchema):
     # URLs
     url: HttpUrl = Field(..., description="Document access URL")
     thumbnail_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Thumbnail URL for preview",
     )
 
     # Classification
     document_type: str = Field(..., description="Document type")
-    document_subtype: Optional[str] = Field(None, description="Document subtype")
-    description: Optional[str] = Field(None, description="Description")
+    document_subtype: Optional[str] = Field(default=None, description="Document subtype")
+    description: Optional[str] = Field(default=None, description="Description")
 
     # Ownership
     uploaded_by_user_id: str = Field(..., description="Uploader user ID")
-    uploaded_by_name: Optional[str] = Field(None, description="Uploader name")
-    student_id: Optional[str] = Field(None, description="Associated student")
-    hostel_id: Optional[str] = Field(None, description="Associated hostel")
+    uploaded_by_name: Optional[str] = Field(default=None, description="Uploader name")
+    student_id: Optional[str] = Field(default=None, description="Associated student")
+    hostel_id: Optional[str] = Field(default=None, description="Associated hostel")
 
     # Document details
-    reference_number: Optional[str] = Field(None, description="Reference number")
-    issue_date: Optional[date] = Field(None, description="Issue date")
-    expiry_date: Optional[date] = Field(None, description="Expiry date")
+    reference_number: Optional[str] = Field(default=None, description="Reference number")
+    issue_date: Optional[date] = Field(default=None, description="Issue date")
+    expiry_date: Optional[date] = Field(default=None, description="Expiry date")
 
     # File metadata
     filename: str = Field(..., description="Original filename")
     content_type: str = Field(..., description="MIME type")
-    size_bytes: int = Field(ge=0, description="File size")
+    size_bytes: int = Field(..., ge=0, description="File size")
 
     # Verification status
     verified: bool = Field(
@@ -293,19 +294,19 @@ class DocumentInfo(BaseResponseSchema):
         description="Whether document has been verified",
     )
     verified_by: Optional[str] = Field(
-        None,
+        default=None,
         description="User ID who verified",
     )
     verified_by_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Verifier name",
     )
     verified_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Verification timestamp",
     )
     verification_notes: Optional[str] = Field(
-        None,
+        default=None,
         description="Verification notes",
     )
 
@@ -316,7 +317,7 @@ class DocumentInfo(BaseResponseSchema):
         examples=["pending", "verified", "rejected", "expired"],
     )
     rejection_reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Reason for rejection if rejected",
     )
 
@@ -326,14 +327,13 @@ class DocumentInfo(BaseResponseSchema):
         description="Whether OCR was performed",
     )
     extracted_text: Optional[str] = Field(
-        None,
+        default=None,
         description="OCR extracted text (truncated for display)",
     )
 
     # Timestamps
     uploaded_at: datetime = Field(..., description="Upload timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    
 
     @computed_field
     @property
@@ -380,11 +380,12 @@ class DocumentList(BaseSchema):
     )
 
     # Summary
-    total_documents: int = Field(ge=0, description="Total document count")
-    verified_count: int = Field(ge=0, description="Verified documents")
-    pending_count: int = Field(ge=0, description="Pending verification")
-    expired_count: int = Field(ge=0, description="Expired documents")
+    total_documents: int = Field(..., ge=0, description="Total document count")
+    verified_count: int = Field(..., ge=0, description="Verified documents")
+    pending_count: int = Field(..., ge=0, description="Pending verification")
+    expired_count: int = Field(..., ge=0, description="Expired documents")
     expiring_soon_count: int = Field(
+        ...,
         ge=0,
         description="Documents expiring within 30 days",
     )
@@ -427,28 +428,28 @@ class DocumentVerificationRequest(BaseCreateSchema):
 
     # Notes
     verification_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Verification notes or comments",
     )
     rejection_reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Reason for rejection (required if rejected)",
     )
 
     # Extracted information (manual correction)
     extracted_reference_number: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Manually extracted reference number",
     )
     extracted_issue_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Manually extracted issue date",
     )
     extracted_expiry_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Manually extracted expiry date",
     )
 
@@ -501,7 +502,7 @@ class DocumentOCRResult(BaseSchema):
         examples=["completed", "failed", "partial"],
     )
     confidence_score: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         le=100,
         description="Overall OCR confidence score (0-100)",
@@ -513,6 +514,7 @@ class DocumentOCRResult(BaseSchema):
         description="Complete extracted text",
     )
     text_length: int = Field(
+        ...,
         ge=0,
         description="Length of extracted text",
     )
@@ -524,10 +526,10 @@ class DocumentOCRResult(BaseSchema):
     )
 
     # For ID documents
-    extracted_name: Optional[str] = Field(None, description="Extracted name")
-    extracted_id_number: Optional[str] = Field(None, description="Extracted ID number")
-    extracted_dob: Optional[str] = Field(None, description="Extracted date of birth")
-    extracted_address: Optional[str] = Field(None, description="Extracted address")
+    extracted_name: Optional[str] = Field(default=None, description="Extracted name")
+    extracted_id_number: Optional[str] = Field(default=None, description="Extracted ID number")
+    extracted_dob: Optional[str] = Field(default=None, description="Extracted date of birth")
+    extracted_address: Optional[str] = Field(default=None, description="Extracted address")
 
     # Processing metadata
     ocr_engine: str = Field(
@@ -536,7 +538,7 @@ class DocumentOCRResult(BaseSchema):
         examples=["tesseract", "google_vision", "aws_textract"],
     )
     processing_time_seconds: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         description="OCR processing time",
     )
@@ -544,7 +546,7 @@ class DocumentOCRResult(BaseSchema):
 
     # Error information
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         description="Error message if OCR failed",
     )
 
@@ -558,7 +560,7 @@ class DocumentExpiryAlert(BaseSchema):
 
     document_id: str = Field(..., description="Document identifier")
     document_type: str = Field(..., description="Document type")
-    reference_number: Optional[str] = Field(None, description="Document reference")
+    reference_number: Optional[str] = Field(default=None, description="Document reference")
 
     owner_id: str = Field(..., description="Document owner ID")
     owner_type: str = Field(..., description="Owner type (student/hostel)")
@@ -589,7 +591,7 @@ class DocumentExpiryAlert(BaseSchema):
         description="Whether notification was sent",
     )
     notification_sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Notification timestamp",
     )
 

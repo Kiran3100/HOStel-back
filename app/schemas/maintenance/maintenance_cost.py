@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator,computed_field
+from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -37,6 +37,20 @@ class CostTracking(BaseSchema):
     
     Tracks estimated vs actual costs with variance analysis.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "estimated_cost": "3000.00",
+                "approved_cost": "3500.00",
+                "actual_cost": "3200.00",
+                "variance": "-300.00",
+                "within_budget": True
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -49,27 +63,23 @@ class CostTracking(BaseSchema):
     estimated_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Original estimated cost",
     )
     approved_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Approved budget amount",
     )
     actual_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Actual cost incurred",
     )
     variance: Decimal = Field(
         ...,
-        max_digits=10,
         decimal_places=2,
         description="Cost variance (actual - approved)",
     )
@@ -85,35 +95,30 @@ class CostTracking(BaseSchema):
     materials_cost: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Materials cost component",
     )
     labor_cost: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Labor cost component",
     )
     vendor_charges: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="External vendor charges",
     )
     other_costs: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Other miscellaneous costs",
     )
     tax_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Tax component",
     )
@@ -135,7 +140,7 @@ class CostTracking(BaseSchema):
         """Round monetary amounts to 2 decimal places."""
         return round(v, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cost_breakdown_total(self) -> Decimal:
         """Calculate total from breakdown components."""
@@ -155,6 +160,19 @@ class CategoryBudget(BaseSchema):
     
     Tracks allocation, spending, and utilization per category.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "category": "Electrical",
+                "category_code": "ELEC",
+                "allocated": "500000.00",
+                "spent": "350000.00",
+                "remaining": "150000.00",
+                "utilization_percentage": "70.00"
+            }
+        }
+    )
 
     category: str = Field(
         ...,
@@ -168,28 +186,24 @@ class CategoryBudget(BaseSchema):
     allocated: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Allocated budget amount",
     )
     spent: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Amount spent",
     )
     committed: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Amount committed (approved but not paid)",
     )
     remaining: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Remaining budget",
     )
@@ -225,13 +239,13 @@ class CategoryBudget(BaseSchema):
         """Round amounts to 2 decimal places."""
         return round(v, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_over_budget(self) -> bool:
         """Check if category is over budget."""
         return self.spent > self.allocated
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def available_for_commitment(self) -> Decimal:
         """Calculate amount available for new commitments."""
@@ -248,6 +262,19 @@ class BudgetAllocation(BaseSchema):
     Tracks fiscal year budget with category-wise breakdown
     and utilization metrics.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "fiscal_year": "2024",
+                "total_budget": "5000000.00",
+                "spent_amount": "3500000.00",
+                "remaining_budget": "1500000.00",
+                "utilization_percentage": "70.00"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -273,35 +300,30 @@ class BudgetAllocation(BaseSchema):
     total_budget: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total allocated budget",
     )
     allocated_budget: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Budget allocated to categories",
     )
     spent_amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total amount spent",
     )
     committed_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Committed but not yet spent",
     )
     remaining_budget: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Remaining unallocated budget",
     )
@@ -319,7 +341,6 @@ class BudgetAllocation(BaseSchema):
     reserve_fund: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Emergency reserve fund",
     )
@@ -345,13 +366,13 @@ class BudgetAllocation(BaseSchema):
                 raise ValueError("Fiscal year end must be after start")
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_over_budget(self) -> bool:
         """Check if overall budget is exceeded."""
         return self.spent_amount > self.total_budget
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def months_remaining(self) -> int:
         """Calculate months remaining in fiscal year."""
@@ -372,6 +393,19 @@ class MonthlyExpense(BaseSchema):
     
     Aggregates maintenance expenses for a specific month.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "month": "2024-01",
+                "month_name": "January",
+                "year": 2024,
+                "total_expenses": "450000.00",
+                "request_count": 45,
+                "average_cost": "10000.00"
+            }
+        }
+    )
 
     month: str = Field(
         ...,
@@ -391,7 +425,6 @@ class MonthlyExpense(BaseSchema):
     total_expenses: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total expenses for the month",
     )
@@ -421,7 +454,7 @@ class MonthlyExpense(BaseSchema):
         description="Variance from monthly budget",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def within_budget(self) -> Optional[bool]:
         """Check if monthly expenses are within budget."""
@@ -436,6 +469,20 @@ class ExpenseItem(BaseSchema):
     
     Represents single maintenance request in expense listings.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "title": "Ceiling fan replacement",
+                "category": "Electrical",
+                "estimated_cost": "3000.00",
+                "actual_cost": "3500.00",
+                "cost_variance": "500.00"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -480,7 +527,7 @@ class ExpenseItem(BaseSchema):
         description="Vendor name (if applicable)",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def over_budget(self) -> bool:
         """Check if expense was over estimated cost."""
@@ -494,6 +541,18 @@ class ExpenseReport(BaseSchema):
     Provides detailed expense analysis with multiple dimensions
     and top expense listings.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "total_expenses": "1500000.00",
+                "total_requests": 150,
+                "completed_requests": 142,
+                "average_cost_per_request": "10000.00"
+            }
+        }
+    )
 
     hostel_id: Optional[UUID] = Field(
         None,
@@ -520,7 +579,6 @@ class ExpenseReport(BaseSchema):
     total_expenses: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total expenses in period",
     )
@@ -590,7 +648,7 @@ class ExpenseReport(BaseSchema):
         description="Top vendors by total spending",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate percentage."""
@@ -608,6 +666,19 @@ class InvoiceLineItem(BaseSchema):
     
     Represents individual item/service in invoice.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "line_number": 1,
+                "description": "Ceiling fan - 1200mm",
+                "quantity": "2.000",
+                "unit": "pcs",
+                "unit_price": "1500.00",
+                "total_price": "3000.00"
+            }
+        }
+    )
 
     line_number: int = Field(
         ...,
@@ -628,7 +699,6 @@ class InvoiceLineItem(BaseSchema):
     quantity: Decimal = Field(
         ...,
         gt=0,
-        max_digits=10,
         decimal_places=3,
         description="Quantity",
     )
@@ -640,14 +710,12 @@ class InvoiceLineItem(BaseSchema):
     unit_price: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Price per unit",
     )
     total_price: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Total line price",
     )
@@ -661,7 +729,6 @@ class InvoiceLineItem(BaseSchema):
     tax_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Tax amount",
     )
@@ -701,6 +768,22 @@ class VendorInvoice(BaseCreateSchema):
     Comprehensive invoice tracking with line items, taxes,
     and payment terms.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "vendor_name": "ABC Electricals",
+                "invoice_number": "INV-2024-001",
+                "invoice_date": "2024-01-20",
+                "subtotal": "3000.00",
+                "tax_amount": "540.00",
+                "total_amount": "3540.00",
+                "payment_terms": "Net 30",
+                "due_date": "2024-02-20"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -750,28 +833,24 @@ class VendorInvoice(BaseCreateSchema):
     subtotal: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Subtotal (before tax)",
     )
     tax_amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total tax amount",
     )
     discount_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Discount amount",
     )
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total invoice amount",
     )
@@ -848,6 +927,19 @@ class CostAnalysis(BaseSchema):
     
     Provides insights into cost patterns, trends, and efficiency metrics.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "cost_trend": "decreasing",
+                "trend_percentage": "-5.50",
+                "highest_cost_category": "Electrical",
+                "cost_per_student": "500.00",
+                "cost_per_room": "2500.00"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,

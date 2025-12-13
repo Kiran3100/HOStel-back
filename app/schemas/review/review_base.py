@@ -31,55 +31,55 @@ class DetailedRatings(BaseSchema):
     """
     
     cleanliness_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Cleanliness and hygiene rating",
     )
     food_quality_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Food quality rating (if mess facility available)",
     )
     staff_behavior_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Staff courtesy and helpfulness rating",
     )
     security_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Safety and security measures rating",
     )
     value_for_money_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Value for money rating",
     )
     amenities_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Facilities and amenities quality rating",
     )
     location_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Location convenience rating",
     )
     wifi_quality_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Internet/WiFi quality rating",
     )
     maintenance_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Maintenance responsiveness rating",
@@ -97,11 +97,11 @@ class ReviewBase(BaseSchema):
     hostel_id: UUID = Field(..., description="Hostel being reviewed")
     reviewer_id: UUID = Field(..., description="User submitting the review")
     student_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Student profile ID (for verified stay reviews)",
     )
     booking_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Related booking reference for verification",
     )
     
@@ -132,37 +132,37 @@ class ReviewBase(BaseSchema):
     
     # Detailed aspect ratings (optional but encouraged)
     cleanliness_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Cleanliness rating",
     )
     food_quality_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Food quality rating",
     )
     staff_behavior_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Staff behavior rating",
     )
     security_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Security rating",
     )
     value_for_money_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Value for money rating",
     )
     amenities_rating: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Amenities rating",
@@ -288,7 +288,7 @@ class ReviewCreate(ReviewBase, BaseCreateSchema):
     )
     
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=24,
         description="Duration of stay in months (helps with verification)",
@@ -326,13 +326,13 @@ class ReviewUpdate(BaseUpdateSchema):
     
     # Content updates
     title: Optional[str] = Field(
-        None,
+        default=None,
         min_length=5,
         max_length=255,
         description="Updated review title",
     )
     review_text: Optional[str] = Field(
-        None,
+        default=None,
         min_length=50,
         max_length=5000,
         description="Updated review text",
@@ -340,7 +340,7 @@ class ReviewUpdate(BaseUpdateSchema):
     
     # Rating updates
     overall_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("1.0"),
         le=Decimal("5.0"),
         decimal_places=1,
@@ -348,16 +348,16 @@ class ReviewUpdate(BaseUpdateSchema):
     )
     
     # Detailed ratings updates
-    cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
-    food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
-    staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
-    security_rating: Optional[int] = Field(None, ge=1, le=5)
-    value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
-    amenities_rating: Optional[int] = Field(None, ge=1, le=5)
+    cleanliness_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    food_quality_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    staff_behavior_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    security_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    value_for_money_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    amenities_rating: Optional[int] = Field(default=None, ge=1, le=5)
     
     # Media updates
     photos: Optional[List[HttpUrl]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Updated photo list",
     )

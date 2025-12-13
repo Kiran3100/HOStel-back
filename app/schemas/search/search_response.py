@@ -65,20 +65,20 @@ class SearchResultItem(BaseSchema):
 
     # Ratings and reviews
     average_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Average rating (0-5)",
     )
     total_reviews: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total number of reviews",
     )
 
     # Availability
     available_beds: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of currently available beds",
     )
@@ -90,7 +90,7 @@ class SearchResultItem(BaseSchema):
 
     # Media
     thumbnail_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Primary image URL",
     )
     image_urls: List[str] = Field(
@@ -107,11 +107,11 @@ class SearchResultItem(BaseSchema):
 
     # Verification and quality indicators
     is_verified: bool = Field(
-        False,
+        default=False,
         description="Hostel verification status",
     )
     is_featured: bool = Field(
-        False,
+        default=False,
         description="Featured/promoted status",
     )
 
@@ -122,7 +122,7 @@ class SearchResultItem(BaseSchema):
         description="Relevance score from search engine (higher = more relevant)",
     )
     distance_km: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Distance from search location (if proximity search)",
     )
@@ -134,7 +134,7 @@ class SearchResultItem(BaseSchema):
         examples=[{"name": ["Best <em>Hostel</em> in Mumbai"]}],
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate as percentage."""
@@ -143,7 +143,7 @@ class SearchResultItem(BaseSchema):
         occupied = self.total_beds - self.available_beds
         return Decimal(occupied / self.total_beds * 100).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def has_availability(self) -> bool:
         """Check if hostel has any available beds."""
@@ -193,7 +193,7 @@ class SearchMetadata(BaseSchema):
         description="Search execution time in milliseconds",
     )
     fetch_time_ms: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Data fetch time in milliseconds",
     )
@@ -210,29 +210,29 @@ class SearchMetadata(BaseSchema):
 
     # Result quality indicators
     max_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Highest relevance score in results",
     )
     min_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Lowest relevance score in results",
     )
 
     # Debug information (optional, for development)
     debug_info: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Debug information (available in development mode)",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def has_next_page(self) -> bool:
         """Check if there are more pages available."""
         return self.page < self.total_pages
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def has_previous_page(self) -> bool:
         """Check if there are previous pages."""
@@ -260,13 +260,13 @@ class FacetBucket(BaseSchema):
         description="Number of results with this facet value",
     )
     is_selected: bool = Field(
-        False,
+        default=False,
         description="Whether this facet is currently selected/active",
     )
 
     # Additional metadata
     metadata: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Additional facet-specific metadata",
     )
 
@@ -314,13 +314,13 @@ class FacetedSearchResponse(BaseSchema):
         description="Suggested query refinements",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def is_empty(self) -> bool:
         """Check if search returned no results."""
         return len(self.results) == 0
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def facet_names(self) -> List[str]:
         """Get list of available facet names."""
@@ -344,7 +344,7 @@ class SearchSuggestion(BaseSchema):
         description="Suggested search text",
     )
     reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Why this suggestion is offered",
         examples=[
             "Did you mean...",
@@ -353,7 +353,7 @@ class SearchSuggestion(BaseSchema):
         ],
     )
     expected_results: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Estimated number of results for this suggestion",
     )

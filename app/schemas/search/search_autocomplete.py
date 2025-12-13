@@ -52,11 +52,11 @@ class AutocompleteRequest(BaseCreateSchema):
         examples=["mumb", "boys host", "pg near"],
     )
     suggestion_type: Optional[SuggestionType] = Field(
-        None,
+        default=None,
         description="Filter suggestions by type (optional)",
     )
     limit: int = Field(
-        10,
+        default=10,
         ge=1,
         le=20,
         description="Maximum number of suggestions to return",
@@ -64,13 +64,13 @@ class AutocompleteRequest(BaseCreateSchema):
 
     # Context for personalization
     user_latitude: Optional[float] = Field(
-        None,
+        default=None,
         ge=-90,
         le=90,
         description="User latitude for location-based suggestions",
     )
     user_longitude: Optional[float] = Field(
-        None,
+        default=None,
         ge=-180,
         le=180,
         description="User longitude for location-based suggestions",
@@ -78,12 +78,12 @@ class AutocompleteRequest(BaseCreateSchema):
 
     # Filtering
     include_types: Optional[List[SuggestionType]] = Field(
-        None,
+        default=None,
         description="Include only these suggestion types",
         examples=[["hostel", "city"]],
     )
     exclude_types: Optional[List[SuggestionType]] = Field(
-        None,
+        default=None,
         description="Exclude these suggestion types",
     )
 
@@ -138,24 +138,24 @@ class Suggestion(BaseSchema):
 
     # Metadata
     score: float = Field(
-        0.0,
+        default=0.0,
         ge=0,
         description="Relevance/popularity score",
     )
     result_count: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Estimated number of results for this suggestion",
     )
 
     # Rich data (optional)
     icon: Optional[str] = Field(
-        None,
+        default=None,
         description="Icon identifier for UI display",
         examples=["location", "building", "search"],
     )
     thumbnail_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Thumbnail image URL (for hostel suggestions)",
     )
 
@@ -171,7 +171,7 @@ class Suggestion(BaseSchema):
 
     # Highlighting
     highlighted_label: Optional[str] = Field(
-        None,
+        default=None,
         description="Label with matched portions highlighted (HTML)",
         examples=["<strong>Mumb</strong>ai, Maharashtra"],
     )
@@ -191,7 +191,7 @@ class AutocompleteResponse(BaseSchema):
 
     # Grouped suggestions (optional, for categorized display)
     grouped_suggestions: Optional[Dict[str, List[Suggestion]]] = Field(
-        None,
+        default=None,
         description="Suggestions grouped by type",
         examples=[
             {
@@ -219,7 +219,7 @@ class AutocompleteResponse(BaseSchema):
 
     # Popular searches (shown when no prefix match)
     popular_searches: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Popular search terms (shown for empty/short prefix)",
         examples=[["Boys Hostel Mumbai", "PG in Bangalore", "Hostel near me"]],
     )

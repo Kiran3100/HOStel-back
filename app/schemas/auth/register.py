@@ -1,11 +1,12 @@
 # --- File: app/schemas/auth/register.py ---
 """
 Registration schemas with comprehensive validation.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 from uuid import UUID
 
@@ -75,7 +76,7 @@ class RegisterRequest(BaseCreateSchema):
     @classmethod
     def normalize_email(cls, v: EmailStr) -> str:
         """Normalize email to lowercase."""
-        return v.lower().strip()
+        return str(v).lower().strip()
 
     @field_validator("phone")
     @classmethod

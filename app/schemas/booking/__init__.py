@@ -32,9 +32,9 @@ from app.schemas.booking.booking_base import (
 from app.schemas.booking.booking_calendar import (
     AvailabilityCalendar,
     BookingEvent,
+    BookingInfo,
     CalendarEvent,
     CalendarView,
-    BookingInfo,
     DayAvailability,
     DayBookings,
 )
@@ -142,6 +142,7 @@ __all__ = [
     "CalendarEvent",
     "AvailabilityCalendar",
     "DayAvailability",
+    "BookingInfo",
     # Waitlist
     "WaitlistRequest",
     "WaitlistResponse",

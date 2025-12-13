@@ -89,14 +89,14 @@ class SupervisorEmployment(BaseSchema):
         description="Last salary revision date",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def tenure_days(self) -> int:
         """Calculate total tenure in days."""
         end_date = self.termination_date or date.today()
         return (end_date - self.join_date).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def tenure_display(self) -> str:
         """Get human-readable tenure."""
@@ -117,13 +117,13 @@ class SupervisorEmployment(BaseSchema):
         
         return f"{years}y {remaining_months}m"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_contract_employee(self) -> bool:
         """Check if employee is on contract."""
         return self.employment_type == EmploymentType.CONTRACT
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def contract_status(self) -> Optional[str]:
         """Get contract status for contract employees."""
@@ -232,7 +232,7 @@ class PerformanceSummary(BaseSchema):
         description="Number of student feedback responses",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_efficiency_score(self) -> Decimal:
         """Calculate overall efficiency score."""
@@ -245,7 +245,7 @@ class PerformanceSummary(BaseSchema):
         average_score = sum(scores) / len(scores)
         return Decimal(str(average_score)).quantize(Decimal("0.1"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_level(self) -> str:
         """Categorize performance level."""
@@ -296,14 +296,14 @@ class EmploymentHistory(BaseSchema):
         description="Performance rating for this period",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def duration_days(self) -> int:
         """Calculate duration of this assignment."""
         end = self.end_date or date.today()
         return (end - self.start_date).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_current(self) -> bool:
         """Check if this is the current assignment."""
@@ -446,7 +446,7 @@ class SupervisorProfile(BaseSchema):
         description="Last activity timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_experience_days(self) -> int:
         """Calculate total experience across all assignments."""
@@ -458,7 +458,7 @@ class SupervisorProfile(BaseSchema):
         total_days += self.employment.tenure_days
         return total_days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def experience_display(self) -> str:
         """Get human-readable total experience."""
@@ -479,7 +479,7 @@ class SupervisorProfile(BaseSchema):
         
         return f"{years}y {remaining_months}m"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def hostels_worked(self) -> int:
         """Count number of different hostels worked at."""

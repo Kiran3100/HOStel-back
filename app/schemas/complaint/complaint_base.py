@@ -39,7 +39,7 @@ class ComplaintBase(BaseSchema):
         description="User ID who raised the complaint",
     )
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Student ID if complaint raised by a student",
     )
 
@@ -63,7 +63,7 @@ class ComplaintBase(BaseSchema):
         description="Primary complaint category",
     )
     sub_category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Optional sub-category for finer classification",
     )
@@ -76,11 +76,11 @@ class ComplaintBase(BaseSchema):
 
     # Location details
     room_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Room identifier if complaint is room-specific",
     )
     location_details: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Detailed location information within hostel",
     )
@@ -206,42 +206,42 @@ class ComplaintUpdate(BaseUpdateSchema):
     """
 
     title: Optional[str] = Field(
-        None,
+        default=None,
         min_length=5,
         max_length=255,
         description="Updated complaint title",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         min_length=20,
         max_length=2000,
         description="Updated complaint description",
     )
     category: Optional[ComplaintCategory] = Field(
-        None,
+        default=None,
         description="Updated complaint category",
     )
     sub_category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Updated sub-category",
     )
     priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Updated priority level",
     )
     location_details: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Updated location details",
     )
     attachments: Optional[List[HttpUrl]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Updated attachments list",
     )
     status: Optional[ComplaintStatus] = Field(
-        None,
+        default=None,
         description="Updated complaint status",
     )
 
@@ -312,7 +312,7 @@ class ComplaintStatusUpdate(BaseUpdateSchema):
         description="New complaint status",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Reason or notes for status change",
     )

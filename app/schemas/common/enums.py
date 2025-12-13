@@ -221,6 +221,7 @@ class ComplaintStatus(str, Enum):
     RESOLVED = "resolved"
     CLOSED = "closed"
     REOPENED = "reopened"
+    REJECTED = "rejected"
 
 
 class Priority(str, Enum):

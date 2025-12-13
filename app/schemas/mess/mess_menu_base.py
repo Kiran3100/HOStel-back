@@ -123,7 +123,7 @@ class MessMenuBase(BaseSchema):
         description="Jain dietary options available",
     )
 
-    @field_validator("menu_date")
+    @field_validator("menu_date", mode="after")
     @classmethod
     def validate_menu_date(cls, v: date) -> date:
         """
@@ -146,7 +146,8 @@ class MessMenuBase(BaseSchema):
         
         return v
 
-    @field_validator("day_of_week")
+    # Pydantic v2: field_validator with mode="after" uses info.data instead of values
+    @field_validator("day_of_week", mode="after")
     @classmethod
     def validate_day_consistency(cls, v: str, info) -> str:
         """
@@ -154,7 +155,7 @@ class MessMenuBase(BaseSchema):
         
         Ensures data consistency between date and day name.
         """
-        if "menu_date" in info.data:
+        if info.data.get("menu_date"):
             menu_date = info.data["menu_date"]
             expected_day = menu_date.strftime("%A")
             
@@ -171,6 +172,7 @@ class MessMenuBase(BaseSchema):
         "lunch_items",
         "snacks_items",
         "dinner_items",
+        mode="after"
     )
     @classmethod
     def validate_menu_items(cls, v: List[str]) -> List[str]:
@@ -209,7 +211,7 @@ class MessMenuBase(BaseSchema):
         
         return unique_items
 
-    @field_validator("special_occasion", "special_notes")
+    @field_validator("special_occasion", "special_notes", mode="before")
     @classmethod
     def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
         """Normalize text fields by stripping whitespace."""
@@ -411,6 +413,7 @@ class MessMenuUpdate(BaseUpdateSchema):
         "lunch_items",
         "snacks_items",
         "dinner_items",
+        mode="after"
     )
     @classmethod
     def validate_menu_items(cls, v: Optional[List[str]]) -> Optional[List[str]]:
@@ -445,7 +448,7 @@ class MessMenuUpdate(BaseUpdateSchema):
         
         return unique_items if unique_items else None
 
-    @field_validator("special_occasion", "special_notes")
+    @field_validator("special_occasion", "special_notes", mode="before")
     @classmethod
     def normalize_text(cls, v: Optional[str]) -> Optional[str]:
         """Normalize text fields."""

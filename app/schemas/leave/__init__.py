@@ -4,6 +4,8 @@ Leave management schemas package.
 
 Comprehensive leave application, approval, and balance tracking schemas
 for hostel management system with enhanced validation and type safety.
+
+Migrated to Pydantic v2 with full compatibility.
 """
 
 from __future__ import annotations

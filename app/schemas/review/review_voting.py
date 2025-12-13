@@ -46,7 +46,7 @@ class VoteRequest(BaseCreateSchema):
     
     # Optional feedback
     feedback: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Optional feedback about why vote was cast",
     )
@@ -68,7 +68,7 @@ class VoteResponse(BaseSchema):
     
     # User's current vote status
     user_vote: Optional[VoteType] = Field(
-        None,
+        default=None,
         description="User's current vote (may differ if changed)",
     )
     
@@ -78,13 +78,13 @@ class VoteResponse(BaseSchema):
         examples=["Vote recorded successfully", "Vote updated"],
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def total_votes(self) -> int:
         """Total votes on the review."""
         return self.helpful_count + self.not_helpful_count
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def helpfulness_percentage(self) -> Decimal:
         """Percentage of helpful votes."""
@@ -125,7 +125,7 @@ class HelpfulnessScore(BaseSchema):
     
     # Rank among hostel's reviews
     rank: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Rank among reviews for this hostel",
     )
@@ -191,7 +191,7 @@ class VoteHistoryItem(BaseSchema):
     vote_type: VoteType = Field(..., description="How user voted")
     voted_at: datetime = Field(..., description="When vote was cast")
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def days_ago(self) -> int:
         """Days since vote was cast."""
@@ -227,7 +227,7 @@ class VoteHistory(BaseSchema):
         description="Hostels where user votes most",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def helpful_vote_percentage(self) -> Decimal:
         """Percentage of helpful votes vs total."""
@@ -237,7 +237,7 @@ class VoteHistory(BaseSchema):
             str(round((self.helpful_votes / self.total_votes) * 100, 2))
         )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def voting_tendency(self) -> str:
         """
@@ -265,7 +265,7 @@ class RemoveVote(BaseCreateSchema):
     voter_id: UUID = Field(..., description="User removing their vote")
     
     reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Optional reason for removing vote",
     )
@@ -303,15 +303,15 @@ class VotingStats(BaseSchema):
     
     # Top reviews
     most_helpful_review_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Review with highest helpfulness score",
     )
     most_voted_review_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Review with most total votes",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def engagement_rate(self) -> Decimal:
         """Percentage of reviews that have votes."""
@@ -321,7 +321,7 @@ class VotingStats(BaseSchema):
             str(round((self.reviews_with_votes / self.total_reviews) * 100, 2))
         )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def overall_sentiment(self) -> str:
         """

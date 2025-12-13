@@ -8,11 +8,11 @@ monthly schedules, special menus, and reusable templates.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator,computed_field
+from pydantic import Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -74,7 +74,7 @@ class DailyMenuPlan(BaseSchema):
         description="Planning notes",
     )
 
-    @field_validator("breakfast", "lunch", "snacks", "dinner")
+    @field_validator("breakfast", "lunch", "snacks", "dinner", mode="after")
     @classmethod
     def validate_menu_items(cls, v: List[str]) -> List[str]:
         """Validate and normalize menu items."""
@@ -173,15 +173,11 @@ class MenuPlanRequest(BaseCreateSchema):
     target_cost_per_day: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Target daily cost per person",
     )
     max_cost_per_day: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Maximum daily cost per person",
     )
     
@@ -207,7 +203,7 @@ class MenuPlanRequest(BaseCreateSchema):
         description="Include regional favorites",
     )
 
-    @field_validator("start_date")
+    @field_validator("start_date", mode="after")
     @classmethod
     def validate_start_date(cls, v: date) -> date:
         """Validate start date is not too far in past."""
@@ -219,6 +215,14 @@ class MenuPlanRequest(BaseCreateSchema):
                 "Start date cannot be more than 7 days in the past"
             )
         
+        return v
+
+    @field_validator("target_cost_per_day", "max_cost_per_day", mode="after")
+    @classmethod
+    def round_cost_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round cost values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
         return v
 
     @model_validator(mode="after")
@@ -327,12 +331,20 @@ class WeeklyPlan(BaseCreateSchema):
         description="Estimated total cost for the week",
     )
 
-    @field_validator("week_start_date")
+    @field_validator("week_start_date", mode="after")
     @classmethod
     def validate_monday(cls, v: date) -> date:
         """Ensure week starts on Monday."""
         if v.weekday() != 0:  # 0 = Monday
             raise ValueError("Week must start on Monday")
+        return v
+
+    @field_validator("estimated_total_cost", mode="after")
+    @classmethod
+    def round_cost(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round cost to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
         return v
 
 
@@ -372,6 +384,14 @@ class SpecialDayMenu(BaseSchema):
         ge=0,
         description="Expected number of guests",
     )
+
+    @field_validator("budget", mode="after")
+    @classmethod
+    def round_budget(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round budget to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
 
 class MonthlyPlan(BaseCreateSchema):
@@ -435,11 +455,19 @@ class MonthlyPlan(BaseCreateSchema):
         description="Monthly planning notes",
     )
 
+    @field_validator("total_budget", mode="after")
+    @classmethod
+    def round_budget(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round budget to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
+
     @model_validator(mode="after")
     def validate_special_days(self) -> "MonthlyPlan":
         """Ensure special days are unique and within month."""
         if self.special_days:
-            dates = [day.date for day in self.special_days]
+            dates = [day.menu_date for day in self.special_days]
             
             # Check for duplicates
             if len(dates) != len(set(dates)):
@@ -516,8 +544,6 @@ class SpecialMenu(BaseCreateSchema):
     budget: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=12,
-        decimal_places=2,
         description="Special occasion budget",
     )
     estimated_cost_per_person: Optional[Decimal] = Field(
@@ -560,7 +586,7 @@ class SpecialMenu(BaseCreateSchema):
         description="Days before to send notification",
     )
 
-    @field_validator("occasion_date")
+    @field_validator("occasion_date", mode="after")
     @classmethod
     def validate_occasion_date(cls, v: date) -> date:
         """Validate occasion date is not too far in future."""
@@ -576,6 +602,14 @@ class SpecialMenu(BaseCreateSchema):
                 "Cannot create special menu more than 1 year in advance"
             )
         
+        return v
+
+    @field_validator("budget", "estimated_cost_per_person", mode="after")
+    @classmethod
+    def round_costs(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round cost values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
         return v
 
 
@@ -664,7 +698,7 @@ class MenuTemplate(BaseCreateSchema):
         description="Template tags for search/filter",
     )
 
-    @field_validator("daily_menus")
+    @field_validator("daily_menus", mode="after")
     @classmethod
     def validate_daily_menus(cls, v: Dict[str, DailyMenuPlan]) -> Dict[str, DailyMenuPlan]:
         """Validate daily menus structure."""
@@ -684,6 +718,14 @@ class MenuTemplate(BaseCreateSchema):
                 if len(key) > 20:
                     raise ValueError(f"Daily menu key '{key}' is too long")
         
+        return v
+
+    @field_validator("average_rating", "estimated_daily_cost", mode="after")
+    @classmethod
+    def round_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
         return v
 
 
@@ -745,35 +787,30 @@ class MenuSuggestion(BaseSchema):
         ...,
         ge=0,
         le=10,
-        decimal_places=2,
         description="Menu variety score (0-10)",
     )
     nutrition_score: Decimal = Field(
         ...,
         ge=0,
         le=10,
-        decimal_places=2,
         description="Nutritional balance score (0-10)",
     )
     cost_score: Decimal = Field(
         ...,
         ge=0,
         le=10,
-        decimal_places=2,
         description="Cost efficiency score (0-10)",
     )
     popularity_score: Decimal = Field(
         ...,
         ge=0,
         le=10,
-        decimal_places=2,
         description="Based on past ratings (0-10)",
     )
     overall_score: Decimal = Field(
         ...,
         ge=0,
         le=10,
-        decimal_places=2,
         description="Overall recommendation score (0-10)",
     )
     
@@ -803,6 +840,18 @@ class MenuSuggestion(BaseSchema):
         None,
         description="Suggestion algorithm version",
     )
+
+    @field_validator(
+        "variety_score", "nutrition_score", "cost_score",
+        "popularity_score", "overall_score", "estimated_cost_per_person",
+        mode="after"
+    )
+    @classmethod
+    def round_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property

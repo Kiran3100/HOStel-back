@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/login.py ---
 """
 Login schemas with enhanced validation and type safety.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations

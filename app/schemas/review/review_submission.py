@@ -41,7 +41,7 @@ class DetailedRatingsInput(BaseSchema):
         description="Cleanliness and hygiene rating",
     )
     food_quality: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Food quality rating (if mess facility used)",
@@ -71,25 +71,25 @@ class DetailedRatingsInput(BaseSchema):
         description="Facilities and amenities quality rating",
     )
     location: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Location convenience rating",
     )
     wifi_quality: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Internet/WiFi quality rating",
     )
     maintenance: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=5,
         description="Maintenance responsiveness rating",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def average_rating(self) -> Decimal:
         """Calculate average of all provided ratings."""
@@ -124,11 +124,11 @@ class ReviewSubmissionRequest(BaseCreateSchema):
     
     # Verification references (optional but help verify stay)
     booking_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Related booking ID for stay verification",
     )
     student_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Student profile ID for stay verification",
     )
     
@@ -175,17 +175,17 @@ class ReviewSubmissionRequest(BaseCreateSchema):
     
     # Stay details (helps with verification)
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=24,
         description="Duration of stay in months",
     )
     check_in_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Approximate check-in date",
     )
     check_out_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Approximate check-out date (if moved out)",
     )
     
@@ -314,14 +314,14 @@ class VerifiedReview(BaseSchema):
     )
     
     verified_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin who verified (for manual verification)",
     )
     verified_at: datetime = Field(..., description="Verification timestamp")
     
     # Verification details
     verification_details: Optional[Dict[str, str]] = Field(
-        None,
+        default=None,
         description="Additional verification information",
         examples=[
             {
@@ -334,7 +334,7 @@ class VerifiedReview(BaseSchema):
     
     # Confidence score for auto-verification
     verification_confidence: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         le=Decimal("1"),
         description="Confidence score for auto-verification (0-1)",
@@ -451,7 +451,7 @@ class ReviewEligibility(BaseSchema):
         description="Whether user already has a review for this hostel",
     )
     existing_review_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of existing review (if any)",
     )
     can_edit: bool = Field(
@@ -459,17 +459,17 @@ class ReviewEligibility(BaseSchema):
         description="Whether user can edit their existing review",
     )
     edit_deadline: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Deadline for editing existing review",
     )
     
     # Additional info
     last_stay_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Date of last stay (if applicable)",
     )
     stay_duration_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Duration of stay in days",
     )
@@ -488,25 +488,25 @@ class ReviewDraft(BaseSchema):
     
     # Partial content
     overall_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("1.0"),
         le=Decimal("5.0"),
         description="Overall rating (if set)",
     )
     title: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Review title (if set)",
     )
     review_text: Optional[str] = Field(
-        None,
+        default=None,
         max_length=5000,
         description="Review text (if set)",
     )
     
     # Detailed ratings
     detailed_ratings: Optional[Dict[str, int]] = Field(
-        None,
+        default=None,
         description="Detailed ratings (if any set)",
     )
     
@@ -524,7 +524,7 @@ class ReviewDraft(BaseSchema):
         description="When draft expires and will be deleted",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def completion_percentage(self) -> int:
         """Estimate completion percentage."""
@@ -544,7 +544,7 @@ class ReviewDraft(BaseSchema):
         
         return int((completed / total_fields) * 100)
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def is_expired(self) -> bool:
         """Check if draft is expired."""

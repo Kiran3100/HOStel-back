@@ -7,7 +7,7 @@ bulk operations, and unassignment flows.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -42,12 +42,12 @@ class AssignmentRequest(BaseCreateSchema):
     )
 
     estimated_resolution_time: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Estimated resolution timestamp",
     )
 
     assignment_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Assignment context or instructions",
     )
@@ -66,10 +66,15 @@ class AssignmentRequest(BaseCreateSchema):
     @classmethod
     def validate_estimated_time(cls, v: Optional[datetime]) -> Optional[datetime]:
         """Ensure estimated resolution time is in the future."""
-        if v is not None and v <= datetime.utcnow():
-            raise ValueError(
-                "Estimated resolution time must be in the future"
-            )
+        if v is not None:
+            now = datetime.now(timezone.utc)
+            # Handle timezone-naive datetime
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
+            if v <= now:
+                raise ValueError(
+                    "Estimated resolution time must be in the future"
+                )
         return v
 
 
@@ -161,7 +166,7 @@ class BulkAssignment(BaseCreateSchema):
     )
 
     assignment_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Common assignment notes",
     )
@@ -241,17 +246,17 @@ class AssignmentHistory(BaseSchema):
     
     assigned_at: datetime = Field(..., description="Assignment timestamp")
     unassigned_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Unassignment timestamp",
     )
     
     reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Assignment/reassignment reason",
     )
     
     duration_hours: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Duration assigned (hours)",
     )

@@ -318,11 +318,6 @@ class SupervisorPermissions(BaseSchema):
         if not self.can_update_mess_menu:
             self.can_publish_special_menus = False
         
-        # Financial access hierarchy
-        if not self.can_view_financial_reports:
-            # If can't view reports, shouldn't see detailed revenue/expense
-            pass  # Allow viewing revenue/expense without full report access
-        
         return self
 
     @model_validator(mode="after")
@@ -680,10 +675,11 @@ class BulkPermissionUpdate(BaseUpdateSchema):
             raise ValueError("Supervisor IDs must be unique")
         return v
 
-    # Reuse permission validation
-    _validate_permissions = field_validator("permissions")(
-        PermissionUpdate.validate_permissions.__func__
-    )
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, v: Dict[str, bool | int | Decimal]) -> Dict[str, bool | int | Decimal]:
+        """Validate permissions using PermissionUpdate validator."""
+        return PermissionUpdate.validate_permissions(v)
 
 
 class PermissionTemplate(BaseSchema):
@@ -1020,13 +1016,13 @@ class PermissionAuditLog(BaseSchema):
         description="Approval timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def changes_count(self) -> int:
         """Count of permission changes made."""
         return len(self.permission_changes)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def change_summary(self) -> str:
         """Human-readable summary of changes."""

@@ -12,7 +12,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
@@ -38,6 +38,19 @@ class MaintenanceBase(BaseSchema):
     Provides common maintenance attributes and validation logic
     used across create/update operations.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "requested_by": "123e4567-e89b-12d3-a456-426614174111",
+                "title": "Broken ceiling fan in room 101",
+                "description": "The ceiling fan is not working and making unusual noise",
+                "category": "electrical",
+                "priority": "medium"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -182,6 +195,21 @@ class MaintenanceCreate(MaintenanceBase, BaseCreateSchema):
     
     Extends base schema with creation-specific fields and validation.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
+                "requested_by": "123e4567-e89b-12d3-a456-426614174111",
+                "title": "Broken ceiling fan in room 101",
+                "description": "The ceiling fan is not working and making unusual noise when switched on",
+                "category": "electrical",
+                "priority": "medium",
+                "preferred_completion_date": "2024-12-31",
+                "notify_on_completion": True
+            }
+        }
+    )
 
     # Additional creation context
     preferred_completion_date: Optional[date] = Field(
@@ -251,6 +279,17 @@ class MaintenanceUpdate(BaseUpdateSchema):
     All fields are optional for flexible updates. Typically used
     to modify pending requests or add information during processing.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "Updated: Broken ceiling fan in room 101",
+                "priority": "high",
+                "estimated_cost": "2500.00",
+                "status": "in_progress"
+            }
+        }
+    )
 
     title: Optional[str] = Field(
         None,
@@ -299,14 +338,12 @@ class MaintenanceUpdate(BaseUpdateSchema):
     estimated_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Estimated repair cost",
     )
     actual_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Actual cost incurred",
     )
@@ -360,6 +397,17 @@ class MaintenanceStatusUpdate(BaseUpdateSchema):
     
     Simplified schema for status transitions with audit trail.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "status": "completed",
+                "notes": "Work completed successfully, fan replaced",
+                "notify_requester": True,
+                "updated_by": "123e4567-e89b-12d3-a456-426614174111"
+            }
+        }
+    )
 
     status: MaintenanceStatus = Field(
         ...,

@@ -248,7 +248,6 @@ class MenuDetail(BaseResponseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average rating",
     )
     total_feedback_count: int = Field(
@@ -500,7 +499,6 @@ class MonthlyMenu(BaseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=5,
-        decimal_places=2,
         description="Average monthly rating",
     )
     total_feedbacks: int = Field(
@@ -635,16 +633,16 @@ class TodayMenu(BaseSchema):
     @property
     def next_meal(self) -> str:
         """Determine next upcoming meal based on current time."""
-        from datetime import datetime
+        from datetime import datetime, time as dt_time
         
         current_time = datetime.now().time()
         
         # Parse times (assuming format like "07:30 AM")
-        def parse_time(time_str: str) -> time:
+        def parse_time(time_str: str) -> dt_time:
             try:
                 return datetime.strptime(time_str, "%I:%M %p").time()
             except:
-                return time(0, 0)
+                return dt_time(0, 0)
         
         breakfast_time = parse_time(self.breakfast_time)
         lunch_time = parse_time(self.lunch_time)

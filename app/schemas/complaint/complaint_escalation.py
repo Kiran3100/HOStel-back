@@ -104,26 +104,6 @@ class EscalationResponse(BaseSchema):
     )
 
 
-class EscalationHistory(BaseSchema):
-    """
-    Complete escalation history for a complaint.
-    
-    Provides audit trail of all escalations.
-    """
-
-    complaint_id: str = Field(..., description="Complaint ID")
-    complaint_number: str = Field(..., description="Complaint reference number")
-
-    escalations: List["EscalationEntry"] = Field(
-        default_factory=list,
-        description="List of escalation entries",
-    )
-    total_escalations: int = Field(
-        ge=0,
-        description="Total escalation count",
-    )
-
-
 class EscalationEntry(BaseResponseSchema):
     """
     Individual escalation entry in history.
@@ -146,13 +126,34 @@ class EscalationEntry(BaseResponseSchema):
 
     # Response tracking
     response_time_hours: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Time taken to respond (hours)",
     )
     resolved_after_escalation: bool = Field(
         ...,
         description="Whether resolved after this escalation",
+    )
+
+
+class EscalationHistory(BaseSchema):
+    """
+    Complete escalation history for a complaint.
+    
+    Provides audit trail of all escalations.
+    """
+
+    complaint_id: str = Field(..., description="Complaint ID")
+    complaint_number: str = Field(..., description="Complaint reference number")
+
+    escalations: List[EscalationEntry] = Field(
+        default_factory=list,
+        description="List of escalation entries",
+    )
+    total_escalations: int = Field(
+        ...,
+        ge=0,
+        description="Total escalation count",
     )
 
 
@@ -207,7 +208,7 @@ class AutoEscalationRule(BaseSchema):
         description="First level escalation target user ID",
     )
     second_escalation_to: Optional[str] = Field(
-        None,
+        default=None,
         description="Second level escalation target (if first unresolved)",
     )
 

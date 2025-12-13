@@ -1,3 +1,4 @@
+# --- File: app/schemas/supervisor/__init__.py ---
 # app/schemas/supervisor/__init__.py
 """
 Supervisor schemas package

@@ -40,19 +40,19 @@ class VisitorBase(BaseSchema):
 
     # Room Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Preferred room type (single, double, triple, etc.)",
     )
 
     # Budget Constraints
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Minimum budget per month in local currency",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Maximum budget per month in local currency",
@@ -81,15 +81,15 @@ class VisitorBase(BaseSchema):
 
     # Notification Preferences
     email_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable/disable email notifications",
     )
     sms_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable/disable SMS notifications",
     )
     push_notifications: bool = Field(
-        True,
+        default=True,
         description="Enable/disable push notifications",
     )
 
@@ -233,19 +233,19 @@ class VisitorUpdate(BaseUpdateSchema):
 
     # Room Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Update preferred room type",
     )
 
     # Budget
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Update minimum budget",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Update maximum budget",
@@ -253,27 +253,27 @@ class VisitorUpdate(BaseUpdateSchema):
 
     # Location
     preferred_cities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update preferred cities list",
     )
 
     # Amenities
     preferred_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Update preferred amenities list",
     )
 
     # Notification Preferences
     email_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Enable/disable email notifications",
     )
     sms_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Enable/disable SMS notifications",
     )
     push_notifications: Optional[bool] = Field(
-        None,
+        default=None,
         description="Enable/disable push notifications",
     )
 

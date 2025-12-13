@@ -8,7 +8,7 @@ hostel pricing across different room types and billing frequencies.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -49,14 +49,14 @@ class FeeStructureBase(BaseSchema):
     # Base Charges
     amount: Decimal = Field(
         ...,
-        ge=0,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Base rent amount per billing period",
     )
     security_deposit: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Refundable security deposit amount",
@@ -64,12 +64,12 @@ class FeeStructureBase(BaseSchema):
 
     # Mess Charges
     includes_mess: bool = Field(
-        False,
+        default=False,
         description="Whether mess/food is included in base rent",
     )
     mess_charges_monthly: Decimal = Field(
-        Decimal("0.00"),
-        ge=0,
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Monthly mess charges (if not included)",
@@ -77,12 +77,12 @@ class FeeStructureBase(BaseSchema):
 
     # Utility Charges - Electricity
     electricity_charges: ChargeType = Field(
-        ChargeType.INCLUDED,
+        default=ChargeType.INCLUDED,
         description="How electricity is billed (included/actual/fixed)",
     )
     electricity_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Fixed monthly electricity charge (if applicable)",
@@ -90,12 +90,12 @@ class FeeStructureBase(BaseSchema):
 
     # Utility Charges - Water
     water_charges: ChargeType = Field(
-        ChargeType.INCLUDED,
+        default=ChargeType.INCLUDED,
         description="How water is billed (included/actual/fixed)",
     )
     water_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Fixed monthly water charge (if applicable)",
@@ -107,13 +107,13 @@ class FeeStructureBase(BaseSchema):
         description="Date from which this fee structure is effective",
     )
     effective_to: Optional[date] = Field(
-        None,
+        default=None,
         description="End date of fee structure validity (null for indefinite)",
     )
 
     # Status
     is_active: bool = Field(
-        True,
+        default=True,
         description="Whether this fee structure is currently active",
     )
 
@@ -162,9 +162,22 @@ class FeeStructureBase(BaseSchema):
         
         return v.quantize(Decimal("0.01"))
 
+    @field_validator("effective_from")
+    @classmethod
+    def validate_effective_from(cls, v: date) -> date:
+        """Validate effective_from date."""
+        # Allow backdated fee structures but warn if too old
+        days_ago = (date.today() - v).days
+        if days_ago > 365:
+            # Log warning - might be data migration
+            pass
+        
+        return v
+
     @model_validator(mode="after")
-    def validate_security_deposit_ratio(self) -> "FeeStructureBase":
-        """Validate security deposit is reasonable relative to rent."""
+    def validate_fee_structure(self) -> "FeeStructureBase":
+        """Validate all fee structure constraints."""
+        # Validate security deposit ratio
         if self.security_deposit > 0:
             # Security deposit typically ranges from 1-3 months rent
             max_security = self.amount * 3
@@ -176,11 +189,7 @@ class FeeStructureBase(BaseSchema):
                     f"Maximum allowed: ₹{max_security}"
                 )
         
-        return self
-
-    @model_validator(mode="after")
-    def validate_electricity_charges(self) -> "FeeStructureBase":
-        """Validate electricity charge configuration."""
+        # Validate electricity charges
         if self.electricity_charges == ChargeType.FIXED_MONTHLY:
             if not self.electricity_fixed_amount:
                 raise ValueError(
@@ -189,18 +198,13 @@ class FeeStructureBase(BaseSchema):
                 )
             if self.electricity_fixed_amount <= 0:
                 raise ValueError("Fixed electricity amount must be greater than zero")
+        else:
+            # Clear fixed amount if not fixed type
+            # Note: In Pydantic v2, we should use model_copy for immutable models
+            # but since we're in validation, direct assignment is acceptable
+            object.__setattr__(self, 'electricity_fixed_amount', None)
         
-        # Clear fixed amount if not fixed type
-        if self.electricity_charges != ChargeType.FIXED_MONTHLY:
-            if self.electricity_fixed_amount is not None:
-                # Automatically clear it
-                self.electricity_fixed_amount = None
-        
-        return self
-
-    @model_validator(mode="after")
-    def validate_water_charges(self) -> "FeeStructureBase":
-        """Validate water charge configuration."""
+        # Validate water charges
         if self.water_charges == ChargeType.FIXED_MONTHLY:
             if not self.water_fixed_amount:
                 raise ValueError(
@@ -209,18 +213,11 @@ class FeeStructureBase(BaseSchema):
                 )
             if self.water_fixed_amount <= 0:
                 raise ValueError("Fixed water amount must be greater than zero")
+        else:
+            # Clear fixed amount if not fixed type
+            object.__setattr__(self, 'water_fixed_amount', None)
         
-        # Clear fixed amount if not fixed type
-        if self.water_charges != ChargeType.FIXED_MONTHLY:
-            if self.water_fixed_amount is not None:
-                # Automatically clear it
-                self.water_fixed_amount = None
-        
-        return self
-
-    @model_validator(mode="after")
-    def validate_mess_configuration(self) -> "FeeStructureBase":
-        """Validate mess configuration consistency."""
+        # Validate mess configuration
         if self.includes_mess:
             # If mess is included, charges should be 0
             if self.mess_charges_monthly > 0:
@@ -229,11 +226,7 @@ class FeeStructureBase(BaseSchema):
                     "The mess cost is already included in base rent."
                 )
         
-        return self
-
-    @model_validator(mode="after")
-    def validate_effective_dates(self) -> "FeeStructureBase":
-        """Validate effective date range."""
+        # Validate effective dates
         if self.effective_to is not None:
             if self.effective_to <= self.effective_from:
                 raise ValueError(
@@ -252,18 +245,6 @@ class FeeStructureBase(BaseSchema):
                 )
         
         return self
-
-    @field_validator("effective_from")
-    @classmethod
-    def validate_effective_from(cls, v: date) -> date:
-        """Validate effective_from date."""
-        # Allow backdated fee structures but warn if too old
-        days_ago = (date.today() - v).days
-        if days_ago > 365:
-            # Log warning - might be data migration
-            pass
-        
-        return v
 
     @computed_field
     @property
@@ -346,15 +327,15 @@ class FeeStructureUpdate(BaseUpdateSchema):
 
     # Pricing
     amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Update base rent amount",
     )
     security_deposit: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Update security deposit",
@@ -362,12 +343,12 @@ class FeeStructureUpdate(BaseUpdateSchema):
 
     # Mess
     includes_mess: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update mess inclusion",
     )
     mess_charges_monthly: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Update mess charges",
@@ -375,24 +356,24 @@ class FeeStructureUpdate(BaseUpdateSchema):
 
     # Utilities
     electricity_charges: Optional[ChargeType] = Field(
-        None,
+        default=None,
         description="Update electricity billing method",
     )
     electricity_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Update fixed electricity amount",
     )
 
     water_charges: Optional[ChargeType] = Field(
-        None,
+        default=None,
         description="Update water billing method",
     )
     water_fixed_amount: Optional[Decimal] = Field(
-        None,
-        ge=0,
+        default=None,
+        ge=Decimal("0"),
         max_digits=10,
         decimal_places=2,
         description="Update fixed water amount",
@@ -400,17 +381,17 @@ class FeeStructureUpdate(BaseUpdateSchema):
 
     # Validity
     effective_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Update effective start date",
     )
     effective_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Update effective end date",
     )
 
     # Status
     is_active: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update active status",
     )
 

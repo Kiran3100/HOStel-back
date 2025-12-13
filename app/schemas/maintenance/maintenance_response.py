@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from pydantic import Field, computed_field
+from pydantic import ConfigDict, Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
@@ -37,6 +37,22 @@ class MaintenanceResponse(BaseResponseSchema):
     
     Lightweight response schema for list views and basic queries.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "hostel_name": "North Campus Hostel A",
+                "requested_by_name": "John Student",
+                "title": "Broken ceiling fan",
+                "category": "electrical",
+                "priority": "medium",
+                "status": "pending",
+                "estimated_cost": "3000.00"
+            }
+        }
+    )
 
     request_number: str = Field(
         ...,
@@ -103,7 +119,7 @@ class MaintenanceResponse(BaseResponseSchema):
         description="Completion timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -119,7 +135,7 @@ class MaintenanceResponse(BaseResponseSchema):
         }
         return status_map.get(self.status, self.status.value)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def priority_display(self) -> str:
         """Human-readable priority display."""
@@ -132,7 +148,7 @@ class MaintenanceResponse(BaseResponseSchema):
         }
         return priority_map.get(self.priority, self.priority.value)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if request is overdue."""
@@ -144,7 +160,7 @@ class MaintenanceResponse(BaseResponseSchema):
         
         return self.estimated_completion_date < date.today()
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_since_creation(self) -> int:
         """Calculate days since request was created."""
@@ -158,6 +174,21 @@ class MaintenanceDetail(BaseResponseSchema):
     Comprehensive response including all maintenance details, workflow,
     and supporting information.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "hostel_name": "North Campus Hostel A",
+                "title": "Broken ceiling fan",
+                "description": "Ceiling fan not working in room 101",
+                "category": "electrical",
+                "priority": "medium",
+                "status": "in_progress"
+            }
+        }
+    )
 
     request_number: str = Field(
         ...,
@@ -446,13 +477,13 @@ class MaintenanceDetail(BaseResponseSchema):
         description="Warranty expiry date",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_completed(self) -> bool:
         """Check if maintenance is completed."""
         return self.status == MaintenanceStatus.COMPLETED
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_active(self) -> bool:
         """Check if maintenance is currently active/in-progress."""
@@ -462,7 +493,7 @@ class MaintenanceDetail(BaseResponseSchema):
         }
         return self.status in active_statuses
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cost_variance(self) -> Optional[Decimal]:
         """Calculate cost variance if both costs available."""
@@ -470,7 +501,7 @@ class MaintenanceDetail(BaseResponseSchema):
             return round(self.actual_cost - self.estimated_cost, 2)
         return None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cost_variance_percentage(self) -> Optional[Decimal]:
         """Calculate cost variance percentage."""
@@ -481,7 +512,7 @@ class MaintenanceDetail(BaseResponseSchema):
             return round(variance_pct, 2)
         return None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def time_to_complete_days(self) -> Optional[int]:
         """Calculate total days from creation to completion."""
@@ -496,6 +527,20 @@ class RequestListItem(BaseSchema):
     
     Optimized for pagination and list views with minimal data transfer.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "title": "Broken ceiling fan",
+                "category": "electrical",
+                "priority": "medium",
+                "status": "pending",
+                "room_number": "101"
+            }
+        }
+    )
 
     id: UUID = Field(
         ...,
@@ -542,7 +587,7 @@ class RequestListItem(BaseSchema):
         description="Estimated completion",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_badge_color(self) -> str:
         """Get color code for status badge (for UI rendering)."""
@@ -558,7 +603,7 @@ class RequestListItem(BaseSchema):
         }
         return color_map.get(self.status, "gray")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def priority_badge_color(self) -> str:
         """Get color code for priority badge."""
@@ -571,7 +616,7 @@ class RequestListItem(BaseSchema):
         }
         return color_map.get(self.priority, "gray")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_urgent(self) -> bool:
         """Check if request is urgent or critical."""
@@ -584,6 +629,20 @@ class MaintenanceSummary(BaseSchema):
     
     Provides aggregated metrics for monitoring and reporting.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "total_requests": 500,
+                "pending_requests": 50,
+                "in_progress_requests": 30,
+                "completed_requests": 400,
+                "total_estimated_cost": "1500000.00",
+                "completion_rate": "80.00"
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -701,12 +760,12 @@ class MaintenanceSummary(BaseSchema):
     )
     
     # Category breakdown
-    requests_by_category: Optional[dict] = Field(
+    requests_by_category: Optional[Dict[str, int]] = Field(
         None,
         description="Request count by category",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate percentage."""
@@ -717,7 +776,7 @@ class MaintenanceSummary(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cost_variance_total(self) -> Decimal:
         """Calculate total cost variance."""

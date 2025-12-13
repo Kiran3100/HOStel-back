@@ -152,7 +152,7 @@ class RatingDistribution(BaseSchema):
         description="Percentage of negative reviews",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def total_reviews(self) -> int:
         """Calculate total number of reviews."""
@@ -164,7 +164,7 @@ class RatingDistribution(BaseSchema):
             + self.rating_1_count
         )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def recommendation_score(self) -> Decimal:
         """
@@ -192,7 +192,7 @@ class TrendAnalysis(BaseSchema):
         description="Overall trend direction",
     )
     trend_percentage: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("-100"),
         le=Decimal("100"),
         decimal_places=2,
@@ -316,13 +316,13 @@ class SentimentAnalysis(BaseSchema):
         """Normalize sentiment to lowercase."""
         return v.lower().strip()
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def total_analyzed(self) -> int:
         """Total reviews analyzed for sentiment."""
         return self.positive_count + self.neutral_count + self.negative_count
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def positive_percentage(self) -> Decimal:
         """Percentage of positive sentiment reviews."""
@@ -416,7 +416,7 @@ class AspectAnalysis(BaseSchema):
             )
         return v
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def sentiment_ratio(self) -> Decimal:
         """
@@ -492,7 +492,7 @@ class CompetitorComparison(BaseSchema):
         examples=[["food_quality", "wifi", "amenities"]],
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def competitive_position(self) -> str:
         """
@@ -511,7 +511,7 @@ class CompetitorComparison(BaseSchema):
         else:
             return "below_average"
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def is_outperforming(self) -> bool:
         """Check if hostel is outperforming competitors."""
@@ -535,7 +535,7 @@ class ReviewAnalytics(BaseSchema):
     
     # Analysis period
     analysis_period: Optional[DateRangeFilter] = Field(
-        None,
+        default=None,
         description="Period for which analytics are calculated",
     )
     generated_at: datetime = Field(
@@ -584,7 +584,7 @@ class ReviewAnalytics(BaseSchema):
     
     # Sentiment
     sentiment_analysis: Optional[SentimentAnalysis] = Field(
-        None,
+        default=None,
         description="AI-powered sentiment analysis",
     )
     
@@ -629,7 +629,7 @@ class ReviewAnalytics(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def quality_score(self) -> Decimal:
         """
@@ -651,7 +651,7 @@ class ReviewAnalytics(BaseSchema):
         total = rating_score + verification_score + engagement_score
         return Decimal(str(round(total, 2)))
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def health_indicator(self) -> str:
         """

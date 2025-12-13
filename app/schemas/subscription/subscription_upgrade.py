@@ -8,13 +8,13 @@ for subscription modifications.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import BillingCycle
@@ -191,19 +191,19 @@ class PlanChangePreview(BaseSchema):
         description="Benefits of the new plan",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_upgrade(self) -> bool:
         """Check if this is an upgrade."""
         return self.change_type == PlanChangeType.UPGRADE
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_downgrade(self) -> bool:
         """Check if this is a downgrade."""
         return self.change_type == PlanChangeType.DOWNGRADE
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def monthly_difference(self) -> Decimal:
         """Calculate monthly price difference."""
@@ -211,7 +211,7 @@ class PlanChangePreview(BaseSchema):
             Decimal("0.01")
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def savings_or_increase(self) -> str:
         """Format savings or increase message."""
@@ -221,10 +221,6 @@ class PlanChangePreview(BaseSchema):
         elif diff < Decimal("0"):
             return f"-{self.currency} {abs(diff):,.2f}/period"
         return "No change"
-
-
-# Import computed_field for PlanChangePreview
-from pydantic import computed_field
 
 
 class PlanChangeConfirmation(BaseSchema):
@@ -278,7 +274,3 @@ class PlanChangeConfirmation(BaseSchema):
         ..., description="Change confirmation reference"
     )
     message: str = Field(..., description="Confirmation message")
-
-
-# Import datetime for PlanChangeConfirmation
-from datetime import datetime

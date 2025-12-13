@@ -1,4 +1,3 @@
-# --- File: app/schemas/student/student_response.py ---
 """
 Student response schemas for API responses.
 
@@ -94,7 +93,7 @@ class StudentResponse(BaseResponseSchema):
         """Calculate days stayed in hostel."""
         if not self.check_in_date:
             return None
-        end_date = self.actual_checkout_date or date.today()
+        end_date = getattr(self, 'actual_checkout_date', None) or date.today()
         return (end_date - self.check_in_date).days
 
     @computed_field
@@ -103,7 +102,7 @@ class StudentResponse(BaseResponseSchema):
         """Check if student is currently checked in."""
         return (
             self.check_in_date is not None
-            and self.actual_checkout_date is None
+            and getattr(self, 'actual_checkout_date', None) is None
         )
 
 

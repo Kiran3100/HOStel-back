@@ -7,10 +7,10 @@ capabilities for complaint queries.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
@@ -32,7 +32,7 @@ class ComplaintFilterParams(BaseFilterSchema):
 
     # Text search
     search: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=255,
         description="Search in title, description, complaint number",
@@ -40,110 +40,110 @@ class ComplaintFilterParams(BaseFilterSchema):
 
     # Hostel filters
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by single hostel",
     )
     hostel_ids: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by multiple hostels (max 50)",
     )
 
     # User filters
     raised_by: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by complainant user ID",
     )
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by student ID",
     )
 
     # Assignment filters
     assigned_to: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by assigned staff member",
     )
     unassigned_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only unassigned complaints",
     )
 
     # Category filters
     category: Optional[ComplaintCategory] = Field(
-        None,
+        default=None,
         description="Filter by single category",
     )
     categories: Optional[List[ComplaintCategory]] = Field(
-        None,
+        default=None,
         max_length=20,
         description="Filter by multiple categories",
     )
 
     # Priority filters
     priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Filter by single priority",
     )
     priorities: Optional[List[Priority]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by multiple priorities",
     )
 
     # Status filters
     status: Optional[ComplaintStatus] = Field(
-        None,
+        default=None,
         description="Filter by single status",
     )
     statuses: Optional[List[ComplaintStatus]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by multiple statuses",
     )
 
     # Date range filters
     opened_date_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Opened date range start (inclusive)",
     )
     opened_date_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Opened date range end (inclusive)",
     )
     resolved_date_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Resolved date range start",
     )
     resolved_date_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Resolved date range end",
     )
 
     # Special filters
     sla_breached_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only SLA breached complaints",
     )
     escalated_only: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only escalated complaints",
     )
 
     # Location filters
     room_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by specific room",
     )
 
     # Age filters
     age_hours_min: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum complaint age in hours",
     )
     age_hours_max: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum complaint age in hours",
     )
@@ -166,41 +166,25 @@ class ComplaintFilterParams(BaseFilterSchema):
             raise ValueError("Too many items in filter list (max 50)")
         return v
 
-    @field_validator("opened_date_to")
-    @classmethod
-    def validate_opened_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate opened date range is logical."""
-        opened_date_from = info.data.get("opened_date_from")
-        if v is not None and opened_date_from is not None:
-            if v < opened_date_from:
-                raise ValueError(
-                    "opened_date_to must be >= opened_date_from"
-                )
-        return v
-
-    @field_validator("resolved_date_to")
-    @classmethod
-    def validate_resolved_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate resolved date range is logical."""
-        resolved_date_from = info.data.get("resolved_date_from")
-        if v is not None and resolved_date_from is not None:
-            if v < resolved_date_from:
-                raise ValueError(
-                    "resolved_date_to must be >= resolved_date_from"
-                )
-        return v
-
-    @field_validator("age_hours_max")
-    @classmethod
-    def validate_age_range(cls, v: Optional[int], info) -> Optional[int]:
-        """Validate age range is logical."""
-        age_hours_min = info.data.get("age_hours_min")
-        if v is not None and age_hours_min is not None:
-            if v < age_hours_min:
-                raise ValueError(
-                    "age_hours_max must be >= age_hours_min"
-                )
-        return v
+    @model_validator(mode="after")
+    def validate_date_and_age_ranges(self) -> "ComplaintFilterParams":
+        """Validate date and age ranges are logical."""
+        # Validate opened date range
+        if self.opened_date_to is not None and self.opened_date_from is not None:
+            if self.opened_date_to < self.opened_date_from:
+                raise ValueError("opened_date_to must be >= opened_date_from")
+        
+        # Validate resolved date range
+        if self.resolved_date_to is not None and self.resolved_date_from is not None:
+            if self.resolved_date_to < self.resolved_date_from:
+                raise ValueError("resolved_date_to must be >= resolved_date_from")
+        
+        # Validate age range
+        if self.age_hours_max is not None and self.age_hours_min is not None:
+            if self.age_hours_max < self.age_hours_min:
+                raise ValueError("age_hours_max must be >= age_hours_min")
+        
+        return self
 
 
 class ComplaintSearchRequest(BaseFilterSchema):
@@ -217,7 +201,7 @@ class ComplaintSearchRequest(BaseFilterSchema):
         description="Search query string",
     )
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Limit search to specific hostel",
     )
 
@@ -237,11 +221,11 @@ class ComplaintSearchRequest(BaseFilterSchema):
 
     # Optional filters
     status: Optional[ComplaintStatus] = Field(
-        None,
+        default=None,
         description="Filter by status",
     )
     priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Filter by priority",
     )
 
@@ -301,11 +285,11 @@ class ComplaintExportRequest(BaseFilterSchema):
     """
 
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Limit export to specific hostel",
     )
     filters: Optional[ComplaintFilterParams] = Field(
-        None,
+        default=None,
         description="Apply filters to export",
     )
 

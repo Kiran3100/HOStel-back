@@ -9,10 +9,10 @@ assignments, timeline tracking, and follow-ups.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import InquiryStatus
@@ -33,6 +33,17 @@ class InquiryStatusUpdate(BaseCreateSchema):
     
     Used to track status changes throughout the inquiry lifecycle.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
+                "new_status": "contacted",
+                "notes": "Spoke with visitor, they are interested in a single room",
+                "updated_by": "123e4567-e89b-12d3-a456-426614174001"
+            }
+        }
+    )
 
     inquiry_id: UUID = Field(
         ...,
@@ -105,6 +116,18 @@ class InquiryAssignment(BaseCreateSchema):
     Used for distributing inquiries among team members
     for follow-up.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
+                "assigned_to": "123e4567-e89b-12d3-a456-426614174001",
+                "assigned_by": "123e4567-e89b-12d3-a456-426614174002",
+                "assignment_notes": "Please follow up with this visitor by end of day",
+                "follow_up_due": "2024-01-16T17:00:00Z"
+            }
+        }
+    )
 
     inquiry_id: UUID = Field(
         ...,
@@ -157,6 +180,19 @@ class InquiryFollowUp(BaseCreateSchema):
     
     Used to track all interactions with the visitor.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
+                "followed_up_by": "123e4567-e89b-12d3-a456-426614174001",
+                "contact_method": "phone",
+                "contact_outcome": "connected",
+                "notes": "Visitor confirmed interest in single room, will visit on Saturday",
+                "next_follow_up_date": "2024-01-20T10:00:00Z"
+            }
+        }
+    )
 
     inquiry_id: UUID = Field(
         ...,
@@ -218,6 +254,19 @@ class InquiryTimelineEntry(BaseSchema):
     
     Represents a single event in the inquiry's history.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "event_type": "status_change",
+                "status": "contacted",
+                "timestamp": "2024-01-15T14:30:00Z",
+                "changed_by": "123e4567-e89b-12d3-a456-426614174001",
+                "changed_by_name": "Admin User",
+                "notes": "Made initial phone call to visitor"
+            }
+        }
+    )
 
     event_type: str = Field(
         ...,
@@ -247,7 +296,7 @@ class InquiryTimelineEntry(BaseSchema):
     )
 
     # Additional Context
-    metadata: dict = Field(
+    metadata: Dict[str, str] = Field(
         default_factory=dict,
         description="Additional event metadata",
     )
@@ -259,6 +308,17 @@ class InquiryConversion(BaseCreateSchema):
     
     Links inquiry to the resulting booking.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
+                "booking_id": "123e4567-e89b-12d3-a456-426614174001",
+                "converted_by": "123e4567-e89b-12d3-a456-426614174002",
+                "conversion_notes": "Visitor booked a single room for 6 months starting March 1"
+            }
+        }
+    )
 
     inquiry_id: UUID = Field(
         ...,
@@ -296,6 +356,20 @@ class BulkInquiryStatusUpdate(BaseCreateSchema):
     
     Used for batch operations on inquiries.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "inquiry_ids": [
+                    "123e4567-e89b-12d3-a456-426614174000",
+                    "123e4567-e89b-12d3-a456-426614174001"
+                ],
+                "new_status": "not_interested",
+                "notes": "No response after multiple follow-up attempts",
+                "updated_by": "123e4567-e89b-12d3-a456-426614174002"
+            }
+        }
+    )
 
     inquiry_ids: List[UUID] = Field(
         ...,

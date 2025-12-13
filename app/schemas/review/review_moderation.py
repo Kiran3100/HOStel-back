@@ -11,7 +11,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator,model_validator
+from pydantic import Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema, BaseCreateSchema
@@ -45,7 +45,7 @@ class ModerationRequest(BaseCreateSchema):
     
     # Rejection details
     rejection_reason: Optional[str] = Field(
-        None,
+        default=None,
         min_length=20,
         max_length=500,
         description="Reason for rejection (required if action=reject)",
@@ -53,26 +53,26 @@ class ModerationRequest(BaseCreateSchema):
     
     # Flagging details
     flag_reason: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(inappropriate|spam|fake|offensive|profanity|other)$",
         description="Reason for flagging (required if action=flag)",
     )
     flag_details: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Additional flagging details",
     )
     
     # Internal notes
     moderator_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Internal moderator notes (not visible to reviewer)",
     )
     
     # Notification control
     notify_reviewer: bool = Field(
-        True,
+        default=True,
         description="Send notification to reviewer about moderation action",
     )
     
@@ -114,7 +114,7 @@ class FlagReview(BaseCreateSchema):
         description="Reason for flagging",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Detailed description of the issue",
     )
@@ -204,19 +204,19 @@ class PendingReview(BaseSchema):
     
     # AI moderation scores
     spam_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         le=Decimal("1"),
         description="AI spam detection score (0-1, higher = more likely spam)",
     )
     sentiment_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("-1"),
         le=Decimal("1"),
         description="Sentiment analysis score (-1 to 1)",
     )
     toxicity_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         le=Decimal("1"),
         description="Content toxicity score (0-1, higher = more toxic)",
@@ -237,7 +237,7 @@ class ModerationQueue(BaseSchema):
     """
     
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific hostel (None = all hostels)",
     )
     
@@ -259,12 +259,12 @@ class ModerationQueue(BaseSchema):
     
     # Queue health
     average_wait_time_hours: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         description="Average time reviews spend in queue",
     )
     oldest_review_age_hours: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         description="Age of oldest pending review",
     )
@@ -293,21 +293,21 @@ class ApprovalWorkflow(BaseSchema):
     # Timeline
     submitted_at: datetime = Field(..., description="Submission timestamp")
     moderated_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Moderation completion timestamp",
     )
     published_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Publication timestamp (if approved)",
     )
     
     # Moderator info
-    moderated_by: Optional[UUID] = Field(None, description="Moderator user ID")
-    moderated_by_name: Optional[str] = Field(None, description="Moderator name")
+    moderated_by: Optional[UUID] = Field(default=None, description="Moderator user ID")
+    moderated_by_name: Optional[str] = Field(default=None, description="Moderator name")
     
     # Rejection/flagging details
     rejection_reason: Optional[str] = Field(
-        None,
+        default=None,
         description="Reason for rejection",
     )
     flag_reasons: List[str] = Field(
@@ -317,7 +317,7 @@ class ApprovalWorkflow(BaseSchema):
     
     # Auto-moderation
     auto_moderation_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         le=Decimal("1"),
         description="Automated moderation confidence score",
@@ -350,13 +350,13 @@ class BulkModeration(BaseCreateSchema):
     
     # Common reason/notes
     reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Common reason for all reviews",
     )
     
     notify_reviewers: bool = Field(
-        True,
+        default=True,
         description="Send notifications to all affected reviewers",
     )
     
@@ -389,7 +389,7 @@ class ModerationStats(BaseSchema):
     """
     
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Hostel filter (None = all hostels)",
     )
     period_start: date = Field(..., description="Statistics period start")
@@ -413,7 +413,7 @@ class ModerationStats(BaseSchema):
         description="Average time to moderate (in hours)",
     )
     median_moderation_time_hours: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         description="Median moderation time",
     )
@@ -438,17 +438,15 @@ class ModerationStats(BaseSchema):
         description="Percentage of reviews rejected",
     )
     auto_approval_accuracy: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=Decimal("0"),
         le=Decimal("100"),
         description="Accuracy of auto-approval system",
     )
     
-    @field_validator("period_end")
-    @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    @model_validator(mode="after")
+    def validate_period(self) -> "ModerationStats":
         """Validate period end is after start."""
-        period_start = info.data.get("period_start")
-        if period_start and v < period_start:
+        if self.period_end < self.period_start:
             raise ValueError("period_end must be on or after period_start")
-        return v
+        return self

@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/social_auth.py ---
 """
 Social authentication schemas with provider-specific validation.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations
@@ -75,12 +76,21 @@ class GoogleAuthRequest(BaseCreateSchema):
         description="Google access token (optional, for additional API access)",
     )
 
-    @field_validator("id_token", "access_token")
+    @field_validator("id_token")
     @classmethod
-    def validate_token_format(cls, v: Optional[str]) -> Optional[str]:
+    def validate_id_token_format(cls, v: str) -> str:
+        """Validate token format and strip whitespace."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Token cannot be empty or whitespace")
+        return v
+
+    @field_validator("access_token", mode="before")
+    @classmethod
+    def validate_access_token_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate token format and strip whitespace."""
         if v is not None:
-            v = v.strip()
+            v = v.strip() if isinstance(v, str) else v
             if not v:
                 raise ValueError("Token cannot be empty or whitespace")
         return v
@@ -192,7 +202,7 @@ class SocialProfileData(BaseSchema):
     @classmethod
     def normalize_email(cls, v: EmailStr) -> str:
         """Normalize email to lowercase."""
-        return v.lower().strip()
+        return str(v).lower().strip()
 
 
 class SocialAuthResponse(BaseSchema):

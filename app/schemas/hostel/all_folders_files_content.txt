@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_admin.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_admin.py ---
 # --- File: app/schemas/hostel/hostel_admin.py ---
 """
 Hostel admin view schemas with enhanced configuration options.
@@ -360,7 +360,7 @@ class HostelStatusUpdate(BaseUpdateSchema):
             )
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_analytics.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_analytics.py ---
 # --- File: app/schemas/hostel/hostel_analytics.py ---
 """
 Hostel analytics and reporting schemas with comprehensive metrics.
@@ -404,7 +404,7 @@ class OccupancyDataPoint(BaseSchema):
     Represents occupancy at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     occupancy_rate: Decimal = Field(
         ...,
         ge=0,
@@ -498,7 +498,7 @@ class RevenueDataPoint(BaseSchema):
     Represents revenue metrics at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     revenue: Decimal = Field(
         ...,
         ge=0,
@@ -598,7 +598,7 @@ class BookingDataPoint(BaseSchema):
     Represents booking metrics at a specific point in time.
     """
 
-    date: date = Field(..., description="Date of the data point")
+    data_date: date = Field(..., description="Date of the data point")
     total_bookings: int = Field(
         ...,
         ge=0,
@@ -1145,7 +1145,7 @@ class AnalyticsRequest(BaseSchema):
         
         return self
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_base.py ---
 # --- File: app/schemas/hostel/hostel_base.py ---
 """
 Hostel base schemas with enhanced validation and type safety.
@@ -1728,7 +1728,7 @@ class HostelSEOUpdate(BaseUpdateSchema):
         # Limit to 10 keywords
         return ", ".join(keywords[:10])
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_comparison.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_comparison.py ---
 # --- File: app/schemas/hostel/hostel_comparison.py ---
 """
 Hostel comparison schemas for side-by-side analysis.
@@ -2060,7 +2060,7 @@ class ComparisonResult(BaseSchema):
         description="Comparison generation timestamp",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_filter.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_filter.py ---
 # --- File: app/schemas/hostel/hostel_filter.py ---
 """
 Hostel filter and sort schemas with advanced filtering options.
@@ -2345,7 +2345,7 @@ class BulkFilterParams(BaseFilterSchema):
             raise ValueError("Hostel IDs must be unique")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_public.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_public.py ---
 # --- File: app/schemas/hostel/hostel_public.py ---
 """
 Public hostel profile schemas for visitor-facing content.
@@ -2673,7 +2673,7 @@ class PublicHostelList(BaseSchema):
         description="Total number of pages",
     )
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_response.py ---
 # --- File: app/schemas/hostel/hostel_response.py ---
 """
 Hostel response schemas for API responses.
@@ -3064,7 +3064,7 @@ class HostelStats(BaseSchema):
     # Last updated
     updated_at: datetime = Field(..., description="Last update timestamp")
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\hostel_search.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\hostel_search.py ---
 # --- File: app/schemas/hostel/hostel_search.py ---
 """
 Hostel search schemas with comprehensive search and filtering.
@@ -3437,7 +3437,7 @@ class HostelSearchFilters(BaseFilterSchema):
                 raise ValueError("Check-in date cannot be in the past")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\hostel\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\__init__.py ---
 from __future__ import annotations
 
 from app.schemas.hostel.hostel_admin import (
@@ -3543,3 +3543,6 @@ __all__ = [
     "ComparisonResult",
     "ComparisonItem",
 ]
+
+
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\hostel\__pycache__ =====

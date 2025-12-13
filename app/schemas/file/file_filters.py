@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema
 
@@ -32,7 +32,7 @@ class FileFilterParams(BaseFilterSchema):
 
     # Text search
     search: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=255,
         description="Search in filename, tags, description",
@@ -40,84 +40,84 @@ class FileFilterParams(BaseFilterSchema):
 
     # Ownership filters
     uploaded_by_user_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by uploader",
     )
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by hostel",
     )
     student_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by student",
     )
 
     # File type filters
     content_type: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by MIME type",
     )
     content_type_prefix: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by MIME type prefix (e.g., 'image/')",
     )
     category: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by file category",
     )
     categories: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=20,
         description="Filter by multiple categories",
     )
 
     # Tags
     tags: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by tags (AND logic)",
     )
     any_tags: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by tags (OR logic)",
     )
 
     # Size filters
     min_size_bytes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum file size",
     )
     max_size_bytes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum file size",
     )
 
     # Date filters
     uploaded_after: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Uploaded after this timestamp",
     )
     uploaded_before: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Uploaded before this timestamp",
     )
 
     # Access filters
     is_public: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by public/private status",
     )
     is_deleted: Optional[bool] = Field(
-        None,
+        default=None,
         description="Include deleted files",
     )
 
     # Security filters
     virus_scan_status: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(pending|clean|infected|error|skipped)$",
         description="Filter by virus scan status",
     )
@@ -132,29 +132,25 @@ class FileFilterParams(BaseFilterSchema):
                 return None
         return v
 
-    @field_validator("max_size_bytes")
-    @classmethod
-    def validate_size_range(cls, v: Optional[int], info) -> Optional[int]:
+    @model_validator(mode="after")
+    def validate_size_range(self) -> "FileFilterParams":
         """Validate size range is logical."""
-        min_size = info.data.get("min_size_bytes")
-        if v is not None and min_size is not None:
-            if v < min_size:
+        if self.max_size_bytes is not None and self.min_size_bytes is not None:
+            if self.max_size_bytes < self.min_size_bytes:
                 raise ValueError(
                     "max_size_bytes must be >= min_size_bytes"
                 )
-        return v
+        return self
 
-    @field_validator("uploaded_before")
-    @classmethod
-    def validate_date_range(cls, v: Optional[datetime], info) -> Optional[datetime]:
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "FileFilterParams":
         """Validate date range is logical."""
-        uploaded_after = info.data.get("uploaded_after")
-        if v is not None and uploaded_after is not None:
-            if v < uploaded_after:
+        if self.uploaded_before is not None and self.uploaded_after is not None:
+            if self.uploaded_before < self.uploaded_after:
                 raise ValueError(
                     "uploaded_before must be >= uploaded_after"
                 )
-        return v
+        return self
 
 
 class FileSearchRequest(BaseFilterSchema):
@@ -191,11 +187,11 @@ class FileSearchRequest(BaseFilterSchema):
 
     # Optional filters
     hostel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Limit to specific hostel",
     )
     content_type_prefix: Optional[str] = Field(
-        None,
+        default=None,
         description="Limit to specific file type",
     )
 
@@ -252,59 +248,59 @@ class DocumentFilterParams(BaseFilterSchema):
 
     # Document type filters
     document_type: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by document type",
     )
     document_types: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=20,
         description="Filter by multiple document types",
     )
     document_subtype: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by document subtype",
     )
 
     # Verification status
     verified: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by verification status",
     )
     verification_status: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(pending|verified|rejected)$",
         description="Filter by specific verification status",
     )
 
     # Expiry filters
     is_expired: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter expired documents",
     )
     expiring_within_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=365,
         description="Filter documents expiring within N days",
     )
     expiry_date_from: Optional[date] = Field(
-        None,
+        default=None,
         description="Expiry date range start",
     )
     expiry_date_to: Optional[date] = Field(
-        None,
+        default=None,
         description="Expiry date range end",
     )
 
     # OCR filters
     ocr_completed: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by OCR completion status",
     )
 
     # Student/Hostel filters
-    student_id: Optional[str] = Field(None)
-    hostel_id: Optional[str] = Field(None)
+    student_id: Optional[str] = Field(default=None)
+    hostel_id: Optional[str] = Field(default=None)
 
 
 class ImageFilterParams(BaseFilterSchema):
@@ -316,7 +312,7 @@ class ImageFilterParams(BaseFilterSchema):
 
     # Image usage filters
     usage: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(hostel_cover|hostel_gallery|room_photo|avatar|"
         r"profile_photo|document_scan|complaint_attachment|"
         r"announcement_image|other)$",
@@ -325,69 +321,62 @@ class ImageFilterParams(BaseFilterSchema):
 
     # Dimension filters
     min_width: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Minimum width in pixels",
     )
     max_width: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Maximum width in pixels",
     )
     min_height: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Minimum height in pixels",
     )
     max_height: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Maximum height in pixels",
     )
 
     # Orientation filter
     orientation: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(landscape|portrait|square)$",
         description="Filter by image orientation",
     )
 
     # Processing filters
     has_variants: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter images with generated variants",
     )
     is_optimized: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter optimized images",
     )
 
     # Format filters
     format: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(jpeg|png|gif|webp|svg|bmp|tiff)$",
         description="Filter by image format",
     )
 
     # Hostel filters
-    hostel_id: Optional[str] = Field(None)
+    hostel_id: Optional[str] = Field(default=None)
 
-    @field_validator("max_width")
-    @classmethod
-    def validate_width_range(cls, v: Optional[int], info) -> Optional[int]:
-        """Validate width range."""
-        min_width = info.data.get("min_width")
-        if v is not None and min_width is not None:
-            if v < min_width:
+    @model_validator(mode="after")
+    def validate_dimension_ranges(self) -> "ImageFilterParams":
+        """Validate dimension ranges."""
+        if self.max_width is not None and self.min_width is not None:
+            if self.max_width < self.min_width:
                 raise ValueError("max_width must be >= min_width")
-        return v
-
-    @field_validator("max_height")
-    @classmethod
-    def validate_height_range(cls, v: Optional[int], info) -> Optional[int]:
-        """Validate height range."""
-        min_height = info.data.get("min_height")
-        if v is not None and min_height is not None:
-            if v < min_height:
+        
+        if self.max_height is not None and self.min_height is not None:
+            if self.max_height < self.min_height:
                 raise ValueError("max_height must be >= min_height")
-        return v
+        
+        return self

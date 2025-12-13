@@ -41,7 +41,7 @@ class FavoriteRequest(BaseCreateSchema):
         description="True to add to favorites, False to remove",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Optional personal notes about this hostel",
     )
@@ -120,7 +120,7 @@ class FavoriteHostelItem(BaseSchema):
         description="Whether price has dropped since saving",
     )
     price_drop_percentage: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=100,
         decimal_places=2,
@@ -154,13 +154,13 @@ class FavoriteHostelItem(BaseSchema):
 
     # Media
     cover_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Cover image URL",
     )
 
     # Favorite Metadata
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Personal notes about this hostel",
     )
@@ -176,7 +176,7 @@ class FavoriteHostelItem(BaseSchema):
         description="Number of times hostel was viewed",
     )
     last_viewed: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When hostel was last viewed",
     )
 
@@ -288,16 +288,16 @@ class FavoritesExport(BaseSchema):
     """
 
     format: str = Field(
-        "pdf",
+        default="pdf",
         pattern=r"^(pdf|csv|json)$",
         description="Export format: pdf, csv, or json",
     )
     include_prices: bool = Field(
-        True,
+        default=True,
         description="Include pricing information in export",
     )
     include_notes: bool = Field(
-        True,
+        default=True,
         description="Include personal notes in export",
     )
 

@@ -72,7 +72,6 @@ class PaymentResponse(BaseResponseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Payment amount",
     )
     currency: str = Field(
@@ -114,13 +113,13 @@ class PaymentResponse(BaseResponseSchema):
         description="URL to download receipt",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def amount_display(self) -> str:
         """Get formatted amount for display."""
         return f"{self.currency} {self.amount:,.2f}"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_badge_color(self) -> str:
         """Get color code for status badge."""
@@ -170,7 +169,7 @@ class PaymentDetail(BaseResponseSchema):
 
     # Payment Details
     payment_type: PaymentType = Field(..., description="Payment type")
-    amount: Decimal = Field(..., ge=0, decimal_places=2, description="Amount")
+    amount: Decimal = Field(..., ge=0, description="Amount")
     currency: str = Field(..., description="Currency")
 
     # Payment Period
@@ -202,7 +201,6 @@ class PaymentDetail(BaseResponseSchema):
     refund_amount: Decimal = Field(
         Decimal("0.00"),
         ge=0,
-        decimal_places=2,
         description="Total refunded amount",
     )
     refund_status: str = Field(
@@ -236,25 +234,25 @@ class PaymentDetail(BaseResponseSchema):
     # Notes
     notes: Optional[str] = Field(None, description="Additional notes")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def net_amount(self) -> Decimal:
         """Calculate net amount after refunds."""
         return (self.amount - self.refund_amount).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_fully_refunded(self) -> bool:
         """Check if payment is fully refunded."""
         return self.refund_amount >= self.amount
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_partially_refunded(self) -> bool:
         """Check if payment is partially refunded."""
         return Decimal("0") < self.refund_amount < self.amount
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_overdue(self) -> int:
         """Calculate days overdue."""
@@ -262,7 +260,7 @@ class PaymentDetail(BaseResponseSchema):
             return 0
         return (date.today() - self.due_date).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def payment_period_display(self) -> Optional[str]:
         """Get formatted payment period."""
@@ -304,7 +302,7 @@ class PaymentReceipt(BaseSchema):
 
     # Payment Details
     payment_type: str = Field(..., description="Payment type")
-    amount: Decimal = Field(..., ge=0, decimal_places=2, description="Payment amount")
+    amount: Decimal = Field(..., ge=0, description="Payment amount")
     amount_in_words: str = Field(..., description="Amount in words")
     currency: str = Field(..., description="Currency")
 
@@ -334,7 +332,7 @@ class PaymentReceipt(BaseSchema):
     # Additional Information
     remarks: Optional[str] = Field(None, description="Additional remarks")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def receipt_display_id(self) -> str:
         """Get formatted receipt ID for display."""
@@ -354,7 +352,7 @@ class PaymentListItem(BaseSchema):
     hostel_name: str = Field(..., description="Hostel name")
 
     payment_type: str = Field(..., description="Payment type")
-    amount: Decimal = Field(..., ge=0, decimal_places=2, description="Amount")
+    amount: Decimal = Field(..., ge=0, description="Amount")
 
     payment_method: str = Field(..., description="Payment method")
     payment_status: PaymentStatus = Field(..., description="Status")
@@ -365,7 +363,7 @@ class PaymentListItem(BaseSchema):
 
     created_at: datetime = Field(..., description="Creation time")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_display(self) -> str:
         """Get user-friendly status display."""
@@ -401,19 +399,16 @@ class PaymentSummary(BaseSchema):
     total_paid: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total amount paid",
     )
     total_pending: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total pending amount",
     )
     total_overdue: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total overdue amount",
     )
 
@@ -425,7 +420,6 @@ class PaymentSummary(BaseSchema):
     last_payment_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Amount of last payment",
     )
 
@@ -437,7 +431,6 @@ class PaymentSummary(BaseSchema):
     next_payment_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Next payment amount",
     )
 
@@ -458,7 +451,7 @@ class PaymentSummary(BaseSchema):
         description="Number of pending payments",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def payment_health_score(self) -> str:
         """
@@ -475,7 +468,7 @@ class PaymentSummary(BaseSchema):
         else:
             return "good"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> float:
         """Calculate payment completion rate as percentage."""
@@ -497,15 +490,15 @@ class PaymentAnalytics(BaseSchema):
 
     # Volume Metrics
     total_transactions: int = Field(..., ge=0, description="Total transactions")
-    total_amount: Decimal = Field(..., ge=0, decimal_places=2, description="Total amount")
+    total_amount: Decimal = Field(..., ge=0, description="Total amount")
     
     # Status Breakdown
     completed_transactions: int = Field(..., ge=0)
-    completed_amount: Decimal = Field(..., ge=0, decimal_places=2)
+    completed_amount: Decimal = Field(..., ge=0)
     pending_transactions: int = Field(..., ge=0)
-    pending_amount: Decimal = Field(..., ge=0, decimal_places=2)
+    pending_amount: Decimal = Field(..., ge=0)
     failed_transactions: int = Field(..., ge=0)
-    failed_amount: Decimal = Field(..., ge=0, decimal_places=2)
+    failed_amount: Decimal = Field(..., ge=0)
 
     # Payment Method Breakdown
     payment_by_method: Dict[str, Decimal] = Field(
@@ -523,7 +516,6 @@ class PaymentAnalytics(BaseSchema):
     average_transaction_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Average transaction amount",
     )
 
@@ -543,13 +535,13 @@ class PaymentAnalytics(BaseSchema):
         description="Percentage of dues collected on time",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_revenue(self) -> Decimal:
         """Calculate total revenue (completed payments only)."""
         return self.completed_amount
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def failure_rate(self) -> float:
         """Calculate transaction failure rate."""

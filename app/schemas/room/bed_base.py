@@ -264,8 +264,6 @@ class BedAssignmentRequest(BaseCreateSchema):
         
         Allows past dates for historical assignments but warns for future dates.
         """
-        from datetime import date as dt
-        
         # Allow past dates for historical data entry
         # Could add warning logic here if needed
         
@@ -382,10 +380,10 @@ class BedSwapRequest(BaseCreateSchema):
     @classmethod
     def validate_swap_date(cls, v: date) -> date:
         """Validate swap date is not too far in the past."""
-        from datetime import date as dt, timedelta
+        from datetime import timedelta
         
         # Warn if swap date is more than 30 days in the past
-        if v < dt.today() - timedelta(days=30):
+        if v < date.today() - timedelta(days=30):
             # Could log a warning here
             pass
         

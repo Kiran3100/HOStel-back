@@ -53,7 +53,7 @@ class HostelResponseDetail(BaseSchema):
         description="Whether response has been edited",
     )
     edited_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last edit timestamp",
     )
 
@@ -89,7 +89,7 @@ class ReviewResponse(BaseResponseSchema):
         description="Whether stay is verified",
     )
     verified_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Verification timestamp",
     )
     
@@ -103,7 +103,7 @@ class ReviewResponse(BaseResponseSchema):
     # Timestamps
     created_at: datetime = Field(..., description="Creation timestamp")
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def helpfulness_ratio(self) -> Decimal:
         """Calculate helpfulness ratio."""
@@ -128,13 +128,13 @@ class ReviewDetail(BaseResponseSchema):
     reviewer_id: UUID = Field(..., description="Reviewer ID")
     reviewer_name: str = Field(..., description="Reviewer name")
     reviewer_profile_image: Optional[str] = Field(
-        None,
+        default=None,
         description="Reviewer profile image URL",
     )
     
     # References
-    student_id: Optional[UUID] = Field(None, description="Student profile ID")
-    booking_id: Optional[UUID] = Field(None, description="Related booking ID")
+    student_id: Optional[UUID] = Field(default=None, description="Student profile ID")
+    booking_id: Optional[UUID] = Field(default=None, description="Related booking ID")
     
     # Ratings
     overall_rating: Decimal = Field(
@@ -143,14 +143,14 @@ class ReviewDetail(BaseResponseSchema):
         le=Decimal("5.0"),
         description="Overall rating",
     )
-    cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
-    food_quality_rating: Optional[int] = Field(None, ge=1, le=5)
-    staff_behavior_rating: Optional[int] = Field(None, ge=1, le=5)
-    security_rating: Optional[int] = Field(None, ge=1, le=5)
-    value_for_money_rating: Optional[int] = Field(None, ge=1, le=5)
-    amenities_rating: Optional[int] = Field(None, ge=1, le=5)
-    location_rating: Optional[int] = Field(None, ge=1, le=5)
-    wifi_quality_rating: Optional[int] = Field(None, ge=1, le=5)
+    cleanliness_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    food_quality_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    staff_behavior_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    security_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    value_for_money_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    amenities_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    location_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    wifi_quality_rating: Optional[int] = Field(default=None, ge=1, le=5)
     
     # Content
     title: str = Field(..., description="Review title")
@@ -164,21 +164,21 @@ class ReviewDetail(BaseResponseSchema):
     
     # Verification
     is_verified_stay: bool = Field(..., description="Verification status")
-    verified_at: Optional[datetime] = Field(None, description="Verification time")
+    verified_at: Optional[datetime] = Field(default=None, description="Verification time")
     verification_method: Optional[str] = Field(
-        None,
+        default=None,
         description="How the stay was verified",
     )
     
     # Moderation
     is_approved: bool = Field(..., description="Approval status")
-    approved_by: Optional[UUID] = Field(None, description="Approver ID")
-    approved_at: Optional[datetime] = Field(None, description="Approval time")
+    approved_by: Optional[UUID] = Field(default=None, description="Approver ID")
+    approved_at: Optional[datetime] = Field(default=None, description="Approval time")
     
     is_flagged: bool = Field(default=False, description="Flagged status")
-    flag_reason: Optional[str] = Field(None, description="Flag reason")
-    flagged_by: Optional[UUID] = Field(None, description="Flagger ID")
-    flagged_at: Optional[datetime] = Field(None, description="Flag time")
+    flag_reason: Optional[str] = Field(default=None, description="Flag reason")
+    flagged_by: Optional[UUID] = Field(default=None, description="Flagger ID")
+    flagged_at: Optional[datetime] = Field(default=None, description="Flag time")
     
     # Engagement
     helpful_count: int = Field(..., ge=0, description="Helpful votes")
@@ -187,7 +187,7 @@ class ReviewDetail(BaseResponseSchema):
     
     # Hostel response
     hostel_response: Optional[HostelResponseDetail] = Field(
-        None,
+        default=None,
         description="Hostel's response to this review",
     )
     
@@ -200,23 +200,23 @@ class ReviewDetail(BaseResponseSchema):
     
     # Additional metadata
     would_recommend: Optional[bool] = Field(
-        None,
+        default=None,
         description="Whether reviewer recommends the hostel",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=24,
         description="Duration of stay",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def total_votes(self) -> int:
         """Total votes on this review."""
         return self.helpful_count + self.not_helpful_count
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def average_detailed_rating(self) -> Optional[Decimal]:
         """Calculate average of detailed ratings."""
@@ -249,7 +249,7 @@ class ReviewListItem(BaseSchema):
     
     id: UUID = Field(..., description="Review ID")
     reviewer_name: str = Field(..., description="Reviewer name")
-    reviewer_image: Optional[str] = Field(None, description="Profile image URL")
+    reviewer_image: Optional[str] = Field(default=None, description="Profile image URL")
     
     overall_rating: Decimal = Field(
         ...,
@@ -277,7 +277,7 @@ class ReviewListItem(BaseSchema):
         description="Whether hostel has responded",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def days_ago(self) -> int:
         """Days since review was posted."""
@@ -321,12 +321,12 @@ class ReviewSummary(BaseSchema):
     )
     
     # Average detailed ratings
-    average_cleanliness: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
-    average_food_quality: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
-    average_staff_behavior: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
-    average_security: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
-    average_value_for_money: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
-    average_amenities: Optional[Decimal] = Field(None, ge=Decimal("1"), le=Decimal("5"))
+    average_cleanliness: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    average_food_quality: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    average_staff_behavior: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    average_security: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    average_value_for_money: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    average_amenities: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
     
     # Recent reviews
     recent_reviews: List[ReviewListItem] = Field(
@@ -343,7 +343,7 @@ class ReviewSummary(BaseSchema):
         description="Percentage of reviewers who would recommend",
     )
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def positive_review_percentage(self) -> Decimal:
         """Percentage of 4-5 star reviews."""
@@ -353,7 +353,7 @@ class ReviewSummary(BaseSchema):
         positive = self.rating_5_count + self.rating_4_count
         return Decimal(str(round((positive / self.total_reviews) * 100, 2)))
     
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def rating_quality_score(self) -> str:
         """

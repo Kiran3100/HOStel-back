@@ -8,9 +8,9 @@ comparative analysis with peer benchmarking.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field, field_validator, computed_field
 
@@ -25,6 +25,7 @@ __all__ = [
     "MaintenancePerformance",
     "PerformanceTrendPoint",
     "PeerComparison",
+    "MetricComparison",
     "PeriodComparison",
     "PerformanceReview",
     "PerformanceReviewResponse",
@@ -192,7 +193,7 @@ class PerformanceMetrics(BaseSchema):
         description="Performance grade",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def efficiency_score(self) -> Decimal:
         """Calculate efficiency score based on time metrics."""
@@ -203,7 +204,7 @@ class PerformanceMetrics(BaseSchema):
         efficiency = (response_score * 0.4 + completion_score * 0.6)
         return Decimal(str(efficiency)).quantize(Decimal("0.1"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def quality_score(self) -> Decimal:
         """Calculate quality score based on accuracy and satisfaction."""
@@ -285,7 +286,7 @@ class ComplaintPerformance(BaseSchema):
         description="Number of satisfaction responses received",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_efficiency(self) -> str:
         """Categorize resolution efficiency."""
@@ -370,7 +371,7 @@ class AttendancePerformance(BaseSchema):
         description="Average time to process leave applications",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def attendance_consistency(self) -> str:
         """Assess attendance marking consistency."""
@@ -389,7 +390,7 @@ class AttendancePerformance(BaseSchema):
         else:
             return "Poor"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def leave_approval_rate(self) -> Decimal:
         """Calculate leave approval rate."""
@@ -488,7 +489,7 @@ class MaintenancePerformance(BaseSchema):
         description="Preventive maintenance compliance rate",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate maintenance completion rate."""
@@ -499,7 +500,7 @@ class MaintenancePerformance(BaseSchema):
         rate = (self.requests_completed / total_requests) * 100
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def budget_utilization(self) -> Decimal:
         """Calculate budget utilization percentage."""
@@ -508,6 +509,7 @@ class MaintenancePerformance(BaseSchema):
         
         utilization = (self.total_maintenance_cost / self.budget_allocated) * 100
         return Decimal(str(utilization)).quantize(Decimal("0.01"))
+    
 class PerformanceTrendPoint(BaseSchema):
     """Performance trend data point for analysis."""
     
@@ -547,7 +549,7 @@ class PerformanceTrendPoint(BaseSchema):
         description="Student satisfaction score",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def trend_indicator(self) -> str:
         """Get trend indicator for the period."""
@@ -562,61 +564,6 @@ class PerformanceTrendPoint(BaseSchema):
             return "average"
         else:
             return "needs_improvement"
-
-
-class PeerComparison(BaseSchema):
-    """Comparison with peer supervisors."""
-    
-    total_supervisors: int = Field(
-        ...,
-        ge=1,
-        description="Total number of supervisors in comparison",
-    )
-    rank: int = Field(
-        ...,
-        ge=1,
-        description="Supervisor's rank among peers (1 = best)",
-    )
-    percentile: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Performance percentile",
-    )
-    
-    # Metric comparisons
-    metrics_vs_average: Dict[str, "MetricComparison"] = Field(
-        default_factory=dict,
-        description="Individual metric comparisons",
-    )
-    
-    # Top performers
-    top_performer_score: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Score of top performer",
-    )
-    score_gap_to_top: Decimal = Field(
-        ...,
-        ge=0,
-        description="Gap to top performer",
-    )
-
-    @computed_field
-    @property
-    def performance_tier(self) -> str:
-        """Categorize performance tier among peers."""
-        if self.percentile >= 90:
-            return "Top Performer"
-        elif self.percentile >= 75:
-            return "High Performer"
-        elif self.percentile >= 50:
-            return "Average Performer"
-        elif self.percentile >= 25:
-            return "Below Average"
-        else:
-            return "Needs Improvement"
 
 
 class MetricComparison(BaseSchema):
@@ -640,7 +587,7 @@ class MetricComparison(BaseSchema):
         description="Whether supervisor performs better than average",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_vs_peers(self) -> str:
         """Describe performance relative to peers."""
@@ -658,6 +605,61 @@ class MetricComparison(BaseSchema):
                 return "Below Average"
             else:
                 return "Slightly Below Average"
+
+
+class PeerComparison(BaseSchema):
+    """Comparison with peer supervisors."""
+    
+    total_supervisors: int = Field(
+        ...,
+        ge=1,
+        description="Total number of supervisors in comparison",
+    )
+    rank: int = Field(
+        ...,
+        ge=1,
+        description="Supervisor's rank among peers (1 = best)",
+    )
+    percentile: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Performance percentile",
+    )
+    
+    # Metric comparisons
+    metrics_vs_average: Dict[str, MetricComparison] = Field(
+        default_factory=dict,
+        description="Individual metric comparisons",
+    )
+    
+    # Top performers
+    top_performer_score: Decimal = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Score of top performer",
+    )
+    score_gap_to_top: Decimal = Field(
+        ...,
+        ge=0,
+        description="Gap to top performer",
+    )
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def performance_tier(self) -> str:
+        """Categorize performance tier among peers."""
+        if self.percentile >= 90:
+            return "Top Performer"
+        elif self.percentile >= 75:
+            return "High Performer"
+        elif self.percentile >= 50:
+            return "Average Performer"
+        elif self.percentile >= 25:
+            return "Below Average"
+        else:
+            return "Needs Improvement"
 
 
 class PeriodComparison(BaseSchema):
@@ -698,7 +700,7 @@ class PeriodComparison(BaseSchema):
         description="Metrics that remained stable",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_trend(self) -> str:
         """Determine overall performance trend."""
@@ -709,7 +711,7 @@ class PeriodComparison(BaseSchema):
         else:
             return "Stable"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def improvement_summary(self) -> str:
         """Generate improvement summary."""
@@ -779,12 +781,12 @@ class PerformanceReport(BaseSchema):
     )
     
     # Goals and targets
-    current_goals: List["PerformanceGoalProgress"] = Field(
+    current_goals: List[PerformanceGoalProgress] = Field(
         default_factory=list,
         description="Current performance goals progress",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def report_summary(self) -> str:
         """Generate executive summary of the report."""
@@ -908,7 +910,7 @@ class PerformanceReview(BaseCreateSchema):
         """Remove empty items from lists."""
         return [item.strip() for item in v if item.strip()]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def average_rating(self) -> Decimal:
         """Calculate average of all individual ratings."""
@@ -970,7 +972,7 @@ class PerformanceReviewResponse(BaseSchema):
         description="Supervisor's response comments",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_level(self) -> str:
         """Categorize performance level based on overall rating."""
@@ -1051,12 +1053,13 @@ class PerformanceGoal(BaseCreateSchema):
     @classmethod
     def validate_end_date(cls, v: date, info) -> date:
         """Validate end date is after start date."""
+        # In Pydantic v2, we use info.data instead of values
         start_date = info.data.get("start_date")
         if start_date and v <= start_date:
             raise ValueError("End date must be after start date")
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def duration_days(self) -> int:
         """Calculate goal duration in days."""
@@ -1105,13 +1108,13 @@ class PerformanceGoalProgress(BaseSchema):
         description="Historical measurements",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_elapsed(self) -> int:
         """Calculate days elapsed since goal start."""
         return (date.today() - self.start_date).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def time_progress_percentage(self) -> Decimal:
         """Calculate time progress percentage."""
@@ -1123,7 +1126,7 @@ class PerformanceGoalProgress(BaseSchema):
         time_progress = min(100, (elapsed_days / total_days) * 100)
         return Decimal(str(time_progress)).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_on_schedule(self) -> bool:
         """Check if goal progress is on schedule."""
@@ -1133,7 +1136,7 @@ class PerformanceGoalProgress(BaseSchema):
         # Allow 10% tolerance
         return actual_progress >= (time_progress - 10)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def projected_completion_date(self) -> Optional[date]:
         """Project completion date based on current progress rate."""
@@ -1151,7 +1154,6 @@ class PerformanceGoalProgress(BaseSchema):
         remaining_progress = 100 - float(self.progress_percentage)
         days_to_complete = remaining_progress / progress_rate
         
-        from datetime import timedelta
         projected_date = date.today() + timedelta(days=int(days_to_complete))
         return projected_date
 
@@ -1217,7 +1219,7 @@ class PerformanceInsights(BaseSchema):
         description="Confidence level in insights (0-100)",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_assessment(self) -> str:
         """Generate overall performance assessment."""

@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/token.py ---
 """
 Token management schemas with enhanced security features.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations
@@ -254,12 +255,13 @@ class LogoutRequest(BaseCreateSchema):
         description="Logout from all devices (revoke all user tokens)",
     )
 
-    @field_validator("refresh_token")
+    @field_validator("refresh_token", mode="before")
     @classmethod
     def validate_token_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate refresh token format if provided."""
         if v is not None:
-            v = v.strip()
-            if not v:
-                raise ValueError("Refresh token cannot be empty if provided")
+            if isinstance(v, str):
+                v = v.strip()
+                if not v:
+                    raise ValueError("Refresh token cannot be empty if provided")
         return v

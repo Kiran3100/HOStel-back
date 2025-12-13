@@ -8,11 +8,11 @@ and rejection handling with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, Optional, Any, List
+from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -33,6 +33,19 @@ class ApprovalRequest(BaseCreateSchema):
     Submitted by supervisor to admin when cost exceeds threshold
     or approval is required for other reasons.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "estimated_cost": "7500.00",
+                "cost_justification": "Replacement of entire electrical panel required due to safety concerns",
+                "approval_reason": "Cost exceeds supervisor approval limit of ₹5000",
+                "urgent": False
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -47,7 +60,6 @@ class ApprovalRequest(BaseCreateSchema):
     estimated_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Estimated total cost",
     )
@@ -207,6 +219,20 @@ class ApprovalResponse(BaseSchema):
     Provides complete information about approval or rejection
     with justification and conditions.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "approved": True,
+                "decision_maker_name": "John Admin",
+                "decision_maker_role": "Admin",
+                "approved_amount": "7500.00",
+                "message": "Approval granted for electrical panel replacement"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -243,7 +269,6 @@ class ApprovalResponse(BaseSchema):
     approved_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Approved amount (may differ from requested)",
     )
@@ -339,6 +364,19 @@ class ThresholdConfig(BaseSchema):
     Defines cost limits and approval requirements for
     different authorization levels.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "supervisor_approval_limit": "5000.00",
+                "admin_approval_required_above": "5000.00",
+                "auto_approve_below": "1000.00",
+                "auto_approve_enabled": True,
+                "emergency_bypass_threshold": True
+            }
+        }
+    )
 
     hostel_id: UUID = Field(
         ...,
@@ -353,7 +391,6 @@ class ThresholdConfig(BaseSchema):
     supervisor_approval_limit: Decimal = Field(
         Decimal("5000.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Maximum amount supervisor can approve independently",
     )
@@ -362,7 +399,6 @@ class ThresholdConfig(BaseSchema):
     admin_approval_required_above: Decimal = Field(
         Decimal("5000.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Amount above which admin approval is required",
     )
@@ -371,7 +407,6 @@ class ThresholdConfig(BaseSchema):
     auto_approve_below: Decimal = Field(
         Decimal("1000.00"),
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Amount below which requests are auto-approved",
     )
@@ -384,7 +419,6 @@ class ThresholdConfig(BaseSchema):
     senior_management_required_above: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Amount requiring senior management approval",
     )
@@ -397,7 +431,6 @@ class ThresholdConfig(BaseSchema):
     emergency_approval_limit: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Special limit for emergency approvals",
     )
@@ -479,6 +512,20 @@ class ApprovalWorkflow(BaseSchema):
     
     Tracks approval process state and pending actions.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "request_number": "MNT-2024-001",
+                "estimated_cost": "7500.00",
+                "threshold_exceeded": True,
+                "requires_approval": True,
+                "approval_pending": True,
+                "approval_level_required": "admin"
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -578,6 +625,19 @@ class RejectionRequest(BaseCreateSchema):
     
     Provides detailed rejection with alternatives and guidance.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "maintenance_id": "123e4567-e89b-12d3-a456-426614174000",
+                "rejected_by": "123e4567-e89b-12d3-a456-426614174111",
+                "rejection_reason": "Cost estimate is significantly higher than market rates. Please obtain additional quotes.",
+                "rejection_category": "cost_too_high",
+                "suggested_cost_reduction": "5000.00",
+                "resubmission_allowed": True
+            }
+        }
+    )
 
     maintenance_id: UUID = Field(
         ...,
@@ -608,7 +668,6 @@ class RejectionRequest(BaseCreateSchema):
     suggested_cost_reduction: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
         decimal_places=2,
         description="Suggested reduced cost amount",
     )

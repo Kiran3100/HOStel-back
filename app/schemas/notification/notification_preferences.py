@@ -14,6 +14,7 @@ from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema, BaseUpdateSchema
+from app.schemas.common.enums import UserRole
 
 __all__ = [
     "UserPreferences",

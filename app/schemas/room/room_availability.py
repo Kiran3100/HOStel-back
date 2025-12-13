@@ -102,7 +102,7 @@ class RoomAvailabilityRequest(BaseCreateSchema):
         
         return v
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def check_out_date(self) -> Date:
         """Calculate checkout date based on duration."""
@@ -175,7 +175,7 @@ class AvailableRoom(BaseSchema):
         description="Primary image URL",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate."""
@@ -220,13 +220,13 @@ class AvailabilityResponse(BaseSchema):
         description="Summary of applied filters",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def total_rooms_available(self) -> int:
         """Count of rooms with availability."""
         return len(self.available_rooms)
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def price_range(self) -> Optional[Dict[str, Decimal]]:
         """Calculate price range across available rooms."""
@@ -282,7 +282,7 @@ class DayAvailability(BaseSchema):
         description="Special notes (holidays, maintenance, etc.)",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage for the day."""
@@ -330,7 +330,7 @@ class AvailabilityCalendar(BaseSchema):
             raise ValueError(f"Invalid month format: {e}")
         return v
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def average_occupancy(self) -> Decimal:
         """Calculate average occupancy for the month."""
@@ -344,7 +344,7 @@ class AvailabilityCalendar(BaseSchema):
             Decimal("0.01")
         )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def fully_booked_days(self) -> int:
         """Count days with no availability."""

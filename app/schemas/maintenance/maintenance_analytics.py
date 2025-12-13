@@ -12,7 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, computed_field
+from pydantic import ConfigDict, Field, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -35,6 +35,20 @@ class TrendPoint(BaseSchema):
     
     Represents metrics for a specific time period.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "period": "2024-01",
+                "period_start": "2024-01-01",
+                "period_end": "2024-01-31",
+                "request_count": 45,
+                "completed_count": 38,
+                "pending_count": 7,
+                "average_completion_days": "3.5"
+            }
+        }
+    )
 
     period: str = Field(
         ...,
@@ -69,7 +83,7 @@ class TrendPoint(BaseSchema):
         description="Average days to complete",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate for period."""
@@ -87,6 +101,21 @@ class CostTrendPoint(BaseSchema):
     
     Tracks cost metrics over time periods.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "period": "2024-01",
+                "period_start": "2024-01-01",
+                "period_end": "2024-01-31",
+                "total_cost": "125000.00",
+                "request_count": 45,
+                "average_cost": "2777.78",
+                "budget_allocated": "150000.00",
+                "variance_from_budget": "-25000.00"
+            }
+        }
+    )
 
     period: str = Field(
         ...,
@@ -103,7 +132,6 @@ class CostTrendPoint(BaseSchema):
     total_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total cost in period",
     )
@@ -128,7 +156,7 @@ class CostTrendPoint(BaseSchema):
         description="Variance from budget",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def budget_utilization(self) -> Optional[Decimal]:
         """Calculate budget utilization percentage."""
@@ -146,6 +174,21 @@ class CategoryBreakdown(BaseSchema):
     
     Provides comprehensive metrics for a specific category.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "category": "Electrical",
+                "category_code": "ELEC",
+                "total_requests": 150,
+                "completed_requests": 142,
+                "pending_requests": 8,
+                "cancelled_requests": 0,
+                "total_cost": "450000.00",
+                "average_cost": "3000.00"
+            }
+        }
+    )
 
     category: str = Field(
         ...,
@@ -178,7 +221,6 @@ class CategoryBreakdown(BaseSchema):
     total_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total cost for category",
     )
@@ -239,7 +281,7 @@ class CategoryBreakdown(BaseSchema):
         description="Average quality rating",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate."""
@@ -250,7 +292,7 @@ class CategoryBreakdown(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cost_per_completed(self) -> Decimal:
         """Calculate cost per completed request."""
@@ -268,6 +310,21 @@ class VendorPerformance(BaseSchema):
     
     Tracks vendor efficiency, cost, quality, and reliability.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "vendor_name": "ABC Electricals",
+                "total_jobs": 50,
+                "completed_jobs": 48,
+                "on_time_completion_rate": "92.50",
+                "total_spent": "250000.00",
+                "average_cost": "5000.00",
+                "cost_competitiveness": "medium",
+                "quality_rating": "4.2"
+            }
+        }
+    )
 
     vendor_id: Optional[UUID] = Field(
         None,
@@ -322,7 +379,6 @@ class VendorPerformance(BaseSchema):
     total_spent: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total amount paid to vendor",
     )
@@ -410,7 +466,7 @@ class VendorPerformance(BaseSchema):
         description="Performance tier classification",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate job completion rate."""
@@ -421,7 +477,7 @@ class VendorPerformance(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_performance_score(self) -> Decimal:
         """
@@ -454,6 +510,19 @@ class PerformanceMetrics(BaseSchema):
     
     Provides key performance indicators for maintenance operations.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_requests": 500,
+                "completed_requests": 450,
+                "completion_rate": "90.00",
+                "average_completion_time_hours": "48.50",
+                "on_time_completion_rate": "85.00",
+                "total_cost": "1500000.00"
+            }
+        }
+    )
 
     period: DateRangeFilter = Field(
         ...,
@@ -523,7 +592,6 @@ class PerformanceMetrics(BaseSchema):
     total_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total maintenance cost",
     )
@@ -601,7 +669,7 @@ class PerformanceMetrics(BaseSchema):
         description="High priority requests",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def efficiency_score(self) -> Decimal:
         """
@@ -634,6 +702,19 @@ class ProductivityMetrics(BaseSchema):
     
     Tracks productivity of maintenance teams and individuals.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_assignments": 100,
+                "completed_assignments": 95,
+                "average_jobs_per_day": "3.5",
+                "average_hours_per_job": "4.25",
+                "utilization_rate": "85.00",
+                "on_time_rate": "92.00"
+            }
+        }
+    )
 
     period: DateRangeFilter = Field(
         ...,
@@ -714,7 +795,7 @@ class ProductivityMetrics(BaseSchema):
         description="Specialization/expertise score",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def productivity_score(self) -> Decimal:
         """Calculate overall productivity score."""
@@ -748,6 +829,21 @@ class MaintenanceAnalytics(BaseSchema):
     
     Aggregates all analytics components for complete insights.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "hostel_name": "North Campus Hostel A",
+                "total_requests": 500,
+                "completed_requests": 450,
+                "pending_requests": 50,
+                "total_cost": "1500000.00",
+                "average_cost": "3000.00",
+                "completion_rate": "90.00",
+                "on_time_rate": "85.00"
+            }
+        }
+    )
 
     hostel_id: Optional[UUID] = Field(
         None,
@@ -787,7 +883,6 @@ class MaintenanceAnalytics(BaseSchema):
     total_cost: Decimal = Field(
         ...,
         ge=0,
-        max_digits=12,
         decimal_places=2,
         description="Total maintenance cost",
     )

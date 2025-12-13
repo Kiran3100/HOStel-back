@@ -54,8 +54,6 @@ class PaymentRequest(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Amount to pay",
     )
 
@@ -158,7 +156,6 @@ class PaymentInitiation(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Payment amount",
     )
     currency: str = Field(
@@ -229,8 +226,6 @@ class ManualPaymentRequest(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Payment amount",
     )
 
@@ -374,8 +369,6 @@ class SinglePaymentRecord(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Payment amount",
     )
     payment_method: PaymentMethod = Field(

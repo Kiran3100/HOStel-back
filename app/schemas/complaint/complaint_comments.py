@@ -118,9 +118,9 @@ class CommentList(BaseSchema):
     complaint_id: str = Field(..., description="Complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
 
-    total_comments: int = Field(ge=0, description="Total comment count")
-    public_comments: int = Field(ge=0, description="Public comment count")
-    internal_notes: int = Field(ge=0, description="Internal note count")
+    total_comments: int = Field(..., ge=0, description="Total comment count")
+    public_comments: int = Field(..., ge=0, description="Public comment count")
+    internal_notes: int = Field(..., ge=0, description="Internal note count")
 
     comments: List[CommentResponse] = Field(
         default_factory=list,
@@ -172,7 +172,7 @@ class CommentDelete(BaseCreateSchema):
         description="Comment identifier to delete",
     )
     reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=200,
         description="Deletion reason (optional)",
     )

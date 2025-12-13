@@ -4,6 +4,8 @@ Maintenance management schemas package.
 
 Comprehensive maintenance request, scheduling, cost tracking, and analytics
 schemas for hostel management system with enhanced validation and type safety.
+
+Migrated to Pydantic v2 with full compatibility.
 """
 
 from __future__ import annotations

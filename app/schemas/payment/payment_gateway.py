@@ -43,7 +43,6 @@ class GatewayRequest(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Payment amount",
     )
     currency: str = Field(
@@ -148,7 +147,6 @@ class GatewayResponse(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Payment amount",
     )
     currency: str = Field(
@@ -212,7 +210,6 @@ class GatewayWebhook(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Payment amount",
     )
     currency: str = Field(
@@ -277,7 +274,6 @@ class GatewayCallback(BaseSchema):
     amount_paid: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount actually paid",
     )
 
@@ -323,7 +319,6 @@ class GatewayRefundRequest(BaseCreateSchema):
     refund_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount to refund",
     )
     reason: str = Field(
@@ -387,7 +382,6 @@ class GatewayRefundResponse(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Refund amount",
     )
 
@@ -442,7 +436,6 @@ class GatewayVerification(BaseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Verified amount",
     )
 

@@ -97,7 +97,7 @@ class SubscriptionResponse(BaseResponseSchema):
         None, description="When cancellation takes effect"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_expiry(self) -> int:
         """Calculate days until subscription expires."""
@@ -106,7 +106,7 @@ class SubscriptionResponse(BaseResponseSchema):
             return 0
         return (self.end_date - today).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_billing(self) -> Optional[int]:
         """Calculate days until next billing."""
@@ -117,19 +117,19 @@ class SubscriptionResponse(BaseResponseSchema):
             return 0
         return (self.next_billing_date - today).days
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_active(self) -> bool:
         """Check if subscription is currently active."""
         return self.status == SubscriptionStatus.ACTIVE
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_expiring_soon(self) -> bool:
         """Check if subscription expires within 7 days."""
         return 0 < self.days_until_expiry <= 7
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def amount_formatted(self) -> str:
         """Format amount with currency."""
@@ -220,7 +220,7 @@ class BillingHistoryItem(BaseSchema):
         None, description="Billing period end"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_paid(self) -> bool:
         """Check if billing item is paid."""
@@ -294,13 +294,13 @@ class BillingHistory(BaseSchema):
             )
         return self
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_outstanding(self) -> bool:
         """Check if there's outstanding balance."""
         return self.total_outstanding > Decimal("0")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def payment_rate(self) -> Decimal:
         """Calculate payment collection rate percentage."""

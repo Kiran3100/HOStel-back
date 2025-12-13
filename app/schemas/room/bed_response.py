@@ -47,7 +47,7 @@ class BedResponse(BaseResponseSchema):
         description="Occupancy start date",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def is_available(self) -> bool:
         """Check if bed is available for assignment."""
@@ -97,7 +97,7 @@ class BedAvailability(BaseSchema):
         description="Attached bathroom",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def days_until_available(self) -> Optional[int]:
         """Calculate days until bed becomes available."""
@@ -172,14 +172,14 @@ class BedAssignment(BaseResponseSchema):
         description="Assignment notes",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def days_occupied(self) -> int:
         """Calculate days occupied."""
         end_date = self.actual_vacate_date or date.today()
         return (end_date - self.occupied_from).days
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def expected_duration_days(self) -> Optional[int]:
         """Calculate expected duration in days."""
@@ -218,7 +218,7 @@ class BedAssignmentHistory(BaseSchema):
         description="Currently active assignment",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def duration_months(self) -> Optional[Decimal]:
         """Calculate duration in months."""
@@ -272,7 +272,7 @@ class BedHistory(BaseSchema):
         description="Last occupancy date",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def utilization_rate(self) -> Optional[Decimal]:
         """
@@ -381,7 +381,7 @@ class BedDetailedStatus(BaseResponseSchema):
         description="Last status change timestamp",
     )
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def needs_maintenance(self) -> bool:
         """Check if bed needs maintenance."""
@@ -397,7 +397,7 @@ class BedDetailedStatus(BaseResponseSchema):
             return True
         return False
 
-    @computed_field
+    @computed_field  # Pydantic v2: Use @computed_field for computed properties
     @property
     def current_occupancy_days(self) -> Optional[int]:
         """Calculate days of current occupancy."""

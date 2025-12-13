@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Generic, List, Optional, TypeVar
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, computed_field
 
 from app.schemas.common.base import BaseSchema
 
@@ -27,12 +27,12 @@ class PaginationParams(BaseSchema):
     """Pagination query parameters."""
 
     page: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Page number (1-indexed)",
     )
     page_size: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Items per page",
@@ -54,11 +54,13 @@ class PaginationParams(BaseSchema):
             raise ValueError("Page size must be between 1 and 100")
         return v
 
+    @computed_field
     @property
     def offset(self) -> int:
         """Calculate offset for database queries."""
         return (self.page - 1) * self.page_size
 
+    @computed_field
     @property
     def limit(self) -> int:
         """Get limit for database queries."""
@@ -143,11 +145,11 @@ class CursorPaginationParams(BaseSchema):
     """Cursor-based pagination parameters (for infinite scroll)."""
 
     cursor: Optional[str] = Field(
-        None,
+        default=None,
         description="Cursor for next page",
     )
     limit: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Number of items to fetch",
@@ -158,7 +160,7 @@ class CursorPaginationMeta(BaseSchema):
     """Cursor pagination metadata."""
 
     next_cursor: Optional[str] = Field(
-        None,
+        default=None,
         description="Cursor for next page",
     )
     has_more: bool = Field(

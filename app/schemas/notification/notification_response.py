@@ -86,7 +86,7 @@ class NotificationResponse(BaseResponseSchema):
         description="Creation timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_sent(self) -> bool:
         """Check if notification has been sent."""
@@ -95,7 +95,7 @@ class NotificationResponse(BaseResponseSchema):
             NotificationStatus.COMPLETED,
         ]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_pending(self) -> bool:
         """Check if notification is pending delivery."""
@@ -222,13 +222,13 @@ class NotificationDetail(BaseResponseSchema):
         description="Last update timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_read(self) -> bool:
         """Check if notification has been read."""
         return self.read_at is not None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def can_retry(self) -> bool:
         """Check if notification can be retried."""
@@ -237,7 +237,7 @@ class NotificationDetail(BaseResponseSchema):
             and self.retry_count < self.max_retries
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def delivery_duration_seconds(self) -> Optional[int]:
         """Calculate delivery duration in seconds."""
@@ -317,7 +317,7 @@ class NotificationListItem(BaseSchema):
         description="Notification category for grouping",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_urgent(self) -> bool:
         """Check if notification is urgent."""
@@ -350,13 +350,13 @@ class NotificationList(BaseSchema):
         description="List of notification items",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def read_count(self) -> int:
         """Calculate number of read notifications."""
         return self.total_notifications - self.unread_count
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_unread(self) -> bool:
         """Check if there are any unread notifications."""
@@ -483,7 +483,7 @@ class NotificationSummary(BaseSchema):
         description="Number of days included in summary",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def read_percentage(self) -> float:
         """Calculate percentage of read notifications."""
@@ -492,7 +492,7 @@ class NotificationSummary(BaseSchema):
         read_count = self.total_notifications - self.unread_notifications
         return round((read_count / self.total_notifications) * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_recent_activity(self) -> bool:
         """Check if there's been activity in the last 24 hours."""

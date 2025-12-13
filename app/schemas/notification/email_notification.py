@@ -581,7 +581,7 @@ class BulkEmailRequest(BaseCreateSchema):
             missing = set(self.recipients) - set(self.recipient_variables.keys())
             if missing:
                 raise ValueError(
-                    f"Missing variables for recipients: {', '.join(missing)}"
+                    f"Missing variables for recipients: {', '.join(str(m) for m in missing)}"
                 )
         return self
 

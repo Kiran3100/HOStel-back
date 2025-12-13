@@ -8,9 +8,9 @@ permission management, and transfer handling.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional
-from datetime import date as Date
+from decimal import Decimal
 
 from pydantic import Field, field_validator, model_validator, computed_field
 
@@ -43,7 +43,7 @@ class SupervisorAssignment(BaseResponseSchema):
     
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: Date = Field(..., description="Assignment date")
+    assigned_date: date = Field(..., description="Assignment date")
     
     is_active: bool = Field(..., description="Assignment is active")
     
@@ -65,7 +65,7 @@ class SupervisorAssignment(BaseResponseSchema):
         description="Total days in current assignment",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def assignment_duration_months(self) -> int:
         """Calculate assignment duration in months."""
@@ -94,7 +94,7 @@ class AssignmentRequest(BaseCreateSchema):
         max_length=100,
         description="Employee/Staff ID",
     )
-    join_date: Date = Field(
+    join_date: date = Field(
         ...,
         description="Joining date",
     )
@@ -121,7 +121,7 @@ class AssignmentRequest(BaseCreateSchema):
 
     @field_validator("join_date")
     @classmethod
-    def validate_join_date(cls, v: Date) -> Date:
+    def validate_join_date(cls, v: date) -> date:
         """Validate join date is reasonable."""
         today = date.today()
         
@@ -378,7 +378,7 @@ class AssignmentSummary(BaseSchema):
         description="Coverage by shift",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def active_percentage(self) -> Decimal:
         """Calculate percentage of active supervisors."""
@@ -388,7 +388,7 @@ class AssignmentSummary(BaseSchema):
         rate = (self.active_supervisors / self.total_supervisors * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def needs_coverage(self) -> bool:
         """Check if hostel needs more supervisor coverage."""

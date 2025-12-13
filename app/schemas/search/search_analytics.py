@@ -9,9 +9,9 @@ and zero-result searches for optimization.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.filters import DateRangeFilter
@@ -44,7 +44,7 @@ class SearchTermStats(BaseSchema):
         description="Number of times this term was searched",
     )
     unique_users: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique users who searched this term",
     )
@@ -61,7 +61,7 @@ class SearchTermStats(BaseSchema):
         description="Number of searches with zero results",
     )
     zero_result_rate: float = Field(
-        0.0,
+        default=0.0,
         ge=0,
         le=100,
         description="Percentage of searches with zero results",
@@ -69,12 +69,12 @@ class SearchTermStats(BaseSchema):
 
     # Engagement metrics
     avg_click_position: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         description="Average position of clicked results (1-based)",
     )
     click_through_rate: float = Field(
-        0.0,
+        default=0.0,
         ge=0,
         le=100,
         description="Percentage of searches that resulted in clicks",
@@ -92,12 +92,12 @@ class SearchTermStats(BaseSchema):
 
     # Trend indicators
     trend_direction: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^(rising|falling|stable)$",
         description="Search trend direction",
     )
     growth_rate: Optional[float] = Field(
-        None,
+        default=None,
         description="Percentage change in search volume (vs previous period)",
     )
 
@@ -121,7 +121,7 @@ class SearchMetrics(BaseSchema):
         description="Number of unique search queries",
     )
     unique_users: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique users who performed searches",
     )
@@ -163,13 +163,13 @@ class SearchMetrics(BaseSchema):
 
     # Engagement metrics
     avg_click_through_rate: float = Field(
-        0.0,
+        default=0.0,
         ge=0,
         le=100,
         description="Average click-through rate across all searches",
     )
     searches_with_clicks: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of searches that resulted in at least one click",
     )
@@ -202,7 +202,7 @@ class PopularSearchTerm(BaseSchema):
         description="Average number of results",
     )
     change_from_previous: Optional[int] = Field(
-        None,
+        default=None,
         description="Change in rank from previous period (+/- positions)",
     )
 
@@ -269,7 +269,7 @@ class ZeroResultTerm(BaseSchema):
         description="Most recent occurrence",
     )
     suggested_alternatives: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Suggested alternative search terms",
     )
 
@@ -289,30 +289,30 @@ class SearchAnalyticsRequest(BaseSchema):
 
     # Filters
     min_search_count: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Minimum number of searches to include term",
     )
     include_zero_results: bool = Field(
-        True,
+        default=True,
         description="Include zero-result searches in analysis",
     )
 
     # Limits
     top_terms_limit: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Number of top terms to return",
     )
     trending_limit: int = Field(
-        10,
+        default=10,
         ge=1,
         le=50,
         description="Number of trending terms to return",
     )
     zero_result_limit: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Number of zero-result terms to return",
@@ -371,22 +371,23 @@ class SearchAnalytics(BaseSchema):
 
     # Detailed term statistics (optional, for deep dive)
     term_statistics: Optional[List[SearchTermStats]] = Field(
-        None,
+        default=None,
         description="Detailed statistics for individual search terms",
     )
 
     # Breakdown by category
     category_breakdown: Optional[Dict[str, int]] = Field(
-        None,
+        default=None,
         description="Search volume by category (hostel_type, location, etc.)",
     )
 
     # Geographic breakdown
     geographic_breakdown: Optional[Dict[str, int]] = Field(
-        None,
+        default=None,
         description="Search volume by location (city/state)",
     )
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def has_quality_issues(self) -> bool:
         """
@@ -399,6 +400,7 @@ class SearchAnalytics(BaseSchema):
             or self.metrics.p95_response_time_ms > 1000
         )
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def engagement_score(self) -> float:
         """

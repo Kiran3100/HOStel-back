@@ -11,7 +11,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import HostelType, RoomType
@@ -34,13 +34,13 @@ class PriceFilter(BaseFilterSchema):
     """
 
     min_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum price in INR",
         examples=[5000, 10000],
     )
     max_price: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum price in INR",
         examples=[20000, 30000],
@@ -60,6 +60,7 @@ class PriceFilter(BaseFilterSchema):
             )
         return self
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_active(self) -> bool:
         """Check if price filter is active."""
@@ -74,14 +75,14 @@ class RatingFilter(BaseFilterSchema):
     """
 
     min_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Minimum average rating (0-5 scale)",
         examples=[3.5, 4.0, 4.5],
     )
     max_rating: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Maximum average rating (0-5 scale)",
@@ -102,6 +103,7 @@ class RatingFilter(BaseFilterSchema):
             )
         return self
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_active(self) -> bool:
         """Check if rating filter is active."""
@@ -117,17 +119,17 @@ class AmenityFilter(BaseFilterSchema):
     """
 
     required_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="All of these amenities must be present (AND logic)",
         examples=[["wifi", "ac", "parking"]],
     )
     optional_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Any of these amenities can be present (OR logic)",
         examples=[["gym", "swimming_pool", "laundry"]],
     )
     excluded_amenities: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="None of these amenities should be present",
         examples=[["smoking_allowed"]],
     )
@@ -154,6 +156,7 @@ class AmenityFilter(BaseFilterSchema):
             return normalized if normalized else None
         return v
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_active(self) -> bool:
         """Check if amenity filter is active."""
@@ -175,21 +178,21 @@ class LocationFilter(BaseFilterSchema):
 
     # Text-based location
     city: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=100,
         description="City name",
         examples=["Mumbai", "Bangalore"],
     )
     state: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=100,
         description="State name",
         examples=["Maharashtra", "Karnataka"],
     )
     pincode: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^\d{6}$",
         description="6-digit pincode",
         examples=["400001", "560001"],
@@ -197,19 +200,19 @@ class LocationFilter(BaseFilterSchema):
 
     # Proximity-based location
     latitude: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=-90,
         le=90,
         description="Latitude for proximity search",
     )
     longitude: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=-180,
         le=180,
         description="Longitude for proximity search",
     )
     radius_km: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0.1,
         le=100,
         description="Search radius in kilometers",
@@ -234,16 +237,19 @@ class LocationFilter(BaseFilterSchema):
                 )
         return self
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_text_location(self) -> bool:
         """Check if text-based location filter is active."""
         return any([self.city, self.state, self.pincode])
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_proximity_location(self) -> bool:
         """Check if proximity-based location filter is active."""
         return self.latitude is not None and self.longitude is not None
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_active(self) -> bool:
         """Check if any location filter is active."""
@@ -258,11 +264,11 @@ class AvailabilityFilter(BaseFilterSchema):
     """
 
     available_only: bool = Field(
-        False,
+        default=False,
         description="Show only hostels with available beds",
     )
     min_available_beds: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Minimum number of available beds required",
         examples=[1, 2, 5],
@@ -270,21 +276,21 @@ class AvailabilityFilter(BaseFilterSchema):
 
     # Date-based availability
     check_in_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Desired check-in date",
     )
     check_out_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Desired check-out date",
     )
 
     # Booking preferences
     instant_booking_only: bool = Field(
-        False,
+        default=False,
         description="Show only hostels with instant booking enabled",
     )
     verified_only: bool = Field(
-        False,
+        default=False,
         description="Show only verified hostels",
     )
 
@@ -304,6 +310,7 @@ class AvailabilityFilter(BaseFilterSchema):
 
         return self
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def is_active(self) -> bool:
         """Check if any availability filter is active."""
@@ -325,38 +332,39 @@ class SearchFilterSet(BaseFilterSchema):
 
     # Core filters
     price: Optional[PriceFilter] = Field(
-        None,
+        default=None,
         description="Price range filter",
     )
     rating: Optional[RatingFilter] = Field(
-        None,
+        default=None,
         description="Rating range filter",
     )
     amenities: Optional[AmenityFilter] = Field(
-        None,
+        default=None,
         description="Amenity filters",
     )
     location: Optional[LocationFilter] = Field(
-        None,
+        default=None,
         description="Location filters",
     )
     availability: Optional[AvailabilityFilter] = Field(
-        None,
+        default=None,
         description="Availability filters",
     )
 
     # Type filters
     hostel_types: Optional[List[HostelType]] = Field(
-        None,
+        default=None,
         description="Filter by hostel types",
         examples=[["boys", "girls"]],
     )
     room_types: Optional[List[RoomType]] = Field(
-        None,
+        default=None,
         description="Filter by room types",
         examples=[["single", "double"]],
     )
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def active_filters(self) -> List[str]:
         """Get list of active filter names."""
@@ -377,11 +385,13 @@ class SearchFilterSet(BaseFilterSchema):
             active.append("room_types")
         return active
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def filter_count(self) -> int:
         """Get count of active filters."""
         return len(self.active_filters)
 
+    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
     @property
     def has_filters(self) -> bool:
         """Check if any filter is active."""

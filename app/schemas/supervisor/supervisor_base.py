@@ -124,8 +124,7 @@ class SupervisorBase(BaseSchema):
         # Remove excessive whitespace while preserving single spaces
         normalized = " ".join(v.split())
         
-        # Special handling for employee_id - convert to uppercase
-        return normalized.upper() if "employee_id" in str(cls) else normalized
+        return normalized
 
     @field_validator("join_date")
     @classmethod
@@ -302,10 +301,18 @@ class SupervisorUpdate(BaseUpdateSchema):
         description="Additional notes",
     )
 
-    # Apply base validators
-    _normalize_text = field_validator(
-        "employee_id", "shift_timing", "designation"
-    )(SupervisorBase.normalize_text_fields.__func__)
+    @field_validator("employee_id", "shift_timing", "designation")
+    @classmethod
+    def normalize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Normalize text fields."""
+        if v is None:
+            return None
+        
+        v = v.strip()
+        if not v:
+            return None
+        
+        return " ".join(v.split())
 
     @model_validator(mode="after")
     def validate_status_consistency(self) -> "SupervisorUpdate":

@@ -7,11 +7,11 @@ with filtering and pagination support.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import Field, HttpUrl, computed_field, field_validator
+from pydantic import Field, HttpUrl, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
@@ -36,37 +36,37 @@ class FileMetadata(BaseSchema):
     content_type: str = Field(..., description="MIME type")
     size_bytes: int = Field(..., ge=0, description="File size in bytes")
     checksum: Optional[str] = Field(
-        None,
+        default=None,
         description="File checksum (MD5/SHA256)",
     )
 
     # Original file information
     original_filename: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Original uploaded filename",
     )
     extension: Optional[str] = Field(
-        None,
+        default=None,
         max_length=20,
         description="File extension (without dot)",
     )
 
     # Dimensions (for images/videos)
-    width: Optional[int] = Field(None, ge=1, description="Width in pixels")
-    height: Optional[int] = Field(None, ge=1, description="Height in pixels")
+    width: Optional[int] = Field(default=None, ge=1, description="Width in pixels")
+    height: Optional[int] = Field(default=None, ge=1, description="Height in pixels")
     duration_seconds: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Duration for audio/video files",
     )
 
     # Classification
-    category: Optional[str] = Field(None, description="File category")
+    category: Optional[str] = Field(default=None, description="File category")
     tags: List[str] = Field(default_factory=list, description="Searchable tags")
 
     # Custom metadata
-    custom_metadata: Dict[str, str] = Field(
+    custom_metadata: Dict[str, Any] = Field(
         default_factory=dict,
         description="Custom key-value metadata",
     )
@@ -77,7 +77,7 @@ class FileMetadata(BaseSchema):
         description="Whether post-upload processing is complete",
     )
     processing_error: Optional[str] = Field(
-        None,
+        default=None,
         description="Processing error message if failed",
     )
 
@@ -130,10 +130,10 @@ class FileInfo(BaseResponseSchema):
 
     # Ownership
     uploaded_by_user_id: str = Field(..., description="Uploader user ID")
-    uploaded_by_name: Optional[str] = Field(None, description="Uploader name")
+    uploaded_by_name: Optional[str] = Field(default=None, description="Uploader name")
 
-    hostel_id: Optional[str] = Field(None, description="Associated hostel")
-    student_id: Optional[str] = Field(None, description="Associated student")
+    hostel_id: Optional[str] = Field(default=None, description="Associated hostel")
+    student_id: Optional[str] = Field(default=None, description="Associated student")
 
     # Access control
     is_public: bool = Field(default=False, description="Public access flag")
@@ -142,11 +142,11 @@ class FileInfo(BaseResponseSchema):
     # URLs
     url: HttpUrl = Field(..., description="Primary access URL")
     public_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Public CDN URL (if is_public=True)",
     )
     thumbnail_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Thumbnail URL (for images)",
     )
 
@@ -160,7 +160,7 @@ class FileInfo(BaseResponseSchema):
         examples=["pending", "clean", "infected", "error", "skipped"],
     )
     virus_scan_timestamp: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Virus scan completion timestamp",
     )
 
@@ -171,20 +171,25 @@ class FileInfo(BaseResponseSchema):
         description="Number of times file was accessed",
     )
     last_accessed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last access timestamp",
     )
 
     # Audit timestamps
     created_at: datetime = Field(..., description="Upload timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
+    deleted_at: Optional[datetime] = Field(default=None, description="Deletion timestamp")
 
     @computed_field
     @property
     def age_days(self) -> int:
         """Get file age in days."""
-        delta = datetime.utcnow() - self.created_at
+        now = datetime.now(timezone.utc)
+        # Handle timezone-aware comparison
+        created = self.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        delta = now - created
         return delta.days
 
     @computed_field
@@ -209,7 +214,7 @@ class FileURL(BaseSchema):
     )
 
     expires_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="URL expiration timestamp (for signed URLs)",
     )
     is_permanent: bool = Field(
@@ -223,7 +228,11 @@ class FileURL(BaseSchema):
         """Check if URL has expired."""
         if self.is_permanent or self.expires_at is None:
             return False
-        return datetime.utcnow() >= self.expires_at
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return now >= expires
 
     @computed_field
     @property
@@ -232,7 +241,12 @@ class FileURL(BaseSchema):
         if self.is_permanent or self.expires_at is None:
             return None
         
-        delta = self.expires_at - datetime.utcnow()
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        
+        delta = expires - now
         return max(0, int(delta.total_seconds() / 60))
 
 
@@ -249,10 +263,10 @@ class FileListResponse(BaseSchema):
     )
 
     # Pagination
-    total_items: int = Field(ge=0, description="Total matching files")
-    page: int = Field(ge=1, description="Current page number")
-    page_size: int = Field(ge=1, le=100, description="Items per page")
-    total_pages: int = Field(ge=0, description="Total pages")
+    total_items: int = Field(..., ge=0, description="Total matching files")
+    page: int = Field(..., ge=1, description="Current page number")
+    page_size: int = Field(..., ge=1, le=100, description="Items per page")
+    total_pages: int = Field(..., ge=0, description="Total pages")
 
     # Summary statistics
     total_size_bytes: int = Field(
@@ -288,7 +302,7 @@ class FileStats(BaseSchema):
     """
 
     entity_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Entity ID (user/hostel) or None for system-wide",
     )
     entity_type: str = Field(
@@ -298,28 +312,28 @@ class FileStats(BaseSchema):
     )
 
     # Counts
-    total_files: int = Field(ge=0, description="Total file count")
-    public_files: int = Field(ge=0, description="Public file count")
-    private_files: int = Field(ge=0, description="Private file count")
+    total_files: int = Field(..., ge=0, description="Total file count")
+    public_files: int = Field(..., ge=0, description="Public file count")
+    private_files: int = Field(..., ge=0, description="Private file count")
 
     # By type
-    images_count: int = Field(ge=0, description="Image file count")
-    videos_count: int = Field(ge=0, description="Video file count")
-    documents_count: int = Field(ge=0, description="Document file count")
-    other_count: int = Field(ge=0, description="Other file count")
+    images_count: int = Field(..., ge=0, description="Image file count")
+    videos_count: int = Field(..., ge=0, description="Video file count")
+    documents_count: int = Field(..., ge=0, description="Document file count")
+    other_count: int = Field(..., ge=0, description="Other file count")
 
     # Storage usage
-    total_size_bytes: int = Field(ge=0, description="Total storage used (bytes)")
+    total_size_bytes: int = Field(..., ge=0, description="Total storage used (bytes)")
     storage_quota_bytes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Storage quota (bytes)",
     )
 
     # Time-based
-    files_uploaded_today: int = Field(ge=0, description="Files uploaded today")
-    files_uploaded_this_week: int = Field(ge=0, description="Files uploaded this week")
-    files_uploaded_this_month: int = Field(ge=0, description="Files uploaded this month")
+    files_uploaded_today: int = Field(..., ge=0, description="Files uploaded today")
+    files_uploaded_this_week: int = Field(..., ge=0, description="Files uploaded this week")
+    files_uploaded_this_month: int = Field(..., ge=0, description="Files uploaded this month")
 
     @computed_field
     @property
@@ -358,10 +372,10 @@ class FileAccessLog(BaseSchema):
 
     # Access details
     accessed_by_user_id: Optional[str] = Field(
-        None,
+        default=None,
         description="User who accessed (None for public access)",
     )
-    accessed_by_name: Optional[str] = Field(None, description="User name")
+    accessed_by_name: Optional[str] = Field(default=None, description="User name")
 
     access_type: str = Field(
         ...,
@@ -375,19 +389,19 @@ class FileAccessLog(BaseSchema):
     )
 
     # Request metadata
-    ip_address: Optional[str] = Field(None, description="Client IP address")
-    user_agent: Optional[str] = Field(None, description="Client user agent")
-    referrer: Optional[str] = Field(None, description="HTTP referrer")
+    ip_address: Optional[str] = Field(default=None, description="Client IP address")
+    user_agent: Optional[str] = Field(default=None, description="Client user agent")
+    referrer: Optional[str] = Field(default=None, description="HTTP referrer")
 
     # Geo-location
-    country: Optional[str] = Field(None, description="Country code")
-    city: Optional[str] = Field(None, description="City")
+    country: Optional[str] = Field(default=None, description="Country code")
+    city: Optional[str] = Field(default=None, description="City")
 
     accessed_at: datetime = Field(..., description="Access timestamp")
 
     # Response
     success: bool = Field(..., description="Whether access was successful")
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         description="Error message if access failed",
     )

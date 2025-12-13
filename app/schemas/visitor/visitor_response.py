@@ -56,16 +56,16 @@ class VisitorResponse(BaseResponseSchema):
 
     # Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Preferred room type",
     )
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum budget per month",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum budget per month",
     )
@@ -76,12 +76,12 @@ class VisitorResponse(BaseResponseSchema):
 
     # Statistics
     total_bookings: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total number of bookings made by visitor",
     )
     saved_hostels_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of hostels saved to favorites",
     )
@@ -146,7 +146,7 @@ class VisitorProfile(BaseSchema):
         description="Full name of the visitor",
     )
     profile_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="URL to profile image",
     )
     member_since: datetime = Field(
@@ -196,22 +196,22 @@ class VisitorDetail(BaseResponseSchema):
         description="Phone number",
     )
     profile_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Profile image URL",
     )
 
     # Preferences
     preferred_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Preferred room type",
     )
     budget_min: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Minimum budget",
     )
     budget_max: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Maximum budget",
     )
@@ -230,41 +230,41 @@ class VisitorDetail(BaseResponseSchema):
         description="List of favorite hostel IDs",
     )
     total_saved_hostels: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total number of saved hostels",
     )
 
     # Activity Statistics
     total_bookings: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total bookings made",
     )
     completed_bookings: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of completed bookings",
     )
     cancelled_bookings: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of cancelled bookings",
     )
     total_inquiries: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total inquiries made",
     )
 
     # Review Activity
     total_reviews_written: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of reviews written",
     )
     average_rating_given: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Average rating given in reviews",
@@ -290,7 +290,7 @@ class VisitorDetail(BaseResponseSchema):
         description="Account creation timestamp",
     )
     last_login: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last login timestamp",
     )
 
@@ -355,46 +355,46 @@ class VisitorStats(BaseSchema):
 
     # Search Activity
     total_searches: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total number of searches performed",
     )
     unique_hostels_viewed: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique hostels viewed",
     )
     average_search_filters_used: Decimal = Field(
-        Decimal("0"),
+        default=Decimal("0"),
         ge=0,
         description="Average number of filters used per search",
     )
 
     # Engagement Metrics
     total_hostel_views: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total hostel detail page views",
     )
     total_comparisons: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of hostel comparisons made",
     )
     total_inquiries: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total inquiries sent",
     )
 
     # Booking Metrics
     total_bookings: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Total bookings made",
     )
     booking_conversion_rate: Decimal = Field(
-        Decimal("0"),
+        default=Decimal("0"),
         ge=0,
         le=100,
         description="Percentage of views that resulted in bookings",
@@ -402,15 +402,15 @@ class VisitorStats(BaseSchema):
 
     # Preference Insights
     most_searched_city: Optional[str] = Field(
-        None,
+        default=None,
         description="City searched most frequently",
     )
     most_viewed_room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Most frequently viewed room type",
     )
     average_budget: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         description="Average budget range from searches",
     )

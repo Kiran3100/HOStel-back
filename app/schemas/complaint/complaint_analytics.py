@@ -11,7 +11,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema
 
@@ -27,75 +27,6 @@ __all__ = [
 ]
 
 
-class ComplaintAnalytics(BaseSchema):
-    """
-    Comprehensive complaint analytics dashboard.
-    
-    Provides holistic view of complaint management performance.
-    """
-
-    hostel_id: Optional[str] = Field(
-        None,
-        description="Hostel ID (None for system-wide analytics)",
-    )
-    period_start: date = Field(..., description="Analytics period start")
-    period_end: date = Field(..., description="Analytics period end")
-
-    # Summary counts
-    total_complaints: int = Field(ge=0, description="Total complaints")
-    open_complaints: int = Field(ge=0, description="Open complaints")
-    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
-    closed_complaints: int = Field(ge=0, description="Closed complaints")
-
-    # Detailed metrics
-    resolution_metrics: "ResolutionMetrics" = Field(
-        ...,
-        description="Resolution performance metrics",
-    )
-
-    category_analysis: "CategoryAnalysis" = Field(
-        ...,
-        description="Category-wise breakdown",
-    )
-
-    priority_distribution: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Distribution by priority level",
-    )
-
-    complaint_trend: List["ComplaintTrendPoint"] = Field(
-        default_factory=list,
-        description="Time-series trend data",
-    )
-
-    # SLA metrics
-    sla_compliance_rate: Decimal = Field(
-        ge=0,
-        le=100,
-        description="SLA compliance percentage",
-    )
-    sla_breached_count: int = Field(
-        ge=0,
-        description="SLA breached complaint count",
-    )
-
-    # Staff performance
-    top_resolvers: List["StaffPerformance"] = Field(
-        default_factory=list,
-        max_length=10,
-        description="Top 10 complaint resolvers",
-    )
-
-    @field_validator("period_end")
-    @classmethod
-    def validate_period_range(cls, v: date, info) -> date:
-        """Validate analytics period is logical."""
-        period_start = info.data.get("period_start")
-        if period_start and v < period_start:
-            raise ValueError("period_end must be >= period_start")
-        return v
-
-
 class ResolutionMetrics(BaseSchema):
     """
     Detailed complaint resolution performance metrics.
@@ -103,72 +34,58 @@ class ResolutionMetrics(BaseSchema):
     Tracks resolution efficiency and quality indicators.
     """
 
-    total_resolved: int = Field(ge=0, description="Total resolved count")
+    total_resolved: int = Field(..., ge=0, description="Total resolved count")
 
     # Time metrics (in hours)
     average_resolution_time_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Average resolution time (hours)",
     )
     median_resolution_time_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Median resolution time (hours)",
     )
     fastest_resolution_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Fastest resolution time (hours)",
     )
     slowest_resolution_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Slowest resolution time (hours)",
     )
 
     # Performance rates
     resolution_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% of complaints resolved",
     )
     same_day_resolution_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% resolved within 24 hours",
     )
 
     # Escalation metrics
     escalation_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% of complaints escalated",
     )
 
     # Quality metrics
     reopen_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% of resolved complaints reopened",
-    )
-
-
-class CategoryAnalysis(BaseSchema):
-    """
-    Category-wise complaint analysis.
-    
-    Identifies problem areas and trends by category.
-    """
-
-    categories: List["CategoryMetrics"] = Field(
-        default_factory=list,
-        description="Metrics for each category",
-    )
-
-    most_common_category: str = Field(
-        ...,
-        description="Category with most complaints",
-    )
-    most_problematic_category: str = Field(
-        ...,
-        description="Category with longest avg resolution time",
     )
 
 
@@ -180,24 +97,49 @@ class CategoryMetrics(BaseSchema):
     """
 
     category: str = Field(..., description="Category name")
-    total_complaints: int = Field(ge=0, description="Total complaints")
-    open_complaints: int = Field(ge=0, description="Open complaints")
-    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+    total_complaints: int = Field(..., ge=0, description="Total complaints")
+    open_complaints: int = Field(..., ge=0, description="Open complaints")
+    resolved_complaints: int = Field(..., ge=0, description="Resolved complaints")
 
     average_resolution_time_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Average resolution time (hours)",
     )
     resolution_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Resolution rate percentage",
     )
 
     percentage_of_total: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="% of total complaints",
+    )
+
+
+class CategoryAnalysis(BaseSchema):
+    """
+    Category-wise complaint analysis.
+    
+    Identifies problem areas and trends by category.
+    """
+
+    categories: List[CategoryMetrics] = Field(
+        default_factory=list,
+        description="Metrics for each category",
+    )
+
+    most_common_category: str = Field(
+        ...,
+        description="Category with most complaints",
+    )
+    most_problematic_category: str = Field(
+        ...,
+        description="Category with longest avg resolution time",
     )
 
 
@@ -213,15 +155,15 @@ class ComplaintTrendPoint(BaseSchema):
         description="Time period (date, week, or month)",
         examples=["2024-01-15", "2024-W03", "2024-01"],
     )
-    total_complaints: int = Field(ge=0, description="Total complaints")
-    open_complaints: int = Field(ge=0, description="Open complaints")
-    resolved_complaints: int = Field(ge=0, description="Resolved complaints")
+    total_complaints: int = Field(..., ge=0, description="Total complaints")
+    open_complaints: int = Field(..., ge=0, description="Open complaints")
+    resolved_complaints: int = Field(..., ge=0, description="Resolved complaints")
 
     # Priority breakdown
-    urgent_count: int = Field(ge=0, description="Urgent priority count")
-    high_count: int = Field(ge=0, description="High priority count")
-    medium_count: int = Field(ge=0, description="Medium priority count")
-    low_count: int = Field(ge=0, description="Low priority count")
+    urgent_count: int = Field(..., ge=0, description="Urgent priority count")
+    high_count: int = Field(..., ge=0, description="High priority count")
+    medium_count: int = Field(..., ge=0, description="Medium priority count")
+    low_count: int = Field(..., ge=0, description="Low priority count")
 
 
 class StaffPerformance(BaseSchema):
@@ -236,29 +178,50 @@ class StaffPerformance(BaseSchema):
     staff_role: str = Field(..., description="Staff member role")
 
     complaints_assigned: int = Field(
+        ...,
         ge=0,
         description="Total complaints assigned",
     )
     complaints_resolved: int = Field(
+        ...,
         ge=0,
         description="Total complaints resolved",
     )
 
     average_resolution_time_hours: Decimal = Field(
-        ge=0,
+        ...,
+        ge=Decimal("0"),
         description="Average resolution time (hours)",
     )
     resolution_rate: Decimal = Field(
-        ge=0,
-        le=100,
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Resolution rate percentage",
     )
 
     average_rating: Optional[Decimal] = Field(
-        None,
-        ge=0,
-        le=5,
+        default=None,
+        ge=Decimal("0"),
+        le=Decimal("5"),
         description="Average feedback rating (1-5)",
+    )
+
+
+class RoomComplaintCount(BaseSchema):
+    """
+    Complaint count and analysis for specific room.
+    
+    Helps identify problematic rooms.
+    """
+
+    room_id: str = Field(..., description="Room identifier")
+    room_number: str = Field(..., description="Room number")
+    complaint_count: int = Field(..., ge=0, description="Total complaints")
+
+    most_common_category: str = Field(
+        ...,
+        description="Most frequent complaint category",
     )
 
 
@@ -282,7 +245,7 @@ class ComplaintHeatmap(BaseSchema):
     )
 
     # Spatial patterns
-    complaints_by_room: List["RoomComplaintCount"] = Field(
+    complaints_by_room: List[RoomComplaintCount] = Field(
         default_factory=list,
         description="Complaint count by room",
     )
@@ -301,18 +264,70 @@ class ComplaintHeatmap(BaseSchema):
         return v
 
 
-class RoomComplaintCount(BaseSchema):
+class ComplaintAnalytics(BaseSchema):
     """
-    Complaint count and analysis for specific room.
+    Comprehensive complaint analytics dashboard.
     
-    Helps identify problematic rooms.
+    Provides holistic view of complaint management performance.
     """
 
-    room_id: str = Field(..., description="Room identifier")
-    room_number: str = Field(..., description="Room number")
-    complaint_count: int = Field(ge=0, description="Total complaints")
-
-    most_common_category: str = Field(
-        ...,
-        description="Most frequent complaint category",
+    hostel_id: Optional[str] = Field(
+        default=None,
+        description="Hostel ID (None for system-wide analytics)",
     )
+    period_start: date = Field(..., description="Analytics period start")
+    period_end: date = Field(..., description="Analytics period end")
+
+    # Summary counts
+    total_complaints: int = Field(..., ge=0, description="Total complaints")
+    open_complaints: int = Field(..., ge=0, description="Open complaints")
+    resolved_complaints: int = Field(..., ge=0, description="Resolved complaints")
+    closed_complaints: int = Field(..., ge=0, description="Closed complaints")
+
+    # Detailed metrics
+    resolution_metrics: ResolutionMetrics = Field(
+        ...,
+        description="Resolution performance metrics",
+    )
+
+    category_analysis: CategoryAnalysis = Field(
+        ...,
+        description="Category-wise breakdown",
+    )
+
+    priority_distribution: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Distribution by priority level",
+    )
+
+    complaint_trend: List[ComplaintTrendPoint] = Field(
+        default_factory=list,
+        description="Time-series trend data",
+    )
+
+    # SLA metrics
+    sla_compliance_rate: Decimal = Field(
+        ...,
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        description="SLA compliance percentage",
+    )
+    sla_breached_count: int = Field(
+        ...,
+        ge=0,
+        description="SLA breached complaint count",
+    )
+
+    # Staff performance
+    top_resolvers: List[StaffPerformance] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Top 10 complaint resolvers",
+    )
+
+    @model_validator(mode="after")
+    def validate_period_range(self) -> "ComplaintAnalytics":
+        """Validate analytics period is logical."""
+        if self.period_end < self.period_start:
+            raise ValueError("period_end must be >= period_start")
+        return self

@@ -1,6 +1,7 @@
 # --- File: app/schemas/auth/otp.py ---
 """
 OTP (One-Time Password) schemas with enhanced validation.
+Pydantic v2 compliant.
 """
 
 from __future__ import annotations
@@ -9,8 +10,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, model_validator, field_validator
-
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import OTPType
@@ -63,11 +63,11 @@ class OTPGenerateRequest(BaseCreateSchema):
             )
         return self
 
-    @field_validator("phone")
+    @field_validator("phone", mode="before")
     @classmethod
     def normalize_phone(cls, v: Optional[str]) -> Optional[str]:
         """Normalize phone number by removing spaces and dashes."""
-        if v:
+        if v is not None and isinstance(v, str):
             return v.replace(" ", "").replace("-", "")
         return v
 

@@ -1,10 +1,10 @@
-### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\room ###
+### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room ###
 
 
 
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\room =====
+# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room =====
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\bed_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\bed_base.py ---
 # --- File: app/schemas/room/bed_base.py ---
 """
 Bed base schemas with enhanced validation and assignment management.
@@ -456,7 +456,7 @@ class BulkBedStatusUpdate(BaseCreateSchema):
             )
         return self
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\bed_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\bed_response.py ---
 # --- File: app/schemas/room/bed_response.py ---
 """
 Bed response schemas for API responses.
@@ -864,7 +864,7 @@ class BedDetailedStatus(BaseResponseSchema):
             return None
         return (date.today() - self.occupied_from).days
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_availability.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\room_availability.py ---
 # --- File: app/schemas/room/room_availability.py ---
 """
 Room availability schemas with enhanced date validation.
@@ -878,7 +878,7 @@ from __future__ import annotations
 from datetime import timedelta
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator, computed_field
 
@@ -1082,7 +1082,7 @@ class AvailabilityResponse(BaseSchema):
     )
     
     # Filters applied
-    filters_applied: Dict[str, any] = Field(
+    filters_applied: Dict[str, Any] = Field(
         default_factory=dict,
         description="Summary of applied filters",
     )
@@ -1273,7 +1273,7 @@ class BulkAvailabilityRequest(BaseCreateSchema):
             )
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_base.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\room_base.py ---
 # --- File: app/schemas/room/room_base.py ---
 """
 Room base schemas with enhanced validation and type safety.
@@ -1995,7 +1995,7 @@ class RoomMediaUpdate(BaseUpdateSchema):
                 raise ValueError("Invalid virtual tour URL format")
         return v
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\room_response.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\room_response.py ---
 # --- File: app/schemas/room/room_response.py ---
 """
 Room response schemas for API responses.
@@ -2497,7 +2497,7 @@ class RoomFinancialSummary(BaseSchema):
             (self.occupied_beds / self.total_beds * 100)
         ).quantize(Decimal("0.01"))
 
-# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\room\__init__.py ---
+# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\room\__init__.py ---
 # --- File: app/schemas/room/__init__.py ---
 """
 Room schemas package.
@@ -2598,6 +2598,3 @@ __all__ = [
     "DayAvailability",
     "BulkAvailabilityRequest",
 ]
-
-
-# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\room\__pycache__ =====

@@ -249,7 +249,7 @@ class UserUpdate(BaseUpdateSchema):
     def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate user age constraints."""
         if v is not None:
-            today = date.today()
+            today = Date.today()
             if v >= today:
                 raise ValueError("Date of birth cannot be in the future")
 

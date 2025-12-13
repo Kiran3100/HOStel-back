@@ -12,7 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator,computed_field
+from pydantic import Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
@@ -23,6 +23,7 @@ __all__ = [
     "ApprovalWorkflow",
     "BulkApproval",
     "ApprovalHistory",
+    "ApprovalAttempt",
 ]
 
 
@@ -55,18 +56,16 @@ class MenuApprovalRequest(BaseCreateSchema):
     )
     
     # Budget information
+    # Note: Pydantic v2 removed max_digits and decimal_places from Field
+    # Using Decimal type with validators instead
     estimated_cost_per_person: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Estimated cost per person",
     )
     total_estimated_cost: Optional[Decimal] = Field(
         None,
         ge=0,
-        max_digits=12,
-        decimal_places=2,
         description="Total estimated cost",
     )
     expected_students: Optional[int] = Field(
@@ -94,7 +93,7 @@ class MenuApprovalRequest(BaseCreateSchema):
         description="Justification for special/expensive menu",
     )
 
-    @field_validator("submission_notes", "reason_for_special_menu")
+    @field_validator("submission_notes", "reason_for_special_menu", mode="before")
     @classmethod
     def normalize_text(cls, v: Optional[str]) -> Optional[str]:
         """Normalize text fields."""
@@ -102,6 +101,14 @@ class MenuApprovalRequest(BaseCreateSchema):
             v = v.strip()
             return v if v else None
         return None
+
+    @field_validator("estimated_cost_per_person", "total_estimated_cost", mode="after")
+    @classmethod
+    def round_cost_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round cost values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @model_validator(mode="after")
     def validate_cost_information(self) -> "MenuApprovalRequest":
@@ -433,40 +440,6 @@ class BulkApproval(BaseCreateSchema):
         return self
 
 
-class ApprovalHistory(BaseSchema):
-    """
-    Complete approval history for menu.
-    
-    Tracks all approval attempts and decisions for audit trail.
-    """
-
-    menu_id: UUID = Field(
-        ...,
-        description="Menu unique identifier",
-    )
-    menu_date: date = Field(
-        ...,
-        description="Menu date",
-    )
-    total_submissions: int = Field(
-        ...,
-        ge=0,
-        description="Total approval submissions",
-    )
-    approval_attempts: List["ApprovalAttempt"] = Field(
-        ...,
-        description="Chronological list of approval attempts",
-    )
-    current_status: str = Field(
-        ...,
-        description="Current approval status",
-    )
-    final_approver: Optional[str] = Field(
-        None,
-        description="Final approver name",
-    )
-
-
 class ApprovalAttempt(BaseSchema):
     """
     Individual approval attempt record.
@@ -515,4 +488,38 @@ class ApprovalAttempt(BaseSchema):
     changes_made: Optional[str] = Field(
         None,
         description="Changes made in this revision",
+    )
+
+
+class ApprovalHistory(BaseSchema):
+    """
+    Complete approval history for menu.
+    
+    Tracks all approval attempts and decisions for audit trail.
+    """
+
+    menu_id: UUID = Field(
+        ...,
+        description="Menu unique identifier",
+    )
+    menu_date: date = Field(
+        ...,
+        description="Menu date",
+    )
+    total_submissions: int = Field(
+        ...,
+        ge=0,
+        description="Total approval submissions",
+    )
+    approval_attempts: List[ApprovalAttempt] = Field(
+        ...,
+        description="Chronological list of approval attempts",
+    )
+    current_status: str = Field(
+        ...,
+        description="Current approval status",
+    )
+    final_approver: Optional[str] = Field(
+        None,
+        description="Final approver name",
     )
