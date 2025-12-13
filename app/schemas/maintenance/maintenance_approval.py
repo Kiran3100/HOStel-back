@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, List
 
 from pydantic import Field, field_validator, model_validator
 from uuid import UUID
@@ -549,7 +549,7 @@ class ApprovalWorkflow(BaseSchema):
     )
     
     # Previous approvals (for multi-level)
-    previous_approvals: Optional[List[Dict[str, any]]] = Field(
+    previous_approvals: Optional[List[Dict[str, Any]]] = Field(
         None,
         description="Previous approval steps (for multi-level workflows)",
     )

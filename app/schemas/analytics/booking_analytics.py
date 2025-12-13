@@ -13,7 +13,7 @@ This module provides comprehensive analytics for booking operations including:
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, computed_field
 from uuid import UUID
@@ -575,7 +575,7 @@ class BookingAnalyticsSummary(BaseSchema):
         )
         return best.source
     
-    def get_trend_summary(self) -> Dict[str, any]:
+    def get_trend_summary(self) -> Dict[str, Any]:
         """
         Generate a summary of booking trends.
         

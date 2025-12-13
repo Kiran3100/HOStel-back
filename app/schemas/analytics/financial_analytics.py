@@ -12,7 +12,7 @@ Provides detailed financial analytics including:
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 from pydantic import Field, field_validator, computed_field, model_validator
@@ -729,7 +729,7 @@ class ProfitAndLossReport(BaseSchema):
             self.revenue.total_revenue - self.break_even_revenue
         )
     
-    def get_performance_summary(self) -> Dict[str, any]:
+    def get_performance_summary(self) -> Dict[str, Any]:
         """
         Generate performance summary.
         
@@ -1154,7 +1154,7 @@ class FinancialReport(BaseSchema):
         else:
             return "F"
     
-    def get_executive_summary(self) -> Dict[str, any]:
+    def get_executive_summary(self) -> Dict[str, Any]:
         """
         Generate executive summary of financial performance.
         

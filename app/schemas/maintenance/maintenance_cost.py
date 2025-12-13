@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator,computed_field
 from uuid import UUID
@@ -584,7 +584,7 @@ class ExpenseReport(BaseSchema):
     )
     
     # Vendor analysis
-    top_vendors_by_spending: Optional[List[Dict[str, any]]] = Field(
+    top_vendors_by_spending: Optional[List[Dict[str, Any]]] = Field(
         None,
         max_length=20,
         description="Top vendors by total spending",
