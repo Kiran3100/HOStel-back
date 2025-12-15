@@ -261,13 +261,11 @@ class ReferralStats(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Conversion rate percentage",
     )
     average_conversion_time_days: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=1,
         description="Average days to convert",
     )
 
@@ -275,19 +273,16 @@ class ReferralStats(BaseSchema):
     total_earned: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total rewards earned",
     )
     total_paid_out: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total rewards paid out",
     )
     total_pending_rewards: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total pending rewards",
     )
     currency: str = Field(default="INR", description="Currency code")

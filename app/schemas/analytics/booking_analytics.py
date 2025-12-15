@@ -15,7 +15,7 @@ from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional, Any
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -104,7 +104,8 @@ class BookingKPI(BaseSchema):
     @classmethod
     def validate_booking_counts(cls, v: int, info) -> int:
         """Validate that individual booking counts don't exceed total."""
-        if "total_bookings" in info.data:
+        # In Pydantic v2, info.data contains already-validated fields
+        if info.data.get("total_bookings") is not None:
             total = info.data["total_bookings"]
             if v > total:
                 raise ValueError(
@@ -120,7 +121,7 @@ class BookingKPI(BaseSchema):
             raise ValueError("Percentage must be between 0 and 100")
         return round(v, 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def approval_rate(self) -> Decimal:
         """Calculate approval rate (confirmed / (confirmed + rejected))."""
@@ -132,7 +133,7 @@ class BookingKPI(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate completion rate (non-pending / total)."""
@@ -193,7 +194,7 @@ class BookingTrendPoint(BaseSchema):
     @classmethod
     def validate_counts(cls, v: int, info) -> int:
         """Validate that status counts don't exceed total."""
-        if "total_bookings" in info.data:
+        if info.data.get("total_bookings") is not None:
             total = info.data["total_bookings"]
             if v > total:
                 raise ValueError(
@@ -201,7 +202,7 @@ class BookingTrendPoint(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def conversion_rate(self) -> Decimal:
         """Calculate conversion rate for this date."""
@@ -292,17 +293,17 @@ class BookingFunnel(BaseSchema):
         """Validate that funnel stages progress logically."""
         field_name = info.field_name
         
-        if field_name == "booking_form_starts" and "hostel_page_views" in info.data:
+        if field_name == "booking_form_starts" and info.data.get("hostel_page_views") is not None:
             if v > info.data["hostel_page_views"]:
                 raise ValueError(
                     "booking_form_starts cannot exceed hostel_page_views"
                 )
-        elif field_name == "booking_submissions" and "booking_form_starts" in info.data:
+        elif field_name == "booking_submissions" and info.data.get("booking_form_starts") is not None:
             if v > info.data["booking_form_starts"]:
                 raise ValueError(
                     "booking_submissions cannot exceed booking_form_starts"
                 )
-        elif field_name == "bookings_confirmed" and "booking_submissions" in info.data:
+        elif field_name == "bookings_confirmed" and info.data.get("booking_submissions") is not None:
             if v > info.data["booking_submissions"]:
                 raise ValueError(
                     "bookings_confirmed cannot exceed booking_submissions"
@@ -310,13 +311,13 @@ class BookingFunnel(BaseSchema):
         
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_drop_offs(self) -> int:
         """Calculate total number of users who dropped off."""
         return self.hostel_page_views - self.bookings_confirmed
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def largest_drop_off_stage(self) -> str:
         """Identify the stage with largest drop-off."""
@@ -325,7 +326,7 @@ class BookingFunnel(BaseSchema):
             "start_to_submit": self.booking_form_starts - self.booking_submissions,
             "submit_to_confirm": self.booking_submissions - self.bookings_confirmed,
         }
-        return max(drop_offs, key=drop_offs.get)
+        return max(drop_offs, key=drop_offs.get)  # type: ignore[arg-type]
 
 
 class CancellationAnalytics(BaseSchema):
@@ -385,7 +386,7 @@ class CancellationAnalytics(BaseSchema):
     @classmethod
     def validate_breakdown_totals(cls, v: Dict[str, int], info) -> Dict[str, int]:
         """Ensure breakdown totals match overall total."""
-        if v and "total_cancellations" in info.data:
+        if v and info.data.get("total_cancellations") is not None:
             breakdown_total = sum(v.values())
             total_cancellations = info.data["total_cancellations"]
             # Allow some tolerance for rounding or filtering
@@ -396,7 +397,7 @@ class CancellationAnalytics(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def top_cancellation_reason(self) -> Optional[str]:
         """Identify the most common cancellation reason."""
@@ -404,10 +405,10 @@ class CancellationAnalytics(BaseSchema):
             return None
         return max(
             self.cancellations_by_reason,
-            key=self.cancellations_by_reason.get
+            key=self.cancellations_by_reason.get  # type: ignore[arg-type]
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def early_cancellation_rate(self) -> Decimal:
         """Calculate percentage of cancellations made >7 days before check-in."""
@@ -462,7 +463,7 @@ class BookingSourceMetrics(BaseSchema):
         description="Average revenue per booking from this source"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_per_confirmed_booking(self) -> Decimal:
         """Calculate average revenue per confirmed booking."""
@@ -546,12 +547,12 @@ class BookingAnalyticsSummary(BaseSchema):
     ) -> List[BookingTrendPoint]:
         """Ensure trend points are in chronological order."""
         if len(v) > 1:
-            dates = [point.Date for point in v]
+            dates = [point.trend_date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Trend points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def best_performing_source(self) -> Optional[BookingSource]:
         """Identify the booking source with highest conversion rate."""
@@ -563,7 +564,7 @@ class BookingAnalyticsSummary(BaseSchema):
         )
         return best.source
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def highest_revenue_source(self) -> Optional[BookingSource]:
         """Identify the booking source with highest total revenue."""
@@ -589,8 +590,8 @@ class BookingAnalyticsSummary(BaseSchema):
         total_bookings = [point.total_bookings for point in self.trend]
         revenues = [float(point.revenue_for_day) for point in self.trend]
         
-        peak_date = max(self.trend, key=lambda x: x.total_bookings).Date
-        best_revenue_date = max(self.trend, key=lambda x: x.revenue_for_day).Date
+        peak_date = max(self.trend, key=lambda x: x.total_bookings).trend_date
+        best_revenue_date = max(self.trend, key=lambda x: x.revenue_for_day).trend_date
         
         return {
             "peak_booking_date": peak_date,

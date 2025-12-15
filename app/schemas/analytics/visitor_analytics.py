@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 from enum import Enum
 
-from pydantic import Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -179,7 +179,7 @@ class TrafficSourceMetrics(BaseSchema):
     @classmethod
     def validate_unique_visitors(cls, v: int, info) -> int:
         """Validate unique visitors don't exceed total visits."""
-        if "visits" in info.data and v > info.data["visits"]:
+        if info.data.get("visits") is not None and v > info.data["visits"]:
             raise ValueError("unique_visitors cannot exceed visits")
         return v
     
@@ -187,13 +187,13 @@ class TrafficSourceMetrics(BaseSchema):
     @classmethod
     def validate_conversion_counts(cls, v: int, info) -> int:
         """Validate conversion counts are reasonable."""
-        if "visits" in info.data and v > info.data["visits"]:
+        if info.data.get("visits") is not None and v > info.data["visits"]:
             # Allow slight excess for cross-session conversions
             if v > info.data["visits"] * 1.1:
                 raise ValueError(f"{info.field_name} significantly exceeds visits")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def engagement_score(self) -> Decimal:
         """
@@ -210,7 +210,7 @@ class TrafficSourceMetrics(BaseSchema):
         score = (duration_score * 0.4 + pages_score * 0.3 + bounce_score * 0.3)
         return round(Decimal(str(score)), 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def quality_score(self) -> Decimal:
         """
@@ -364,13 +364,13 @@ class VisitorFunnel(BaseSchema):
         # or stages may be tracked across multiple sessions
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_drop_offs(self) -> int:
         """Calculate total visitors who dropped off."""
         return self.total_visits - self.confirmed_bookings
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def largest_drop_off_stage(self) -> str:
         """Identify stage with largest drop-off."""
@@ -383,9 +383,9 @@ class VisitorFunnel(BaseSchema):
         if not any(drop_offs.values()):
             return "none"
         
-        return max(drop_offs, key=drop_offs.get)
+        return max(drop_offs, key=drop_offs.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def funnel_efficiency_score(self) -> Decimal:
         """
@@ -462,7 +462,7 @@ class TrafficSourceAnalytics(BaseSchema):
         description="Detailed metrics for each source"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def best_converting_source(self) -> Optional[SearchSource]:
         """Identify source with highest conversion rate."""
@@ -473,7 +473,7 @@ class TrafficSourceAnalytics(BaseSchema):
             key=lambda x: x.visit_to_booking_rate
         ).source
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def highest_volume_source(self) -> Optional[SearchSource]:
         """Identify source with highest visit volume."""
@@ -484,7 +484,7 @@ class TrafficSourceAnalytics(BaseSchema):
             key=lambda x: x.visits
         ).source
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def best_roi_source(self) -> Optional[SearchSource]:
         """Identify source with best ROI."""
@@ -496,7 +496,7 @@ class TrafficSourceAnalytics(BaseSchema):
         if not sources_with_roi:
             return None
         
-        return max(sources_with_roi, key=lambda x: x.roi).source
+        return max(sources_with_roi, key=lambda x: x.roi).source  # type: ignore[arg-type, return-value]
 
 
 class SearchBehavior(BaseSchema):
@@ -575,7 +575,7 @@ class SearchBehavior(BaseSchema):
         description="Percentage of searches with no results"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def search_effectiveness_score(self) -> Decimal:
         """
@@ -677,7 +677,7 @@ class EngagementMetrics(BaseSchema):
         description="Inquiry form conversion rate"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def engagement_level(self) -> str:
         """Classify overall engagement level."""
@@ -759,7 +759,7 @@ class VisitorBehaviorAnalytics(BaseSchema):
         description="Percentage of return visitors"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def visitor_quality_score(self) -> Decimal:
         """
@@ -878,7 +878,7 @@ class ConversionPathAnalysis(BaseSchema):
         description="Revenue attributed to last touch by source"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def conversion_complexity(self) -> str:
         """Assess conversion path complexity."""

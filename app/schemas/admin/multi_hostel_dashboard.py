@@ -123,13 +123,13 @@ class HostelQuickStats(BaseSchema):
     def validate_hostel_type(cls, v: str) -> str:
         return _normalize_hostel_type(v)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def financial_risk(self) -> bool:
         """Whether outstanding payments exceed current month revenue."""
         return self.outstanding_payments > self.revenue_this_month
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def requires_attention(self) -> bool:
         """
@@ -144,7 +144,7 @@ class HostelQuickStats(BaseSchema):
             or self.financial_risk
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_indicator(self) -> str:
         """
@@ -161,7 +161,7 @@ class HostelQuickStats(BaseSchema):
             return "warning"
         return "normal"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_status(self) -> str:
         """Human‑readable occupancy status."""
@@ -172,12 +172,13 @@ class HostelQuickStats(BaseSchema):
         else:
             return "Near Full"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def hours_since_last_activity(self) -> Optional[int]:
         """Hours since this admin last interacted with this hostel."""
         if not self.last_activity:
             return None
+        # Pydantic v2: Use timezone-aware datetime.now() or UTC consistently
         delta = datetime.utcnow() - self.last_activity
         return int(delta.total_seconds() // 3600)
 
@@ -222,7 +223,7 @@ class AggregatedStats(BaseSchema):
         None, ge=0, le=5, description="Average internal satisfaction score"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def hostel_utilization_rate(self) -> Decimal:
         """Percentage of hostels that are actively managed."""
@@ -231,7 +232,7 @@ class AggregatedStats(BaseSchema):
         rate = Decimal(self.active_hostels) / Decimal(self.total_hostels) * 100
         return rate.quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def student_occupancy_rate(self) -> Decimal:
         """Overall bed occupancy rate across the portfolio."""
@@ -240,7 +241,7 @@ class AggregatedStats(BaseSchema):
         rate = Decimal(self.active_students) / Decimal(self.total_capacity) * 100
         return rate.quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_critical_issues(self) -> bool:
         """Whether the portfolio has clearly critical issues."""
@@ -250,7 +251,7 @@ class AggregatedStats(BaseSchema):
             or self.total_pending_tasks > 100
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def financial_health_indicator(self) -> str:
         """Basic financial health indicator."""
@@ -295,7 +296,7 @@ class HostelTaskSummary(BaseSchema):
         default_factory=dict, description="Total tasks per hostel (optional)"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def pending_ratio(self) -> Decimal:
         """Percentage of tasks that are pending."""
@@ -304,7 +305,7 @@ class HostelTaskSummary(BaseSchema):
         ratio = Decimal(self.pending_tasks) / Decimal(self.total_tasks) * 100
         return ratio.quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overdue_ratio(self) -> Decimal:
         """Percentage of tasks that are overdue."""
@@ -313,7 +314,7 @@ class HostelTaskSummary(BaseSchema):
         ratio = Decimal(self.overdue_tasks) / Decimal(self.total_tasks) * 100
         return ratio.quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def health_status(self) -> str:
         """High‑level health indicator based on task backlog."""
@@ -363,7 +364,7 @@ class TopPerformer(BaseSchema):
     def validate_hostel_type(cls, v: str) -> str:
         return _normalize_hostel_type(v)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def label(self) -> str:
         """Convenient display label."""
@@ -394,7 +395,7 @@ class BottomPerformer(BaseSchema):
     def validate_hostel_type(cls, v: str) -> str:
         return _normalize_hostel_type(v)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def label(self) -> str:
         """Convenient display label."""
@@ -429,7 +430,7 @@ class HostelMetricComparison(BaseSchema):
         None, description="Worst value for the metric (direction depends on metric)"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def spread(self) -> Decimal:
         """Absolute spread between best and worst values."""
@@ -438,7 +439,7 @@ class HostelMetricComparison(BaseSchema):
         diff = abs(Decimal(self.best_value) - Decimal(self.worst_value))
         return diff.quantize(Decimal("0.01"))
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def variation_index(self) -> Decimal:
         """
@@ -471,7 +472,7 @@ class CrossHostelComparison(BaseSchema):
         default_factory=list, description="Bottom performing hostels"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_significant_variation(self) -> bool:
         """
@@ -479,7 +480,7 @@ class CrossHostelComparison(BaseSchema):
         """
         return any(m.variation_index > Decimal("20.00") for m in self.metrics)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def metrics_by_name(self) -> Dict[str, HostelMetricComparison]:
         """Index metrics by name for quicker lookup in clients."""
@@ -530,26 +531,26 @@ class MultiHostelDashboard(BaseResponseSchema):
         None, description="Hostel currently focused in UI (optional)"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def period_days(self) -> int:
         """Length of the reporting period in days (at least 1)."""
         days = (self.period_end - self.period_start).days + 1
         return max(1, days)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def hostels_requiring_attention(self) -> List[UUID]:
         """IDs of hostels that require attention."""
         return [h.hostel_id for h in self.hostels if h.requires_attention]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_critical_hostels(self) -> int:
         """Number of hostels in warning/critical state."""
         return len(self.hostels_requiring_attention)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def overall_attention_level(self) -> str:
         """

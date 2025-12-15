@@ -8,16 +8,22 @@ programs, referrals, codes, rewards, and analytics.
 
 from __future__ import annotations
 
-# Program schemas
+# Program base schemas
 from app.schemas.referral.referral_program_base import (
     ProgramCreate,
-    ProgramList,
-    ProgramResponse,
-    ProgramStats,
     ProgramType,
     ProgramUpdate,
     ReferralProgramBase,
     RewardType,
+)
+
+# Program response schemas
+from app.schemas.referral.referral_program_response import (
+    ProgramAnalytics,
+    ProgramList,
+    ProgramPerformance,
+    ProgramResponse,
+    ProgramStats,
 )
 
 # Referral base schemas
@@ -61,16 +67,19 @@ from app.schemas.referral.referral_rewards import (
 )
 
 __all__ = [
-    # Program
+    # Program Base
     "ReferralProgramBase",
     "ProgramCreate",
     "ProgramUpdate",
+    "ProgramType",
+    "RewardType",
+    # Program Response
     "ProgramResponse",
     "ProgramList",
     "ProgramStats",
-    "ProgramType",
-    "RewardType",
-    # Base
+    "ProgramAnalytics",
+    "ProgramPerformance",
+    # Referral Base
     "ReferralBase",
     "ReferralCreate",
     "ReferralUpdate",

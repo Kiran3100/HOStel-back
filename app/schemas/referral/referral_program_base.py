@@ -10,14 +10,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common.base import (
     BaseCreateSchema,
-    BaseResponseSchema,
     BaseSchema,
     BaseUpdateSchema,
 )
@@ -26,8 +25,6 @@ __all__ = [
     "ReferralProgramBase",
     "ProgramCreate",
     "ProgramUpdate",
-    "ProgramResponse",
-    "ProgramList",
     "ProgramType",
     "RewardType",
 ]
@@ -96,13 +93,11 @@ class ReferralProgramBase(BaseSchema):
     referrer_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Reward amount for the referrer",
     )
     referee_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Reward amount for the referee (new user)",
     )
     currency: str = Field(
@@ -130,7 +125,6 @@ class ReferralProgramBase(BaseSchema):
     min_booking_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Minimum booking amount to qualify for reward",
     )
     min_stay_months: Optional[int] = Field(
@@ -224,6 +218,14 @@ class ReferralProgramBase(BaseSchema):
                 raise ValueError(f"Invalid user role: {role}")
         return list(set(v))  # Remove duplicates
 
+    @field_validator("referrer_reward_amount", "referee_reward_amount", "min_booking_amount", "max_total_reward_amount")
+    @classmethod
+    def validate_decimal_places(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal values have at most 2 decimal places."""
+        if v is None:
+            return None
+        return v.quantize(Decimal("0.01"))
+
     @model_validator(mode="after")
     def validate_reward_amounts(self) -> "ReferralProgramBase":
         """Validate reward amounts are provided for reward types that need them."""
@@ -277,21 +279,21 @@ class ProgramCreate(ReferralProgramBase, BaseCreateSchema):
     Inherits all fields from ReferralProgramBase with creation-specific validation.
     """
 
-    @field_validator("program_code")
+    @model_validator(mode="before")
     @classmethod
-    def generate_program_code(cls, v: Optional[str], info) -> str:
+    def generate_program_code(cls, data: dict) -> dict:
         """Generate program code if not provided."""
-        if v is None:
+        if isinstance(data, dict) and data.get("program_code") is None:
             # Generate from program name
-            program_name = info.data.get("program_name", "")
+            program_name = data.get("program_name", "")
             code = program_name.upper().replace(" ", "_")[:20]
             
             # Add timestamp suffix for uniqueness
             import time
             timestamp = str(int(time.time()))[-6:]
-            return f"{code}_{timestamp}"
+            data["program_code"] = f"{code}_{timestamp}"
         
-        return v.upper()
+        return data
 
 
 class ProgramUpdate(BaseUpdateSchema):
@@ -317,17 +319,14 @@ class ProgramUpdate(BaseUpdateSchema):
     referrer_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
     )
     referee_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
     )
     min_booking_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
     )
     min_stay_months: Optional[int] = Field(
         None,
@@ -364,6 +363,14 @@ class ProgramUpdate(BaseUpdateSchema):
     auto_approve_rewards: Optional[bool] = None
     track_conversion: Optional[bool] = None
 
+    @field_validator("referrer_reward_amount", "referee_reward_amount", "min_booking_amount", "max_total_reward_amount")
+    @classmethod
+    def validate_decimal_places(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal values have at most 2 decimal places."""
+        if v is None:
+            return None
+        return v.quantize(Decimal("0.01"))
+
     @model_validator(mode="after")
     def validate_at_least_one_field(self) -> "ProgramUpdate":
         """Ensure at least one field is being updated."""
@@ -383,119 +390,3 @@ class ProgramUpdate(BaseUpdateSchema):
         ]):
             raise ValueError("At least one field must be provided for update")
         return self
-
-
-class ProgramResponse(BaseResponseSchema):
-    """
-    Referral program response schema.
-
-    Includes program details and statistics.
-    """
-
-    program_name: str = Field(..., description="Program name")
-    program_code: str = Field(..., description="Program code")
-    program_type: str = Field(..., description="Program type")
-    description: Optional[str] = Field(None, description="Program description")
-
-    # Reward details
-    reward_type: str = Field(..., description="Reward type")
-    referrer_reward_amount: Optional[Decimal] = Field(None, description="Referrer reward")
-    referee_reward_amount: Optional[Decimal] = Field(None, description="Referee reward")
-    currency: str = Field(..., description="Currency code")
-
-    # Eligibility criteria
-    min_booking_amount: Optional[Decimal] = Field(None, description="Minimum booking amount")
-    min_stay_months: Optional[int] = Field(None, description="Minimum stay duration")
-    min_referrer_stay_months: Optional[int] = Field(None, description="Minimum referrer stay")
-    max_referrals_per_user: Optional[int] = Field(None, description="Max referrals per user")
-    max_referrer_rewards_per_month: Optional[int] = Field(None, description="Max rewards per month")
-
-    # Status
-    is_active: bool = Field(..., description="Active status")
-    valid_from: Optional[date] = Field(None, description="Start date")
-    valid_to: Optional[date] = Field(None, description="End date")
-
-    # Terms
-    terms_and_conditions: Optional[str] = Field(None, description="T&C")
-    auto_approve_rewards: bool = Field(..., description="Auto-approve rewards")
-
-    # Statistics (computed fields can be added here)
-    total_referrals: int = Field(default=0, ge=0, description="Total referrals made")
-    successful_referrals: int = Field(default=0, ge=0, description="Successful referrals")
-    total_rewards_distributed: Decimal = Field(
-        default=Decimal("0"),
-        ge=0,
-        description="Total rewards paid out",
-    )
-
-    # Timestamps
-    created_at: datetime = Field(..., description="Creation timestamp")
-    updated_at: datetime = Field(..., description="Last update timestamp")
-
-
-class ProgramList(BaseSchema):
-    """
-    List of referral programs.
-
-    Provides summary and pagination for multiple programs.
-    """
-
-    total_programs: int = Field(
-        ...,
-        ge=0,
-        description="Total number of programs",
-    )
-    active_programs: int = Field(
-        ...,
-        ge=0,
-        description="Number of active programs",
-    )
-    programs: List[ProgramResponse] = Field(
-        ...,
-        description="List of referral programs",
-    )
-
-
-class ProgramStats(BaseSchema):
-    """
-    Detailed program statistics.
-
-    Provides comprehensive analytics for a referral program.
-    """
-
-    program_id: UUID = Field(..., description="Program ID")
-    program_name: str = Field(..., description="Program name")
-
-    # Referral statistics
-    total_referrals: int = Field(..., ge=0, description="Total referrals")
-    pending_referrals: int = Field(..., ge=0, description="Pending referrals")
-    successful_referrals: int = Field(..., ge=0, description="Successful referrals")
-    failed_referrals: int = Field(..., ge=0, description="Failed referrals")
-
-    # Conversion metrics
-    conversion_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Conversion rate percentage",
-    )
-    average_conversion_time_days: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average time to convert in days",
-    )
-
-    # Reward statistics
-    total_rewards_earned: Decimal = Field(..., ge=0, description="Total rewards earned")
-    total_rewards_paid: Decimal = Field(..., ge=0, description="Total rewards paid")
-    pending_rewards: Decimal = Field(..., ge=0, description="Pending reward payments")
-
-    # Top referrers
-    top_referrers: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="Top 10 referrers",
-    )
-
-    # Time period
-    period_start: date = Field(..., description="Statistics start date")
-    period_end: date = Field(..., description="Statistics end date")

@@ -14,7 +14,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -82,13 +82,13 @@ class SupervisorWorkload(BaseSchema):
         description="Number of overdue tasks"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def available_capacity(self) -> int:
         """Calculate available capacity."""
         return max(0, self.max_capacity - self.pending_tasks)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def workload_status(self) -> str:
         """Assess workload status."""
@@ -155,7 +155,7 @@ class SupervisorPerformanceRating(BaseSchema):
         description="Weighted overall performance rating"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_grade(self) -> str:
         """Get letter grade for overall performance."""
@@ -172,7 +172,7 @@ class SupervisorPerformanceRating(BaseSchema):
         else:
             return "F"
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def strengths(self) -> List[str]:
         """Identify performance strengths (scores >= 85)."""
@@ -185,7 +185,7 @@ class SupervisorPerformanceRating(BaseSchema):
         }
         return [name for name, score in scores.items() if score >= 85]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def improvement_areas(self) -> List[str]:
         """Identify areas needing improvement (scores < 70)."""
@@ -359,7 +359,7 @@ class SupervisorKPI(BaseSchema):
     @classmethod
     def validate_resolved_complaints(cls, v: int, info) -> int:
         """Validate resolved count doesn't exceed assigned."""
-        if "complaints_assigned" in info.data and v > info.data["complaints_assigned"]:
+        if info.data.get("complaints_assigned") is not None and v > info.data["complaints_assigned"]:
             # Allow slight excess for complaints from previous periods
             if v > info.data["complaints_assigned"] * 1.2:
                 raise ValueError(
@@ -367,7 +367,7 @@ class SupervisorKPI(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def complaint_resolution_rate(self) -> Decimal:
         """Calculate complaint resolution rate percentage."""
@@ -378,7 +378,7 @@ class SupervisorKPI(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def maintenance_completion_rate(self) -> Decimal:
         """Calculate maintenance completion rate percentage."""
@@ -390,7 +390,7 @@ class SupervisorKPI(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def reopen_rate(self) -> Decimal:
         """Calculate complaint reopen rate."""
@@ -401,7 +401,7 @@ class SupervisorKPI(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_status(self) -> str:
         """Overall performance status classification."""
@@ -467,7 +467,7 @@ class SupervisorTrendPoint(BaseSchema):
         description="Student feedback score"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_tasks_completed(self) -> int:
         """Total tasks completed in period."""
@@ -560,15 +560,15 @@ class SupervisorDashboardAnalytics(BaseSchema):
                 raise ValueError("Trend points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def most_common_complaint_category(self) -> Optional[str]:
         """Identify most frequent complaint category."""
         if not self.complaints_by_category:
             return None
-        return max(self.complaints_by_category, key=self.complaints_by_category.get)
+        return max(self.complaints_by_category, key=self.complaints_by_category.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def improvement_trend(self) -> str:
         """Analyze performance improvement trend."""
@@ -677,7 +677,7 @@ class SupervisorComparison(BaseSchema):
     @classmethod
     def validate_ranking_completeness(cls, v: List[UUID], info) -> List[UUID]:
         """Validate rankings include all supervisors."""
-        if "supervisors" in info.data:
+        if info.data.get("supervisors") is not None:
             supervisor_ids = {s.supervisor_id for s in info.data["supervisors"]}
             ranking_ids = set(v)
             
@@ -690,7 +690,7 @@ class SupervisorComparison(BaseSchema):
         
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def top_performer(self) -> Optional[UUID]:
         """Get ID of top performing supervisor."""
@@ -698,7 +698,7 @@ class SupervisorComparison(BaseSchema):
             return None
         return self.ranked_by_performance[0]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_variance(self) -> Decimal:
         """Calculate variance in performance scores."""
@@ -830,7 +830,7 @@ class TeamAnalytics(BaseSchema):
         description="Top 5 performing supervisor IDs"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def team_efficiency(self) -> str:
         """Assess overall team efficiency."""

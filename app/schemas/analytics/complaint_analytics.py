@@ -13,7 +13,7 @@ from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -71,11 +71,11 @@ class SLAMetrics(BaseSchema):
     @classmethod
     def validate_sla_counts(cls, v: int, info) -> int:
         """Validate SLA counts don't exceed total."""
-        if "total_with_sla" in info.data and v > info.data["total_with_sla"]:
+        if info.data.get("total_with_sla") is not None and v > info.data["total_with_sla"]:
             raise ValueError(f"{info.field_name} cannot exceed total_with_sla")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def at_risk_count(self) -> int:
         """Complaints currently at risk of SLA breach (estimated as 20% of total)."""
@@ -189,7 +189,7 @@ class ComplaintKPI(BaseSchema):
     @classmethod
     def validate_complaint_counts(cls, v: int, info) -> int:
         """Validate individual counts are reasonable."""
-        if "total_complaints" in info.data:
+        if info.data.get("total_complaints") is not None:
             total = info.data["total_complaints"]
             if v > total and info.field_name != "open_complaints":
                 # open_complaints can exceed total as it includes historical
@@ -198,7 +198,7 @@ class ComplaintKPI(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> Decimal:
         """Calculate percentage of total complaints that have been resolved."""
@@ -209,13 +209,13 @@ class ComplaintKPI(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def backlog(self) -> int:
         """Calculate current complaint backlog."""
         return self.open_complaints + self.in_progress_complaints
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def efficiency_score(self) -> Decimal:
         """
@@ -284,13 +284,13 @@ class ComplaintTrendPoint(BaseSchema):
     @classmethod
     def validate_subset_counts(cls, v: int, info) -> int:
         """Validate that subset counts don't exceed total."""
-        if "total_complaints" in info.data and v > info.data["total_complaints"]:
+        if info.data.get("total_complaints") is not None and v > info.data["total_complaints"]:
             raise ValueError(
                 f"{info.field_name} ({v}) cannot exceed total_complaints"
             )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> Decimal:
         """Calculate resolution rate for this date."""
@@ -327,12 +327,12 @@ class ComplaintTrend(BaseSchema):
     ) -> List[ComplaintTrendPoint]:
         """Ensure trend points are in chronological order."""
         if len(v) > 1:
-            dates = [point.Date for point in v]
+            dates = [point.trend_date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Trend points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def trend_direction(self) -> str:
         """
@@ -358,13 +358,13 @@ class ComplaintTrend(BaseSchema):
             return "decreasing"
         return "stable"
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def peak_complaint_date(self) -> Optional[Date]:
         """Identify date with highest complaint volume."""
         if not self.points:
             return None
-        return max(self.points, key=lambda x: x.total_complaints).Date
+        return max(self.points, key=lambda x: x.total_complaints).trend_date
 
 
 class CategoryBreakdown(BaseSchema):
@@ -414,11 +414,11 @@ class CategoryBreakdown(BaseSchema):
     @classmethod
     def validate_status_counts(cls, v: int, info) -> int:
         """Validate status counts don't exceed category total."""
-        if "count" in info.data and v > info.data["count"]:
+        if info.data.get("count") is not None and v > info.data["count"]:
             raise ValueError(f"{info.field_name} cannot exceed count")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> Decimal:
         """Calculate resolution rate for this category."""
@@ -468,7 +468,7 @@ class PriorityBreakdown(BaseSchema):
         description="SLA compliance rate for this priority level"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def priority_score(self) -> int:
         """Get numeric priority score for sorting (higher = more urgent)."""
@@ -556,7 +556,7 @@ class ComplaintDashboard(BaseSchema):
                 )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def most_common_category(self) -> Optional[str]:
         """Identify the most common complaint category."""
@@ -564,7 +564,7 @@ class ComplaintDashboard(BaseSchema):
             return None
         return max(self.by_category, key=lambda x: x.count).category
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def slowest_category(self) -> Optional[str]:
         """Identify category with slowest average resolution time."""
@@ -575,7 +575,7 @@ class ComplaintDashboard(BaseSchema):
             key=lambda x: x.average_resolution_time_hours
         ).category
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def high_priority_percentage(self) -> Decimal:
         """Calculate percentage of high/urgent/critical priority complaints."""

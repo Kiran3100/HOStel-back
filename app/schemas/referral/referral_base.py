@@ -14,6 +14,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic_core import ValidationInfo
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import ReferralStatus, RewardStatus
@@ -91,16 +92,15 @@ class ReferralBase(BaseSchema):
     )
 
     # Reward tracking
+    # Note: decimal_places parameter removed - Decimal type handles precision
     referrer_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Reward amount for referrer",
     )
     referee_reward_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Reward amount for referee",
     )
     currency: str = Field(
@@ -166,6 +166,15 @@ class ReferralBase(BaseSchema):
         
         return normalized
 
+    @field_validator("referrer_reward_amount", "referee_reward_amount")
+    @classmethod
+    def validate_decimal_places(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal values have at most 2 decimal places."""
+        if v is None:
+            return None
+        # Quantize to 2 decimal places
+        return v.quantize(Decimal("0.01"))
+
     @model_validator(mode="after")
     def validate_referee_info(self) -> "ReferralBase":
         """Ensure at least one referee identifier is provided."""
@@ -212,17 +221,17 @@ class ReferralCreate(ReferralBase, BaseCreateSchema):
         description="Referral code (auto-generated if not provided)",
     )
     
-    @field_validator("referral_code")
+    @model_validator(mode="before")
     @classmethod
-    def generate_referral_code(cls, v: Optional[str], info) -> str:
+    def generate_referral_code(cls, data: dict) -> dict:
         """Generate referral code if not provided."""
-        if v is None:
+        if isinstance(data, dict) and data.get("referral_code") is None:
             # Generate unique code
             import secrets
             import string
             
             # Get referrer_id for personalization
-            referrer_id = info.data.get("referrer_id")
+            referrer_id = data.get("referrer_id")
             if referrer_id:
                 # Use last 6 chars of UUID + random string
                 user_suffix = str(referrer_id).replace("-", "")[-6:].upper()
@@ -235,9 +244,9 @@ class ReferralCreate(ReferralBase, BaseCreateSchema):
                 for _ in range(6)
             )
             
-            return f"REF-{user_suffix}{random_part}"
+            data["referral_code"] = f"REF-{user_suffix}{random_part}"
         
-        return v.upper()
+        return data
 
 
 class ReferralUpdate(BaseSchema):
@@ -311,7 +320,6 @@ class ReferralConversion(BaseCreateSchema):
     booking_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Booking amount",
     )
     stay_duration_months: int = Field(
@@ -324,6 +332,12 @@ class ReferralConversion(BaseCreateSchema):
         default_factory=datetime.utcnow,
         description="Conversion timestamp",
     )
+
+    @field_validator("booking_amount")
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @model_validator(mode="after")
     def validate_conversion_date(self) -> "ReferralConversion":

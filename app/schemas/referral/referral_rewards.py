@@ -40,13 +40,11 @@ class RewardConfig(BaseSchema):
     min_payout_amount: Decimal = Field(
         default=Decimal("100.00"),
         ge=0,
-        decimal_places=2,
         description="Minimum amount required before payout",
     )
     max_payout_amount: Decimal = Field(
         default=Decimal("100000.00"),
         ge=0,
-        decimal_places=2,
         description="Maximum amount per payout transaction",
     )
 
@@ -77,19 +75,16 @@ class RewardConfig(BaseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=10,
-        decimal_places=2,
         description="Payout processing fee percentage",
     )
     min_payout_fee: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
-        decimal_places=2,
         description="Minimum payout fee",
     )
     max_payout_fee: Decimal = Field(
         default=Decimal("100.00"),
         ge=0,
-        decimal_places=2,
         description="Maximum payout fee",
     )
 
@@ -116,7 +111,6 @@ class RewardConfig(BaseSchema):
         default=Decimal("0.00"),
         ge=0,
         le=30,
-        decimal_places=2,
         description="Tax deduction percentage",
     )
 
@@ -125,6 +119,19 @@ class RewardConfig(BaseSchema):
     def validate_payout_methods(cls, v: List[PaymentMethod]) -> List[PaymentMethod]:
         """Ensure unique payout methods."""
         return list(set(v))
+
+    @field_validator(
+        "min_payout_amount",
+        "max_payout_amount",
+        "payout_fee_percentage",
+        "min_payout_fee",
+        "max_payout_fee",
+        "tax_deduction_percentage",
+    )
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class RewardTracking(BaseSchema):
@@ -141,25 +148,21 @@ class RewardTracking(BaseSchema):
     total_rewards_earned: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total rewards earned (all time)",
     )
     total_rewards_paid: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total rewards paid out",
     )
     pending_rewards: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Pending rewards awaiting payout",
     )
     available_for_payout: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount available for immediate payout",
     )
     currency: str = Field(default="INR", description="Currency code")
@@ -214,6 +217,24 @@ class RewardTracking(BaseSchema):
         description="Average payout amount",
     )
 
+    @field_validator(
+        "total_rewards_earned",
+        "total_rewards_paid",
+        "pending_rewards",
+        "available_for_payout",
+        "approved_rewards",
+        "pending_approval",
+        "cancelled_rewards",
+        "last_payout_amount",
+        "average_payout_amount",
+    )
+    @classmethod
+    def validate_decimal_places(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal values have at most 2 decimal places."""
+        if v is None:
+            return None
+        return v.quantize(Decimal("0.01"))
+
 
 class RewardCalculation(BaseSchema):
     """
@@ -229,7 +250,6 @@ class RewardCalculation(BaseSchema):
     booking_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Booking amount",
     )
     stay_duration_months: int = Field(
@@ -249,38 +269,32 @@ class RewardCalculation(BaseSchema):
     referrer_base_reward: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Base reward for referrer",
     )
     referrer_bonus: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Bonus for referrer (if any)",
     )
     referrer_total_reward: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total reward for referrer",
     )
 
     referee_base_reward: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Base reward for referee",
     )
     referee_bonus: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Bonus for referee (if any)",
     )
     referee_total_reward: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total reward for referee",
     )
 
@@ -288,13 +302,11 @@ class RewardCalculation(BaseSchema):
     tax_deduction: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Tax deduction amount",
     )
     processing_fee: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Processing fee",
     )
 
@@ -302,13 +314,11 @@ class RewardCalculation(BaseSchema):
     referrer_net_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Net amount for referrer after deductions",
     )
     referee_net_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Net amount for referee after deductions",
     )
 
@@ -317,6 +327,24 @@ class RewardCalculation(BaseSchema):
         default_factory=datetime.utcnow,
         description="Calculation timestamp",
     )
+
+    @field_validator(
+        "booking_amount",
+        "referrer_base_reward",
+        "referrer_bonus",
+        "referrer_total_reward",
+        "referee_base_reward",
+        "referee_bonus",
+        "referee_total_reward",
+        "tax_deduction",
+        "processing_fee",
+        "referrer_net_amount",
+        "referee_net_amount",
+    )
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class PayoutRequest(BaseCreateSchema):
@@ -331,7 +359,6 @@ class PayoutRequest(BaseCreateSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Amount to withdraw",
     )
 
@@ -368,6 +395,7 @@ class PayoutRequest(BaseCreateSchema):
     @classmethod
     def validate_amount(cls, v: Decimal) -> Decimal:
         """Validate payout amount."""
+        v = v.quantize(Decimal("0.01"))
         if v <= 0:
             raise ValueError("Payout amount must be greater than zero")
         if v < Decimal("100.00"):
@@ -416,25 +444,21 @@ class PayoutRequestResponse(BaseResponseSchema):
     amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Requested payout amount",
     )
     processing_fee: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Processing fee",
     )
     tax_deduction: Decimal = Field(
         default=Decimal("0"),
         ge=0,
-        decimal_places=2,
         description="Tax deduction",
     )
     net_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Net amount to be paid",
     )
     currency: str = Field(..., description="Currency code")
@@ -478,6 +502,12 @@ class PayoutRequestResponse(BaseResponseSchema):
     approved_by: Optional[UUID] = Field(None, description="Admin who approved")
     processed_by: Optional[UUID] = Field(None, description="Admin who processed")
 
+    @field_validator("amount", "processing_fee", "tax_deduction", "net_amount")
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
+
 
 class PayoutHistory(BaseSchema):
     """
@@ -491,7 +521,6 @@ class PayoutHistory(BaseSchema):
     total_amount_paid: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total amount paid out",
     )
     currency: str = Field(default="INR", description="Currency")
@@ -500,6 +529,12 @@ class PayoutHistory(BaseSchema):
         ...,
         description="List of payout transactions",
     )
+
+    @field_validator("total_amount_paid")
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class RewardSummary(BaseSchema):
@@ -588,3 +623,17 @@ class RewardSummary(BaseSchema):
     )
 
     currency: str = Field(default="INR", description="Currency code")
+
+    @field_validator(
+        "total_rewards_earned",
+        "total_rewards_approved",
+        "total_rewards_paid",
+        "total_rewards_pending",
+        "total_rewards_cancelled",
+        "average_reward_amount",
+        "average_payout_amount",
+    )
+    @classmethod
+    def validate_decimal_places(cls, v: Decimal) -> Decimal:
+        """Ensure decimal values have at most 2 decimal places."""
+        return v.quantize(Decimal("0.01"))

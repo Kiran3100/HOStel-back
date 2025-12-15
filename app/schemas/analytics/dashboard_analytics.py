@@ -13,7 +13,7 @@ from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -112,7 +112,7 @@ class KPIResponse(BaseSchema):
             return round(v, 2)
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_on_target(self) -> Optional[bool]:
         """Check if current value meets target."""
@@ -130,7 +130,7 @@ class KPIResponse(BaseSchema):
         
         return None
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_status(self) -> str:
         """
@@ -308,19 +308,19 @@ class QuickStats(BaseSchema):
         """Validate active counts don't exceed totals."""
         field_name = info.field_name
         
-        if field_name == "active_hostels" and "total_hostels" in info.data:
+        if field_name == "active_hostels" and info.data.get("total_hostels") is not None:
             if v > info.data["total_hostels"]:
                 raise ValueError("active_hostels cannot exceed total_hostels")
-        elif field_name == "active_students" and "total_students" in info.data:
+        elif field_name == "active_students" and info.data.get("total_students") is not None:
             if v > info.data["total_students"]:
                 raise ValueError("active_students cannot exceed total_students")
-        elif field_name == "active_visitors" and "total_visitors" in info.data:
+        elif field_name == "active_visitors" and info.data.get("total_visitors") is not None:
             if v > info.data["total_visitors"]:
                 raise ValueError("active_visitors cannot exceed total_visitors")
         
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate approximate occupancy rate."""
@@ -332,7 +332,7 @@ class QuickStats(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def complaint_urgency_rate(self) -> Decimal:
         """Calculate percentage of urgent complaints."""
@@ -343,7 +343,7 @@ class QuickStats(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def payment_collection_health(self) -> str:
         """Assess payment collection health."""
@@ -371,7 +371,9 @@ class TimeseriesPoint(BaseSchema):
 
     date_: Date = Field(
         ...,
-        description="Date of the data point"
+        description="Date of the data point",
+        # In Pydantic v2, we use 'serialization_alias' for output field name
+        serialization_alias="date"
     )
     value: Union[Decimal, int, float] = Field(
         ...,
@@ -387,12 +389,11 @@ class TimeseriesPoint(BaseSchema):
         description="Additional metadata for this point"
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def formatted_date(self) -> str:
         """Get formatted date string."""
         return self.date_.strftime("%Y-%m-%d")
-
 
 
 class AlertNotification(BaseSchema):
@@ -442,7 +443,7 @@ class AlertNotification(BaseSchema):
         description="Whether alert has been dismissed"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_active(self) -> bool:
         """Check if alert is still active."""
@@ -585,18 +586,18 @@ class DashboardMetrics(BaseSchema):
     ) -> List[TimeseriesPoint]:
         """Ensure timeseries data is in chronological order."""
         if len(v) > 1:
-            dates = [point.Date for point in v]
+            dates = [point.date_ for point in v]
             if dates != sorted(dates):
                 raise ValueError("Timeseries points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def active_alert_count(self) -> int:
         """Count of active alerts."""
         return sum(1 for alert in self.alerts if alert.is_active)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def critical_alert_count(self) -> int:
         """Count of critical active alerts."""
@@ -695,13 +696,13 @@ class RoleSpecificDashboard(BaseSchema):
         description="Dashboard generation timestamp"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_kpi_count(self) -> int:
         """Total number of KPIs across all sections."""
         return sum(len(kpis) for kpis in self.kpis_by_section.values())
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_critical_alerts(self) -> bool:
         """Check if any section has critical alerts."""

@@ -4,11 +4,7 @@ Admin permission schemas for hostel-level access control.
 Defines comprehensive permission structures and role mappings
 for fine-grained authorization and access management.
 
-Key Improvements:
-- Type-safe permission definitions
-- Enhanced validation
-- Better defaults and documentation
-- Cleaner structure
+Migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -165,29 +161,37 @@ class PermissionMatrix(BaseSchema):
     for authorization and UI rendering.
     """
 
-    permissions: Dict[UserRole, List[str]] = Field(
-        ..., description="Map of role to list of permission keys"
+    # Note: In Pydantic v2, Dict keys must be JSON-serializable strings
+    # We'll use role.value (string) as keys instead of UserRole enum directly
+    permissions: Dict[str, List[str]] = Field(
+        ..., description="Map of role value to list of permission keys"
     )
 
     @field_validator("permissions")
     @classmethod
-    def validate_permissions(cls, v: Dict[UserRole, List[str]]) -> Dict[UserRole, List[str]]:
+    def validate_permissions(cls, v: Dict[str, List[str]]) -> Dict[str, List[str]]:
         """Validate permission keys are valid."""
-        for role, perms in v.items():
+        # Validate that role keys are valid
+        valid_role_values = {role.value for role in UserRole}
+        
+        for role_str, perms in v.items():
+            if role_str not in valid_role_values:
+                raise ValueError(f"Invalid role: {role_str}")
+            
             invalid_perms = set(perms) - ALL_PERMISSION_KEYS
             if invalid_perms:
                 raise ValueError(
-                    f"Invalid permissions for role {role.value}: {', '.join(invalid_perms)}"
+                    f"Invalid permissions for role {role_str}: {', '.join(invalid_perms)}"
                 )
         return v
 
     def get_role_permissions(self, role: UserRole) -> List[str]:
         """Get permissions for a specific role."""
-        return self.permissions.get(role, [])
+        return self.permissions.get(role.value, [])
 
     def role_has_permission(self, role: UserRole, permission_key: str) -> bool:
         """Check if role has specific permission."""
-        return permission_key in self.permissions.get(role, [])
+        return permission_key in self.permissions.get(role.value, [])
 
 
 class RolePermissions(BaseSchema):

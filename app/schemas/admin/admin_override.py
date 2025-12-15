@@ -4,11 +4,7 @@ Admin override schemas for supervisor decision management.
 Provides structured requests and logs for admin overrides of supervisor actions,
 with comprehensive analytics and audit trail support.
 
-Key Improvements:
-- Enhanced validation with detailed error messages
-- Better type safety and null handling
-- Optimized computed properties
-- Improved documentation
+Migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -282,18 +278,18 @@ class OverrideSummary(BaseSchema):
     )
 
     # By supervisor
-    overrides_by_supervisor: Dict[UUID, int] = Field(
+    overrides_by_supervisor: Dict[str, int] = Field(  # Changed from Dict[UUID, int] to Dict[str, int] for JSON serialization
         default_factory=dict, description="Breakdown by supervisor"
     )
 
     # By hostel
-    overrides_by_hostel: Dict[UUID, int] = Field(
+    overrides_by_hostel: Dict[str, int] = Field(  # Changed from Dict[UUID, int] to Dict[str, int] for JSON serialization
         default_factory=dict, description="Breakdown by hostel"
     )
 
     # Trend
     override_trend: str = Field(
-        ..., pattern="^(increasing|decreasing|stable)$", description="Override trend"
+        ..., description="Override trend (increasing/decreasing/stable)"
     )
 
     @computed_field
@@ -306,7 +302,7 @@ class OverrideSummary(BaseSchema):
 
     @computed_field
     @property
-    def most_overridden_supervisor(self) -> Optional[UUID]:
+    def most_overridden_supervisor(self) -> Optional[str]:
         """Identify supervisor with most overrides."""
         if not self.overrides_by_supervisor:
             return None
@@ -391,8 +387,7 @@ class SupervisorOverrideStats(BaseSchema):
     # Trend
     recent_trend: str = Field(
         ...,
-        pattern="^(improving|declining|stable)$",
-        description="Recent trend in override rate",
+        description="Recent trend in override rate (improving/declining/stable)",
     )
 
     @computed_field

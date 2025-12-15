@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Any
 from enum import Enum
 
-from pydantic import Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -171,7 +171,7 @@ class RevenueBreakdown(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def collection_rate(self) -> Decimal:
         """Calculate collection rate percentage."""
@@ -182,7 +182,7 @@ class RevenueBreakdown(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def primary_revenue_source(self) -> str:
         """Identify the largest revenue source."""
@@ -194,9 +194,9 @@ class RevenueBreakdown(BaseSchema):
             "late_fees": self.late_fee_revenue,
             "other": self.other_revenue,
         }
-        return max(sources, key=sources.get)
+        return max(sources, key=sources.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_concentration_risk(self) -> str:
         """
@@ -333,7 +333,7 @@ class ExpenseBreakdown(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def largest_expense_category(self) -> str:
         """Identify the largest expense category."""
@@ -346,9 +346,9 @@ class ExpenseBreakdown(BaseSchema):
             "administrative": self.administrative_expenses,
             "other": self.other_expenses,
         }
-        return max(categories, key=categories.get)
+        return max(categories, key=categories.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def expense_ratio_staff(self) -> Decimal:
         """Calculate staff expense as percentage of total."""
@@ -436,7 +436,7 @@ class FinancialRatios(BaseSchema):
         description="Fixed costs as % of revenue"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def profitability_status(self) -> str:
         """Assess overall profitability status."""
@@ -485,7 +485,7 @@ class BudgetComparison(BaseSchema):
         description="Variance as percentage of budget"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_favorable(self) -> bool:
         """
@@ -498,7 +498,7 @@ class BudgetComparison(BaseSchema):
         # This should be contextualized by the caller
         return self.variance_amount >= 0
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def variance_severity(self) -> str:
         """Assess severity of budget variance."""
@@ -567,7 +567,7 @@ class TaxSummary(BaseSchema):
         description="Estimated income tax liability"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def effective_tax_rate(self) -> Decimal:
         """Calculate effective tax rate."""
@@ -704,13 +704,13 @@ class ProfitAndLossReport(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_profitable(self) -> bool:
         """Check if the period was profitable."""
         return self.net_profit > 0
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def break_even_revenue(self) -> Decimal:
         """
@@ -720,7 +720,7 @@ class ProfitAndLossReport(BaseSchema):
         """
         return self.expenses.total_expenses
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_above_break_even(self) -> Decimal:
         """Calculate revenue above break-even point."""
@@ -796,7 +796,7 @@ class CashflowPoint(BaseSchema):
             )
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_positive_flow(self) -> bool:
         """Check if net flow is positive."""
@@ -943,12 +943,12 @@ class CashflowSummary(BaseSchema):
     ) -> List[CashflowPoint]:
         """Ensure cashflow points are chronological."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.cashflow_date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Cashflow points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def cashflow_health(self) -> str:
         """Assess overall cashflow health."""
@@ -961,7 +961,7 @@ class CashflowSummary(BaseSchema):
         else:
             return "good"
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def burn_rate_days(self) -> Optional[int]:
         """
@@ -986,7 +986,7 @@ class CashflowSummary(BaseSchema):
         
         return int(self.closing_balance / daily_burn)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def operating_cash_ratio(self) -> Decimal:
         """Calculate operating cash flow ratio."""
@@ -1095,7 +1095,7 @@ class FinancialReport(BaseSchema):
         description="Year-over-year profit growth percentage"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def financial_health_score(self) -> Decimal:
         """
@@ -1135,7 +1135,7 @@ class FinancialReport(BaseSchema):
         
         return round(score, 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_grade(self) -> str:
         """Get letter grade for financial performance."""

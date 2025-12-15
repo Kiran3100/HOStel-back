@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from enum import Enum
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, model_validator, computed_field
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema, BaseCreateSchema, BaseResponseSchema
@@ -158,14 +158,16 @@ class CustomReportFilter(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def filter_display(self) -> str:
         """Generate human-readable filter description."""
         if self.operator == FilterOperator.BETWEEN:
             return f"{self.field_name} between {self.value} and {self.value_to}"
         elif self.operator in [FilterOperator.IN, FilterOperator.NOT_IN]:
-            return f"{self.field_name} {self.operator.value} ({len(self.value)} items)"
+            if isinstance(self.value, list):
+                return f"{self.field_name} {self.operator.value} ({len(self.value)} items)"
+            return f"{self.field_name} {self.operator.value}"
         elif self.operator in [FilterOperator.IS_NULL, FilterOperator.IS_NOT_NULL]:
             return f"{self.field_name} {self.operator.value}"
         else:
@@ -204,14 +206,14 @@ class CustomReportField(BaseSchema):
     
     @field_validator("display_label")
     @classmethod
-    def set_default_label(cls, v: Optional[str], info) -> str:
+    def set_default_label(cls, v: Optional[str], info) -> Optional[str]:
         """Set default display label from field name if not provided."""
-        if v is None and "field_name" in info.data:
+        if v is None and info.data.get("field_name") is not None:
             # Convert snake_case to Title Case
             return info.data["field_name"].replace("_", " ").title()
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def effective_label(self) -> str:
         """Get the effective display label."""
@@ -469,7 +471,7 @@ class CustomReportDefinition(BaseResponseSchema):
         description="Last update timestamp"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_shared(self) -> bool:
         """Check if report is shared with anyone."""
@@ -479,7 +481,7 @@ class CustomReportDefinition(BaseResponseSchema):
             self.shared_with_role is not None
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def complexity_score(self) -> int:
         """
@@ -582,19 +584,19 @@ class CustomReportResult(BaseSchema):
     @classmethod
     def validate_returned_rows(cls, v: int, info) -> int:
         """Validate returned_rows matches actual row count."""
-        if "rows" in info.data and v != len(info.data["rows"]):
+        if info.data.get("rows") is not None and v != len(info.data["rows"]):
             raise ValueError(
                 f"returned_rows ({v}) must match length of rows ({len(info.data['rows'])})"
             )
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_paginated(self) -> bool:
         """Check if results are paginated."""
         return self.total_rows > self.returned_rows
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_data(self) -> bool:
         """Check if report returned any data."""

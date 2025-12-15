@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Union
 from enum import Enum
 
-from pydantic import Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -149,17 +149,17 @@ class TenantMetrics(BaseSchema):
     @classmethod
     def validate_active_students(cls, v: int, info) -> int:
         """Validate active students don't exceed total."""
-        if "total_students" in info.data and v > info.data["total_students"]:
+        if info.data.get("total_students") is not None and v > info.data["total_students"]:
             raise ValueError("active_students cannot exceed total_students")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_at_risk(self) -> bool:
         """Check if tenant is at risk of churning."""
         return self.churn_risk_score >= 70
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_per_bed(self) -> Decimal:
         """Calculate revenue per bed."""
@@ -167,7 +167,7 @@ class TenantMetrics(BaseSchema):
             return Decimal("0.00")
         return round(self.subscription_mrr / Decimal(self.total_beds), 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def engagement_status(self) -> str:
         """Assess tenant engagement level."""
@@ -301,14 +301,14 @@ class PlatformMetrics(BaseSchema):
     @classmethod
     def validate_hostel_counts(cls, v: int, info) -> int:
         """Validate hostel segment counts."""
-        if "total_hostels" in info.data:
+        if info.data.get("total_hostels") is not None:
             total = info.data["total_hostels"]
             # Allow some flexibility as counts may overlap during transitions
             if v > total:
                 raise ValueError(f"{info.field_name} cannot exceed total_hostels")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def activation_rate(self) -> Decimal:
         """Calculate percentage of hostels that are active."""
@@ -319,14 +319,14 @@ class PlatformMetrics(BaseSchema):
             2
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def trial_conversion_potential(self) -> int:
         """Estimate potential conversions from trial hostels."""
         # Assume 60% trial conversion rate
         return int(self.hostels_on_trial * 0.6)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def user_growth_rate(self) -> Optional[Decimal]:
         """Calculate user growth rate if previous period data available."""
@@ -356,7 +356,7 @@ class MonthlyMetric(BaseSchema):
         description="Optional display label"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def month_name(self) -> str:
         """Get human-readable month name."""
@@ -505,7 +505,7 @@ class GrowthMetrics(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_growing(self) -> bool:
         """Check if platform is growing across key metrics."""
@@ -515,7 +515,7 @@ class GrowthMetrics(BaseSchema):
             self.user_growth_rate > 0
         )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def growth_health_score(self) -> Decimal:
         """
@@ -542,7 +542,7 @@ class GrowthMetrics(BaseSchema):
         
         return round(score, 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def compound_annual_growth_rate(self) -> Optional[Decimal]:
         """
@@ -622,15 +622,15 @@ class ChurnAnalysis(BaseSchema):
         description="Retention rate percentage"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def top_churn_reason(self) -> Optional[str]:
         """Identify most common churn reason."""
         if not self.churn_reasons:
             return None
-        return max(self.churn_reasons, key=self.churn_reasons.get)
+        return max(self.churn_reasons, key=self.churn_reasons.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def churn_risk_status(self) -> str:
         """Assess overall churn risk status."""
@@ -771,7 +771,7 @@ class SystemHealthMetrics(BaseSchema):
         description="Number of slow queries (>1s)"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def health_status(self) -> str:
         """Overall system health status."""
@@ -784,7 +784,7 @@ class SystemHealthMetrics(BaseSchema):
         else:
             return "poor"
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_grade(self) -> str:
         """Performance grade based on response times."""
@@ -895,7 +895,7 @@ class RevenueMetrics(BaseSchema):
         description="Revenue lost to churn"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_diversity_score(self) -> Decimal:
         """
@@ -917,7 +917,7 @@ class RevenueMetrics(BaseSchema):
         diversity = (1 - herfindahl) * 100
         return round(Decimal(str(diversity)), 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def net_new_mrr(self) -> Decimal:
         """Calculate net new MRR."""
@@ -1044,15 +1044,15 @@ class PlatformUsageAnalytics(BaseSchema):
         description="Average storage per tenant"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def most_used_module(self) -> Optional[str]:
         """Identify most frequently used module."""
         if not self.requests_by_module:
             return None
-        return max(self.requests_by_module, key=self.requests_by_module.get)
+        return max(self.requests_by_module, key=self.requests_by_module.get)  # type: ignore[arg-type]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def least_adopted_features(self) -> List[str]:
         """Identify features with low adoption (< 20%)."""
@@ -1061,7 +1061,7 @@ class PlatformUsageAnalytics(BaseSchema):
             if rate < 20
         ]
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def platform_health_indicator(self) -> str:
         """Overall platform health indicator."""

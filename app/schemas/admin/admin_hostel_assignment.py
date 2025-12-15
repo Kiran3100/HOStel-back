@@ -3,6 +3,8 @@ Enhanced admin-hostel assignment schemas with comprehensive validation and perfo
 
 Provides robust assignment management with audit trails, bulk operations,
 and detailed permission tracking for multi-hostel administration.
+
+Migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -10,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
 from pydantic import Field, computed_field, field_validator, model_validator
@@ -297,10 +299,38 @@ class AssignmentUpdate(BaseUpdateSchema):
         
         return self
 
-    # Reuse permission validation from AssignmentCreate
-    _validate_permissions = field_validator("permissions")(
-        AssignmentCreate.validate_permissions_structure.__func__
-    )
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions_structure(
+        cls, v: Optional[Dict[str, Union[bool, int, str]]]
+    ) -> Optional[Dict[str, Union[bool, int, str]]]:
+        """Validate permissions dictionary structure and values."""
+        if v is None:
+            return None
+        
+        # Define valid permission keys
+        valid_permission_keys = {
+            "can_manage_rooms", "can_manage_students", "can_approve_bookings",
+            "can_manage_fees", "can_view_financials", "can_manage_supervisors",
+            "can_override_decisions", "can_export_data", "can_delete_records",
+            "can_manage_hostel_settings", "can_view_analytics", "can_manage_announcements"
+        }
+        
+        # Validate each permission
+        for key, value in v.items():
+            if key not in valid_permission_keys:
+                raise ValueError(f"Invalid permission key: {key}")
+            
+            # Validate value types
+            if not isinstance(value, (bool, int, str)):
+                raise ValueError(f"Invalid permission value type for {key}: {type(value)}")
+            
+            # Validate specific permission constraints
+            if key.endswith("_threshold") and isinstance(value, (int, float)):
+                if value < 0:
+                    raise ValueError(f"Threshold values must be non-negative: {key}")
+        
+        return v
 
 
 class BulkAssignment(BaseCreateSchema):
@@ -389,10 +419,38 @@ class BulkAssignment(BaseCreateSchema):
         
         return self
 
-    # Reuse permission validation
-    _validate_permissions = field_validator("permissions")(
-        AssignmentCreate.validate_permissions_structure.__func__
-    )
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions_structure(
+        cls, v: Optional[Dict[str, Union[bool, int, str]]]
+    ) -> Optional[Dict[str, Union[bool, int, str]]]:
+        """Validate permissions dictionary structure and values."""
+        if v is None:
+            return None
+        
+        # Define valid permission keys
+        valid_permission_keys = {
+            "can_manage_rooms", "can_manage_students", "can_approve_bookings",
+            "can_manage_fees", "can_view_financials", "can_manage_supervisors",
+            "can_override_decisions", "can_export_data", "can_delete_records",
+            "can_manage_hostel_settings", "can_view_analytics", "can_manage_announcements"
+        }
+        
+        # Validate each permission
+        for key, value in v.items():
+            if key not in valid_permission_keys:
+                raise ValueError(f"Invalid permission key: {key}")
+            
+            # Validate value types
+            if not isinstance(value, (bool, int, str)):
+                raise ValueError(f"Invalid permission value type for {key}: {type(value)}")
+            
+            # Validate specific permission constraints
+            if key.endswith("_threshold") and isinstance(value, (int, float)):
+                if value < 0:
+                    raise ValueError(f"Threshold values must be non-negative: {key}")
+        
+        return v
 
 
 class RevokeAssignment(BaseCreateSchema):
@@ -454,10 +512,10 @@ class RevokeAssignment(BaseCreateSchema):
 
     @field_validator("effective_date")
     @classmethod
-    def validate_effective_date(cls, v: Optional[date]) -> Optional[Date]:
+    def validate_effective_date(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate revocation effective date."""
         if v is not None:
-            today = date.today()
+            today = Date.today()
             
             # Allow past dates for historical revocations
             if v < today:
@@ -489,7 +547,7 @@ class RevokeAssignment(BaseCreateSchema):
                 "Effective date must be specified for non-immediate revocation"
             )
         
-        if self.immediate_revocation and self.effective_date and self.effective_date != date.today():
+        if self.immediate_revocation and self.effective_date and self.effective_date != Date.today():
             raise ValueError(
                 "Immediate revocation cannot have future effective date"
             )

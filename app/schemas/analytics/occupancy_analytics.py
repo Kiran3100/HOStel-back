@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 from enum import Enum
 
-from pydantic import Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -143,7 +143,7 @@ class OccupancyKPI(BaseSchema):
     @classmethod
     def validate_bed_counts(cls, v: int, info) -> int:
         """Validate bed counts are consistent with total."""
-        if "total_beds" in info.data:
+        if info.data.get("total_beds") is not None:
             total = info.data["total_beds"]
             if v > total:
                 raise ValueError(f"{info.field_name} cannot exceed total_beds")
@@ -166,7 +166,7 @@ class OccupancyKPI(BaseSchema):
         
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_status(self) -> str:
         """
@@ -188,7 +188,7 @@ class OccupancyKPI(BaseSchema):
         else:
             return "critical"
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def capacity_pressure(self) -> Decimal:
         """
@@ -205,7 +205,7 @@ class OccupancyKPI(BaseSchema):
         
         return round(min(pressure_rate, Decimal("100.00")), 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def vacancy_rate(self) -> Decimal:
         """Calculate vacancy rate."""
@@ -255,11 +255,11 @@ class OccupancyTrendPoint(BaseSchema):
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if "total_beds" in info.data and v > info.data["total_beds"]:
+        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def net_change(self) -> int:
         """Calculate net change in occupancy for the day."""
@@ -325,17 +325,17 @@ class OccupancyByRoomType(BaseSchema):
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if "total_beds" in info.data and v > info.data["total_beds"]:
+        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def available_beds(self) -> int:
         """Calculate available beds."""
         return self.total_beds - self.occupied_beds
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_per_bed(self) -> Optional[Decimal]:
         """Calculate revenue per bed."""
@@ -388,7 +388,7 @@ class OccupancyByFloor(BaseSchema):
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if "total_beds" in info.data and v > info.data["total_beds"]:
+        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
 
@@ -500,7 +500,7 @@ class SeasonalPattern(BaseSchema):
         description="Confidence in pattern identification"
     )
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_high_season(self) -> bool:
         """Check if this is a high-occupancy season."""
@@ -586,7 +586,7 @@ class ForecastData(BaseSchema):
     ) -> List[ForecastPoint]:
         """Ensure forecast points are in chronological order."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.forecast_date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Forecast points must be in chronological order")
         return v
@@ -603,7 +603,7 @@ class ForecastData(BaseSchema):
                 )
         return self
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def average_forecasted_occupancy(self) -> Decimal:
         """Calculate average forecasted occupancy."""
@@ -613,7 +613,7 @@ class ForecastData(BaseSchema):
         total = sum(p.forecasted_occupancy_percentage for p in self.forecast_points)
         return round(total / len(self.forecast_points), 2)
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def peak_forecasted_date(self) -> Optional[date]:
         """Identify date with highest forecasted occupancy."""
@@ -622,9 +622,9 @@ class ForecastData(BaseSchema):
         return max(
             self.forecast_points,
             key=lambda x: x.forecasted_occupancy_percentage
-        ).date
+        ).forecast_date
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def low_forecasted_date(self) -> Optional[date]:
         """Identify date with lowest forecasted occupancy."""
@@ -633,7 +633,7 @@ class ForecastData(BaseSchema):
         return min(
             self.forecast_points,
             key=lambda x: x.forecasted_occupancy_percentage
-        ).date
+        ).forecast_date
 
 
 class OccupancyReport(BaseSchema):
@@ -712,12 +712,12 @@ class OccupancyReport(BaseSchema):
     ) -> List[OccupancyTrendPoint]:
         """Ensure trend points are chronological."""
         if len(v) > 1:
-            dates = [point.date for point in v]
+            dates = [point.trend_date for point in v]
             if dates != sorted(dates):
                 raise ValueError("Trend points must be in chronological order")
         return v
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def best_performing_room_type(self) -> Optional[RoomType]:
         """Identify room type with highest occupancy."""
@@ -728,7 +728,7 @@ class OccupancyReport(BaseSchema):
             key=lambda x: x.occupancy_percentage
         ).room_type
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def worst_performing_room_type(self) -> Optional[RoomType]:
         """Identify room type with lowest occupancy."""
@@ -739,7 +739,7 @@ class OccupancyReport(BaseSchema):
             key=lambda x: x.occupancy_percentage
         ).room_type
     
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_trend_direction(self) -> str:
         """
@@ -759,7 +759,7 @@ class OccupancyReport(BaseSchema):
         ) / len(first_half)
         second_avg = sum(
             p.occupancy_percentage for p in second_half
-        ) / len(second_half)
+        ) / (len(second_half) if second_half else 1)
         
         change = float(second_avg - first_avg)
         

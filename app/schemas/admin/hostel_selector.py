@@ -3,13 +3,15 @@ Enhanced hostel selector UI schemas with comprehensive filtering and organizatio
 
 Provides optimized schemas for hostel selection dropdown/sidebar with quick stats,
 favorites management, and recent access tracking for improved user experience.
+
+Migrated to Pydantic v2.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field, field_validator, model_validator
@@ -171,7 +173,7 @@ class HostelSelectorResponse(BaseSchema):
 
     @computed_field
     @property
-    def hostels_by_category(self) -> dict:
+    def hostels_by_category(self) -> Dict[str, List[HostelSelectorItem]]:
         """Organize hostels by category for UI grouping."""
         return {
             "primary": [h for h in self.hostels if h.is_primary],
@@ -370,9 +372,9 @@ class FavoriteHostels(BaseSchema):
 
     @computed_field
     @property
-    def favorites_by_city(self) -> dict:
+    def favorites_by_city(self) -> Dict[str, List[FavoriteHostelItem]]:
         """Group favorites by city."""
-        grouped = {}
+        grouped: Dict[str, List[FavoriteHostelItem]] = {}
         for hostel in self.hostels:
             city = hostel.hostel_city
             if city not in grouped:

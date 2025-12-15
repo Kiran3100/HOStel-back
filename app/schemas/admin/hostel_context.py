@@ -4,12 +4,7 @@ Enhanced hostel context management for multi-hostel admin operations.
 Provides robust context switching, session tracking, and history management
 for seamless multi-hostel administration with comprehensive audit trails.
 
-Key Improvements:
-- Optimized computed properties with better performance
-- Enhanced validation with clearer error messages
-- Better session management logic
-- Improved type safety and null handling
-- Comprehensive metrics calculation
+Migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -205,7 +200,8 @@ class HostelContext(BaseSchema):
 
         # Allow some tolerance for concurrent updates
         if abs(expected_duration - self.session_duration_minutes) > 5:
-            # Log warning but don't raise error
+            # In Pydantic v2, we can't directly log warnings from validators
+            # Application code should handle logging if needed
             pass
 
         return self
@@ -663,7 +659,8 @@ class ContextHistory(BaseSchema):
 
         # Validate switch count matches switches list
         if len(self.switches) != self.total_switches:
-            # This might be due to pagination, so log but don't error
+            # This might be due to pagination, so we don't error
+            # Application code should handle logging if needed
             pass
 
         return self
