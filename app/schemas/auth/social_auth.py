@@ -43,13 +43,13 @@ class SocialAuthRequest(BaseCreateSchema):
         examples=["google", "facebook"],
     )
 
-    @field_validator("provider")
+    @field_validator("provider", mode="after")
     @classmethod
     def normalize_provider(cls, v: str) -> str:
         """Normalize provider name to lowercase."""
         return v.lower().strip()
 
-    @field_validator("access_token")
+    @field_validator("access_token", mode="after")
     @classmethod
     def validate_token_not_empty(cls, v: str) -> str:
         """Ensure access token is not empty or whitespace."""
@@ -76,7 +76,7 @@ class GoogleAuthRequest(BaseCreateSchema):
         description="Google access token (optional, for additional API access)",
     )
 
-    @field_validator("id_token")
+    @field_validator("id_token", mode="after")
     @classmethod
     def validate_id_token_format(cls, v: str) -> str:
         """Validate token format and strip whitespace."""
@@ -114,7 +114,7 @@ class FacebookAuthRequest(BaseCreateSchema):
         description="Facebook user ID",
     )
 
-    @field_validator("access_token", "user_id")
+    @field_validator("access_token", "user_id", mode="after")
     @classmethod
     def validate_not_empty(cls, v: str) -> str:
         """Ensure field is not empty or whitespace."""
@@ -198,7 +198,7 @@ class SocialProfileData(BaseSchema):
         examples=["en_US", "hi_IN"],
     )
 
-    @field_validator("email")
+    @field_validator("email", mode="after")
     @classmethod
     def normalize_email(cls, v: EmailStr) -> str:
         """Normalize email to lowercase."""

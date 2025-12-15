@@ -8,7 +8,7 @@ inquiry data.
 
 from __future__ import annotations
 
-from datetime import date as Date, datetime
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 
@@ -31,8 +31,8 @@ class InquiryFilterParams(BaseFilterSchema):
     
     Supports filtering by status, dates, hostel, source, and more.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "search": "John",
@@ -47,93 +47,93 @@ class InquiryFilterParams(BaseFilterSchema):
 
     # Text Search
     search: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Search in visitor name, email, or phone",
     )
 
     # Hostel Filter
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific hostel",
     )
     hostel_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=20,
         description="Filter by multiple hostels",
     )
 
     # Status Filter
     status: Optional[InquiryStatus] = Field(
-        None,
+        default=None,
         description="Filter by specific status",
     )
     statuses: Optional[List[InquiryStatus]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by multiple statuses",
     )
 
     # Source Filter
     source: Optional[InquirySource] = Field(
-        None,
+        default=None,
         description="Filter by inquiry source",
     )
     sources: Optional[List[InquirySource]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by multiple sources",
     )
 
     # Date Filters
     created_from: Optional[Date] = Field(
-        None,
+        default=None,
         description="Filter inquiries created from this Date",
     )
     created_to: Optional[Date] = Field(
-        None,
+        default=None,
         description="Filter inquiries created until this Date",
     )
 
     # Check-in Date Filter
     check_in_from: Optional[Date] = Field(
-        None,
+        default=None,
         description="Filter by preferred check-in Date from",
     )
     check_in_to: Optional[Date] = Field(
-        None,
+        default=None,
         description="Filter by preferred check-in Date to",
     )
 
     # Room Type Filter
     room_type: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Filter by room type preference",
     )
 
     # Assignment Filters
     assigned_to: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by assigned admin",
     )
     is_assigned: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by assignment status",
     )
 
     # Contact Status
     is_contacted: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by whether inquiry has been contacted",
     )
 
     # Urgency Filters
     is_urgent: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only urgent inquiries (new and recent)",
     )
     is_stale: Optional[bool] = Field(
-        None,
+        default=None,
         description="Show only stale inquiries (old without contact)",
     )
 
@@ -164,8 +164,8 @@ class InquirySearchRequest(BaseFilterSchema):
     
     Supports full-text search across inquiry fields.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "query": "john smith",
@@ -186,42 +186,42 @@ class InquirySearchRequest(BaseFilterSchema):
         description="Search query string",
     )
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Limit search to specific hostel",
     )
 
     # Search Fields
     search_in_name: bool = Field(
-        True,
+        default=True,
         description="Search in visitor name",
     )
     search_in_email: bool = Field(
-        True,
+        default=True,
         description="Search in email address",
     )
     search_in_phone: bool = Field(
-        True,
+        default=True,
         description="Search in phone number",
     )
     search_in_message: bool = Field(
-        False,
+        default=False,
         description="Search in inquiry message",
     )
 
     # Status Filter
     status: Optional[InquiryStatus] = Field(
-        None,
+        default=None,
         description="Limit search to specific status",
     )
 
     # Pagination
     page: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Page number",
     )
     page_size: int = Field(
-        20,
+        default=20,
         ge=1,
         le=100,
         description="Items per page",
@@ -241,8 +241,8 @@ class InquirySortOptions(BaseFilterSchema):
     """
     Inquiry sorting options.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "sort_by": "created_at",
@@ -252,12 +252,12 @@ class InquirySortOptions(BaseFilterSchema):
     )
 
     sort_by: str = Field(
-        "created_at",
+        default="created_at",
         pattern=r"^(created_at|visitor_name|status|check_in_date)$",
         description="Field to sort by",
     )
     sort_order: str = Field(
-        "desc",
+        default="desc",
         pattern=r"^(asc|desc)$",
         description="Sort order",
     )
@@ -273,8 +273,8 @@ class InquiryExportRequest(BaseFilterSchema):
     """
     Request to export inquiries data.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -287,32 +287,32 @@ class InquiryExportRequest(BaseFilterSchema):
     )
 
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Export inquiries for specific hostel",
     )
     filters: Optional[InquiryFilterParams] = Field(
-        None,
+        default=None,
         description="Apply filters to export",
     )
 
     # Export Format
     format: str = Field(
-        "csv",
+        default="csv",
         pattern=r"^(csv|excel|pdf)$",
         description="Export format",
     )
 
     # Fields to Include
     include_message: bool = Field(
-        True,
+        default=True,
         description="Include inquiry message",
     )
     include_notes: bool = Field(
-        False,
+        default=False,
         description="Include internal notes",
     )
     include_timeline: bool = Field(
-        False,
+        default=False,
         description="Include timeline/history",
     )
 

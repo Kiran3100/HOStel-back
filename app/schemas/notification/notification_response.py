@@ -36,15 +36,15 @@ class NotificationResponse(BaseResponseSchema):
 
     # Recipient information
     recipient_user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Recipient user ID",
     )
     recipient_email: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient email address",
     )
     recipient_phone: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient phone number",
     )
 
@@ -54,7 +54,7 @@ class NotificationResponse(BaseResponseSchema):
         description="Notification delivery channel",
     )
     subject: Optional[str] = Field(
-        None,
+        default=None,
         description="Notification subject/title",
     )
     message_body: str = Field(
@@ -74,11 +74,11 @@ class NotificationResponse(BaseResponseSchema):
 
     # Timing
     scheduled_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Scheduled delivery time",
     )
     sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Actual send time",
     )
     created_at: datetime = Field(
@@ -86,7 +86,7 @@ class NotificationResponse(BaseResponseSchema):
         description="Creation timestamp",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_sent(self) -> bool:
         """Check if notification has been sent."""
@@ -95,7 +95,7 @@ class NotificationResponse(BaseResponseSchema):
             NotificationStatus.COMPLETED,
         ]
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_pending(self) -> bool:
         """Check if notification is pending delivery."""
@@ -115,15 +115,15 @@ class NotificationDetail(BaseResponseSchema):
 
     # Recipient information
     recipient_user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Recipient user ID",
     )
     recipient_email: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient email address",
     )
     recipient_phone: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient phone number",
     )
 
@@ -133,11 +133,11 @@ class NotificationDetail(BaseResponseSchema):
         description="Notification delivery channel",
     )
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template code used",
     )
     subject: Optional[str] = Field(
-        None,
+        default=None,
         description="Notification subject/title",
     )
     message_body: str = Field(
@@ -157,25 +157,25 @@ class NotificationDetail(BaseResponseSchema):
 
     # Scheduling and delivery
     scheduled_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Scheduled delivery time",
     )
     sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Actual send time",
     )
     delivered_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Delivery confirmation time",
     )
     failed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Failure timestamp",
     )
 
     # Retry and error handling
     failure_reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Reason for delivery failure",
     )
@@ -192,11 +192,11 @@ class NotificationDetail(BaseResponseSchema):
 
     # Engagement tracking
     read_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When the notification was read",
     )
     clicked_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When any link in the notification was clicked",
     )
 
@@ -208,7 +208,7 @@ class NotificationDetail(BaseResponseSchema):
 
     # Related entities
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Associated hostel ID",
     )
 
@@ -222,13 +222,13 @@ class NotificationDetail(BaseResponseSchema):
         description="Last update timestamp",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_read(self) -> bool:
         """Check if notification has been read."""
         return self.read_at is not None
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def can_retry(self) -> bool:
         """Check if notification can be retried."""
@@ -237,7 +237,7 @@ class NotificationDetail(BaseResponseSchema):
             and self.retry_count < self.max_retries
         )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def delivery_duration_seconds(self) -> Optional[int]:
         """Calculate delivery duration in seconds."""
@@ -265,7 +265,7 @@ class NotificationListItem(BaseSchema):
 
     # Content preview
     subject: Optional[str] = Field(
-        None,
+        default=None,
         description="Notification subject",
     )
     message_preview: str = Field(
@@ -290,7 +290,7 @@ class NotificationListItem(BaseSchema):
         description="Whether notification has been read",
     )
     read_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When notification was read",
     )
 
@@ -302,22 +302,22 @@ class NotificationListItem(BaseSchema):
 
     # Actions and UI
     action_url: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="URL to navigate to when notification is clicked",
     )
     icon: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Icon identifier for UI rendering",
     )
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Notification category for grouping",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_urgent(self) -> bool:
         """Check if notification is urgent."""
@@ -350,13 +350,13 @@ class NotificationList(BaseSchema):
         description="List of notification items",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def read_count(self) -> int:
         """Calculate number of read notifications."""
         return self.total_notifications - self.unread_count
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_unread(self) -> bool:
         """Check if there are any unread notifications."""
@@ -449,11 +449,11 @@ class NotificationSummary(BaseSchema):
 
     # Recent activity
     last_notification_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Timestamp of most recent notification",
     )
     last_read_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When user last read a notification",
     )
 
@@ -483,7 +483,7 @@ class NotificationSummary(BaseSchema):
         description="Number of days included in summary",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def read_percentage(self) -> float:
         """Calculate percentage of read notifications."""
@@ -492,7 +492,7 @@ class NotificationSummary(BaseSchema):
         read_count = self.total_notifications - self.unread_notifications
         return round((read_count / self.total_notifications) * 100, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_recent_activity(self) -> bool:
         """Check if there's been activity in the last 24 hours."""

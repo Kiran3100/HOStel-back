@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 
@@ -30,6 +30,7 @@ class FeedbackRequest(BaseCreateSchema):
     
     Collects rating, detailed feedback, and satisfaction metrics.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -97,6 +98,7 @@ class FeedbackResponse(BaseResponseSchema):
     
     Confirms feedback receipt and provides summary.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -120,6 +122,7 @@ class FeedbackSummary(BaseSchema):
     
     Provides aggregate feedback metrics and insights.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     entity_id: str = Field(
         ...,
@@ -137,12 +140,14 @@ class FeedbackSummary(BaseSchema):
 
     # Overall statistics
     total_feedbacks: int = Field(..., ge=0, description="Total feedback count")
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("5"),
-        description="Average rating (0-5)",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("5"),
+            description="Average rating (0-5)"
+        )
+    ]
 
     # Rating distribution
     rating_5_count: int = Field(..., ge=0, description="5-star rating count")
@@ -152,32 +157,40 @@ class FeedbackSummary(BaseSchema):
     rating_1_count: int = Field(..., ge=0, description="1-star rating count")
 
     # Satisfaction metrics (percentages)
-    resolution_satisfaction_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% satisfied with issue resolution",
-    )
-    response_time_satisfaction_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% satisfied with response time",
-    )
-    staff_helpfulness_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% who found staff helpful",
-    )
+    resolution_satisfaction_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% satisfied with issue resolution"
+        )
+    ]
+    response_time_satisfaction_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% satisfied with response time"
+        )
+    ]
+    staff_helpfulness_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% who found staff helpful"
+        )
+    ]
 
     # Recommendation
-    recommendation_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% who would recommend the system",
-    )
+    recommendation_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% who would recommend the system"
+        )
+    ]
 
     # Sentiment analysis
     positive_feedback_count: int = Field(
@@ -202,18 +215,21 @@ class RatingTrendPoint(BaseSchema):
     
     Represents rating metrics for a specific time period.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     period: str = Field(
         ...,
         description="Time period (Date, week, or month)",
         examples=["2024-01", "Week 1", "2024-01-15"],
     )
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("5"),
-        description="Average rating for period",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("5"),
+            description="Average rating for period"
+        )
+    ]
     feedback_count: int = Field(
         ...,
         ge=0,
@@ -227,6 +243,7 @@ class FeedbackAnalysis(BaseSchema):
     
     Provides deep insights into feedback patterns.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: str = Field(..., description="Hostel identifier")
     period_start: Date = Field(..., description="Analysis period start")
@@ -251,15 +268,19 @@ class FeedbackAnalysis(BaseSchema):
     )
 
     # Response time impact
-    avg_rating_quick_response: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("5"),
-        description="Average rating for quick responses",
-    )
-    avg_rating_slow_response: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("5"),
-        description="Average rating for slow responses",
-    )
+    avg_rating_quick_response: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("5"),
+            description="Average rating for quick responses"
+        )
+    ]
+    avg_rating_slow_response: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("5"),
+            description="Average rating for slow responses"
+        )
+    ]

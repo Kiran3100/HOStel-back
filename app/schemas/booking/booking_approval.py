@@ -56,25 +56,24 @@ class BookingApprovalRequest(BaseCreateSchema):
     )
 
     # Pricing Confirmation/Adjustment
+    # Note: decimal_places removed - Pydantic v2 doesn't support this constraint
+    # Precision is maintained through Decimal type and validation
     final_rent_monthly: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Final confirmed monthly rent amount",
+        description="Final confirmed monthly rent amount (precision: 2 decimal places)",
     )
     final_security_deposit: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Final confirmed security deposit amount",
+        description="Final confirmed security deposit amount (precision: 2 decimal places)",
     )
 
     # Additional Charges
     processing_fee: Decimal = Field(
         Decimal("0.00"),
         ge=0,
-        decimal_places=2,
-        description="One-time processing or booking fee",
+        description="One-time processing or booking fee (precision: 2 decimal places)",
     )
 
     # Notes and Communication
@@ -98,8 +97,7 @@ class BookingApprovalRequest(BaseCreateSchema):
         Decimal("20.00"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Percentage of total amount required as advance (0-100)",
+        description="Percentage of total amount required as advance (0-100, precision: 2 decimal places)",
     )
 
     @field_validator("approved_check_in_date")
@@ -116,7 +114,10 @@ class BookingApprovalRequest(BaseCreateSchema):
     @field_validator("final_rent_monthly")
     @classmethod
     def validate_rent_amount(cls, v: Decimal) -> Decimal:
-        """Validate rent amount is reasonable."""
+        """Validate rent amount is reasonable and quantize to 2 decimal places."""
+        # Quantize to 2 decimal places (replaces decimal_places constraint)
+        v = v.quantize(Decimal("0.01"))
+        
         if v <= 0:
             raise ValueError("Monthly rent must be greater than zero")
         
@@ -130,6 +131,12 @@ class BookingApprovalRequest(BaseCreateSchema):
             raise ValueError(f"Monthly rent (₹{v}) exceeds maximum (₹{max_rent})")
         
         return v
+
+    @field_validator("final_security_deposit", "processing_fee", "advance_payment_percentage")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @model_validator(mode="after")
     def validate_advance_payment(self) -> "BookingApprovalRequest":
@@ -192,26 +199,22 @@ class ApprovalResponse(BaseSchema):
     monthly_rent: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Confirmed monthly rent",
+        description="Confirmed monthly rent (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Security deposit amount",
+        description="Security deposit amount (precision: 2 decimal places)",
     )
     advance_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Advance payment amount required",
+        description="Advance payment amount required (precision: 2 decimal places)",
     )
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Total booking amount",
+        description="Total booking amount (precision: 2 decimal places)",
     )
 
     # Dates
@@ -238,6 +241,12 @@ class ApprovalResponse(BaseSchema):
         ...,
         description="Confirmation message for guest",
     )
+
+    @field_validator("monthly_rent", "security_deposit", "advance_amount", "total_amount")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class RejectionRequest(BaseCreateSchema):
@@ -420,8 +429,7 @@ class ApprovalSettings(BaseSchema):
         Decimal("20.00"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Default advance payment percentage (0-100)",
+        description="Default advance payment percentage (0-100, precision: 2 decimal places)",
     )
 
     @field_validator("approval_expiry_hours")
@@ -443,3 +451,9 @@ class ApprovalSettings(BaseSchema):
         if not isinstance(v, dict):
             raise ValueError("Auto-approve conditions must be a dictionary")
         return v
+
+    @field_validator("advance_payment_percentage")
+    @classmethod
+    def quantize_decimal_field(cls, v: Decimal) -> Decimal:
+        """Quantize decimal field to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))

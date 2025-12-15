@@ -11,7 +11,7 @@ Provides comprehensive dashboard metrics including:
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Annotated
 
 from pydantic import BaseModel, Field, field_validator, computed_field
 from uuid import UUID
@@ -29,6 +29,11 @@ __all__ = [
     "AlertNotification",
     "DashboardWidget",
 ]
+
+
+# Type aliases
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0)]
 
 
 class KPIResponse(BaseSchema):
@@ -273,28 +278,20 @@ class QuickStats(BaseSchema):
     )
     
     # Financial metrics
-    todays_revenue: Decimal = Field(
+    todays_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Revenue collected today"
     )
-    monthly_revenue: Decimal = Field(
+    monthly_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Revenue for current month"
     )
-    outstanding_payments: Decimal = Field(
+    outstanding_payments: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total outstanding payment amount"
     )
-    overdue_payments: Decimal = Field(
+    overdue_payments: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Overdue payment amount"
     )
     
@@ -307,18 +304,25 @@ class QuickStats(BaseSchema):
     def validate_active_counts(cls, v: int, info) -> int:
         """Validate active counts don't exceed totals."""
         field_name = info.field_name
+        data = info.data
         
-        if field_name == "active_hostels" and info.data.get("total_hostels") is not None:
-            if v > info.data["total_hostels"]:
+        if field_name == "active_hostels" and "total_hostels" in data:
+            if v > data["total_hostels"]:
                 raise ValueError("active_hostels cannot exceed total_hostels")
-        elif field_name == "active_students" and info.data.get("total_students") is not None:
-            if v > info.data["total_students"]:
+        elif field_name == "active_students" and "total_students" in data:
+            if v > data["total_students"]:
                 raise ValueError("active_students cannot exceed total_students")
-        elif field_name == "active_visitors" and info.data.get("total_visitors") is not None:
-            if v > info.data["total_visitors"]:
+        elif field_name == "active_visitors" and "total_visitors" in data:
+            if v > data["total_visitors"]:
                 raise ValueError("active_visitors cannot exceed total_visitors")
         
         return v
+    
+    @field_validator("todays_revenue", "monthly_revenue", "outstanding_payments", "overdue_payments")
+    @classmethod
+    def round_currency(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property
@@ -356,9 +360,9 @@ class QuickStats(BaseSchema):
             else 0
         )
         
-        if overdue_ratio <= 0.1:
+        if overdue_ratio <= Decimal("0.1"):
             return "good"
-        elif overdue_ratio <= 0.25:
+        elif overdue_ratio <= Decimal("0.25"):
             return "warning"
         else:
             return "critical"
@@ -372,8 +376,7 @@ class TimeseriesPoint(BaseSchema):
     date_: Date = Field(
         ...,
         description="Date of the data point",
-        # In Pydantic v2, we use 'serialization_alias' for output field name
-        serialization_alias="Date"
+        serialization_alias="date"
     )
     value: Union[Decimal, int, float] = Field(
         ...,
@@ -392,7 +395,7 @@ class TimeseriesPoint(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def formatted_date(self) -> str:
-        """Get formatted Date string."""
+        """Get formatted date string."""
         return self.date_.strftime("%Y-%m-%d")
 
 

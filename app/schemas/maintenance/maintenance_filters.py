@@ -9,9 +9,9 @@ for searches, exports, and advanced queries.
 from __future__ import annotations
 
 import re
-from datetime import data as Date
+from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 from uuid import UUID
@@ -197,25 +197,21 @@ class MaintenanceFilterParams(BaseFilterSchema):
         description="Filter by due Date to",
     )
     
-    # Cost filters
-    estimated_cost_min: Optional[Decimal] = Field(
+    # Cost filters - Using Annotated for Decimal in v2
+    estimated_cost_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Minimum estimated cost",
     )
-    estimated_cost_max: Optional[Decimal] = Field(
+    estimated_cost_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Maximum estimated cost",
     )
-    actual_cost_min: Optional[Decimal] = Field(
+    actual_cost_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Minimum actual cost",
     )
-    actual_cost_max: Optional[Decimal] = Field(
+    actual_cost_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Maximum actual cost",
     )
     
@@ -524,11 +520,11 @@ class AdvancedFilterParams(MaintenanceFilterParams):
         None,
         description="Filter requests over budget",
     )
-    cost_variance_min_percentage: Optional[Decimal] = Field(
+    cost_variance_min_percentage: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Minimum cost variance percentage",
     )
-    cost_variance_max_percentage: Optional[Decimal] = Field(
+    cost_variance_max_percentage: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Maximum cost variance percentage",
     )

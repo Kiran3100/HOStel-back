@@ -165,23 +165,20 @@ class ModificationResponse(BaseSchema):
         description="List of modifications that were applied",
     )
 
-    # Pricing Impact
+    # Pricing Impact - decimal_places removed
     original_total: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Original total amount",
+        description="Original total amount (precision: 2 decimal places)",
     )
     new_total: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="New total amount after modifications",
+        description="New total amount after modifications (precision: 2 decimal places)",
     )
     price_difference: Decimal = Field(
         ...,
-        decimal_places=2,
-        description="Price difference (positive = increase, negative = decrease)",
+        description="Price difference (positive = increase, negative = decrease, precision: 2 decimal places)",
     )
     additional_payment_required: bool = Field(
         ...,
@@ -190,8 +187,7 @@ class ModificationResponse(BaseSchema):
     additional_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Additional amount to be paid if increased",
+        description="Additional amount to be paid if increased (precision: 2 decimal places)",
     )
 
     # Approval Status
@@ -208,6 +204,12 @@ class ModificationResponse(BaseSchema):
         ...,
         description="Result message",
     )
+
+    @field_validator("original_total", "new_total", "price_difference", "additional_amount")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class DateChangeRequest(BaseCreateSchema):
@@ -338,12 +340,11 @@ class ModificationApproval(BaseCreateSchema):
         description="Whether to approve (True) or reject (False) the modification",
     )
 
-    # If Approved
+    # If Approved - decimal_places removed
     adjusted_price: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
-        description="Adjusted price if admin wants to override calculated price",
+        description="Adjusted price if admin wants to override calculated price (precision: 2 decimal places)",
     )
 
     # If Rejected
@@ -359,6 +360,14 @@ class ModificationApproval(BaseCreateSchema):
         max_length=500,
         description="Internal admin notes about the decision",
     )
+
+    @field_validator("adjusted_price")
+    @classmethod
+    def quantize_decimal_field(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize decimal field to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @model_validator(mode="after")
     def validate_approval_fields(self) -> "ModificationApproval":

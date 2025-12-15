@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import HostelStatus, HostelType
@@ -29,6 +29,7 @@ class HostelFilterParams(BaseFilterSchema):
     
     Provides comprehensive filtering options for hostel queries.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Text search
     search: Optional[str] = Field(
@@ -85,24 +86,20 @@ class HostelFilterParams(BaseFilterSchema):
     )
 
     # Price range
-    price_min: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Minimum monthly price",
-    )
-    price_max: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Maximum monthly price",
-    )
+    price_min: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Minimum monthly price")
+    ]] = None
+    price_max: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Maximum monthly price")
+    ]] = None
 
     # Rating
-    min_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Minimum average rating",
-    )
+    min_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Minimum average rating")
+    ]] = None
 
     # Availability
     has_availability: Optional[bool] = Field(
@@ -148,6 +145,7 @@ class HostelSortOptions(BaseFilterSchema):
     
     Defines available sort criteria and order.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     sort_by: str = Field(
         default="created_at",
@@ -173,6 +171,7 @@ class AdvancedFilters(BaseFilterSchema):
     
     Provides additional filtering criteria for complex queries.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Date filters
     created_after: Optional[Date] = Field(
@@ -185,18 +184,14 @@ class AdvancedFilters(BaseFilterSchema):
     )
 
     # Occupancy
-    occupancy_min: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Minimum occupancy percentage",
-    )
-    occupancy_max: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Maximum occupancy percentage",
-    )
+    occupancy_min: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Minimum occupancy percentage")
+    ]] = None
+    occupancy_max: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Maximum occupancy percentage")
+    ]] = None
 
     # Reviews
     min_reviews: Optional[int] = Field(
@@ -218,16 +213,14 @@ class AdvancedFilters(BaseFilterSchema):
     )
 
     # Revenue (admin only)
-    revenue_min: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Minimum monthly revenue (admin only)",
-    )
-    revenue_max: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Maximum monthly revenue (admin only)",
-    )
+    revenue_min: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Minimum monthly revenue (admin only)")
+    ]] = None
+    revenue_max: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Maximum monthly revenue (admin only)")
+    ]] = None
 
     @field_validator("created_before")
     @classmethod
@@ -256,6 +249,7 @@ class BulkFilterParams(BaseFilterSchema):
     
     Allows filtering hostels for bulk operations.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_ids: List[UUID] = Field(
         ...,

@@ -4,7 +4,7 @@ Enhanced hostel context management for multi-hostel admin operations.
 Provides robust context switching, session tracking, and history management
 for seamless multi-hostel administration with comprehensive audit trails.
 
-Migrated to Pydantic v2.
+Fully migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -57,6 +57,8 @@ class HostelContext(BaseSchema):
     Maintains active hostel state with comprehensive permission information,
     session tracking, and quick access to relevant statistics.
     """
+    
+    model_config = ConfigDict()
 
     # Admin and context identifiers
     admin_id: UUID = Field(..., description="Admin user ID")
@@ -82,8 +84,10 @@ class HostelContext(BaseSchema):
     # Quick statistics for active hostel
     total_students: int = Field(0, ge=0, description="Total students in active hostel")
     active_students: int = Field(0, ge=0, description="Currently active students")
+    
+    # Pydantic v2: Decimal with ge/le constraints
     occupancy_percentage: Decimal = Field(
-        Decimal("0.00"), ge=0, le=100, description="Current occupancy rate"
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100"), description="Current occupancy rate"
     )
 
     # Pending tasks and alerts
@@ -91,12 +95,12 @@ class HostelContext(BaseSchema):
     urgent_alerts: int = Field(0, ge=0, description="Urgent alerts count")
     unread_notifications: int = Field(0, ge=0, description="Unread notifications count")
 
-    # Revenue snapshot
+    # Revenue snapshot - Pydantic v2: Decimal with ge constraint
     revenue_this_month: Decimal = Field(
-        Decimal("0.00"), ge=0, description="Revenue for current month"
+        Decimal("0.00"), ge=Decimal("0"), description="Revenue for current month"
     )
     outstanding_payments: Decimal = Field(
-        Decimal("0.00"), ge=0, description="Outstanding payment amount"
+        Decimal("0.00"), ge=Decimal("0"), description="Outstanding payment amount"
     )
 
     # Context metadata
@@ -199,9 +203,9 @@ class HostelContext(BaseSchema):
         )
 
         # Allow some tolerance for concurrent updates
+        # Pydantic v2: Cannot log warnings from validators
+        # Application code should handle logging if needed
         if abs(expected_duration - self.session_duration_minutes) > 5:
-            # In Pydantic v2, we can't directly log warnings from validators
-            # Application code should handle logging if needed
             pass
 
         return self
@@ -214,6 +218,8 @@ class HostelSwitchRequest(BaseCreateSchema):
     Supports seamless context switching with proper validation,
     session management, and optional data refresh preferences.
     """
+    
+    model_config = ConfigDict(validate_assignment=True)
 
     hostel_id: UUID = Field(..., description="Target hostel ID to switch to")
 
@@ -277,6 +283,8 @@ class ActiveHostelResponse(BaseSchema):
     Provides comprehensive information about the newly active hostel
     with permissions, statistics, and navigation guidance.
     """
+    
+    model_config = ConfigDict()
 
     # Context identifiers
     admin_id: UUID = Field(..., description="Admin user ID")
@@ -301,9 +309,11 @@ class ActiveHostelResponse(BaseSchema):
         None, ge=0, description="Duration of previous session"
     )
 
-    # Quick statistics for new hostel
+    # Quick statistics for new hostel - Pydantic v2: Decimal with constraints
     total_students: int = Field(0, ge=0, description="Total students")
-    occupancy_percentage: Decimal = Field(Decimal("0.00"), ge=0, le=100)
+    occupancy_percentage: Decimal = Field(
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100")
+    )
     pending_tasks: int = Field(0, ge=0, description="Pending tasks")
     urgent_alerts: int = Field(0, ge=0, description="Urgent alerts")
 
@@ -392,6 +402,8 @@ class ContextSwitch(BaseSchema):
     Represents a single hostel context switch with timing, reason,
     and session metrics for analytics and audit purposes.
     """
+    
+    model_config = ConfigDict()
 
     # Switch identification
     switch_id: UUID = Field(..., description="Unique switch record ID")
@@ -507,6 +519,8 @@ class ContextHistory(BaseSchema):
     Provides comprehensive historical view of all context switches
     with usage patterns, productivity metrics, and recommendations.
     """
+    
+    model_config = ConfigDict()
 
     admin_id: UUID = Field(..., description="Admin user ID")
     admin_name: str = Field(..., min_length=1, description="Admin full name")
@@ -536,19 +550,19 @@ class ContextHistory(BaseSchema):
     )
     most_accessed_count: int = Field(0, ge=0, description="Access count for most accessed hostel")
 
-    # Usage patterns
+    # Usage patterns - Pydantic v2: Decimal with ge constraint
     avg_session_duration_minutes: Decimal = Field(
-        Decimal("0.00"), ge=0, description="Average session duration"
+        Decimal("0.00"), ge=Decimal("0"), description="Average session duration"
     )
     avg_switches_per_day: Decimal = Field(
-        Decimal("0.00"), ge=0, description="Average switches per day"
+        Decimal("0.00"), ge=Decimal("0"), description="Average switches per day"
     )
 
     # Productivity metrics
     total_actions_performed: int = Field(0, ge=0, description="Total actions across all sessions")
     total_decisions_made: int = Field(0, ge=0, description="Total decisions across all sessions")
     productivity_score: Decimal = Field(
-        Decimal("0.00"), ge=0, le=100, description="Overall productivity score"
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100"), description="Overall productivity score"
     )
 
     @computed_field
@@ -658,9 +672,8 @@ class ContextHistory(BaseSchema):
             raise ValueError("history_end must be after history_start")
 
         # Validate switch count matches switches list
+        # (Might be due to pagination, so we don't error)
         if len(self.switches) != self.total_switches:
-            # This might be due to pagination, so we don't error
-            # Application code should handle logging if needed
-            pass
+            pass  # Application code should handle logging if needed
 
         return self

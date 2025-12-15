@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator, ConfigDict
@@ -69,6 +69,8 @@ class DeliveryChannels(BaseSchema):
     
     Defines which channels to use and their priorities.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     email: bool = Field(
         False,
@@ -132,6 +134,8 @@ class DeliveryConfig(BaseSchema):
     
     Defines how and when to deliver the announcement.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -204,6 +208,8 @@ class ChannelDeliveryStats(BaseSchema):
     Provides detailed metrics for channel performance.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     channel: DeliveryChannel = Field(
         ...,
         description="Delivery channel",
@@ -237,18 +243,16 @@ class ChannelDeliveryStats(BaseSchema):
         description="Number bounced (email)",
     )
     
-    # Rates
-    delivery_rate: Decimal = Field(
+    # Rates - Using Annotated for Decimal constraints in Pydantic v2
+    # Pydantic v2: Decimal constraints work differently; ge/le constraints are preserved
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Delivery success rate percentage",
     )
     
-    # Timing
-    average_delivery_time_seconds: Optional[Decimal] = Field(
+    # Timing - Using Decimal for precision, but ge constraint only (no decimal_places needed)
+    average_delivery_time_seconds: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         None,
-        ge=0,
         description="Average time to deliver in seconds",
     )
     fastest_delivery_seconds: Optional[int] = Field(
@@ -269,6 +273,8 @@ class DeliveryStatus(BaseSchema):
     
     Real-time status of delivery progress across all channels.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -364,10 +370,8 @@ class DeliveryStatus(BaseSchema):
     )
     
     # Rates
-    delivery_rate: Decimal = Field(
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall delivery rate percentage",
     )
     
@@ -386,10 +390,8 @@ class DeliveryStatus(BaseSchema):
     )
     
     # Progress (for batched delivery)
-    progress_percentage: Decimal = Field(
+    progress_percentage: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         Decimal("0"),
-        ge=0,
-        le=100,
         description="Delivery progress percentage",
     )
     estimated_completion: Optional[datetime] = Field(
@@ -404,6 +406,8 @@ class FailedDelivery(BaseSchema):
     
     Contains details about why delivery failed.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID = Field(
         ...,
@@ -487,6 +491,8 @@ class DeliveryReport(BaseSchema):
     Full analytics on delivery performance.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -519,10 +525,8 @@ class DeliveryReport(BaseSchema):
     )
     
     # Rates
-    overall_delivery_rate: Decimal = Field(
+    overall_delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall delivery success rate",
     )
     
@@ -576,6 +580,8 @@ class BatchDelivery(BaseSchema):
     
     Shows progress of batched delivery operations.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -662,6 +668,8 @@ class RetryDelivery(BaseCreateSchema):
     Allows selective retry of failed delivery attempts.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -728,6 +736,8 @@ class DeliveryPause(BaseCreateSchema):
     Temporarily stops batch delivery processing.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -771,6 +781,8 @@ class DeliveryResume(BaseCreateSchema):
     
     Continues batch delivery from where it stopped.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,

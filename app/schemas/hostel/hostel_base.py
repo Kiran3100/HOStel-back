@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from datetime import time
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -34,13 +34,14 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
     
     Combines address, contact, and location information with hostel-specific fields.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     name: str = Field(
         ...,
         min_length=3,
         max_length=255,
         description="Hostel name",
-        json_schema_extra={"examples": ["Green Valley Hostel"]},
+        examples=["Green Valley Hostel"],
     )
     slug: str = Field(
         ...,
@@ -48,7 +49,7 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
         max_length=255,
         pattern=r"^[a-z0-9-]+$",
         description="URL-friendly slug (lowercase, alphanumeric, hyphens only)",
-        json_schema_extra={"examples": ["green-valley-hostel"]},
+        examples=["green-valley-hostel"],
     )
     description: Optional[str] = Field(
         default=None,
@@ -68,38 +69,35 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
         description="Hostel official website URL",
     )
 
-    # Pricing
-    starting_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Starting monthly price (lowest room type)",
-    )
+    # Pricing - Using Annotated for Decimal constraints
+    starting_price_monthly: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Starting monthly price (lowest room type)")
+    ]] = None
     currency: str = Field(
         default="INR",
         min_length=3,
         max_length=3,
         pattern=r"^[A-Z]{3}$",
         description="Currency code (ISO 4217)",
-        json_schema_extra={"examples": ["INR", "USD"]},
+        examples=["INR", "USD"],
     )
 
     # Amenities and facilities
     amenities: List[str] = Field(
         default_factory=list,
         description="List of amenities (WiFi, AC, etc.)",
-        json_schema_extra={"examples": [["WiFi", "AC", "Laundry", "Hot Water"]]},
+        examples=[["WiFi", "AC", "Laundry", "Hot Water"]],
     )
     facilities: List[str] = Field(
         default_factory=list,
         description="List of facilities (Gym, Library, etc.)",
-        json_schema_extra={"examples": [["Gym", "Library", "Common Room"]]},
+        examples=[["Gym", "Library", "Common Room"]],
     )
     security_features: List[str] = Field(
         default_factory=list,
         description="Security features (CCTV, Guards, etc.)",
-        json_schema_extra={"examples": [["CCTV", "24/7 Security", "Biometric Access"]]},
+        examples=[["CCTV", "24/7 Security", "Biometric Access"]],
     )
 
     # Policies
@@ -111,12 +109,12 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
     check_in_time: Optional[time] = Field(
         default=None,
         description="Standard check-in time",
-        json_schema_extra={"examples": ["10:00:00"]},
+        examples=["10:00:00"],
     )
     check_out_time: Optional[time] = Field(
         default=None,
         description="Standard check-out time",
-        json_schema_extra={"examples": ["11:00:00"]},
+        examples=["11:00:00"],
     )
     visitor_policy: Optional[str] = Field(
         default=None,
@@ -133,7 +131,7 @@ class HostelBase(BaseSchema, AddressMixin, ContactMixin, LocationMixin):
     nearby_landmarks: List[Dict[str, str]] = Field(
         default_factory=list,
         description="Nearby landmarks with name, type, and distance",
-        json_schema_extra={"examples": [[{"name": "Metro Station", "type": "transport", "distance": "500m"}]]},
+        examples=[[{"name": "Metro Station", "type": "transport", "distance": "500m"}]],
     )
     connectivity_info: Optional[str] = Field(
         default=None,
@@ -236,6 +234,7 @@ class HostelCreate(HostelBase, BaseCreateSchema):
     
     Enforces required fields for hostel creation.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Override to enforce requirements
     name: str = Field(
@@ -284,6 +283,7 @@ class HostelUpdate(BaseUpdateSchema):
     
     All fields are optional for partial updates.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Basic info
     name: Optional[str] = Field(
@@ -365,26 +365,21 @@ class HostelUpdate(BaseUpdateSchema):
         description="Website URL",
     )
 
-    # Location
-    latitude: Optional[Decimal] = Field(
-        default=None,
-        ge=-90,
-        le=90,
-        description="Latitude",
-    )
-    longitude: Optional[Decimal] = Field(
-        default=None,
-        ge=-180,
-        le=180,
-        description="Longitude",
-    )
+    # Location - Using Annotated for Decimal constraints
+    latitude: Optional[Annotated[
+        Decimal,
+        Field(ge=-90, le=90, description="Latitude")
+    ]] = None
+    longitude: Optional[Annotated[
+        Decimal,
+        Field(ge=-180, le=180, description="Longitude")
+    ]] = None
 
     # Pricing
-    starting_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Starting monthly price",
-    )
+    starting_price_monthly: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Starting monthly price")
+    ]] = None
     currency: Optional[str] = Field(
         default=None,
         min_length=3,
@@ -468,20 +463,33 @@ class HostelUpdate(BaseUpdateSchema):
     )
 
     # Apply same validators as base
-    _validate_slug = field_validator("slug", mode="after")(
-        lambda cls, v: HostelBase.validate_slug(cls, v) if v is not None else v
-    )
-    _validate_name = field_validator("name", mode="after")(
-        lambda cls, v: HostelBase.validate_name(cls, v) if v is not None else v
-    )
-    _validate_lists = field_validator(
-        "amenities", "facilities", "security_features", mode="after"
-    )(
-        lambda cls, v: HostelBase.validate_and_clean_lists(cls, v) if v is not None else v
-    )
-    _validate_currency = field_validator("currency", mode="after")(
-        lambda cls, v: HostelBase.validate_currency(cls, v) if v is not None else v
-    )
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return HostelBase.validate_slug(v)
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return HostelBase.validate_name(v)
+        return v
+
+    @field_validator("amenities", "facilities", "security_features")
+    @classmethod
+    def validate_lists(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is not None:
+            return HostelBase.validate_and_clean_lists(v)
+        return v
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return HostelBase.validate_currency(v)
+        return v
 
     @field_validator("contact_phone", "alternate_phone")
     @classmethod
@@ -498,6 +506,7 @@ class HostelMediaUpdate(BaseUpdateSchema):
     
     Manages hostel visual content.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     cover_image_url: Optional[str] = Field(
         default=None,
@@ -542,6 +551,7 @@ class HostelSEOUpdate(BaseUpdateSchema):
     
     Manages search engine optimization fields.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     meta_title: Optional[str] = Field(
         default=None,

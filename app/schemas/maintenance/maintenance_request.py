@@ -8,9 +8,9 @@ standard, detailed supervisor submissions, and emergency requests.
 
 from __future__ import annotations
 
-from datetime import data as Date
+from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
@@ -192,11 +192,9 @@ class RequestSubmission(BaseCreateSchema):
         description="Issue photographs",
     )
 
-    # Supervisor-specific fields
-    estimated_cost: Optional[Decimal] = Field(
+    # Supervisor-specific fields - Using Annotated for Decimal in v2
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Estimated repair cost",
     )
     cost_justification: Optional[str] = Field(

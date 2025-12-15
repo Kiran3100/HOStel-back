@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import time
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.enums import HostelType
@@ -29,6 +29,7 @@ class PublicHostelCard(BaseSchema):
     
     Provides essential information for hostel browsing.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="Hostel ID")
     name: str = Field(..., description="Hostel name")
@@ -36,18 +37,15 @@ class PublicHostelCard(BaseSchema):
     hostel_type: HostelType = Field(..., description="Hostel type")
     city: str = Field(..., description="City")
     state: str = Field(..., description="State")
-    starting_price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Starting monthly price",
-    )
+    starting_price_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Starting monthly price")
+    ]
     currency: str = Field(..., description="Currency code")
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -71,11 +69,10 @@ class PublicHostelCard(BaseSchema):
         max_length=5,
         description="Top 5 amenities for quick view",
     )
-    distance_km: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Distance from search location (if applicable)",
-    )
+    distance_km: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Distance from search location (if applicable)")
+    ]] = None
 
 
 class PublicRoomType(BaseSchema):
@@ -84,26 +81,24 @@ class PublicRoomType(BaseSchema):
     
     Provides room-specific details for visitors.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     room_type: str = Field(
         ...,
         description="Room type (single, double, etc.)",
     )
-    price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Monthly price",
-    )
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Quarterly price (if available)",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Yearly price (if available)",
-    )
+    price_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Monthly price")
+    ]
+    price_quarterly: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Quarterly price (if available)")
+    ]] = None
+    price_yearly: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Yearly price (if available)")
+    ]] = None
     available_beds: int = Field(
         ...,
         ge=0,
@@ -136,6 +131,7 @@ class PublicHostelProfile(BaseSchema):
     
     Comprehensive hostel information for detail pages.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="Hostel ID")
     name: str = Field(..., description="Hostel name")
@@ -176,11 +172,10 @@ class PublicHostelProfile(BaseSchema):
     )
 
     # Pricing
-    starting_price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Starting monthly price",
-    )
+    starting_price_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Starting monthly price")
+    ]
     currency: str = Field(..., description="Currency code")
 
     # Availability
@@ -196,12 +191,10 @@ class PublicHostelProfile(BaseSchema):
     )
 
     # Ratings
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -294,6 +287,7 @@ class PublicHostelList(BaseSchema):
     
     Response schema for hostel listing pages.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostels: List[PublicHostelCard] = Field(
         ...,

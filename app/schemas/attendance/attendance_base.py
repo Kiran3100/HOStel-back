@@ -160,14 +160,14 @@ class AttendanceCreate(AttendanceBase, BaseCreateSchema):
 
     location_lat: Optional[Decimal] = Field(
         None,
-        ge=-90,
-        le=90,
+        ge=Decimal("-90"),
+        le=Decimal("90"),
         description="Latitude coordinate for mobile check-in",
     )
     location_lng: Optional[Decimal] = Field(
         None,
-        ge=-180,
-        le=180,
+        ge=Decimal("-180"),
+        le=Decimal("180"),
         description="Longitude coordinate for mobile check-in",
     )
     device_info: Optional[dict] = Field(

@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, field_validator
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import ChargeType, FeeType, RoomType
@@ -54,18 +54,16 @@ class FeeStructureResponse(BaseResponseSchema):
         description="Billing frequency",
     )
 
-    # Base Charges
+    # Base Charges - decimal_places removed
     amount: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Base rent amount",
+        description="Base rent amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Security deposit",
+        description="Security deposit (precision: 2 decimal places)",
     )
 
     # Mess Charges
@@ -76,8 +74,7 @@ class FeeStructureResponse(BaseResponseSchema):
     mess_charges_monthly: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Monthly mess charges",
+        description="Monthly mess charges (precision: 2 decimal places)",
     )
 
     # Utility Charges
@@ -88,8 +85,7 @@ class FeeStructureResponse(BaseResponseSchema):
     electricity_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Fixed electricity amount",
+        description="Fixed electricity amount (precision: 2 decimal places)",
     )
 
     water_charges: ChargeType = Field(
@@ -99,8 +95,7 @@ class FeeStructureResponse(BaseResponseSchema):
     water_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Fixed water amount",
+        description="Fixed water amount (precision: 2 decimal places)",
     )
 
     # Validity Period
@@ -118,6 +113,20 @@ class FeeStructureResponse(BaseResponseSchema):
         ...,
         description="Active status",
     )
+
+    @field_validator("amount", "security_deposit", "mess_charges_monthly")
+    @classmethod
+    def quantize_required_decimals(cls, v: Decimal) -> Decimal:
+        """Quantize required decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
+
+    @field_validator("electricity_fixed_amount", "water_fixed_amount")
+    @classmethod
+    def quantize_optional_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize optional decimal fields to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property
@@ -203,18 +212,16 @@ class FeeDetail(BaseSchema):
         description="Billing frequency",
     )
 
-    # Breakdown
+    # Breakdown - decimal_places removed
     amount: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Base rent amount",
+        description="Base rent amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Security deposit",
+        description="Security deposit (precision: 2 decimal places)",
     )
 
     includes_mess: bool = Field(
@@ -224,22 +231,19 @@ class FeeDetail(BaseSchema):
     mess_charges_monthly: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Monthly mess charges",
+        description="Monthly mess charges (precision: 2 decimal places)",
     )
 
     # Calculated Totals
     total_first_month_payable: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total amount due for first month (including security deposit)",
+        description="Total amount due for first month (including security deposit, precision: 2 decimal places)",
     )
     total_recurring_monthly: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Recurring monthly charges",
+        description="Recurring monthly charges (precision: 2 decimal places)",
     )
 
     # Utility Information
@@ -268,6 +272,15 @@ class FeeDetail(BaseSchema):
         default=None,
         description="Discount information",
     )
+
+    @field_validator(
+        "amount", "security_deposit", "mess_charges_monthly",
+        "total_first_month_payable", "total_recurring_monthly"
+    )
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @computed_field
     @property
@@ -318,19 +331,25 @@ class FeeStructureList(BaseSchema):
         description="Number of active structures",
     )
 
-    # Price Range
+    # Price Range - decimal_places removed
     min_monthly_rent: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Minimum monthly rent across all room types",
+        description="Minimum monthly rent across all room types (precision: 2 decimal places)",
     )
     max_monthly_rent: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Maximum monthly rent across all room types",
+        description="Maximum monthly rent across all room types (precision: 2 decimal places)",
     )
+
+    @field_validator("min_monthly_rent", "max_monthly_rent")
+    @classmethod
+    def quantize_optional_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize optional decimal fields to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property
@@ -368,11 +387,11 @@ class FeeHistoryItem(BaseSchema):
         description="Room type",
     )
 
+    # decimal_places removed
     amount: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Rent amount",
+        description="Rent amount (precision: 2 decimal places)",
     )
 
     effective_from: Date = Field(
@@ -402,9 +421,16 @@ class FeeHistoryItem(BaseSchema):
     previous_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Previous rent amount",
+        description="Previous rent amount (precision: 2 decimal places)",
     )
+
+    @field_validator("amount", "previous_amount")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize decimal fields to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property
@@ -527,40 +553,35 @@ class FeeCalculation(BaseSchema):
         description="Stay duration in months",
     )
 
-    # Base Charges
+    # Base Charges - decimal_places removed
     monthly_rent: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Monthly rent",
+        description="Monthly rent (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Security deposit",
+        description="Security deposit (precision: 2 decimal places)",
     )
 
     # Additional Charges
     mess_charges_total: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total mess charges for duration",
+        description="Total mess charges for duration (precision: 2 decimal places)",
     )
     utility_charges_estimated: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Estimated utility charges",
+        description="Estimated utility charges (precision: 2 decimal places)",
     )
 
     # Discounts
     discount_applied: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total discount amount",
+        description="Total discount amount (precision: 2 decimal places)",
     )
     discount_description: Optional[str] = Field(
         default=None,
@@ -571,28 +592,24 @@ class FeeCalculation(BaseSchema):
     subtotal: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Subtotal before discount",
+        description="Subtotal before discount (precision: 2 decimal places)",
     )
     total_payable: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total amount payable",
+        description="Total amount payable (precision: 2 decimal places)",
     )
     first_month_total: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Amount due for first month",
+        description="Amount due for first month (precision: 2 decimal places)",
     )
 
     # Payment Schedule
     monthly_recurring: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Recurring monthly amount",
+        description="Recurring monthly amount (precision: 2 decimal places)",
     )
 
     # Breakdown by Period
@@ -600,6 +617,16 @@ class FeeCalculation(BaseSchema):
         default_factory=dict,
         description="Payment schedule by month number",
     )
+
+    @field_validator(
+        "monthly_rent", "security_deposit", "mess_charges_total",
+        "utility_charges_estimated", "discount_applied", "subtotal",
+        "total_payable", "first_month_total", "monthly_recurring"
+    )
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @computed_field
     @property

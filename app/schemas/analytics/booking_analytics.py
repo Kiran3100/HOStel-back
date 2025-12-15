@@ -13,7 +13,7 @@ This module provides comprehensive analytics for booking operations including:
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Annotated
 
 from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
 from uuid import UUID
@@ -30,6 +30,11 @@ __all__ = [
     "BookingAnalyticsSummary",
     "BookingSourceMetrics",
 ]
+
+
+# Type aliases for Decimal fields with constraints
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100)]
+DecimalCurrency = Annotated[Decimal, Field(ge=0)]
 
 
 class BookingKPI(BaseSchema):
@@ -79,25 +84,18 @@ class BookingKPI(BaseSchema):
     )
     
     # Performance metrics
-    booking_conversion_rate: Decimal = Field(
+    # Note: In Pydantic v2, decimal_places is handled via post-validation rounding
+    booking_conversion_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of bookings that were confirmed"
     )
-    cancellation_rate: Decimal = Field(
+    cancellation_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of bookings that were cancelled"
     )
-    average_lead_time_days: Decimal = Field(
+    average_lead_time_days: DecimalCurrency = Field(
         ...,
-        ge=0,
-        decimal_places=2,
-        description="Average days between booking creation and check-in Date"
+        description="Average days between booking creation and check-in date"
     )
     
     @field_validator("confirmed_bookings", "cancelled_bookings", "rejected_bookings", "pending_bookings")
@@ -105,7 +103,7 @@ class BookingKPI(BaseSchema):
     def validate_booking_counts(cls, v: int, info) -> int:
         """Validate that individual booking counts don't exceed total."""
         # In Pydantic v2, info.data contains already-validated fields
-        if info.data.get("total_bookings") is not None:
+        if "total_bookings" in info.data:
             total = info.data["total_bookings"]
             if v > total:
                 raise ValueError(
@@ -116,9 +114,15 @@ class BookingKPI(BaseSchema):
     @field_validator("booking_conversion_rate", "cancellation_rate")
     @classmethod
     def validate_percentage(cls, v: Decimal) -> Decimal:
-        """Ensure percentages are within valid range."""
+        """Ensure percentages are within valid range and rounded to 2 decimal places."""
         if not (0 <= v <= 100):
             raise ValueError("Percentage must be between 0 and 100")
+        return round(v, 2)
+    
+    @field_validator("average_lead_time_days")
+    @classmethod
+    def round_lead_time(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
         return round(v, 2)
     
     @computed_field  # type: ignore[misc]
@@ -150,7 +154,7 @@ class BookingTrendPoint(BaseSchema):
     """
     Single data point in booking trend analysis.
     
-    Represents booking metrics for a specific Date, enabling
+    Represents booking metrics for a specific date, enabling
     time-series visualization and trend analysis.
     """
     
@@ -161,40 +165,38 @@ class BookingTrendPoint(BaseSchema):
     total_bookings: int = Field(
         ...,
         ge=0,
-        description="Total bookings on this Date"
+        description="Total bookings on this date"
     )
     confirmed: int = Field(
         ...,
         ge=0,
-        description="Confirmed bookings on this Date"
+        description="Confirmed bookings on this date"
     )
     cancelled: int = Field(
         ...,
         ge=0,
-        description="Cancelled bookings on this Date"
+        description="Cancelled bookings on this date"
     )
     rejected: int = Field(
         ...,
         ge=0,
-        description="Rejected bookings on this Date"
+        description="Rejected bookings on this date"
     )
     pending: int = Field(
         0,
         ge=0,
-        description="Pending bookings on this Date"
+        description="Pending bookings on this date"
     )
-    revenue_for_day: Decimal = Field(
+    revenue_for_day: DecimalCurrency = Field(
         ...,
-        ge=0,
-        decimal_places=2,
-        description="Total revenue generated on this Date"
+        description="Total revenue generated on this date"
     )
     
     @field_validator("confirmed", "cancelled", "rejected", "pending")
     @classmethod
     def validate_counts(cls, v: int, info) -> int:
         """Validate that status counts don't exceed total."""
-        if info.data.get("total_bookings") is not None:
+        if "total_bookings" in info.data:
             total = info.data["total_bookings"]
             if v > total:
                 raise ValueError(
@@ -202,10 +204,16 @@ class BookingTrendPoint(BaseSchema):
                 )
         return v
     
+    @field_validator("revenue_for_day")
+    @classmethod
+    def round_revenue(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
     @computed_field  # type: ignore[misc]
     @property
     def conversion_rate(self) -> Decimal:
-        """Calculate conversion rate for this Date."""
+        """Calculate conversion rate for this date."""
         if self.total_bookings == 0:
             return Decimal("0.00")
         return round(
@@ -254,32 +262,20 @@ class BookingFunnel(BaseSchema):
     )
     
     # Conversion rates
-    view_to_start_rate: Decimal = Field(
+    view_to_start_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Conversion rate from page view to form start (%)"
     )
-    start_to_submit_rate: Decimal = Field(
+    start_to_submit_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Conversion rate from form start to submission (%)"
     )
-    submit_to_confirm_rate: Decimal = Field(
+    submit_to_confirm_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Conversion rate from submission to confirmation (%)"
     )
-    view_to_confirm_rate: Decimal = Field(
+    view_to_confirm_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall conversion rate from view to confirmation (%)"
     )
     
@@ -292,24 +288,36 @@ class BookingFunnel(BaseSchema):
     def validate_funnel_progression(cls, v: int, info) -> int:
         """Validate that funnel stages progress logically."""
         field_name = info.field_name
+        data = info.data
         
-        if field_name == "booking_form_starts" and info.data.get("hostel_page_views") is not None:
-            if v > info.data["hostel_page_views"]:
+        if field_name == "booking_form_starts" and "hostel_page_views" in data:
+            if v > data["hostel_page_views"]:
                 raise ValueError(
                     "booking_form_starts cannot exceed hostel_page_views"
                 )
-        elif field_name == "booking_submissions" and info.data.get("booking_form_starts") is not None:
-            if v > info.data["booking_form_starts"]:
+        elif field_name == "booking_submissions" and "booking_form_starts" in data:
+            if v > data["booking_form_starts"]:
                 raise ValueError(
                     "booking_submissions cannot exceed booking_form_starts"
                 )
-        elif field_name == "bookings_confirmed" and info.data.get("booking_submissions") is not None:
-            if v > info.data["booking_submissions"]:
+        elif field_name == "bookings_confirmed" and "booking_submissions" in data:
+            if v > data["booking_submissions"]:
                 raise ValueError(
                     "bookings_confirmed cannot exceed booking_submissions"
                 )
         
         return v
+    
+    @field_validator(
+        "view_to_start_rate",
+        "start_to_submit_rate",
+        "submit_to_confirm_rate",
+        "view_to_confirm_rate"
+    )
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property
@@ -346,11 +354,8 @@ class CancellationAnalytics(BaseSchema):
         ge=0,
         description="Total number of cancellations in period"
     )
-    cancellation_rate: Decimal = Field(
+    cancellation_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Cancellation rate as percentage of total bookings"
     )
     
@@ -365,10 +370,8 @@ class CancellationAnalytics(BaseSchema):
     )
     
     # Timing analysis
-    average_time_before_check_in_cancelled_days: Decimal = Field(
+    average_time_before_check_in_cancelled_days: DecimalCurrency = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average days before check-in when cancellations occur"
     )
     cancellations_within_24h: int = Field(
@@ -382,11 +385,23 @@ class CancellationAnalytics(BaseSchema):
         description="Cancellations made within 1 week of check-in"
     )
     
+    @field_validator("cancellation_rate")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("average_time_before_check_in_cancelled_days")
+    @classmethod
+    def round_days(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
     @field_validator("cancellations_by_reason", "cancellations_by_status")
     @classmethod
     def validate_breakdown_totals(cls, v: Dict[str, int], info) -> Dict[str, int]:
         """Ensure breakdown totals match overall total."""
-        if v and info.data.get("total_cancellations") is not None:
+        if v and "total_cancellations" in info.data:
             breakdown_total = sum(v.values())
             total_cancellations = info.data["total_cancellations"]
             # Allow some tolerance for rounding or filtering
@@ -443,25 +458,30 @@ class BookingSourceMetrics(BaseSchema):
         ge=0,
         description="Confirmed bookings from this source"
     )
-    conversion_rate: Decimal = Field(
+    conversion_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Conversion rate for this source (%)"
     )
-    total_revenue: Decimal = Field(
+    total_revenue: DecimalCurrency = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total revenue generated from this source"
     )
-    average_booking_value: Decimal = Field(
+    average_booking_value: DecimalCurrency = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average revenue per booking from this source"
     )
+    
+    @field_validator("conversion_rate")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("total_revenue", "average_booking_value")
+    @classmethod
+    def round_currency(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property
@@ -582,7 +602,7 @@ class BookingAnalyticsSummary(BaseSchema):
         
         Returns:
             Dictionary containing trend insights like growth rate,
-            peak booking Date, etc.
+            peak booking date, etc.
         """
         if not self.trend:
             return {}

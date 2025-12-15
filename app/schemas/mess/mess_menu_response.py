@@ -87,7 +87,7 @@ class MenuResponse(BaseResponseSchema):
         description="Average student rating",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_items_count(self) -> int:
         """Calculate total number of items across all meals."""
@@ -98,7 +98,7 @@ class MenuResponse(BaseResponseSchema):
             + len(self.dinner_items)
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_complete(self) -> bool:
         """Check if menu has items for all main meals."""
@@ -270,7 +270,7 @@ class MenuDetail(BaseResponseSchema):
         description="Last updater user ID",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def approval_status(self) -> str:
         """Get approval status label."""
@@ -281,7 +281,7 @@ class MenuDetail(BaseResponseSchema):
         else:
             return "pending"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_ratings(self) -> bool:
         """Check if menu has received any ratings."""
@@ -339,13 +339,13 @@ class DailyMenuSummary(BaseSchema):
         description="Publication status",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_complete_menu(self) -> bool:
         """Check if menu has all main meals."""
         return bool(self.breakfast and self.lunch and self.dinner)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def rating_stars(self) -> str:
         """Get star rating display string."""
@@ -423,7 +423,7 @@ class WeeklyMenu(BaseSchema):
         description="Average rating for the week",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_percentage(self) -> Decimal:
         """Calculate percentage of days with menus."""
@@ -431,7 +431,7 @@ class WeeklyMenu(BaseSchema):
             return Decimal("0.00")
         return round(Decimal(self.total_menus) / Decimal("7") * 100, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_complete(self) -> bool:
         """Check if all 7 days have menus."""
@@ -507,7 +507,7 @@ class MonthlyMenu(BaseSchema):
         description="Total feedback count for month",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def completion_rate(self) -> Decimal:
         """Calculate menu completion rate for month."""
@@ -518,7 +518,7 @@ class MonthlyMenu(BaseSchema):
             2,
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def publication_rate(self) -> Decimal:
         """Calculate publication rate."""
@@ -629,7 +629,7 @@ class TodayMenu(BaseSchema):
         description="Whether student has already rated",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def next_meal(self) -> str:
         """Determine next upcoming meal based on current time."""
@@ -708,7 +708,7 @@ class MenuListItem(BaseSchema):
         description="Number of feedbacks",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_badge_color(self) -> str:
         """Get status badge color for UI."""
@@ -717,7 +717,7 @@ class MenuListItem(BaseSchema):
         else:
             return "yellow"
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def rating_badge_color(self) -> str:
         """Get rating badge color based on average rating."""

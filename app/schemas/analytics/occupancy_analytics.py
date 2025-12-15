@@ -12,10 +12,10 @@ Provides detailed occupancy metrics including:
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Annotated
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator, AfterValidator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -33,6 +33,19 @@ __all__ = [
     "SeasonalPattern",
     "OccupancyReport",
 ]
+
+
+# Custom validator for rounding
+def round_to_2_places(v: Decimal) -> Decimal:
+    """Round decimal to 2 places."""
+    if isinstance(v, (int, float)):
+        v = Decimal(str(v))
+    return round(v, 2)
+
+
+# Type aliases
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100), AfterValidator(round_to_2_places)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0), AfterValidator(round_to_2_places)]
 
 
 class ForecastModel(str, Enum):
@@ -66,34 +79,22 @@ class OccupancyKPI(BaseSchema):
     )
     
     # Current state
-    current_occupancy_percentage: Decimal = Field(
+    current_occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Current occupancy rate"
     )
     
     # Period averages
-    average_occupancy_percentage: Decimal = Field(
+    average_occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average occupancy rate over the period"
     )
-    peak_occupancy_percentage: Decimal = Field(
+    peak_occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Peak occupancy rate in the period"
     )
-    low_occupancy_percentage: Decimal = Field(
+    low_occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Lowest occupancy rate in the period"
     )
     
@@ -125,17 +126,12 @@ class OccupancyKPI(BaseSchema):
     )
     
     # Utilization metrics
-    utilization_rate: Decimal = Field(
+    utilization_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Actual utilization rate (occupied / available)"
     )
-    turnover_rate: Optional[Decimal] = Field(
+    turnover_rate: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Bed turnover rate (check-ins + check-outs)"
     )
     
@@ -143,7 +139,7 @@ class OccupancyKPI(BaseSchema):
     @classmethod
     def validate_bed_counts(cls, v: int, info) -> int:
         """Validate bed counts are consistent with total."""
-        if info.data.get("total_beds") is not None:
+        if "total_beds" in info.data:
             total = info.data["total_beds"]
             if v > total:
                 raise ValueError(f"{info.field_name} cannot exceed total_beds")
@@ -216,19 +212,16 @@ class OccupancyTrendPoint(BaseSchema):
     """
     Single data point in occupancy trend analysis.
     
-    Represents occupancy metrics for a specific Date.
+    Represents occupancy metrics for a specific date.
     """
     
     trend_date: Date = Field(
         ...,
         description="Date of the data point"
     )
-    occupancy_percentage: Decimal = Field(
+    occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
-        description="Occupancy rate for this Date"
+        description="Occupancy rate for this date"
     )
     occupied_beds: int = Field(
         ...,
@@ -243,19 +236,19 @@ class OccupancyTrendPoint(BaseSchema):
     check_ins: int = Field(
         0,
         ge=0,
-        description="Number of check-ins on this Date"
+        description="Number of check-ins on this date"
     )
     check_outs: int = Field(
         0,
         ge=0,
-        description="Number of check-outs on this Date"
+        description="Number of check-outs on this date"
     )
     
     @field_validator("occupied_beds")
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
+        if "total_beds" in info.data and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
     
@@ -299,25 +292,18 @@ class OccupancyByRoomType(BaseSchema):
         ge=0,
         description="Occupied beds in this room type"
     )
-    occupancy_percentage: Decimal = Field(
+    occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Occupancy rate for this room type"
     )
     
     # Revenue metrics
-    average_rate: Optional[Decimal] = Field(
+    average_rate: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Average rate charged for this room type"
     )
-    revenue_generated: Optional[Decimal] = Field(
+    revenue_generated: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Total revenue from this room type"
     )
     
@@ -325,7 +311,7 @@ class OccupancyByRoomType(BaseSchema):
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
+        if "total_beds" in info.data and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
     
@@ -376,11 +362,8 @@ class OccupancyByFloor(BaseSchema):
         ge=0,
         description="Occupied beds on this floor"
     )
-    occupancy_percentage: Decimal = Field(
+    occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Occupancy rate for this floor"
     )
     
@@ -388,7 +371,7 @@ class OccupancyByFloor(BaseSchema):
     @classmethod
     def validate_occupied_beds(cls, v: int, info) -> int:
         """Validate occupied beds don't exceed total."""
-        if info.data.get("total_beds") is not None and v > info.data["total_beds"]:
+        if "total_beds" in info.data and v > info.data["total_beds"]:
             raise ValueError("occupied_beds cannot exceed total_beds")
         return v
 
@@ -397,18 +380,15 @@ class ForecastPoint(BaseSchema):
     """
     Single forecast data point.
     
-    Represents predicted occupancy for a future Date.
+    Represents predicted occupancy for a future date.
     """
     
     forecast_date: Date = Field(
         ...,
-        description="Forecast Date"
+        description="Forecast date"
     )
-    forecasted_occupancy_percentage: Decimal = Field(
+    forecasted_occupancy_percentage: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Predicted occupancy rate"
     )
     forecasted_occupied_beds: int = Field(
@@ -418,25 +398,16 @@ class ForecastPoint(BaseSchema):
     )
     
     # Confidence intervals
-    lower_bound: Optional[Decimal] = Field(
+    lower_bound: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Lower confidence bound"
     )
-    upper_bound: Optional[Decimal] = Field(
+    upper_bound: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Upper confidence bound"
     )
-    confidence_level: Optional[Decimal] = Field(
+    confidence_level: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Confidence level (e.g., 95%)"
     )
     
@@ -479,24 +450,16 @@ class SeasonalPattern(BaseSchema):
         le=12,
         description="Ending month of the pattern"
     )
-    average_occupancy: Decimal = Field(
+    average_occupancy: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average occupancy during this pattern"
     )
-    occupancy_variance: Decimal = Field(
+    occupancy_variance: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Variance in occupancy during this pattern"
     )
-    confidence: Decimal = Field(
+    confidence: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Confidence in pattern identification"
     )
     
@@ -532,29 +495,23 @@ class ForecastData(BaseSchema):
         ...,
         description="Forecasting model used"
     )
-    model_accuracy: Optional[Decimal] = Field(
+    model_accuracy: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Historical model accuracy percentage"
     )
-    confidence_interval: Optional[Decimal] = Field(
+    confidence_interval: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Confidence interval for forecasts (e.g., 95%)"
     )
     
     # Training data info
     training_data_start: Optional[Date] = Field(
         None,
-        description="Start Date of training data"
+        description="Start date of training data"
     )
     training_data_end: Optional[Date] = Field(
         None,
-        description="End Date of training data"
+        description="End date of training data"
     )
     training_samples: Optional[int] = Field(
         None,
@@ -616,7 +573,7 @@ class ForecastData(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def peak_forecasted_date(self) -> Optional[Date]:
-        """Identify Date with highest forecasted occupancy."""
+        """Identify date with highest forecasted occupancy."""
         if not self.forecast_points:
             return None
         return max(
@@ -627,7 +584,7 @@ class ForecastData(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def low_forecasted_date(self) -> Optional[Date]:
-        """Identify Date with lowest forecasted occupancy."""
+        """Identify date with lowest forecasted occupancy."""
         if not self.forecast_points:
             return None
         return min(

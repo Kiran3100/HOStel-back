@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import HostelType
@@ -32,6 +32,7 @@ class HostelComparisonRequest(BaseCreateSchema):
     
     Allows comparison of 2-4 hostels side by side.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_ids: List[UUID] = Field(
         ...,
@@ -55,16 +56,16 @@ class RoomTypeComparison(BaseSchema):
     
     Provides room-specific information for comparison.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     room_type: str = Field(
         ...,
         description="Room type (single, double, etc.)",
     )
-    price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Monthly price",
-    )
+    price_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Monthly price")
+    ]
     available_beds: int = Field(
         ...,
         ge=0,
@@ -87,6 +88,7 @@ class ComparisonItem(BaseSchema):
     
     Complete hostel information formatted for comparison.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="Hostel ID")
     name: str = Field(..., description="Hostel name")
@@ -97,27 +99,24 @@ class ComparisonItem(BaseSchema):
     city: str = Field(..., description="City")
     state: str = Field(..., description="State")
     address: str = Field(..., description="Full address")
-    distance_from_center_km: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Distance from city center (km)",
-    )
+    distance_from_center_km: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Distance from city center (km)")
+    ]] = None
 
     # Pricing
-    starting_price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Starting monthly price",
-    )
+    starting_price_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Starting monthly price")
+    ]
     price_range_monthly: str = Field(
         ...,
         description="Price range (e.g., '₹5,000 - ₹15,000')",
     )
-    security_deposit: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Security deposit amount",
-    )
+    security_deposit: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Security deposit amount")
+    ]] = None
 
     # Capacity
     total_beds: int = Field(
@@ -132,12 +131,10 @@ class ComparisonItem(BaseSchema):
     )
 
     # Ratings
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -222,27 +219,24 @@ class PriceComparison(BaseSchema):
     
     Provides price statistics across compared hostels.
     """
+    model_config = ConfigDict(from_attributes=True)
 
-    lowest_price: Decimal = Field(
-        ...,
-        ge=0,
-        description="Lowest starting price",
-    )
-    highest_price: Decimal = Field(
-        ...,
-        ge=0,
-        description="Highest starting price",
-    )
-    average_price: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average starting price",
-    )
-    price_difference_percentage: Decimal = Field(
-        ...,
-        ge=0,
-        description="Percentage difference between lowest and highest",
-    )
+    lowest_price: Annotated[
+        Decimal,
+        Field(ge=0, description="Lowest starting price")
+    ]
+    highest_price: Annotated[
+        Decimal,
+        Field(ge=0, description="Highest starting price")
+    ]
+    average_price: Annotated[
+        Decimal,
+        Field(ge=0, description="Average starting price")
+    ]
+    price_difference_percentage: Annotated[
+        Decimal,
+        Field(ge=0, description="Percentage difference between lowest and highest")
+    ]
 
 
 class AmenityComparison(BaseSchema):
@@ -251,6 +245,7 @@ class AmenityComparison(BaseSchema):
     
     Provides amenity statistics and unique features.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     common_amenities: List[str] = Field(
         default_factory=list,
@@ -273,6 +268,7 @@ class ComparisonSummary(BaseSchema):
     
     Provides quick insights and best options.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     best_for_budget: UUID = Field(
         ...,
@@ -311,6 +307,7 @@ class ComparisonResult(BaseSchema):
     
     Aggregates all comparison data and insights.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostels: List[ComparisonItem] = Field(
         ...,

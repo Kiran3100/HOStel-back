@@ -85,30 +85,26 @@ class BookingResponse(BaseResponseSchema):
         description="Guest contact phone",
     )
 
-    # Pricing
+    # Pricing - decimal_places removed
     quoted_rent_monthly: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Monthly rent amount",
+        description="Monthly rent amount (precision: 2 decimal places)",
     )
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Total booking amount",
+        description="Total booking amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Security deposit amount",
+        description="Security deposit amount (precision: 2 decimal places)",
     )
     advance_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Advance payment amount",
+        description="Advance payment amount (precision: 2 decimal places)",
     )
     advance_paid: bool = Field(
         ...,
@@ -298,26 +294,26 @@ class BookingDetail(BaseResponseSchema):
         description="Vehicle details",
     )
 
-    # Pricing
+    # Pricing - decimal_places removed
     quoted_rent_monthly: Decimal = Field(
         ...,
         ge=0,
-        description="Monthly rent quoted",
+        description="Monthly rent quoted (precision: 2 decimal places)",
     )
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Total amount",
+        description="Total amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=0,
-        description="Security deposit",
+        description="Security deposit (precision: 2 decimal places)",
     )
     advance_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Advance amount",
+        description="Advance amount (precision: 2 decimal places)",
     )
     advance_paid: bool = Field(
         ...,
@@ -475,10 +471,11 @@ class BookingListItem(BaseSchema):
         description="Duration in months",
     )
 
+    # Pricing - decimal_places removed
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Total amount",
+        description="Total amount (precision: 2 decimal places)",
     )
     advance_paid: bool = Field(
         ...,
@@ -550,20 +547,21 @@ class BookingConfirmation(BaseSchema):
         description="Check-in Date",
     )
 
+    # Pricing - decimal_places removed
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Total booking amount",
+        description="Total booking amount (precision: 2 decimal places)",
     )
     advance_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Advance payment required",
+        description="Advance payment required (precision: 2 decimal places)",
     )
     balance_amount: Decimal = Field(
         ...,
         ge=0,
-        description="Balance amount to be paid",
+        description="Balance amount to be paid (precision: 2 decimal places)",
     )
 
     confirmation_message: str = Field(

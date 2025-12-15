@@ -7,10 +7,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Annotated, Optional
 
-from pydantic import Field, field_validator
-from pydantic.functional_validators import field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.schemas.common.base import BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import HostelStatus, SubscriptionPlan, SubscriptionStatus
@@ -30,6 +29,7 @@ class HostelAdminView(BaseSchema):
     
     Provides complete hostel information with statistics and metrics.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: str = Field(..., description="Hostel ID")
     name: str = Field(..., description="Hostel name")
@@ -47,12 +47,10 @@ class HostelAdminView(BaseSchema):
     total_beds: int = Field(..., ge=0, description="Total number of beds")
     occupied_beds: int = Field(..., ge=0, description="Currently occupied beds")
     available_beds: int = Field(..., ge=0, description="Available beds")
-    occupancy_percentage: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Current occupancy percentage",
-    )
+    occupancy_percentage: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Current occupancy percentage")
+    ]
 
     # Students
     total_students: int = Field(
@@ -67,16 +65,14 @@ class HostelAdminView(BaseSchema):
     )
 
     # Financial
-    total_revenue_this_month: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total revenue for current month",
-    )
-    outstanding_payments: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total outstanding payment amount",
-    )
+    total_revenue_this_month: Annotated[
+        Decimal,
+        Field(ge=0, description="Total revenue for current month")
+    ]
+    outstanding_payments: Annotated[
+        Decimal,
+        Field(ge=0, description="Total outstanding payment amount")
+    ]
 
     # Pending items
     pending_bookings: int = Field(
@@ -110,12 +106,10 @@ class HostelAdminView(BaseSchema):
     )
 
     # Performance
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating from reviews",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating from reviews")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -129,6 +123,7 @@ class HostelSettings(BaseUpdateSchema):
     
     Manages hostel operational and behavioral settings.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Visibility
     is_public: Optional[bool] = Field(
@@ -145,12 +140,15 @@ class HostelSettings(BaseUpdateSchema):
         default=False,
         description="Automatically approve booking requests",
     )
-    booking_advance_percentage: Decimal = Field(
-        default=Decimal("20.00"),
-        ge=0,
-        le=100,
-        description="Required advance payment percentage",
-    )
+    booking_advance_percentage: Annotated[
+        Decimal,
+        Field(
+            default=Decimal("20.00"),
+            ge=0,
+            le=100,
+            description="Required advance payment percentage"
+        )
+    ]
     max_booking_duration_months: int = Field(
         default=12,
         ge=1,
@@ -177,24 +175,30 @@ class HostelSettings(BaseUpdateSchema):
         le=10,
         description="Grace period for late payments (days)",
     )
-    late_payment_penalty_percentage: Decimal = Field(
-        default=Decimal("5.00"),
-        ge=0,
-        le=50,
-        description="Late payment penalty percentage",
-    )
+    late_payment_penalty_percentage: Annotated[
+        Decimal,
+        Field(
+            default=Decimal("5.00"),
+            ge=0,
+            le=50,
+            description="Late payment penalty percentage"
+        )
+    ]
 
     # Attendance settings
     enable_attendance_tracking: bool = Field(
         default=True,
         description="Enable attendance tracking system",
     )
-    minimum_attendance_percentage: Decimal = Field(
-        default=Decimal("75.00"),
-        ge=0,
-        le=100,
-        description="Minimum required attendance percentage",
-    )
+    minimum_attendance_percentage: Annotated[
+        Decimal,
+        Field(
+            default=Decimal("75.00"),
+            ge=0,
+            le=100,
+            description="Minimum required attendance percentage"
+        )
+    ]
     attendance_grace_period_days: int = Field(
         default=7,
         ge=0,
@@ -225,11 +229,10 @@ class HostelSettings(BaseUpdateSchema):
         default=False,
         description="Mess facility included in rent",
     )
-    mess_charges_monthly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Monthly mess charges (if separate)",
-    )
+    mess_charges_monthly: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Monthly mess charges (if separate)")
+    ]] = None
     mess_advance_booking_days: int = Field(
         default=1,
         ge=0,
@@ -261,6 +264,7 @@ class HostelVisibilityUpdate(BaseUpdateSchema):
     
     Controls hostel appearance in public listings and searches.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     is_public: bool = Field(
         ...,
@@ -282,6 +286,7 @@ class HostelCapacityUpdate(BaseUpdateSchema):
     
     Admin-only operation to modify hostel capacity.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total_rooms: int = Field(
         ...,
@@ -316,6 +321,7 @@ class HostelStatusUpdate(BaseUpdateSchema):
     
     Tracks status changes with reason.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     status: HostelStatus = Field(
         ...,

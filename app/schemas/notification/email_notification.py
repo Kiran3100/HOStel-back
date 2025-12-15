@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import EmailStr, Field, HttpUrl, field_validator, model_validator
@@ -43,12 +43,12 @@ class EmailAttachment(BaseSchema):
         description="URL to attachment file",
     )
     mime_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="MIME type of attachment",
     )
     size_bytes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         le=26214400,  # 25MB max
         description="File size in bytes",
@@ -93,7 +93,7 @@ class EmailRequest(BaseCreateSchema):
         description="HTML email body",
     )
     body_text: Optional[str] = Field(
-        None,
+        default=None,
         max_length=102400,
         description="Plain text fallback body",
     )
@@ -107,23 +107,23 @@ class EmailRequest(BaseCreateSchema):
 
     # Template support
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=100,
         description="Template code (overrides direct content)",
     )
     template_variables: Optional[Dict[str, str]] = Field(
-        None,
+        default=None,
         description="Variables for template rendering",
     )
 
     # Sender customization
     reply_to: Optional[EmailStr] = Field(
-        None,
+        default=None,
         description="Reply-to email address",
     )
     from_name: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=100,
         description="Sender display name",
@@ -148,7 +148,7 @@ class EmailRequest(BaseCreateSchema):
 
     # Scheduling
     send_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Schedule email for future delivery",
     )
 
@@ -224,18 +224,18 @@ class EmailConfig(BaseSchema):
 
     # SMTP configuration (for SMTP provider)
     smtp_host: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="SMTP server hostname",
     )
     smtp_port: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=65535,
         description="SMTP server port",
     )
     smtp_username: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="SMTP authentication username",
     )
@@ -246,7 +246,7 @@ class EmailConfig(BaseSchema):
 
     # API configuration (for API-based providers)
     api_key: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="API key for email service",
     )
@@ -263,7 +263,7 @@ class EmailConfig(BaseSchema):
         description="Default sender name",
     )
     reply_to_email: Optional[EmailStr] = Field(
-        None,
+        default=None,
         description="Default reply-to address",
     )
 
@@ -293,7 +293,7 @@ class EmailConfig(BaseSchema):
 
     # Bounce handling
     bounce_webhook_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Webhook URL for bounce notifications",
     )
 
@@ -340,11 +340,11 @@ class EmailTracking(BaseSchema):
         description="When email was sent",
     )
     delivered_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When email was delivered",
     )
     bounced_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When email bounced",
     )
 
@@ -360,11 +360,11 @@ class EmailTracking(BaseSchema):
         description="Whether email was opened",
     )
     first_opened_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When email was first opened",
     )
     last_opened_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When email was last opened",
     )
     open_count: int = Field(
@@ -378,11 +378,11 @@ class EmailTracking(BaseSchema):
         description="Whether any link was clicked",
     )
     first_clicked_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When first link was clicked",
     )
     last_clicked_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When last link was clicked",
     )
     click_count: int = Field(
@@ -399,19 +399,19 @@ class EmailTracking(BaseSchema):
 
     # Error information
     bounce_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(hard|soft|complaint)$",
         description="Type of bounce if bounced",
     )
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Error or bounce reason",
     )
 
     # Provider information
     provider_message_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Provider's message ID",
     )
@@ -422,7 +422,7 @@ class EmailTracking(BaseSchema):
         description="Whether recipient marked as spam",
     )
     spam_reported_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When marked as spam",
     )
 
@@ -456,23 +456,23 @@ class EmailTemplate(BaseSchema):
         description="HTML body template",
     )
     text_body: Optional[str] = Field(
-        None,
+        default=None,
         max_length=102400,
         description="Plain text body template",
     )
 
     # Styling and branding
     header_image_url: Optional[HttpUrl] = Field(
-        None,
+        default=None,
         description="Header/logo image URL",
     )
     footer_text: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Footer text (company info, unsubscribe link, etc.)",
     )
     primary_color: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^#[0-9A-Fa-f]{6}$",
         description="Primary brand color (hex code)",
     )
@@ -489,7 +489,7 @@ class EmailTemplate(BaseSchema):
 
     # Preheader
     preheader_text: Optional[str] = Field(
-        None,
+        default=None,
         max_length=150,
         description="Email preheader/preview text",
     )
@@ -525,13 +525,13 @@ class BulkEmailRequest(BaseCreateSchema):
 
     # Template support
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template code for all emails",
     )
 
     # Per-recipient customization
     recipient_variables: Optional[Dict[EmailStr, Dict[str, str]]] = Field(
-        None,
+        default=None,
         description="Per-recipient variable mapping (email -> variables)",
     )
 
@@ -616,16 +616,13 @@ class EmailStats(BaseSchema):
     )
 
     # Delivery rates
-    delivery_rate: Decimal = Field(
+    # Note: Pydantic v2 - Decimal fields with percentage constraints
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Delivery rate percentage",
     )
-    bounce_rate: Decimal = Field(
+    bounce_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Bounce rate percentage",
     )
 
@@ -640,10 +637,8 @@ class EmailStats(BaseSchema):
         ge=0,
         description="Total opens (including repeats)",
     )
-    open_rate: Decimal = Field(
+    open_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Open rate percentage",
     )
 
@@ -657,16 +652,12 @@ class EmailStats(BaseSchema):
         ge=0,
         description="Total clicks (including repeats)",
     )
-    click_rate: Decimal = Field(
+    click_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Click rate percentage",
     )
-    click_to_open_rate: Decimal = Field(
+    click_to_open_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Click-to-open rate percentage",
     )
 
@@ -676,10 +667,8 @@ class EmailStats(BaseSchema):
         ge=0,
         description="Number of spam complaints",
     )
-    spam_rate: Decimal = Field(
+    spam_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         default=Decimal("0"),
-        ge=0,
-        le=100,
         description="Spam complaint rate percentage",
     )
 
@@ -689,10 +678,8 @@ class EmailStats(BaseSchema):
         ge=0,
         description="Number of unsubscribes",
     )
-    unsubscribe_rate: Decimal = Field(
+    unsubscribe_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         default=Decimal("0"),
-        ge=0,
-        le=100,
         description="Unsubscribe rate percentage",
     )
 
@@ -740,12 +727,12 @@ class EmailSchedule(BaseCreateSchema):
         description="Whether this is a recurring email",
     )
     recurrence_pattern: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(daily|weekly|monthly|yearly)$",
         description="Recurrence pattern if recurring",
     )
     recurrence_end_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="When to stop recurring",
     )
 

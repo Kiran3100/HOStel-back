@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
 from uuid import UUID
@@ -60,66 +60,49 @@ class CostTracking(BaseSchema):
         ...,
         description="Request number",
     )
-    estimated_cost: Decimal = Field(
+    # All cost fields using Annotated with decimal_places in v2
+    estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Original estimated cost",
     )
-    approved_cost: Decimal = Field(
+    approved_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Approved budget amount",
     )
-    actual_cost: Decimal = Field(
+    actual_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Actual cost incurred",
     )
-    variance: Decimal = Field(
+    variance: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
-        decimal_places=2,
         description="Cost variance (actual - approved)",
     )
-    variance_percentage: Decimal = Field(
+    variance_percentage: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
-        decimal_places=2,
         description="Variance as percentage of approved",
     )
     within_budget: bool = Field(
         ...,
         description="Whether actual cost is within approved budget",
     )
-    materials_cost: Decimal = Field(
+    materials_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Materials cost component",
     )
-    labor_cost: Decimal = Field(
+    labor_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Labor cost component",
     )
-    vendor_charges: Decimal = Field(
+    vendor_charges: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="External vendor charges",
     )
-    other_costs: Decimal = Field(
+    other_costs: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Other miscellaneous costs",
     )
-    tax_amount: Decimal = Field(
+    tax_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Tax component",
     )
 
@@ -183,35 +166,24 @@ class CategoryBudget(BaseSchema):
         max_length=50,
         description="Category code",
     )
-    allocated: Decimal = Field(
+    allocated: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Allocated budget amount",
     )
-    spent: Decimal = Field(
+    spent: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Amount spent",
     )
-    committed: Decimal = Field(
+    committed: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Amount committed (approved but not paid)",
     )
-    remaining: Decimal = Field(
+    remaining: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Remaining budget",
     )
-    utilization_percentage: Decimal = Field(
+    utilization_percentage: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Budget utilization percentage",
     )
     request_count: int = Field(
@@ -219,10 +191,8 @@ class CategoryBudget(BaseSchema):
         ge=0,
         description="Number of maintenance requests",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
 
@@ -297,63 +267,46 @@ class BudgetAllocation(BaseSchema):
         ...,
         description="Fiscal year end Date",
     )
-    total_budget: Decimal = Field(
+    total_budget: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total allocated budget",
     )
-    allocated_budget: Decimal = Field(
+    allocated_budget: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Budget allocated to categories",
     )
-    spent_amount: Decimal = Field(
+    spent_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total amount spent",
     )
-    committed_amount: Decimal = Field(
+    committed_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Committed but not yet spent",
     )
-    remaining_budget: Decimal = Field(
+    remaining_budget: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Remaining unallocated budget",
     )
-    utilization_percentage: Decimal = Field(
+    utilization_percentage: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall budget utilization",
     )
     budget_by_category: Dict[str, CategoryBudget] = Field(
         ...,
         description="Budget breakdown by category",
     )
-    reserve_fund: Decimal = Field(
+    reserve_fund: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Emergency reserve fund",
     )
     
     # Forecasting
-    projected_annual_spend: Optional[Decimal] = Field(
+    projected_annual_spend: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Projected annual spending",
     )
-    burn_rate_monthly: Optional[Decimal] = Field(
+    burn_rate_monthly: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average monthly spending rate",
     )
 
@@ -422,10 +375,8 @@ class MonthlyExpense(BaseSchema):
         le=2100,
         description="Year",
     )
-    total_expenses: Decimal = Field(
+    total_expenses: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total expenses for the month",
     )
     request_count: int = Field(
@@ -438,18 +389,15 @@ class MonthlyExpense(BaseSchema):
         ge=0,
         description="Number of completed requests",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
-    budget_allocated: Optional[Decimal] = Field(
+    budget_allocated: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Budget allocated for the month",
     )
-    variance_from_budget: Optional[Decimal] = Field(
+    variance_from_budget: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Variance from monthly budget",
     )
@@ -504,17 +452,15 @@ class ExpenseItem(BaseSchema):
         ...,
         description="Priority level",
     )
-    estimated_cost: Decimal = Field(
+    estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Estimated cost",
     )
-    actual_cost: Decimal = Field(
+    actual_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Actual cost incurred",
     )
-    cost_variance: Decimal = Field(
+    cost_variance: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
         description="Cost variance amount",
     )
@@ -576,10 +522,8 @@ class ExpenseReport(BaseSchema):
     )
     
     # Summary statistics
-    total_expenses: Decimal = Field(
+    total_expenses: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total expenses in period",
     )
     total_requests: int = Field(
@@ -592,27 +536,22 @@ class ExpenseReport(BaseSchema):
         ge=0,
         description="Completed requests",
     )
-    average_cost_per_request: Decimal = Field(
+    average_cost_per_request: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
     
     # Budget comparison
-    total_budget: Optional[Decimal] = Field(
+    total_budget: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Total budget for period",
     )
-    budget_utilization: Optional[Decimal] = Field(
+    budget_utilization: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Budget utilization percentage",
     )
     
-    # Breakdown by category
+    # Breakdown by category - Decimal values in dict
     expenses_by_category: Dict[str, Decimal] = Field(
         ...,
         description="Expenses grouped by category",
@@ -696,10 +635,8 @@ class InvoiceLineItem(BaseSchema):
         max_length=50,
         description="Item code/SKU",
     )
-    quantity: Decimal = Field(
+    quantity: Annotated[Decimal, Field(gt=0, decimal_places=3)] = Field(
         ...,
-        gt=0,
-        decimal_places=3,
         description="Quantity",
     )
     unit: str = Field(
@@ -707,29 +644,20 @@ class InvoiceLineItem(BaseSchema):
         max_length=20,
         description="Unit of measurement",
     )
-    unit_price: Decimal = Field(
+    unit_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Price per unit",
     )
-    total_price: Decimal = Field(
+    total_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total line price",
     )
-    tax_rate: Decimal = Field(
+    tax_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Tax rate percentage",
     )
-    tax_amount: Decimal = Field(
+    tax_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Tax amount",
     )
 
@@ -830,28 +758,20 @@ class VendorInvoice(BaseCreateSchema):
         max_length=100,
         description="Invoice line items",
     )
-    subtotal: Decimal = Field(
+    subtotal: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Subtotal (before tax)",
     )
-    tax_amount: Decimal = Field(
+    tax_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total tax amount",
     )
-    discount_amount: Decimal = Field(
+    discount_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Discount amount",
     )
-    total_amount: Decimal = Field(
+    total_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total invoice amount",
     )
     payment_terms: str = Field(
@@ -964,9 +884,8 @@ class CostAnalysis(BaseSchema):
         pattern=r"^(increasing|decreasing|stable)$",
         description="Overall cost trend direction",
     )
-    trend_percentage: Decimal = Field(
+    trend_percentage: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
-        decimal_places=2,
         description="Trend change percentage",
     )
     
@@ -975,9 +894,8 @@ class CostAnalysis(BaseSchema):
         ...,
         description="Category with highest total cost",
     )
-    highest_cost_category_amount: Decimal = Field(
+    highest_cost_category_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Amount spent in highest cost category",
     )
     most_frequent_category: str = Field(
@@ -991,44 +909,35 @@ class CostAnalysis(BaseSchema):
     )
     
     # Efficiency metrics
-    cost_per_student: Decimal = Field(
+    cost_per_student: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average maintenance cost per student",
     )
-    cost_per_room: Decimal = Field(
+    cost_per_room: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average maintenance cost per room",
     )
-    cost_per_sqft: Optional[Decimal] = Field(
+    cost_per_sqft: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Cost per square foot",
     )
     
     # Performance benchmarks
-    comparison_to_previous_period: Decimal = Field(
+    comparison_to_previous_period: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
-        decimal_places=2,
         description="Percentage change from previous period",
     )
-    comparison_to_budget: Optional[Decimal] = Field(
+    comparison_to_budget: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
-        decimal_places=2,
         description="Percentage variance from budget",
     )
     
     # Predictive insights
-    projected_annual_cost: Optional[Decimal] = Field(
+    projected_annual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Projected annual cost based on trends",
     )
-    seasonal_variation: Optional[Decimal] = Field(
+    seasonal_variation: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Seasonal variation coefficient",
     )

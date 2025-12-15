@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import datetime, time
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import HostelStatus, HostelType
@@ -29,22 +29,21 @@ class HostelResponse(BaseResponseSchema):
     
     Standard response for hostel operations.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     name: str = Field(..., description="Hostel name")
     slug: str = Field(..., description="URL slug")
     hostel_type: HostelType = Field(..., description="Hostel type")
     city: str = Field(..., description="City")
     state: str = Field(..., description="State")
-    starting_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        description="Starting monthly price",
-    )
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    starting_price_monthly: Optional[Annotated[
+        Decimal,
+        Field(description="Starting monthly price")
+    ]] = None
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -75,6 +74,7 @@ class HostelDetail(BaseResponseSchema):
     
     Comprehensive hostel data for detail views.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     name: str = Field(..., description="Hostel name")
     slug: str = Field(..., description="URL slug")
@@ -119,10 +119,10 @@ class HostelDetail(BaseResponseSchema):
     )
 
     # Pricing
-    starting_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        description="Starting monthly price",
-    )
+    starting_price_monthly: Optional[Annotated[
+        Decimal,
+        Field(description="Starting monthly price")
+    ]] = None
     currency: str = Field(..., description="Currency code")
 
     # Capacity
@@ -148,12 +148,10 @@ class HostelDetail(BaseResponseSchema):
     )
 
     # Ratings
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -248,6 +246,7 @@ class HostelListItem(BaseSchema):
     
     Minimal information for efficient list rendering.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="Hostel ID")
     name: str = Field(..., description="Hostel name")
@@ -255,16 +254,14 @@ class HostelListItem(BaseSchema):
     hostel_type: HostelType = Field(..., description="Hostel type")
     city: str = Field(..., description="City")
     state: str = Field(..., description="State")
-    starting_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        description="Starting price",
-    )
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    starting_price_monthly: Optional[Annotated[
+        Decimal,
+        Field(description="Starting price")
+    ]] = None
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,
@@ -280,11 +277,10 @@ class HostelListItem(BaseSchema):
         description="Cover image",
     )
     is_featured: bool = Field(..., description="Featured status")
-    distance_km: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Distance from search location",
-    )
+    distance_km: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Distance from search location")
+    ]] = None
 
 
 class HostelStats(BaseSchema):
@@ -293,6 +289,7 @@ class HostelStats(BaseSchema):
     
     Key metrics and statistics for a hostel.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
 
@@ -317,24 +314,20 @@ class HostelStats(BaseSchema):
         ge=0,
         description="Available beds",
     )
-    occupancy_percentage: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Occupancy percentage",
-    )
+    occupancy_percentage: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Occupancy percentage")
+    ]
 
     # Revenue
-    total_revenue_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total monthly revenue",
-    )
-    total_outstanding: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total outstanding payments",
-    )
+    total_revenue_monthly: Annotated[
+        Decimal,
+        Field(ge=0, description="Total monthly revenue")
+    ]
+    total_outstanding: Annotated[
+        Decimal,
+        Field(ge=0, description="Total outstanding payments")
+    ]
 
     # Students
     total_students: int = Field(
@@ -373,12 +366,10 @@ class HostelStats(BaseSchema):
     )
 
     # Reviews
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     total_reviews: int = Field(
         ...,
         ge=0,

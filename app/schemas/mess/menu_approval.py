@@ -56,8 +56,7 @@ class MenuApprovalRequest(BaseCreateSchema):
     )
     
     # Budget information
-    # Note: Pydantic v2 removed max_digits and decimal_places from Field
-    # Using Decimal type with validators instead
+    # Pydantic v2: Decimal fields with precision handled via field_validator
     estimated_cost_per_person: Optional[Decimal] = Field(
         None,
         ge=0,
@@ -246,6 +245,14 @@ class MenuApprovalResponse(BaseSchema):
         description="Whether menu can be published",
     )
 
+    @field_validator("approved_budget", mode="after")
+    @classmethod
+    def round_budget(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round budget to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
+
     @model_validator(mode="after")
     def validate_response_consistency(self) -> "MenuApprovalResponse":
         """Validate approval response consistency."""
@@ -421,6 +428,14 @@ class BulkApproval(BaseCreateSchema):
         ge=0,
         description="Approved budget for each menu",
     )
+
+    @field_validator("approved_budget_per_menu", mode="after")
+    @classmethod
+    def round_budget(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round budget to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @model_validator(mode="after")
     def validate_bulk_approval(self) -> "BulkApproval":

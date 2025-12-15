@@ -93,7 +93,7 @@ class LeaveResponse(BaseResponseSchema):
         description="Leave reason (truncated for list view)",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -105,7 +105,7 @@ class LeaveResponse(BaseResponseSchema):
         }
         return status_map.get(self.status, self.status.value)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def leave_type_display(self) -> str:
         """Human-readable leave type display."""
@@ -118,7 +118,7 @@ class LeaveResponse(BaseResponseSchema):
         }
         return type_map.get(self.leave_type, self.leave_type.value)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if leave is currently active."""
@@ -128,7 +128,7 @@ class LeaveResponse(BaseResponseSchema):
         today = Date.today()
         return self.from_date <= today <= self.to_date
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def days_remaining(self) -> Optional[int]:
         """Calculate remaining days for active leave."""
@@ -312,7 +312,7 @@ class LeaveDetail(BaseResponseSchema):
         description="Last modifier user ID",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if leave is currently active."""
@@ -322,7 +322,7 @@ class LeaveDetail(BaseResponseSchema):
         today = Date.today()
         return self.from_date <= today <= self.to_date
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_upcoming(self) -> bool:
         """Check if leave is upcoming."""
@@ -331,13 +331,13 @@ class LeaveDetail(BaseResponseSchema):
         
         return self.from_date > Date.today()
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_past(self) -> bool:
         """Check if leave is in the past."""
         return self.to_date < Date.today()
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def can_be_cancelled(self) -> bool:
         """Check if leave can be cancelled by student."""
@@ -416,7 +416,7 @@ class LeaveListItem(BaseSchema):
         description="Application Date",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def status_badge_color(self) -> str:
         """Get color code for status badge (for UI rendering)."""
@@ -428,7 +428,7 @@ class LeaveListItem(BaseSchema):
         }
         return color_map.get(self.status, "gray")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_urgent(self) -> bool:
         """Check if leave requires urgent attention."""
@@ -546,7 +546,7 @@ class LeaveSummary(BaseSchema):
         description="Currently active leaves",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def approval_rate(self) -> float:
         """Calculate approval rate percentage."""

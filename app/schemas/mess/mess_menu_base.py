@@ -146,7 +146,6 @@ class MessMenuBase(BaseSchema):
         
         return v
 
-    # Pydantic v2: field_validator with mode="after" uses info.data instead of values
     @field_validator("day_of_week", mode="after")
     @classmethod
     def validate_day_consistency(cls, v: str, info) -> str:
@@ -155,6 +154,7 @@ class MessMenuBase(BaseSchema):
         
         Ensures data consistency between Date and day name.
         """
+        # Pydantic v2: Use info.data to access other fields
         if info.data.get("menu_date"):
             menu_date = info.data["menu_date"]
             expected_day = menu_date.strftime("%A")

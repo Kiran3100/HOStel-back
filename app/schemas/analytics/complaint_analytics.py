@@ -11,7 +11,7 @@ Provides comprehensive analytics for complaint management including:
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Annotated
 
 from pydantic import BaseModel, Field, field_validator, computed_field
 from uuid import UUID
@@ -29,6 +29,11 @@ __all__ = [
     "ComplaintDashboard",
     "SLAMetrics",
 ]
+
+
+# Type aliases for Decimal fields
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0)]
 
 
 class SLAMetrics(BaseSchema):
@@ -54,16 +59,12 @@ class SLAMetrics(BaseSchema):
         ge=0,
         description="Complaints that breached SLA"
     )
-    sla_compliance_rate: Decimal = Field(
+    sla_compliance_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of complaints meeting SLA"
     )
     average_sla_buffer_hours: Decimal = Field(
         ...,
-        decimal_places=2,
         description="Average time buffer (positive) or breach (negative) in hours"
     )
     
@@ -71,9 +72,21 @@ class SLAMetrics(BaseSchema):
     @classmethod
     def validate_sla_counts(cls, v: int, info) -> int:
         """Validate SLA counts don't exceed total."""
-        if info.data.get("total_with_sla") is not None and v > info.data["total_with_sla"]:
+        if "total_with_sla" in info.data and v > info.data["total_with_sla"]:
             raise ValueError(f"{info.field_name} cannot exceed total_with_sla")
         return v
+    
+    @field_validator("sla_compliance_rate")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("average_sla_buffer_hours")
+    @classmethod
+    def round_hours(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property
@@ -129,54 +142,36 @@ class ComplaintKPI(BaseSchema):
     )
     
     # Performance metrics
-    average_resolution_time_hours: Decimal = Field(
+    average_resolution_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average time to resolve complaints in hours"
     )
-    median_resolution_time_hours: Decimal = Field(
+    median_resolution_time_hours: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Median resolution time in hours"
     )
-    sla_compliance_rate: Decimal = Field(
+    sla_compliance_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of complaints resolved within SLA"
     )
-    escalation_rate: Decimal = Field(
+    escalation_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of complaints escalated"
     )
-    reopen_rate: Decimal = Field(
+    reopen_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of resolved complaints that were reopened"
     )
     
     # First response time
-    average_first_response_time_hours: Decimal = Field(
+    average_first_response_time_hours: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Average time to first response in hours"
     )
     
     # Customer satisfaction
-    average_satisfaction_score: Optional[Decimal] = Field(
+    average_satisfaction_score: Optional[Annotated[Decimal, Field(ge=0, le=5)]] = Field(
         None,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average customer satisfaction score (1-5)"
     )
     
@@ -189,7 +184,7 @@ class ComplaintKPI(BaseSchema):
     @classmethod
     def validate_complaint_counts(cls, v: int, info) -> int:
         """Validate individual counts are reasonable."""
-        if info.data.get("total_complaints") is not None:
+        if "total_complaints" in info.data:
             total = info.data["total_complaints"]
             if v > total and info.field_name != "open_complaints":
                 # open_complaints can exceed total as it includes historical
@@ -197,6 +192,28 @@ class ComplaintKPI(BaseSchema):
                     f"{info.field_name} ({v}) should not exceed total_complaints ({total})"
                 )
         return v
+    
+    @field_validator(
+        "average_resolution_time_hours",
+        "median_resolution_time_hours",
+        "average_first_response_time_hours"
+    )
+    @classmethod
+    def round_hours(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("sla_compliance_rate", "escalation_rate", "reopen_rate")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("average_satisfaction_score")
+    @classmethod
+    def round_satisfaction(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round to 2 decimal places."""
+        return round(v, 2) if v is not None else None
     
     @computed_field  # type: ignore[misc]
     @property
@@ -246,7 +263,7 @@ class ComplaintTrendPoint(BaseSchema):
     """
     Single data point in complaint trend analysis.
     
-    Represents complaint metrics for a specific Date,
+    Represents complaint metrics for a specific date,
     enabling time-series visualization.
     """
     
@@ -257,34 +274,34 @@ class ComplaintTrendPoint(BaseSchema):
     total_complaints: int = Field(
         ...,
         ge=0,
-        description="Total complaints on this Date"
+        description="Total complaints on this date"
     )
     open_complaints: int = Field(
         ...,
         ge=0,
-        description="Open complaints on this Date"
+        description="Open complaints on this date"
     )
     resolved_complaints: int = Field(
         ...,
         ge=0,
-        description="Resolved complaints on this Date"
+        description="Resolved complaints on this date"
     )
     escalated: int = Field(
         ...,
         ge=0,
-        description="Escalated complaints on this Date"
+        description="Escalated complaints on this date"
     )
     sla_breached: int = Field(
         ...,
         ge=0,
-        description="SLA breaches on this Date"
+        description="SLA breaches on this date"
     )
     
     @field_validator("escalated", "sla_breached")
     @classmethod
     def validate_subset_counts(cls, v: int, info) -> int:
         """Validate that subset counts don't exceed total."""
-        if info.data.get("total_complaints") is not None and v > info.data["total_complaints"]:
+        if "total_complaints" in info.data and v > info.data["total_complaints"]:
             raise ValueError(
                 f"{info.field_name} ({v}) cannot exceed total_complaints"
             )
@@ -293,7 +310,7 @@ class ComplaintTrendPoint(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> Decimal:
-        """Calculate resolution rate for this Date."""
+        """Calculate resolution rate for this date."""
         if self.total_complaints == 0:
             return Decimal("0.00")
         return round(
@@ -361,7 +378,7 @@ class ComplaintTrend(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def peak_complaint_date(self) -> Optional[Date]:
-        """Identify Date with highest complaint volume."""
+        """Identify date with highest complaint volume."""
         if not self.points:
             return None
         return max(self.points, key=lambda x: x.total_complaints).trend_date
@@ -386,17 +403,12 @@ class CategoryBreakdown(BaseSchema):
         ge=0,
         description="Number of complaints in this category"
     )
-    percentage_of_total: Decimal = Field(
+    percentage_of_total: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of total complaints"
     )
-    average_resolution_time_hours: Decimal = Field(
+    average_resolution_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average resolution time for this category in hours"
     )
     resolved_count: int = Field(
@@ -414,9 +426,21 @@ class CategoryBreakdown(BaseSchema):
     @classmethod
     def validate_status_counts(cls, v: int, info) -> int:
         """Validate status counts don't exceed category total."""
-        if info.data.get("count") is not None and v > info.data["count"]:
+        if "count" in info.data and v > info.data["count"]:
             raise ValueError(f"{info.field_name} cannot exceed count")
         return v
+    
+    @field_validator("percentage_of_total")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("average_resolution_time_hours")
+    @classmethod
+    def round_hours(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property
@@ -447,26 +471,30 @@ class PriorityBreakdown(BaseSchema):
         ge=0,
         description="Number of complaints at this priority"
     )
-    percentage_of_total: Decimal = Field(
+    percentage_of_total: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of total complaints"
     )
-    average_resolution_time_hours: Decimal = Field(
+    average_resolution_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average resolution time for this priority"
     )
-    sla_compliance_rate: Decimal = Field(
+    sla_compliance_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="SLA compliance rate for this priority level"
     )
+    
+    @field_validator("percentage_of_total", "sla_compliance_rate")
+    @classmethod
+    def round_percentage(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
+    
+    @field_validator("average_resolution_time_hours")
+    @classmethod
+    def round_hours(cls, v: Decimal) -> Decimal:
+        """Round to 2 decimal places."""
+        return round(v, 2)
     
     @computed_field  # type: ignore[misc]
     @property

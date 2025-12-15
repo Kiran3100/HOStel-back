@@ -57,6 +57,8 @@ class ScheduleRequest(BaseCreateSchema):
     Allows setting publication time and optional auto-expiry.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="UUID of the announcement to schedule",
@@ -113,6 +115,8 @@ class ScheduleConfig(BaseSchema):
     
     Shows current scheduling state including recurrence settings.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -183,6 +187,8 @@ class RecurringAnnouncement(BaseCreateSchema):
     Announcements will be automatically published according
     to the recurrence pattern.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     hostel_id: UUID = Field(
         ...,
@@ -277,7 +283,7 @@ class RecurringAnnouncement(BaseCreateSchema):
             raise ValueError("Start date must be in the future")
         return v
     
-    @field_validator("end_date", mode="after")
+    @field_validator("end_date")
     @classmethod
     def validate_end_date(cls, v: Optional[datetime], info) -> Optional[datetime]:
         """Ensure end date is after start date."""
@@ -323,6 +329,8 @@ class ScheduleUpdate(BaseCreateSchema):
     Reschedule a pending announcement to a new time.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -358,6 +366,8 @@ class ScheduleCancel(BaseCreateSchema):
     
     Prevents publication of a scheduled announcement.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -395,6 +405,8 @@ class PublishNow(BaseCreateSchema):
     Overrides the scheduled time and publishes now.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -422,6 +434,8 @@ class ScheduledAnnouncementItem(BaseSchema):
     
     Lightweight representation for scheduled announcement lists.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -484,6 +498,8 @@ class ScheduledAnnouncementsList(BaseSchema):
     
     Includes summary statistics for the schedule queue.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     hostel_id: UUID = Field(
         ...,

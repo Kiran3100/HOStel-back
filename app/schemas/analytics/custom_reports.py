@@ -11,7 +11,7 @@ Provides flexible report generation capabilities allowing users to:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Annotated
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator, model_validator, computed_field
@@ -208,7 +208,7 @@ class CustomReportField(BaseSchema):
     @classmethod
     def set_default_label(cls, v: Optional[str], info) -> Optional[str]:
         """Set default display label from field name if not provided."""
-        if v is None and info.data.get("field_name") is not None:
+        if v is None and "field_name" in info.data:
             # Convert snake_case to Title Case
             return info.data["field_name"].replace("_", " ").title()
         return v
@@ -584,7 +584,7 @@ class CustomReportResult(BaseSchema):
     @classmethod
     def validate_returned_rows(cls, v: int, info) -> int:
         """Validate returned_rows matches actual row count."""
-        if info.data.get("rows") is not None and v != len(info.data["rows"]):
+        if "rows" in info.data and v != len(info.data["rows"]):
             raise ValueError(
                 f"returned_rows ({v}) must match length of rows ({len(info.data['rows'])})"
             )

@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -31,6 +31,7 @@ class AssignmentRequest(BaseCreateSchema):
     Supports optional estimated resolution time and notes
     for assignment context.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -84,6 +85,7 @@ class AssignmentResponse(BaseSchema):
     
     Provides confirmation details and assignment metadata.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Assigned complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -108,6 +110,7 @@ class ReassignmentRequest(BaseCreateSchema):
     
     Requires reason for reassignment to maintain audit trail.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -153,6 +156,7 @@ class BulkAssignment(BaseCreateSchema):
     
     Useful for distributing workload efficiently.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_ids: List[str] = Field(
         ...,
@@ -200,6 +204,7 @@ class UnassignRequest(BaseCreateSchema):
     
     Requires reason for accountability.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -235,6 +240,7 @@ class AssignmentHistory(BaseSchema):
     
     Tracks all assignment changes for a complaint.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Complaint ID")
     

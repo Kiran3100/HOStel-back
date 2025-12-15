@@ -114,7 +114,7 @@ class OTPVerifyRequest(BaseCreateSchema):
             )
         return self
 
-    @field_validator("otp_code")
+    @field_validator("otp_code", mode="after")
     @classmethod
     def validate_otp_format(cls, v: str) -> str:
         """Ensure OTP is exactly 6 digits."""

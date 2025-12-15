@@ -40,9 +40,10 @@ class BaseSchema(BaseModel):
         arbitrary_types_allowed=True,
         str_strip_whitespace=True,
         validate_assignment=True,
-        # Note: json_encoders is deprecated in Pydantic v2.
-        # Use field serializers or model_serializer for custom serialization.
-        # For datetime, Pydantic v2 handles ISO format by default.
+        # Pydantic v2: json_encoders is deprecated.
+        # Use custom serializers via @field_serializer or @model_serializer
+        # if custom JSON encoding is needed.
+        # Datetime fields are serialized to ISO format by default in v2.
     )
 
 

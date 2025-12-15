@@ -72,19 +72,19 @@ class RegisterRequest(BaseCreateSchema):
         description="Date of birth (optional)",
     )
 
-    @field_validator("email")
+    @field_validator("email", mode="after")
     @classmethod
     def normalize_email(cls, v: EmailStr) -> str:
         """Normalize email to lowercase."""
         return str(v).lower().strip()
 
-    @field_validator("phone")
+    @field_validator("phone", mode="after")
     @classmethod
     def normalize_phone(cls, v: str) -> str:
         """Normalize phone number by removing spaces and dashes."""
         return v.replace(" ", "").replace("-", "").strip()
 
-    @field_validator("full_name")
+    @field_validator("full_name", mode="after")
     @classmethod
     def validate_full_name(cls, v: str) -> str:
         """
@@ -99,7 +99,7 @@ class RegisterRequest(BaseCreateSchema):
             raise ValueError("Full name cannot be only numbers")
         return v
 
-    @field_validator("date_of_birth")
+    @field_validator("date_of_birth", mode="after")
     @classmethod
     def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """
@@ -122,7 +122,7 @@ class RegisterRequest(BaseCreateSchema):
 
         return v
 
-    @field_validator("password")
+    @field_validator("password", mode="after")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """Validate password meets strength requirements."""
@@ -143,7 +143,7 @@ class RegisterRequest(BaseCreateSchema):
             raise ValueError("Passwords do not match")
         return self
 
-    @field_validator("role")
+    @field_validator("role", mode="after")
     @classmethod
     def validate_role_restriction(cls, v: UserRole) -> UserRole:
         """
@@ -214,7 +214,7 @@ class VerifyEmailRequest(BaseCreateSchema):
         examples=["123456"],
     )
 
-    @field_validator("verification_code")
+    @field_validator("verification_code", mode="after")
     @classmethod
     def validate_code_format(cls, v: str) -> str:
         """Ensure verification code is exactly 6 digits."""
@@ -245,7 +245,7 @@ class VerifyPhoneRequest(BaseCreateSchema):
         examples=["123456"],
     )
 
-    @field_validator("verification_code")
+    @field_validator("verification_code", mode="after")
     @classmethod
     def validate_code_format(cls, v: str) -> str:
         """Ensure verification code is exactly 6 digits."""
@@ -274,7 +274,7 @@ class ResendVerificationRequest(BaseCreateSchema):
         examples=["email", "phone"],
     )
 
-    @field_validator("verification_type")
+    @field_validator("verification_type", mode="after")
     @classmethod
     def normalize_verification_type(cls, v: str) -> str:
         """Normalize verification type to lowercase."""

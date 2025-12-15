@@ -73,14 +73,14 @@ class AttendanceSummary(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Overall attendance percentage",
     )
     late_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Percentage of late arrivals",
     )
 
@@ -118,8 +118,8 @@ class AttendanceSummary(BaseSchema):
     )
     minimum_requirement_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Minimum required attendance percentage",
     )
 
@@ -129,7 +129,7 @@ class AttendanceSummary(BaseSchema):
         """Round percentages to 2 decimal places."""
         return round(v, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_accounted_days(self) -> int:
         """Calculate total days with attendance recorded."""
@@ -141,7 +141,7 @@ class AttendanceSummary(BaseSchema):
             + self.total_half_day
         )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def unrecorded_days(self) -> int:
         """Calculate days without attendance record."""
@@ -156,7 +156,7 @@ class DailyAttendanceRecord(BaseSchema):
     for timeline views and detailed reports.
     """
 
-    Date: Date = Field(
+    date: Date = Field(
         ...,
         description="Attendance Date",
     )
@@ -198,7 +198,7 @@ class DailyAttendanceRecord(BaseSchema):
         description="Whether day was a weekend",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -254,8 +254,8 @@ class WeeklyAttendance(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Weekly attendance percentage",
     )
 
@@ -292,8 +292,8 @@ class MonthlyComparison(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Monthly attendance percentage",
     )
     total_present: int = Field(
@@ -317,7 +317,7 @@ class MonthlyComparison(BaseSchema):
         description="Total working days in month",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def trend_indicator(self) -> str:
         """Get trend indicator (up, down, stable) - requires comparison context."""
@@ -366,7 +366,7 @@ class TrendAnalysis(BaseSchema):
     )
     average_late_minutes: Optional[Decimal] = Field(
         None,
-        ge=0,
+        ge=Decimal("0"),
         description="Average minutes late across period",
     )
     
@@ -388,8 +388,8 @@ class TrendAnalysis(BaseSchema):
     # Predictive metrics
     projected_end_of_month_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Projected attendance percentage at month end",
     )
 
@@ -471,7 +471,7 @@ class AttendanceReport(BaseSchema):
         description="Whether holidays are included",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_days_analyzed(self) -> int:
         """Total days included in analysis."""
@@ -537,8 +537,8 @@ class StudentMonthlySummary(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Monthly attendance percentage",
     )
     meets_requirement: bool = Field(
@@ -567,7 +567,7 @@ class StudentMonthlySummary(BaseSchema):
         description="Percentage point change from last month",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_indicator(self) -> str:
         """
@@ -631,8 +631,8 @@ class MonthlyReport(BaseSchema):
     # Hostel-wide statistics
     hostel_average_attendance: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Average attendance across all students",
     )
     total_students: int = Field(
@@ -664,8 +664,8 @@ class MonthlyReport(BaseSchema):
     )
     average_late_percentage: Decimal = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Average late percentage",
     )
     
@@ -679,7 +679,7 @@ class MonthlyReport(BaseSchema):
         description="User who generated report",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def compliance_rate(self) -> Decimal:
         """Calculate percentage of students meeting requirements."""
@@ -713,8 +713,8 @@ class ComparisonItem(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Attendance percentage",
     )
     total_present: int = Field(
@@ -739,12 +739,12 @@ class ComparisonItem(BaseSchema):
     )
     percentile: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Percentile ranking",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def performance_indicator(self) -> str:
         """Get performance indicator based on percentile."""
@@ -791,31 +791,31 @@ class AttendanceComparison(BaseSchema):
     # Statistical metrics
     average_attendance: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Average attendance across all entities",
     )
     median_attendance: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Median attendance",
     )
     highest_attendance: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Highest attendance percentage",
     )
     lowest_attendance: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Lowest attendance percentage",
     )
     standard_deviation: Optional[Decimal] = Field(
         None,
-        ge=0,
+        ge=Decimal("0"),
         description="Standard deviation of attendance",
     )
     

@@ -46,7 +46,7 @@ class LoginRequest(BaseCreateSchema):
         description="Remember user session for extended period",
     )
 
-    @field_validator("password")
+    @field_validator("password", mode="after")
     @classmethod
     def validate_password_not_empty(cls, v: str) -> str:
         """Ensure password is not just whitespace."""
@@ -79,13 +79,13 @@ class PhoneLoginRequest(BaseCreateSchema):
         description="Remember user session for extended period",
     )
 
-    @field_validator("phone")
+    @field_validator("phone", mode="after")
     @classmethod
     def normalize_phone(cls, v: str) -> str:
         """Normalize phone number by removing spaces and dashes."""
         return v.replace(" ", "").replace("-", "")
 
-    @field_validator("password")
+    @field_validator("password", mode="after")
     @classmethod
     def validate_password_not_empty(cls, v: str) -> str:
         """Ensure password is not just whitespace."""

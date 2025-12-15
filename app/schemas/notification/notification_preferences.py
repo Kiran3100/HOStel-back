@@ -60,7 +60,7 @@ class FrequencySettings(BaseSchema):
         description="Enable daily digest",
     )
     daily_digest_time: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Daily digest time in HH:MM format (24-hour)",
     )
@@ -70,12 +70,12 @@ class FrequencySettings(BaseSchema):
         description="Enable weekly digest",
     )
     weekly_digest_day: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$",
         description="Day for weekly digest",
     )
     weekly_digest_time: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Weekly digest time in HH:MM format",
     )
@@ -108,12 +108,12 @@ class QuietHours(BaseSchema):
     )
 
     start_time: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Quiet hours start time (HH:MM, 24-hour format)",
     )
     end_time: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Quiet hours end time (HH:MM, 24-hour format)",
     )
@@ -446,34 +446,34 @@ class PreferenceUpdate(BaseUpdateSchema):
 
     # Global toggles
     notifications_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update master notification toggle",
     )
     email_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update email notifications",
     )
     sms_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update SMS notifications",
     )
     push_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Update push notifications",
     )
 
     # Quiet hours
     quiet_hours_enabled: Optional[bool] = Field(
-        None,
+        default=None,
         description="Enable/disable quiet hours",
     )
     quiet_hours_start: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Update quiet hours start time",
     )
     quiet_hours_end: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Update quiet hours end time",
     )
@@ -495,13 +495,13 @@ class PreferenceUpdate(BaseUpdateSchema):
 
     # Language and timezone
     preferred_language: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=5,
         description="Update preferred language",
     )
     timezone: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Update timezone",
     )
@@ -534,14 +534,14 @@ class UnsubscribeRequest(BaseSchema):
 
     # Category (if specific_category)
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Specific category to unsubscribe from",
     )
 
     # Reason
     reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Reason for unsubscribing (optional)",
     )

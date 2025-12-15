@@ -86,7 +86,7 @@ class AttendanceResponse(BaseResponseSchema):
         description="Name of user who marked attendance",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -205,13 +205,13 @@ class AttendanceDetail(BaseResponseSchema):
         description="Last update timestamp",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_location_data(self) -> bool:
         """Check if location data is available."""
         return self.location_lat is not None and self.location_lng is not None
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def marking_method(self) -> str:
         """Human-readable marking method."""
@@ -268,7 +268,7 @@ class AttendanceListItem(BaseSchema):
         description="Marked by user name",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_badge_color(self) -> str:
         """
@@ -302,7 +302,7 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    Date: Date = Field(
+    date: Date = Field(
         ...,
         description="Attendance Date",
     )
@@ -338,8 +338,8 @@ class DailyAttendanceSummary(BaseSchema):
     )
     attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Overall attendance percentage",
     )
     marked_by: UUID = Field(
@@ -359,7 +359,7 @@ class DailyAttendanceSummary(BaseSchema):
         description="Timestamp when marking was completed",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def pending_students(self) -> int:
         """Calculate number of students with pending attendance."""
@@ -372,7 +372,7 @@ class DailyAttendanceSummary(BaseSchema):
         )
         return max(0, self.total_students - marked)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def attendance_status(self) -> str:
         """

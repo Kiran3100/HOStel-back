@@ -478,3 +478,11 @@ class MenuCloneConfig(BaseSchema):
         max_length=50,
         description="Custom suffix for cloned menus",
     )
+
+    @field_validator("cost_threshold", "target_cost_per_person", mode="after")
+    @classmethod
+    def round_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Round decimal values to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v

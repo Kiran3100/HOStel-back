@@ -12,10 +12,10 @@ Provides comprehensive platform metrics including:
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Annotated
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator, AfterValidator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -33,6 +33,20 @@ __all__ = [
     "RevenueMetrics",
     "ChurnAnalysis",
 ]
+
+
+# Custom validator
+def round_to_2_places(v: Decimal) -> Decimal:
+    """Round decimal to 2 places."""
+    if isinstance(v, (int, float)):
+        v = Decimal(str(v))
+    return round(v, 2)
+
+
+# Type aliases
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100), AfterValidator(round_to_2_places)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0), AfterValidator(round_to_2_places)]
+DecimalAmount = Annotated[Decimal, AfterValidator(round_to_2_places)]
 
 
 class TenantStatus(str, Enum):
@@ -75,12 +89,10 @@ class TenantMetrics(BaseSchema):
     )
     subscription_start_date: Date = Field(
         ...,
-        description="Subscription start Date"
+        description="Subscription start date"
     )
-    subscription_mrr: Decimal = Field(
+    subscription_mrr: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Monthly recurring revenue from this tenant"
     )
     
@@ -100,11 +112,8 @@ class TenantMetrics(BaseSchema):
         ge=0,
         description="Total bed capacity"
     )
-    occupancy_rate: Decimal = Field(
+    occupancy_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Current occupancy rate"
     )
     
@@ -130,18 +139,12 @@ class TenantMetrics(BaseSchema):
         pattern="^(current|overdue|suspended)$",
         description="Payment status"
     )
-    health_score: Decimal = Field(
+    health_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall tenant health score"
     )
-    churn_risk_score: Decimal = Field(
+    churn_risk_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Churn risk score (higher = higher risk)"
     )
     
@@ -149,7 +152,7 @@ class TenantMetrics(BaseSchema):
     @classmethod
     def validate_active_students(cls, v: int, info) -> int:
         """Validate active students don't exceed total."""
-        if info.data.get("total_students") is not None and v > info.data["total_students"]:
+        if "total_students" in info.data and v > info.data["total_students"]:
             raise ValueError("active_students cannot exceed total_students")
         return v
     
@@ -285,11 +288,8 @@ class PlatformMetrics(BaseSchema):
         ge=0,
         description="Total occupied beds platform-wide"
     )
-    platform_occupancy_rate: Decimal = Field(
+    platform_occupancy_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Platform-wide occupancy rate"
     )
     
@@ -301,7 +301,7 @@ class PlatformMetrics(BaseSchema):
     @classmethod
     def validate_hostel_counts(cls, v: int, info) -> int:
         """Validate hostel segment counts."""
-        if info.data.get("total_hostels") is not None:
+        if "total_hostels" in info.data:
             total = info.data["total_hostels"]
             # Allow some flexibility as counts may overlap during transitions
             if v > total:
@@ -396,33 +396,26 @@ class GrowthMetrics(BaseSchema):
         ...,
         description="Net change in hostel count"
     )
-    hostel_growth_rate: Decimal = Field(
+    hostel_growth_rate: DecimalAmount = Field(
         ...,
-        decimal_places=2,
         description="Hostel growth rate percentage"
     )
     
     # Revenue growth
-    total_revenue: Decimal = Field(
+    total_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total revenue for period"
     )
-    previous_period_revenue: Decimal = Field(
+    previous_period_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Revenue from previous period"
     )
-    revenue_growth_amount: Decimal = Field(
+    revenue_growth_amount: DecimalAmount = Field(
         ...,
-        decimal_places=2,
         description="Absolute revenue growth"
     )
-    revenue_growth_rate: Decimal = Field(
+    revenue_growth_rate: DecimalAmount = Field(
         ...,
-        decimal_places=2,
         description="Revenue growth rate percentage"
     )
     
@@ -441,28 +434,22 @@ class GrowthMetrics(BaseSchema):
         ...,
         description="Net change in user count"
     )
-    user_growth_rate: Decimal = Field(
+    user_growth_rate: DecimalAmount = Field(
         ...,
-        decimal_places=2,
         description="User growth rate percentage"
     )
     
     # MRR (Monthly Recurring Revenue) growth
-    current_mrr: Decimal = Field(
+    current_mrr: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Current monthly recurring revenue"
     )
-    previous_mrr: Decimal = Field(
+    previous_mrr: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Previous period MRR"
     )
-    mrr_growth_rate: Decimal = Field(
+    mrr_growth_rate: DecimalAmount = Field(
         ...,
-        decimal_places=2,
         description="MRR growth rate percentage"
     )
     
@@ -582,17 +569,12 @@ class ChurnAnalysis(BaseSchema):
         ge=0,
         description="Number of churned tenants in period"
     )
-    churn_rate: Decimal = Field(
+    churn_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Churn rate percentage"
     )
-    revenue_churned: Decimal = Field(
+    revenue_churned: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="MRR lost to churn"
     )
     
@@ -614,11 +596,8 @@ class ChurnAnalysis(BaseSchema):
     )
     
     # Retention metrics
-    retention_rate: Decimal = Field(
+    retention_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Retention rate percentage"
     )
     
@@ -661,11 +640,8 @@ class SystemHealthMetrics(BaseSchema):
     )
     
     # Availability
-    uptime_percentage: Decimal = Field(
+    uptime_percentage: Annotated[Decimal, Field(ge=0, le=100), AfterValidator(lambda v: round(v, 4))] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=4,
         description="System uptime percentage"
     )
     downtime_minutes: int = Field(
@@ -680,89 +656,58 @@ class SystemHealthMetrics(BaseSchema):
     )
     
     # Performance
-    average_response_time_ms: Decimal = Field(
+    average_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average API response time in milliseconds"
     )
-    p50_response_time_ms: Decimal = Field(
+    p50_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="50th percentile response time"
     )
-    p95_response_time_ms: Decimal = Field(
+    p95_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="95th percentile response time"
     )
-    p99_response_time_ms: Decimal = Field(
+    p99_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="99th percentile response time"
     )
     
     # Error rates
-    error_rate_percentage: Decimal = Field(
+    error_rate_percentage: Annotated[Decimal, Field(ge=0, le=100), AfterValidator(lambda v: round(v, 4))] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=4,
         description="Overall error rate percentage"
     )
-    server_error_rate: Decimal = Field(
+    server_error_rate: Annotated[Decimal, Field(ge=0, le=100), AfterValidator(lambda v: round(v, 4))] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=4,
         description="5xx error rate percentage"
     )
-    client_error_rate: Decimal = Field(
+    client_error_rate: Annotated[Decimal, Field(ge=0, le=100), AfterValidator(lambda v: round(v, 4))] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=4,
         description="4xx error rate percentage"
     )
     
     # Resource utilization
-    avg_cpu_usage_percent: Optional[Decimal] = Field(
+    avg_cpu_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average CPU usage percentage"
     )
-    peak_cpu_usage_percent: Optional[Decimal] = Field(
+    peak_cpu_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Peak CPU usage"
     )
-    avg_memory_usage_percent: Optional[Decimal] = Field(
+    avg_memory_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average memory usage percentage"
     )
-    peak_memory_usage_percent: Optional[Decimal] = Field(
+    peak_memory_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Peak memory usage"
     )
     
     # Database performance
-    avg_db_query_time_ms: Optional[Decimal] = Field(
+    avg_db_query_time_ms: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Average database query time"
     )
     slow_query_count: Optional[int] = Field(
@@ -775,11 +720,11 @@ class SystemHealthMetrics(BaseSchema):
     @property
     def health_status(self) -> str:
         """Overall system health status."""
-        if self.uptime_percentage >= 99.9 and self.error_rate_percentage <= 0.1:
+        if self.uptime_percentage >= Decimal("99.9") and self.error_rate_percentage <= Decimal("0.1"):
             return "excellent"
-        elif self.uptime_percentage >= 99.5 and self.error_rate_percentage <= 0.5:
+        elif self.uptime_percentage >= Decimal("99.5") and self.error_rate_percentage <= Decimal("0.5"):
             return "good"
-        elif self.uptime_percentage >= 99.0 and self.error_rate_percentage <= 1.0:
+        elif self.uptime_percentage >= Decimal("99.0") and self.error_rate_percentage <= Decimal("1.0"):
             return "fair"
         else:
             return "poor"
@@ -816,42 +761,30 @@ class RevenueMetrics(BaseSchema):
     )
     
     # Total revenue
-    total_revenue: Decimal = Field(
+    total_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total platform revenue"
     )
-    subscription_revenue: Decimal = Field(
+    subscription_revenue: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Revenue from subscriptions"
     )
-    transaction_fees: Decimal = Field(
+    transaction_fees: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Revenue from transaction fees"
     )
-    other_revenue: Decimal = Field(
+    other_revenue: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Other revenue sources"
     )
     
     # MRR metrics
-    mrr: Decimal = Field(
+    mrr: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Monthly Recurring Revenue"
     )
-    arr: Decimal = Field(
+    arr: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Annual Recurring Revenue"
     )
     
@@ -862,36 +795,26 @@ class RevenueMetrics(BaseSchema):
     )
     
     # Customer metrics
-    arpu: Decimal = Field(
+    arpu: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average Revenue Per User (monthly)"
     )
-    ltv: Optional[Decimal] = Field(
+    ltv: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Lifetime Value estimate"
     )
     
     # Cohort analysis
-    new_customer_revenue: Decimal = Field(
+    new_customer_revenue: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Revenue from new customers"
     )
-    expansion_revenue: Decimal = Field(
+    expansion_revenue: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Revenue from upgrades/expansion"
     )
-    churned_revenue: Decimal = Field(
+    churned_revenue: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Revenue lost to churn"
     )
     
@@ -956,10 +879,8 @@ class PlatformUsageAnalytics(BaseSchema):
         ge=0,
         description="Unique user sessions"
     )
-    avg_requests_per_minute: Decimal = Field(
+    avg_requests_per_minute: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average requests per minute"
     )
     peak_requests_per_minute: int = Field(
@@ -969,11 +890,8 @@ class PlatformUsageAnalytics(BaseSchema):
     )
     
     # Error tracking
-    api_error_rate: Decimal = Field(
+    api_error_rate: Annotated[Decimal, Field(ge=0, le=100), AfterValidator(lambda v: round(v, 4))] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=4,
         description="API error rate percentage"
     )
     total_errors: int = Field(
@@ -995,52 +913,36 @@ class PlatformUsageAnalytics(BaseSchema):
     )
     
     # Performance
-    avg_response_time_ms: Decimal = Field(
+    avg_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average response time"
     )
-    p95_response_time_ms: Decimal = Field(
+    p95_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="95th percentile response time"
     )
-    p99_response_time_ms: Decimal = Field(
+    p99_response_time_ms: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="99th percentile response time"
     )
     
     # Resource usage
-    avg_cpu_usage_percent: Optional[Decimal] = Field(
+    avg_cpu_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average CPU usage"
     )
-    avg_memory_usage_percent: Optional[Decimal] = Field(
+    avg_memory_usage_percent: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average memory usage"
     )
     
     # Storage
-    total_storage_used_gb: Optional[Decimal] = Field(
+    total_storage_used_gb: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Total storage used in GB"
     )
-    avg_storage_per_tenant_gb: Optional[Decimal] = Field(
+    avg_storage_per_tenant_gb: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Average storage per tenant"
     )
     
@@ -1066,17 +968,17 @@ class PlatformUsageAnalytics(BaseSchema):
     def platform_health_indicator(self) -> str:
         """Overall platform health indicator."""
         if (
-            self.api_error_rate <= 0.1 and
+            self.api_error_rate <= Decimal("0.1") and
             float(self.avg_response_time_ms) <= 200
         ):
             return "healthy"
         elif (
-            self.api_error_rate <= 0.5 and
+            self.api_error_rate <= Decimal("0.5") and
             float(self.avg_response_time_ms) <= 500
         ):
             return "stable"
         elif (
-            self.api_error_rate <= 1.0 and
+            self.api_error_rate <= Decimal("1.0") and
             float(self.avg_response_time_ms) <= 1000
         ):
             return "degraded"

@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date as Date
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
@@ -29,6 +29,7 @@ class ComplaintFilterParams(BaseFilterSchema):
     
     Supports filtering by multiple dimensions for flexible queries.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Text search
     search: Optional[str] = Field(
@@ -193,6 +194,7 @@ class ComplaintSearchRequest(BaseFilterSchema):
     
     Supports configurable search fields and filters.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     query: str = Field(
         ...,
@@ -258,6 +260,7 @@ class ComplaintSortOptions(BaseFilterSchema):
     
     Defines available sort fields and order.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     sort_by: str = Field(
         default="opened_at",
@@ -283,6 +286,7 @@ class ComplaintExportRequest(BaseFilterSchema):
     
     Supports CSV, Excel, and PDF exports with configurable fields.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: Optional[str] = Field(
         default=None,

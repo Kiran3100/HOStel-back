@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime, time
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
@@ -63,10 +63,9 @@ class MaterialItem(BaseSchema):
         max_length=100,
         description="Material category",
     )
-    quantity: Decimal = Field(
+    # Quantity with 3 decimal places
+    quantity: Annotated[Decimal, Field(gt=0, decimal_places=3)] = Field(
         ...,
-        gt=0,
-        decimal_places=3,
         description="Quantity used",
     )
     unit: str = Field(
@@ -75,16 +74,13 @@ class MaterialItem(BaseSchema):
         max_length=20,
         description="Unit of measurement (pcs, kg, liters, meters, etc.)",
     )
-    unit_cost: Decimal = Field(
+    # Cost fields with 2 decimal places
+    unit_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Cost per unit",
     )
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total cost for this material",
     )
     supplier: Optional[str] = Field(
@@ -190,18 +186,13 @@ class CompletionRequest(BaseCreateSchema):
         description="List of materials used",
     )
     
-    # Labor tracking
-    labor_hours: Decimal = Field(
+    # Labor tracking - Using Annotated for Decimal
+    labor_hours: Annotated[Decimal, Field(ge=0, le=1000, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=1000,
-        decimal_places=2,
         description="Total labor hours spent",
     )
-    labor_rate_per_hour: Optional[Decimal] = Field(
+    labor_rate_per_hour: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Labor rate per hour",
     )
     number_of_workers: int = Field(
@@ -211,35 +202,25 @@ class CompletionRequest(BaseCreateSchema):
         description="Number of workers involved",
     )
     
-    # Cost breakdown
-    materials_cost: Decimal = Field(
+    # Cost breakdown - All Decimal fields with 2 decimal places
+    materials_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Total materials cost",
     )
-    labor_cost: Decimal = Field(
+    labor_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Total labor cost",
     )
-    vendor_charges: Decimal = Field(
+    vendor_charges: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="External vendor charges",
     )
-    other_costs: Decimal = Field(
+    other_costs: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        decimal_places=2,
         description="Other miscellaneous costs",
     )
-    actual_cost: Decimal = Field(
+    actual_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total actual cost",
     )
     cost_breakdown: Optional[dict] = Field(
@@ -758,22 +739,20 @@ class CompletionResponse(BaseSchema):
         description="Name of person who completed",
     )
     
-    # Cost summary
-    estimated_cost: Decimal = Field(
+    # Cost summary - Using Annotated for Decimal fields
+    estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Original estimated cost",
     )
-    actual_cost: Decimal = Field(
+    actual_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Actual cost incurred",
     )
-    cost_variance: Decimal = Field(
+    cost_variance: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
         description="Cost variance (actual - estimated)",
     )
-    cost_variance_percentage: Decimal = Field(
+    cost_variance_percentage: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
         description="Cost variance as percentage",
     )
@@ -889,16 +868,14 @@ class CompletionCertificate(BaseSchema):
         default_factory=list,
         description="Materials used in work",
     )
-    labor_hours: Decimal = Field(
+    labor_hours: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Total labor hours",
     )
     
     # Cost summary
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Total work cost",
     )
     cost_breakdown: Optional[dict] = Field(

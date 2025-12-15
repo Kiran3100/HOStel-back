@@ -31,8 +31,8 @@ class InquiryResponse(BaseResponseSchema):
     
     Contains core inquiry information for API responses.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -75,15 +75,15 @@ class InquiryResponse(BaseResponseSchema):
 
     # Preferences
     preferred_check_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         description="Intended stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Room type preference",
     )
 
@@ -139,8 +139,8 @@ class InquiryDetail(BaseResponseSchema):
     Contains complete inquiry details including contact history,
     notes, and assignment information.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -185,21 +185,21 @@ class InquiryDetail(BaseResponseSchema):
 
     # Preferences
     preferred_check_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         description="Stay duration in months",
     )
     room_type_preference: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Room type preference",
     )
 
     # Inquiry Details
     message: Optional[str] = Field(
-        None,
+        default=None,
         description="Visitor's message or questions",
     )
 
@@ -215,35 +215,35 @@ class InquiryDetail(BaseResponseSchema):
 
     # Contact/Follow-up Information
     contacted_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin who contacted the visitor",
     )
     contacted_by_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Name of admin who made contact",
     )
     contacted_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When visitor was contacted",
     )
 
     # Assignment Information
     assigned_to: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin assigned to handle this inquiry",
     )
     assigned_to_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Name of assigned admin",
     )
     assigned_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When inquiry was assigned",
     )
 
     # Internal Notes
     notes: Optional[str] = Field(
-        None,
+        default=None,
         description="Internal notes about this inquiry",
     )
 
@@ -302,8 +302,8 @@ class InquiryListItem(BaseSchema):
     Optimized schema for displaying multiple inquiries
     with essential information only.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -338,15 +338,15 @@ class InquiryListItem(BaseSchema):
 
     # Preferences
     preferred_check_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         description="Stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Room type preference",
     )
 
@@ -396,8 +396,8 @@ class InquiryStats(BaseSchema):
     
     Provides metrics about inquiry performance and conversion.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "total_inquiries": 150,
@@ -440,7 +440,7 @@ class InquiryStats(BaseSchema):
 
     # Response Metrics
     average_response_time_hours: Optional[float] = Field(
-        None,
+        default=None,
         ge=0,
         description="Average time to first contact in hours",
     )

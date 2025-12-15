@@ -47,6 +47,8 @@ class ApprovalRequest(BaseCreateSchema):
     that require admin approval.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID requiring approval",
@@ -88,6 +90,8 @@ class ApprovalResponse(BaseSchema):
     
     Contains the decision details and next steps.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -144,6 +148,8 @@ class RejectionRequest(BaseCreateSchema):
     Provides reason and suggestions for improvement.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID to reject",
@@ -180,6 +186,8 @@ class ApprovalWorkflow(BaseSchema):
     
     Shows the current state of an announcement's approval process.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -273,6 +281,8 @@ class PendingApprovalItem(BaseSchema):
     Lightweight schema for approval queue lists.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -340,6 +350,8 @@ class SupervisorApprovalQueue(BaseSchema):
     and their current approval status.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     supervisor_id: UUID = Field(
         ...,
         description="Supervisor UUID",
@@ -395,6 +407,8 @@ class BulkApproval(BaseCreateSchema):
     
     Used for batch operations in admin interfaces.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_ids: list[UUID] = Field(
         ...,
@@ -455,6 +469,8 @@ class ApprovalHistory(BaseSchema):
     
     Records each action in the approval workflow.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID = Field(
         ...,

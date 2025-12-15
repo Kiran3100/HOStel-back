@@ -56,6 +56,8 @@ class TargetingConfig(BaseSchema):
     on various targeting criteria.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     target_type: TargetType = Field(
         ...,
         description="Type of targeting strategy",
@@ -134,6 +136,8 @@ class AudienceSelection(BaseCreateSchema):
     Provides granular control over recipient selection
     with various filtering options.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -224,6 +228,8 @@ class TargetRooms(BaseCreateSchema):
     Simple schema for room-based targeting.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -259,6 +265,8 @@ class TargetFloors(BaseCreateSchema):
     
     Simple schema for floor-based targeting.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -300,6 +308,8 @@ class IndividualTargeting(BaseCreateSchema):
     Used for direct communication to specific students.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -327,6 +337,8 @@ class TargetingSummary(BaseSchema):
     Shows who will receive the announcement based on
     current targeting rules.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -397,6 +409,8 @@ class BulkTargeting(BaseCreateSchema):
     multiple rule combinations.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -443,6 +457,8 @@ class TargetingPreview(BaseCreateSchema):
     Returns estimated recipient count without creating
     the announcement.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     hostel_id: UUID = Field(
         ...,

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseFilterSchema, BaseSchema
 from app.schemas.common.enums import HostelType, RoomType
@@ -32,6 +32,7 @@ class HostelSearchRequest(BaseFilterSchema):
     
     Supports text search, location-based search, and various filters.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Text search
     query: Optional[str] = Field(
@@ -57,24 +58,18 @@ class HostelSearchRequest(BaseFilterSchema):
     )
 
     # Location-based search (radius)
-    latitude: Optional[Decimal] = Field(
-        default=None,
-        ge=-90,
-        le=90,
-        description="Latitude for radius search",
-    )
-    longitude: Optional[Decimal] = Field(
-        default=None,
-        ge=-180,
-        le=180,
-        description="Longitude for radius search",
-    )
-    radius_km: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=50,
-        description="Search radius in kilometers",
-    )
+    latitude: Optional[Annotated[
+        Decimal,
+        Field(ge=-90, le=90, description="Latitude for radius search")
+    ]] = None
+    longitude: Optional[Annotated[
+        Decimal,
+        Field(ge=-180, le=180, description="Longitude for radius search")
+    ]] = None
+    radius_km: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=50, description="Search radius in kilometers")
+    ]] = None
 
     # Type filter
     hostel_type: Optional[HostelType] = Field(
@@ -83,16 +78,14 @@ class HostelSearchRequest(BaseFilterSchema):
     )
 
     # Price filter
-    min_price: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Minimum monthly price",
-    )
-    max_price: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Maximum monthly price",
-    )
+    min_price: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Minimum monthly price")
+    ]] = None
+    max_price: Optional[Annotated[
+        Decimal,
+        Field(ge=0, description="Maximum monthly price")
+    ]] = None
 
     # Room type
     room_type: Optional[RoomType] = Field(
@@ -115,12 +108,10 @@ class HostelSearchRequest(BaseFilterSchema):
     )
 
     # Rating filter
-    min_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Minimum average rating",
-    )
+    min_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Minimum average rating")
+    ]] = None
 
     # Features
     verified_only: bool = Field(
@@ -185,6 +176,7 @@ class FacetItem(BaseSchema):
     
     Represents a filter option with result count.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     value: str = Field(..., description="Facet value")
     label: str = Field(..., description="Display label")
@@ -201,9 +193,10 @@ class PriceRangeFacet(BaseSchema):
     
     Represents a price range filter option.
     """
+    model_config = ConfigDict(from_attributes=True)
 
-    min_price: Decimal = Field(..., ge=0, description="Range minimum")
-    max_price: Decimal = Field(..., ge=0, description="Range maximum")
+    min_price: Annotated[Decimal, Field(ge=0, description="Range minimum")]
+    max_price: Annotated[Decimal, Field(ge=0, description="Range maximum")]
     label: str = Field(..., description="Display label")
     count: int = Field(
         ...,
@@ -218,13 +211,12 @@ class RatingFacet(BaseSchema):
     
     Represents a rating filter option.
     """
+    model_config = ConfigDict(from_attributes=True)
 
-    min_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Minimum rating",
-    )
+    min_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Minimum rating")
+    ]
     label: str = Field(..., description="Display label")
     count: int = Field(
         ...,
@@ -239,6 +231,7 @@ class SearchFacets(BaseSchema):
     
     Provides available filter options with counts.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     cities: List[FacetItem] = Field(
         default_factory=list,
@@ -268,6 +261,7 @@ class HostelSearchResponse(BaseSchema):
     
     Complete search results with metadata and facets.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     results: List[PublicHostelCard] = Field(
         ...,
@@ -304,6 +298,7 @@ class HostelSearchFilters(BaseFilterSchema):
     
     Additional filtering options for hostel search.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     # Gender
     gender: Optional[str] = Field(
@@ -365,7 +360,7 @@ class HostelSearchFilters(BaseFilterSchema):
     def validate_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate check-in Date is not in the past."""
         if v is not None:
-            from datetime import Date as dt
+            from datetime import date as dt
             if v < dt.today():
                 raise ValueError("Check-in Date cannot be in the past")
         return v

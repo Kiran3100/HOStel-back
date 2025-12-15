@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 
@@ -31,6 +31,7 @@ class CommentCreate(BaseCreateSchema):
     Supports both public comments and internal notes
     with optional attachments.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -84,6 +85,7 @@ class CommentResponse(BaseResponseSchema):
     
     Includes metadata about comment author and timing.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Associated complaint ID")
 
@@ -114,6 +116,7 @@ class CommentList(BaseSchema):
     
     Provides summary statistics and comment thread.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -134,6 +137,7 @@ class CommentUpdate(BaseCreateSchema):
     
     Allows modification of comment text only.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     comment_id: str = Field(
         ...,
@@ -166,6 +170,7 @@ class CommentDelete(BaseCreateSchema):
     
     Optional reason for deletion audit trail.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     comment_id: str = Field(
         ...,
@@ -194,6 +199,7 @@ class MentionNotification(BaseSchema):
     
     Supports @mention functionality in comments.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     comment_id: str = Field(..., description="Comment ID with mention")
     complaint_id: str = Field(..., description="Associated complaint ID")

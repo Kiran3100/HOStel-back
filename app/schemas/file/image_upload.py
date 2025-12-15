@@ -133,7 +133,6 @@ class ImageVariant(BaseSchema):
     variant_name: str = Field(
         ...,
         description="Variant identifier",
-        examples=["thumbnail", "small", "medium", "large", "original"],
     )
     url: HttpUrl = Field(..., description="Variant URL")
 
@@ -143,7 +142,7 @@ class ImageVariant(BaseSchema):
 
     # File information
     size_bytes: int = Field(..., ge=0, description="Variant file size")
-    format: str = Field(..., description="Image format", examples=["jpeg", "png", "webp"])
+    format: str = Field(..., description="Image format")
 
     # Processing
     is_optimized: bool = Field(
@@ -197,7 +196,6 @@ class ImageUploadInitResponse(FileUploadInitResponse):
     target_format: Optional[str] = Field(
         default=None,
         description="Target format if converting",
-        examples=["webp", "jpeg"],
     )
 
 
@@ -227,7 +225,6 @@ class ImageProcessingResult(BaseSchema):
     processing_status: str = Field(
         default="completed",
         description="Processing status",
-        examples=["completed", "failed", "partial"],
     )
     processing_time_seconds: Optional[float] = Field(
         default=None,

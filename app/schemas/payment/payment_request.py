@@ -8,7 +8,7 @@ including online payments, manual payments, and bulk operations.
 
 from __future__ import annotations
 
-from datetime import date as Date
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -345,7 +345,7 @@ class ManualPaymentRequest(BaseCreateSchema):
         # Warn if collection Date is too old
         days_ago = (Date.today() - v).days
         if days_ago > 90:
-            # Log warning
+            # Log warning - in production, use proper logging
             pass
         
         return v

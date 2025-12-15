@@ -4,7 +4,7 @@ Enhanced admin-hostel assignment schemas with comprehensive validation and perfo
 Provides robust assignment management with audit trails, bulk operations,
 and detailed permission tracking for multi-hostel administration.
 
-Migrated to Pydantic v2.
+Fully migrated to Pydantic v2 with proper Decimal field handling.
 """
 
 from __future__ import annotations
@@ -12,10 +12,10 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional, Union
 from uuid import UUID
 
-from pydantic import Field, computed_field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import PermissionLevel
@@ -39,6 +39,25 @@ class AdminHostelAssignment(BaseResponseSchema):
     Provides complete assignment information including permissions, activity tracking,
     and performance metrics for effective multi-hostel management.
     """
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "assignment_id": "123e4567-e89b-12d3-a456-426614174000",
+                "admin_id": "123e4567-e89b-12d3-a456-426614174001",
+                "admin_name": "John Doe",
+                "admin_email": "john@example.com",
+                "hostel_id": "123e4567-e89b-12d3-a456-426614174002",
+                "hostel_name": "Campus Hostel A",
+                "hostel_city": "Mumbai",
+                "hostel_type": "boys",
+                "assigned_date": "2024-01-01",
+                "permission_level": "FULL_ACCESS",
+                "is_active": True,
+                "is_primary": True,
+            }
+        }
+    )
     
     # Core assignment identifiers
     assignment_id: UUID = Field(..., description="Unique assignment identifier")
@@ -80,11 +99,13 @@ class AdminHostelAssignment(BaseResponseSchema):
     
     # Performance metrics
     decisions_made: int = Field(0, ge=0, description="Total decisions made for this hostel")
+    
+    # Pydantic v2: Decimal fields with constraints using ge/le instead of max_digits/decimal_places
     avg_response_time_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time for this hostel"
+        None, ge=Decimal("0"), description="Average response time for this hostel"
     )
     satisfaction_score: Optional[Decimal] = Field(
-        None, ge=0, le=5, description="Admin satisfaction score for this hostel"
+        None, ge=Decimal("0"), le=Decimal("5"), description="Admin satisfaction score for this hostel"
     )
 
     @computed_field
@@ -145,6 +166,8 @@ class AssignmentCreate(BaseCreateSchema):
     Supports flexible permission configuration and proper validation
     for different access levels and assignment scenarios.
     """
+    
+    model_config = ConfigDict(validate_assignment=True)
     
     admin_id: UUID = Field(..., description="Admin user ID to assign")
     hostel_id: UUID = Field(..., description="Hostel ID for assignment")
@@ -257,6 +280,8 @@ class AssignmentUpdate(BaseUpdateSchema):
     and proper validation for permission changes.
     """
     
+    model_config = ConfigDict(validate_assignment=True)
+    
     permission_level: Optional[PermissionLevel] = Field(
         None, description="Updated permission level"
     )
@@ -340,6 +365,8 @@ class BulkAssignment(BaseCreateSchema):
     Supports efficient batch operations while maintaining data integrity
     and providing flexible assignment strategies.
     """
+    
+    model_config = ConfigDict(validate_assignment=True)
     
     admin_id: UUID = Field(..., description="Admin user ID for all assignments")
     hostel_ids: List[UUID] = Field(
@@ -461,6 +488,8 @@ class RevokeAssignment(BaseCreateSchema):
     and support for different revocation scenarios.
     """
     
+    model_config = ConfigDict(validate_assignment=True)
+    
     assignment_id: UUID = Field(..., description="Assignment ID to revoke")
     revoke_reason: str = Field(
         ...,
@@ -563,6 +592,8 @@ class AssignmentList(BaseSchema):
     with summary statistics and quick access information.
     """
     
+    model_config = ConfigDict()
+    
     admin_id: UUID = Field(..., description="Admin user ID")
     admin_name: str = Field(..., description="Admin full name")
     admin_email: str = Field(..., description="Admin email address")
@@ -586,9 +617,9 @@ class AssignmentList(BaseSchema):
         description="Detailed assignment information"
     )
     
-    # Performance metrics
+    # Performance metrics - Pydantic v2: use ge constraint instead of max_digits/decimal_places
     avg_response_time_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time across all hostels"
+        None, ge=Decimal("0"), description="Average response time across all hostels"
     )
     total_decisions_made: int = Field(0, ge=0, description="Total decisions across hostels")
 
@@ -630,6 +661,8 @@ class HostelAdminList(BaseSchema):
     Provides detailed view of all admins assigned to a specific hostel
     with their permissions and activity levels.
     """
+    
+    model_config = ConfigDict()
     
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
@@ -702,6 +735,8 @@ class HostelAdminItem(BaseSchema):
     with comprehensive permission and activity tracking.
     """
     
+    model_config = ConfigDict()
+    
     # Admin identification
     admin_id: UUID = Field(..., description="Admin user ID")
     admin_name: str = Field(..., description="Admin full name")
@@ -720,14 +755,16 @@ class HostelAdminItem(BaseSchema):
     # Activity tracking
     last_active: Optional[datetime] = Field(None, description="Last activity timestamp")
     access_count: int = Field(0, ge=0, description="Total access count")
+    
+    # Pydantic v2: Decimal with ge constraint
     avg_session_duration_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average session duration"
+        None, ge=Decimal("0"), description="Average session duration"
     )
     
     # Performance metrics
     decisions_made: int = Field(0, ge=0, description="Total decisions made")
     response_time_avg_minutes: Optional[Decimal] = Field(
-        None, ge=0, description="Average response time"
+        None, ge=Decimal("0"), description="Average response time"
     )
     
     # Specific permissions (for limited access)

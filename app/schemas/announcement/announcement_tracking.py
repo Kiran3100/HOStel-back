@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field, field_validator, ConfigDict
@@ -53,6 +53,8 @@ class ReadReceipt(BaseCreateSchema):
     
     Records when and how a student viewed the announcement.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -103,6 +105,8 @@ class ReadReceiptResponse(BaseResponseSchema):
     Confirms the read was recorded and indicates next actions.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -144,6 +148,8 @@ class AcknowledgmentRequest(BaseCreateSchema):
     Confirms student has read and understood the announcement.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -176,6 +182,8 @@ class AcknowledgmentResponse(BaseResponseSchema):
     Response after acknowledgment submission.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -206,6 +214,8 @@ class PendingAcknowledgment(BaseSchema):
     
     Used in lists of students who haven't acknowledged.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     student_id: UUID = Field(
         ...,
@@ -269,6 +279,8 @@ class AcknowledgmentTracking(BaseSchema):
     Overview of acknowledgment status and pending students.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -317,11 +329,9 @@ class AcknowledgmentTracking(BaseSchema):
         description="Acknowledged after deadline",
     )
     
-    # Rates
-    acknowledgment_rate: Decimal = Field(
+    # Rates - Using Annotated for Decimal constraints
+    acknowledgment_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Acknowledgment rate percentage",
     )
     
@@ -331,10 +341,9 @@ class AcknowledgmentTracking(BaseSchema):
         description="Students pending acknowledgment",
     )
     
-    # Time tracking
-    average_time_to_acknowledge_hours: Optional[Decimal] = Field(
+    # Time tracking - Using Annotated for Decimal with ge constraint only
+    average_time_to_acknowledge_hours: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         None,
-        ge=0,
         description="Average hours to acknowledge",
     )
     
@@ -364,6 +373,8 @@ class EngagementMetrics(BaseSchema):
     Measures how recipients interacted with the announcement.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -388,10 +399,8 @@ class EngagementMetrics(BaseSchema):
         ge=0,
         description="Successfully delivered",
     )
-    delivery_rate: Decimal = Field(
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Delivery rate percentage",
     )
     
@@ -401,23 +410,18 @@ class EngagementMetrics(BaseSchema):
         ge=0,
         description="Number who read",
     )
-    read_rate: Decimal = Field(
+    read_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Read rate percentage",
     )
     
-    # Reading depth
-    average_reading_time_seconds: Optional[Decimal] = Field(
+    # Reading depth - Using Annotated for Decimal with ge constraint
+    average_reading_time_seconds: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         None,
-        ge=0,
         description="Average reading time",
     )
-    average_scroll_percentage: Optional[Decimal] = Field(
+    average_scroll_percentage: Optional[Annotated[Decimal, Field(ge=0, le=100)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Average scroll depth",
     )
     
@@ -431,30 +435,24 @@ class EngagementMetrics(BaseSchema):
         ge=0,
         description="Number who acknowledged",
     )
-    acknowledgment_rate: Decimal = Field(
+    acknowledgment_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         Decimal("0"),
-        ge=0,
-        le=100,
         description="Acknowledgment rate percentage",
     )
     
-    # Timing metrics
-    average_time_to_read_hours: Optional[Decimal] = Field(
+    # Timing metrics - Using Annotated for Decimal with ge constraint
+    average_time_to_read_hours: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         None,
-        ge=0,
         description="Average hours from delivery to read",
     )
-    average_time_to_acknowledge_hours: Optional[Decimal] = Field(
+    average_time_to_acknowledge_hours: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         None,
-        ge=0,
         description="Average hours from delivery to acknowledge",
     )
     
     # Engagement score
-    engagement_score: Decimal = Field(
+    engagement_score: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall engagement score (0-100)",
     )
     
@@ -463,10 +461,8 @@ class EngagementMetrics(BaseSchema):
         None,
         description="Whether engagement is above hostel average",
     )
-    hostel_average_engagement: Optional[Decimal] = Field(
+    hostel_average_engagement: Optional[Annotated[Decimal, Field(ge=0, le=100)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Hostel average engagement score",
     )
 
@@ -477,6 +473,8 @@ class ReadingTime(BaseSchema):
     
     Detailed analysis of how long recipients spent reading.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,
@@ -490,15 +488,13 @@ class ReadingTime(BaseSchema):
         description="Number of readers with time data",
     )
     
-    # Statistics
-    average_reading_time_seconds: Decimal = Field(
+    # Statistics - Using Annotated for Decimal with ge constraint
+    average_reading_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average reading time",
     )
-    median_reading_time_seconds: Decimal = Field(
+    median_reading_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Median reading time",
     )
     min_reading_time_seconds: int = Field(
@@ -530,22 +526,16 @@ class ReadingTime(BaseSchema):
     )
     
     # Percentages
-    quick_readers_percentage: Decimal = Field(
+    quick_readers_percentage: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Percentage of quick readers",
     )
-    normal_readers_percentage: Decimal = Field(
+    normal_readers_percentage: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Percentage of normal readers",
     )
-    thorough_readers_percentage: Decimal = Field(
+    thorough_readers_percentage: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Percentage of thorough readers",
     )
 
@@ -556,6 +546,8 @@ class StudentEngagement(BaseSchema):
     
     Tracks a specific student's interaction with announcement.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     student_id: UUID = Field(
         ...,
@@ -629,6 +621,8 @@ class EngagementTrend(BaseSchema):
     Shows how engagement changed over the announcement lifecycle.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="Announcement UUID",
@@ -687,6 +681,8 @@ class AnnouncementAnalytics(BaseSchema):
     
     Comprehensive view combining all metrics.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,

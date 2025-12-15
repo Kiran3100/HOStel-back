@@ -115,7 +115,7 @@ class PasswordResetRequest(BaseCreateSchema):
         examples=["user@example.com"],
     )
 
-    @field_validator("email")
+    @field_validator("email", mode="after")
     @classmethod
     def validate_email_format(cls, v: str) -> str:
         """Validate email format and normalize."""
@@ -151,7 +151,7 @@ class PasswordResetConfirm(BaseCreateSchema):
         description="Confirm new password",
     )
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="after")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """Validate password strength requirements."""
@@ -190,7 +190,7 @@ class PasswordChangeRequest(BaseCreateSchema):
         description="Confirm new password",
     )
 
-    @field_validator("new_password")
+    @field_validator("new_password", mode="after")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """Validate password strength requirements."""
@@ -301,9 +301,6 @@ class PasswordStrengthResponse(BaseSchema):
             
         Returns:
             PasswordStrengthResponse with complete analysis
-            
-        Note:
-            Changed from @staticmethod to @classmethod for Pydantic v2 best practices.
         """
         score = PasswordValidator.calculate_strength_score(password)
         is_valid, issues = PasswordValidator.validate_strength(password)

@@ -14,7 +14,6 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator, ConfigDict
-from pydantic.functional_validators import field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseFilterSchema
 from app.schemas.common.enums import AnnouncementCategory, Priority
@@ -58,6 +57,8 @@ class AnnouncementFilterParams(BaseFilterSchema):
     
     Supports filtering by various criteria for announcement lists.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     # Text search
     search: Optional[str] = Field(
@@ -227,7 +228,7 @@ class AnnouncementFilterParams(BaseFilterSchema):
             raise ValueError("Duplicate hostel IDs not allowed")
         return v
     
-    @field_validator("published_date_to", mode="after")
+    @field_validator("published_date_to")
     @classmethod
     def validate_published_date_range(
         cls, v: Optional[Date], info
@@ -238,7 +239,7 @@ class AnnouncementFilterParams(BaseFilterSchema):
             raise ValueError("published_date_to must be after published_date_from")
         return v
     
-    @field_validator("created_date_to", mode="after")
+    @field_validator("created_date_to")
     @classmethod
     def validate_created_date_range(
         cls, v: Optional[Date], info
@@ -270,6 +271,8 @@ class SearchRequest(BaseFilterSchema):
     
     Provides advanced search capabilities.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     query: str = Field(
         ...,
@@ -354,6 +357,8 @@ class ArchiveRequest(BaseCreateSchema):
     Moves old announcements to archive storage.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     hostel_id: UUID = Field(
         ...,
         description="Hostel UUID",
@@ -419,6 +424,8 @@ class AnnouncementExportRequest(BaseFilterSchema):
     Generate downloadable exports in various formats.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     hostel_id: UUID = Field(
         ...,
         description="Hostel UUID",
@@ -478,7 +485,7 @@ class AnnouncementExportRequest(BaseFilterSchema):
         description="Email address to send export (optional)",
     )
     
-    @field_validator("date_to", mode="after")
+    @field_validator("date_to")
     @classmethod
     def validate_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
         """Validate Date range."""
@@ -494,6 +501,8 @@ class BulkDeleteRequest(BaseCreateSchema):
     
     Permanently remove multiple announcements.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_ids: list[UUID] = Field(
         ...,
@@ -543,6 +552,8 @@ class AnnouncementStatsRequest(BaseFilterSchema):
     Parameters for generating announcement analytics.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     hostel_id: Optional[UUID] = Field(
         None,
         description="Hostel UUID (None for all hostels)",
@@ -583,7 +594,7 @@ class AnnouncementStatsRequest(BaseFilterSchema):
         description="Include comparison with previous period",
     )
     
-    @field_validator("period_end", mode="after")
+    @field_validator("period_end")
     @classmethod
     def validate_period(cls, v: Date, info) -> Date:
         """Validate period range."""

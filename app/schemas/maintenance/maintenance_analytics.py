@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from pydantic import ConfigDict, Field, computed_field
 from uuid import UUID
@@ -77,9 +77,8 @@ class TrendPoint(BaseSchema):
         ge=0,
         description="Pending requests",
     )
-    average_completion_days: Optional[Decimal] = Field(
+    average_completion_days: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average days to complete",
     )
 
@@ -129,10 +128,8 @@ class CostTrendPoint(BaseSchema):
         ...,
         description="Period end Date",
     )
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total cost in period",
     )
     request_count: int = Field(
@@ -140,18 +137,15 @@ class CostTrendPoint(BaseSchema):
         ge=0,
         description="Number of requests",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
-    budget_allocated: Optional[Decimal] = Field(
+    budget_allocated: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Budget allocated for period",
     )
-    variance_from_budget: Optional[Decimal] = Field(
+    variance_from_budget: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Variance from budget",
     )
@@ -218,40 +212,28 @@ class CategoryBreakdown(BaseSchema):
         ge=0,
         description="Cancelled requests",
     )
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total cost for category",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
-    median_cost: Optional[Decimal] = Field(
+    median_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Median cost",
     )
-    average_completion_time_hours: Decimal = Field(
+    average_completion_time_hours: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average completion time in hours",
     )
-    average_completion_time_days: Decimal = Field(
+    average_completion_time_days: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average completion time in days",
     )
-    on_time_completion_rate: Decimal = Field(
+    on_time_completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage completed on time",
     )
     
@@ -268,16 +250,12 @@ class CategoryBreakdown(BaseSchema):
     )
     
     # Quality metrics
-    quality_check_pass_rate: Optional[Decimal] = Field(
+    quality_check_pass_rate: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Quality check pass rate",
     )
-    average_quality_rating: Optional[Decimal] = Field(
+    average_quality_rating: Optional[Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=5,
         description="Average quality rating",
     )
 
@@ -362,30 +340,22 @@ class VendorPerformance(BaseSchema):
     )
     
     # Timeliness metrics
-    on_time_completion_rate: Decimal = Field(
+    on_time_completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage completed on time",
     )
-    average_delay_days: Optional[Decimal] = Field(
+    average_delay_days: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average delay in days (for delayed jobs)",
     )
     
     # Cost metrics
-    total_spent: Decimal = Field(
+    total_spent: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total amount paid to vendor",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per job",
     )
     cost_competitiveness: str = Field(
@@ -393,37 +363,28 @@ class VendorPerformance(BaseSchema):
         pattern=r"^(low|medium|high)$",
         description="Cost competitiveness rating",
     )
-    cost_variance_percentage: Optional[Decimal] = Field(
+    cost_variance_percentage: Optional[Annotated[Decimal, Field(decimal_places=2)]] = Field(
         None,
         description="Average cost variance from estimates",
     )
     
     # Quality metrics
-    quality_rating: Optional[Decimal] = Field(
+    quality_rating: Optional[Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average quality rating (1-5 stars)",
     )
-    quality_check_pass_rate: Optional[Decimal] = Field(
+    quality_check_pass_rate: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Quality check pass rate",
     )
-    rework_rate: Optional[Decimal] = Field(
+    rework_rate: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Percentage requiring rework",
     )
     
     # Customer satisfaction
-    customer_satisfaction_score: Optional[Decimal] = Field(
+    customer_satisfaction_score: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Customer satisfaction score",
     )
     complaint_count: int = Field(
@@ -433,15 +394,12 @@ class VendorPerformance(BaseSchema):
     )
     
     # Reliability
-    response_time_hours: Optional[Decimal] = Field(
+    response_time_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average response time in hours",
     )
-    availability_score: Optional[Decimal] = Field(
+    availability_score: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Vendor availability score",
     )
     
@@ -556,99 +514,70 @@ class PerformanceMetrics(BaseSchema):
     )
     
     # Completion metrics
-    completion_rate: Decimal = Field(
+    completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall completion rate",
     )
-    average_completion_time_hours: Decimal = Field(
+    average_completion_time_hours: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average time to complete (hours)",
     )
-    average_completion_time_days: Decimal = Field(
+    average_completion_time_days: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average time to complete (days)",
     )
-    median_completion_time_days: Optional[Decimal] = Field(
+    median_completion_time_days: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Median completion time (days)",
     )
-    on_time_completion_rate: Decimal = Field(
+    on_time_completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage completed on time",
     )
     
     # Cost metrics
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total maintenance cost",
     )
-    average_cost_per_request: Decimal = Field(
+    average_cost_per_request: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
-    cost_variance_percentage: Decimal = Field(
+    cost_variance_percentage: Annotated[Decimal, Field(decimal_places=2)] = Field(
         ...,
-        decimal_places=2,
         description="Average cost variance from estimates",
     )
-    within_budget_rate: Decimal = Field(
+    within_budget_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage completed within budget",
     )
     
     # Quality metrics
-    quality_check_rate: Decimal = Field(
+    quality_check_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
         description="Percentage of requests quality checked",
     )
-    quality_pass_rate: Decimal = Field(
+    quality_pass_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
         description="Quality check pass rate",
     )
-    average_quality_rating: Optional[Decimal] = Field(
+    average_quality_rating: Optional[Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=5,
         description="Average quality rating",
     )
-    rework_rate: Decimal = Field(
+    rework_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
         description="Percentage requiring rework",
     )
     
     # Response metrics
-    average_response_time_hours: Optional[Decimal] = Field(
+    average_response_time_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average time to assign/respond (hours)",
     )
-    average_assignment_time_hours: Optional[Decimal] = Field(
+    average_assignment_time_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average time to assign (hours)",
     )
     
@@ -747,38 +676,26 @@ class ProductivityMetrics(BaseSchema):
     )
     
     # Productivity metrics
-    average_jobs_per_day: Decimal = Field(
+    average_jobs_per_day: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average jobs completed per day",
     )
-    average_hours_per_job: Decimal = Field(
+    average_hours_per_job: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average hours spent per job",
     )
-    utilization_rate: Decimal = Field(
+    utilization_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Staff utilization rate",
     )
     
     # Quality and timeliness
-    on_time_rate: Decimal = Field(
+    on_time_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="On-time completion rate",
     )
-    quality_score: Optional[Decimal] = Field(
+    quality_score: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Average quality score",
     )
     
@@ -788,10 +705,8 @@ class ProductivityMetrics(BaseSchema):
         max_length=5,
         description="Top maintenance categories handled",
     )
-    specialization_score: Optional[Decimal] = Field(
+    specialization_score: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Specialization/expertise score",
     )
 
@@ -880,44 +795,30 @@ class MaintenanceAnalytics(BaseSchema):
     )
     
     # Cost summary
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total maintenance cost",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average cost per request",
     )
-    budget_utilization: Optional[Decimal] = Field(
+    budget_utilization: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
         description="Budget utilization percentage",
     )
     
     # Performance summary
-    average_completion_time_hours: Decimal = Field(
+    average_completion_time_hours: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average completion time",
     )
-    completion_rate: Decimal = Field(
+    completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Completion rate",
     )
-    on_time_rate: Decimal = Field(
+    on_time_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="On-time completion rate",
     )
     
