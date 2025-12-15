@@ -46,125 +46,125 @@ class AuditFilterParams(BaseFilterSchema):
     
     # Actor filters
     user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific user"
     )
     user_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by list of users"
     )
     user_role: Optional[UserRole] = Field(
-        None,
+        default=None,
         description="Filter by user role"
     )
     user_roles: Optional[List[UserRole]] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Filter by multiple user roles"
     )
     user_email: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Filter by user email (partial match)"
     )
     exclude_user_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Exclude specific users"
     )
     
     # Impersonation
     impersonator_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by impersonator"
     )
     include_impersonated: bool = Field(
-        True,
+        default=True,
         description="Include impersonated actions"
     )
     
     # Hostel context
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by hostel"
     )
     hostel_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by multiple hostels"
     )
     
     # Entity filters
     entity_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by entity type"
     )
     entity_types: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=20,
         description="Filter by multiple entity types"
     )
     entity_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific entity"
     )
     entity_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by multiple entities"
     )
     
     # Action filters
     action_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by action type"
     )
     action_types: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by multiple action types"
     )
     action_category: Optional[AuditActionCategory] = Field(
-        None,
+        default=None,
         description="Filter by action category"
     )
     action_categories: Optional[List[AuditActionCategory]] = Field(
-        None,
+        default=None,
         max_length=15,
         description="Filter by multiple categories"
     )
     action_pattern: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by action type pattern (supports wildcards)"
     )
     
     # Time range filters
     datetime_range: Optional[DateTimeRangeFilter] = Field(
-        None,
+        default=None,
         description="Filter by datetime range"
     )
     created_after: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Filter events after this datetime"
     )
     created_before: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Filter events before this datetime"
     )
     
     # Quick time filters
     last_hours: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=720,  # Max 30 days
         description="Filter events in last N hours"
     )
     last_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=365,
         description="Filter events in last N days"
@@ -172,101 +172,101 @@ class AuditFilterParams(BaseFilterSchema):
     
     # Status filters
     status: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(success|failure|partial|pending)$",
         description="Filter by status"
     )
     statuses: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=4,
         description="Filter by multiple statuses"
     )
     only_failures: bool = Field(
-        False,
+        default=False,
         description="Show only failed actions"
     )
     
     # Severity filters
     severity_level: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(critical|high|medium|low|info)$",
         description="Filter by severity level"
     )
     min_severity: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(critical|high|medium|low|info)$",
         description="Minimum severity level"
     )
     
     # Security filters
     is_sensitive: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by sensitive data flag"
     )
     requires_review: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by review requirement"
     )
     compliance_tag: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by compliance tag"
     )
     
     # Network filters
     ip_address: Optional[str] = Field(
-        None,
+        default=None,
         description="Filter by IP address"
     )
     ip_addresses: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by multiple IP addresses"
     )
     country_code: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^[A-Z]{2}$",
         description="Filter by country code"
     )
     
     # Device filters
     device_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(desktop|mobile|tablet|api|system)$",
         description="Filter by device type"
     )
     platform: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by platform/OS"
     )
     
     # Request context
     request_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by request ID"
     )
     session_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by session ID"
     )
     
     # Change filters
     has_changes: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by presence of value changes"
     )
     changed_field: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by specific changed field"
     )
     
     # Search
     search_query: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=500,
         description="Full-text search in descriptions"
@@ -274,23 +274,23 @@ class AuditFilterParams(BaseFilterSchema):
     
     # Sorting
     sort_by: AuditSortField = Field(
-        AuditSortField.CREATED_AT,
+        default=AuditSortField.CREATED_AT,
         description="Field to sort by"
     )
     sort_order: str = Field(
-        "desc",
+        default="desc",
         pattern="^(asc|desc)$",
         description="Sort order"
     )
     
     # Pagination
     page: int = Field(
-        1,
+        default=1,
         ge=1,
         description="Page number"
     )
     page_size: int = Field(
-        50,
+        default=50,
         ge=1,
         le=200,
         description="Items per page"
@@ -383,33 +383,33 @@ class AuditSearchParams(BaseFilterSchema):
     
     # Search fields
     search_in_description: bool = Field(
-        True,
+        default=True,
         description="Search in action descriptions"
     )
     search_in_entity_names: bool = Field(
-        True,
+        default=True,
         description="Search in entity names"
     )
     search_in_user_emails: bool = Field(
-        False,
+        default=False,
         description="Search in user emails"
     )
     search_in_values: bool = Field(
-        False,
+        default=False,
         description="Search in old/new values"
     )
     
     # Search options
     case_sensitive: bool = Field(
-        False,
+        default=False,
         description="Case-sensitive search"
     )
     fuzzy_search: bool = Field(
-        False,
+        default=False,
         description="Enable fuzzy matching"
     )
     exact_phrase: bool = Field(
-        False,
+        default=False,
         description="Match exact phrase only"
     )
     
@@ -417,13 +417,13 @@ class AuditSearchParams(BaseFilterSchema):
     datetime_range: Optional[DateTimeRangeFilter] = None
     action_category: Optional[AuditActionCategory] = None
     severity_level: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(critical|high|medium|low|info)$"
     )
     
     # Results
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
 
 
 class AuditExportParams(BaseFilterSchema):
@@ -448,43 +448,43 @@ class AuditExportParams(BaseFilterSchema):
     
     # Field selection
     include_fields: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Specific fields to include (if None, include all)"
     )
     exclude_fields: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Fields to exclude from export"
     )
     
     # Privacy options
     redact_sensitive: bool = Field(
-        True,
+        default=True,
         description="Redact sensitive data in export"
     )
     mask_ip_addresses: bool = Field(
-        False,
+        default=False,
         description="Mask IP addresses in export"
     )
     anonymize_users: bool = Field(
-        False,
+        default=False,
         description="Anonymize user identifiers"
     )
     
     # Output options
     include_summary: bool = Field(
-        True,
+        default=True,
         description="Include summary statistics"
     )
     include_charts: bool = Field(
-        False,
+        default=False,
         description="Include charts (for PDF/XLSX)"
     )
     
     # Limits
     max_records: int = Field(
-        10000,
+        default=10000,
         ge=1,
         le=100000,
         description="Maximum records to export"

@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from datetime import date
 from typing import List, Optional
+import re
 
 from pydantic import Field, field_validator, model_validator
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import AttendanceMode, AttendanceStatus
@@ -131,7 +132,7 @@ class AttendanceFilterParams(BaseFilterSchema):
     @classmethod
     def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
         """Validate end date is after or equal to start date."""
-        if v is not None and "date_from" in info.data:
+        if v is not None and info.data.get("date_from"):
             date_from = info.data["date_from"]
             if date_from is not None and v < date_from:
                 raise ValueError("date_to must be after or equal to date_from")
@@ -229,7 +230,7 @@ class DateRangeRequest(BaseFilterSchema):
             raise ValueError("end_date cannot be in the future")
 
         # Validate against start date
-        if "start_date" in info.data:
+        if info.data.get("start_date"):
             start_date = info.data["start_date"]
             if v < start_date:
                 raise ValueError("end_date must be after or equal to start_date")
@@ -346,7 +347,6 @@ class AttendanceExportRequest(BaseFilterSchema):
         """Validate and sanitize filename."""
         if v is not None:
             # Remove invalid characters
-            import re
             v = re.sub(r'[<>:"/\\|?*]', '', v)
             v = v.strip()
             return v if v else None

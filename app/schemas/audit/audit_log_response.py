@@ -35,9 +35,9 @@ class AuditLogResponse(BaseResponseSchema):
     id: UUID = Field(..., description="Audit log entry ID")
     
     # Actor
-    user_id: Optional[UUID] = Field(None, description="User who performed action")
-    user_email: Optional[str] = Field(None, description="User email")
-    user_role: Optional[UserRole] = Field(None, description="User role")
+    user_id: Optional[UUID] = Field(default=None, description="User who performed action")
+    user_email: Optional[str] = Field(default=None, description="User email")
+    user_role: Optional[UserRole] = Field(default=None, description="User role")
     
     # Action
     action_type: str = Field(..., description="Action type identifier")
@@ -45,26 +45,26 @@ class AuditLogResponse(BaseResponseSchema):
     action_description: str = Field(..., description="Action description")
     
     # Entity
-    entity_type: Optional[str] = Field(None, description="Affected entity type")
-    entity_id: Optional[UUID] = Field(None, description="Affected entity ID")
-    entity_name: Optional[str] = Field(None, description="Entity display name")
+    entity_type: Optional[str] = Field(default=None, description="Affected entity type")
+    entity_id: Optional[UUID] = Field(default=None, description="Affected entity ID")
+    entity_name: Optional[str] = Field(default=None, description="Entity display name")
     
     # Context
-    hostel_id: Optional[UUID] = Field(None, description="Hostel context")
-    hostel_name: Optional[str] = Field(None, description="Hostel name")
+    hostel_id: Optional[UUID] = Field(default=None, description="Hostel context")
+    hostel_name: Optional[str] = Field(default=None, description="Hostel name")
     
     # Status
     status: str = Field(..., description="Action status")
     
     # Network
-    ip_address: Optional[str] = Field(None, description="Source IP address")
+    ip_address: Optional[str] = Field(default=None, description="Source IP address")
     
     # Timestamps
     created_at: datetime = Field(..., description="When action occurred")
     
     # Security
-    is_sensitive: bool = Field(False, description="Contains sensitive data")
-    severity_level: Optional[str] = Field(None, description="Severity level")
+    is_sensitive: bool = Field(default=False, description="Contains sensitive data")
+    severity_level: Optional[str] = Field(default=None, description="Severity level")
     
     @computed_field
     @property
@@ -129,11 +129,11 @@ class AuditLogDetail(BaseResponseSchema):
     id: UUID = Field(..., description="Audit log entry ID")
     
     # Actor information
-    user_id: Optional[UUID] = Field(None, description="User who performed action")
-    user_email: Optional[str] = Field(None, description="User email")
-    user_role: Optional[UserRole] = Field(None, description="User role at time of action")
+    user_id: Optional[UUID] = Field(default=None, description="User who performed action")
+    user_email: Optional[str] = Field(default=None, description="User email")
+    user_role: Optional[UserRole] = Field(default=None, description="User role at time of action")
     impersonator_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="User impersonating (if applicable)"
     )
     
@@ -143,25 +143,25 @@ class AuditLogDetail(BaseResponseSchema):
     action_description: str = Field(..., description="Detailed action description")
     
     # Entity information
-    entity_type: Optional[str] = Field(None, description="Affected entity type")
-    entity_id: Optional[UUID] = Field(None, description="Affected entity ID")
-    entity_name: Optional[str] = Field(None, description="Entity display name")
+    entity_type: Optional[str] = Field(default=None, description="Affected entity type")
+    entity_id: Optional[UUID] = Field(default=None, description="Affected entity ID")
+    entity_name: Optional[str] = Field(default=None, description="Entity display name")
     
     # Related entity
-    related_entity_type: Optional[str] = Field(None, description="Related entity type")
-    related_entity_id: Optional[UUID] = Field(None, description="Related entity ID")
+    related_entity_type: Optional[str] = Field(default=None, description="Related entity type")
+    related_entity_id: Optional[UUID] = Field(default=None, description="Related entity ID")
     
     # Context
-    hostel_id: Optional[UUID] = Field(None, description="Hostel context")
-    hostel_name: Optional[str] = Field(None, description="Hostel name")
+    hostel_id: Optional[UUID] = Field(default=None, description="Hostel context")
+    hostel_name: Optional[str] = Field(default=None, description="Hostel name")
     
     # Change tracking
     old_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Previous values"
     )
     new_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="New values"
     )
     changed_fields: List[str] = Field(
@@ -170,34 +170,34 @@ class AuditLogDetail(BaseResponseSchema):
     )
     
     # Request context
-    ip_address: Optional[str] = Field(None, description="IP address")
-    user_agent: Optional[str] = Field(None, description="User agent string")
-    request_id: Optional[str] = Field(None, description="Request/trace ID")
-    session_id: Optional[str] = Field(None, description="Session ID")
+    ip_address: Optional[str] = Field(default=None, description="IP address")
+    user_agent: Optional[str] = Field(default=None, description="User agent string")
+    request_id: Optional[str] = Field(default=None, description="Request/trace ID")
+    session_id: Optional[str] = Field(default=None, description="Session ID")
     
     # Geographic context
-    country_code: Optional[str] = Field(None, description="Country code")
-    region: Optional[str] = Field(None, description="Region/state")
-    city: Optional[str] = Field(None, description="City")
+    country_code: Optional[str] = Field(default=None, description="Country code")
+    region: Optional[str] = Field(default=None, description="Region/state")
+    city: Optional[str] = Field(default=None, description="City")
     
     # Device context
-    device_type: Optional[str] = Field(None, description="Device type")
-    platform: Optional[str] = Field(None, description="Platform/OS")
-    browser_name: Optional[str] = Field(None, description="Browser name")
+    device_type: Optional[str] = Field(default=None, description="Device type")
+    platform: Optional[str] = Field(default=None, description="Platform/OS")
+    browser_name: Optional[str] = Field(default=None, description="Browser name")
     
     # API context
-    api_version: Optional[str] = Field(None, description="API version")
-    endpoint: Optional[str] = Field(None, description="API endpoint")
-    http_method: Optional[str] = Field(None, description="HTTP method")
+    api_version: Optional[str] = Field(default=None, description="API version")
+    endpoint: Optional[str] = Field(default=None, description="API endpoint")
+    http_method: Optional[str] = Field(default=None, description="HTTP method")
     
     # Status and result
     status: str = Field(..., description="Action status")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    error_message: Optional[str] = Field(default=None, description="Error message if failed")
     
     # Security
-    is_sensitive: bool = Field(False, description="Contains sensitive data")
+    is_sensitive: bool = Field(default=False, description="Contains sensitive data")
     severity_level: str = Field(..., description="Severity level")
-    requires_review: bool = Field(False, description="Requires manual review")
+    requires_review: bool = Field(default=False, description="Requires manual review")
     compliance_tags: List[str] = Field(
         default_factory=list,
         description="Compliance tags"
@@ -208,7 +208,7 @@ class AuditLogDetail(BaseResponseSchema):
     
     # Retention
     retention_days: Optional[int] = Field(
-        None,
+        default=None,
         description="Retention period in days"
     )
     
@@ -274,8 +274,8 @@ class AuditLogSummary(BaseResponseSchema):
     period_end: datetime = Field(..., description="Summary period end")
     
     # Scope
-    hostel_id: Optional[UUID] = Field(None, description="Hostel scope if applicable")
-    user_id: Optional[UUID] = Field(None, description="User scope if applicable")
+    hostel_id: Optional[UUID] = Field(default=None, description="Hostel scope if applicable")
+    user_id: Optional[UUID] = Field(default=None, description="User scope if applicable")
     
     # Overall metrics
     total_events: int = Field(..., ge=0, description="Total audit events")
@@ -317,17 +317,17 @@ class AuditLogSummary(BaseResponseSchema):
     
     # Anomaly indicators
     failed_login_attempts: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Failed authentication attempts"
     )
     access_denied_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Authorization failures"
     )
     unusual_activity_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Flagged unusual activities"
     )
@@ -403,8 +403,8 @@ class AuditLogTimeline(BaseResponseSchema):
     failed: int = Field(..., ge=0, description="Failed events")
     
     # Severity
-    critical_count: int = Field(0, ge=0, description="Critical events")
-    high_count: int = Field(0, ge=0, description="High severity events")
+    critical_count: int = Field(default=0, ge=0, description="Critical events")
+    high_count: int = Field(default=0, ge=0, description="High severity events")
     
     # Notable events (for highlighting)
     notable_events: List[AuditLogResponse] = Field(

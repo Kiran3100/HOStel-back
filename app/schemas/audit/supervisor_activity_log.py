@@ -63,7 +63,7 @@ class SupervisorActivityBase(BaseSchema):
         description="Supervisor performing the action"
     )
     supervisor_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Supervisor name (for display)"
     )
@@ -74,7 +74,7 @@ class SupervisorActivityBase(BaseSchema):
         description="Hostel where action occurred"
     )
     hostel_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Hostel name (for display)"
     )
@@ -99,38 +99,38 @@ class SupervisorActivityBase(BaseSchema):
     
     # Entity affected
     entity_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Entity type affected (e.g., 'complaint', 'attendance', 'student')"
     )
     entity_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of the entity affected (if applicable)"
     )
     entity_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Display name of affected entity"
     )
     
     # Related entities (for complex actions)
     related_student_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Student involved in the action"
     )
     related_room_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Room involved in the action"
     )
     
     # Action outcome
     status: str = Field(
-        "completed",
+        default="completed",
         pattern="^(completed|pending|failed|cancelled)$",
         description="Status of the action"
     )
     outcome: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Brief outcome description"
     )
@@ -143,52 +143,52 @@ class SupervisorActivityBase(BaseSchema):
     
     # Performance metrics
     time_taken_minutes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Time taken to complete the action (minutes)"
     )
     priority_level: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(low|medium|high|urgent|critical)$",
         description="Priority level of the action"
     )
     
     # Request context
     ip_address: Optional[str] = Field(
-        None,
+        default=None,
         max_length=45,
         description="IP address from which the action originated"
     )
     user_agent: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="User-Agent string from supervisor's device"
     )
     device_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(mobile|tablet|desktop|other)$",
         description="Device type used"
     )
     
     # Location (for field activities)
     location: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Physical location where action was performed"
     )
     gps_coordinates: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^-?\d+\.\d+,-?\d+\.\d+$",
         description="GPS coordinates (latitude,longitude)"
     )
     
     # Shift context
     shift_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Shift during which action occurred"
     )
     shift_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(morning|afternoon|evening|night)$",
         description="Type of shift"
     )
@@ -201,14 +201,14 @@ class SupervisorActivityBase(BaseSchema):
     
     # Quality indicators
     quality_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         decimal_places=2,
         description="Quality score for the action (0-5)"
     )
     student_feedback_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         decimal_places=2,
@@ -217,11 +217,11 @@ class SupervisorActivityBase(BaseSchema):
     
     # Follow-up
     requires_follow_up: bool = Field(
-        False,
+        default=False,
         description="Whether action requires follow-up"
     )
     follow_up_date: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When follow-up is due"
     )
     
@@ -557,137 +557,137 @@ class SupervisorActivityFilter(BaseSchema):
     
     # Actor filters
     supervisor_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific supervisor"
     )
     supervisor_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by multiple supervisors"
     )
     
     # Context filters
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by hostel"
     )
     hostel_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by multiple hostels"
     )
     
     # Action filters
     action_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Filter by action type"
     )
     action_types: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by multiple action types"
     )
     action_category: Optional[SupervisorActionCategory] = Field(
-        None,
+        default=None,
         description="Filter by action category"
     )
     action_categories: Optional[List[SupervisorActionCategory]] = Field(
-        None,
+        default=None,
         max_length=12,
         description="Filter by multiple categories"
     )
     
     # Entity filters
     entity_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Filter by entity type"
     )
     entity_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by specific entity"
     )
     
     # Related entity filters
     related_student_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by student"
     )
     related_room_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by room"
     )
     
     # Status filters
     status: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(completed|pending|failed|cancelled)$",
         description="Filter by status"
     )
     statuses: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=4,
         description="Filter by multiple statuses"
     )
     
     # Priority filters
     priority_level: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(low|medium|high|urgent|critical)$",
         description="Filter by priority level"
     )
     min_priority: Optional[str] = Field(
-        None,
+        default=None,
         description="Minimum priority level"
     )
     
     # Time filters
     datetime_range: Optional[DateTimeRangeFilter] = Field(
-        None,
+        default=None,
         description="Filter by datetime range"
     )
     created_after: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Filter activities after this datetime"
     )
     created_before: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Filter activities before this datetime"
     )
     
     # Quick time filters
     last_hours: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=168,  # Max 1 week
         description="Filter activities in last N hours"
     )
     today_only: bool = Field(
-        False,
+        default=False,
         description="Filter today's activities only"
     )
     
     # Shift filters
     shift_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Filter by shift"
     )
     shift_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(morning|afternoon|evening|night)$",
         description="Filter by shift type"
     )
     
     # Performance filters
     min_quality_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         description="Minimum quality score"
     )
     min_efficiency_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=100,
         description="Minimum efficiency score"
@@ -695,17 +695,17 @@ class SupervisorActivityFilter(BaseSchema):
     
     # Follow-up filters
     requires_follow_up: Optional[bool] = Field(
-        None,
+        default=None,
         description="Filter by follow-up requirement"
     )
     overdue_follow_ups: bool = Field(
-        False,
+        default=False,
         description="Show only overdue follow-ups"
     )
     
     # Search
     search_query: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=500,
         description="Search in action descriptions"
@@ -713,19 +713,19 @@ class SupervisorActivityFilter(BaseSchema):
     
     # Sorting
     sort_by: str = Field(
-        "created_at",
+        default="created_at",
         pattern="^(created_at|priority_level|time_taken|quality_score)$",
         description="Field to sort by"
     )
     sort_order: str = Field(
-        "desc",
+        default="desc",
         pattern="^(asc|desc)$",
         description="Sort order"
     )
     
     # Pagination
-    page: int = Field(1, ge=1, description="Page number")
-    page_size: int = Field(50, ge=1, le=200, description="Items per page")
+    page: int = Field(default=1, ge=1, description="Page number")
+    page_size: int = Field(default=50, ge=1, le=200, description="Items per page")
     
     @model_validator(mode='after')
     def validate_time_filters(self) -> 'SupervisorActivityFilter':
@@ -767,17 +767,17 @@ class SupervisorActivityTimelinePoint(BaseSchema):
         description="Total actions in this bucket"
     )
     completed_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Completed actions"
     )
     pending_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Pending actions"
     )
     failed_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Failed actions"
     )
@@ -790,13 +790,13 @@ class SupervisorActivityTimelinePoint(BaseSchema):
     
     # Performance metrics
     avg_time_taken_minutes: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         decimal_places=2,
         description="Average time taken for actions"
     )
     avg_quality_score: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=5,
         decimal_places=2,
@@ -855,9 +855,9 @@ class SupervisorPerformanceMetrics(BaseSchema):
     
     # Volume metrics
     total_activities: int = Field(..., ge=0)
-    total_shifts_worked: int = Field(0, ge=0)
+    total_shifts_worked: int = Field(default=0, ge=0)
     total_hours_worked: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         decimal_places=2,
         description="Total hours worked in period"
@@ -869,14 +869,14 @@ class SupervisorPerformanceMetrics(BaseSchema):
     
     # Quality metrics
     avg_quality_score: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=5,
         decimal_places=2,
         description="Average quality score"
     )
     avg_student_feedback: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=5,
         decimal_places=2,
@@ -885,13 +885,13 @@ class SupervisorPerformanceMetrics(BaseSchema):
     
     # Efficiency metrics
     avg_time_per_task_minutes: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         decimal_places=2,
         description="Average time per task"
     )
     avg_efficiency_score: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=100,
         decimal_places=2,
@@ -900,14 +900,14 @@ class SupervisorPerformanceMetrics(BaseSchema):
     
     # Completion metrics
     completion_rate: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=100,
         decimal_places=2,
         description="Task completion rate"
     )
     on_time_completion_rate: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=100,
         decimal_places=2,
@@ -915,23 +915,23 @@ class SupervisorPerformanceMetrics(BaseSchema):
     )
     
     # Issue resolution
-    complaints_handled: int = Field(0, ge=0)
-    complaints_resolved: int = Field(0, ge=0)
+    complaints_handled: int = Field(default=0, ge=0)
+    complaints_resolved: int = Field(default=0, ge=0)
     avg_complaint_resolution_time_hours: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         decimal_places=2
     )
     
     # Follow-up tracking
-    follow_ups_required: int = Field(0, ge=0)
-    follow_ups_completed: int = Field(0, ge=0)
-    overdue_follow_ups: int = Field(0, ge=0)
+    follow_ups_required: int = Field(default=0, ge=0)
+    follow_ups_completed: int = Field(default=0, ge=0)
+    overdue_follow_ups: int = Field(default=0, ge=0)
     
     # Attendance tracking
-    attendance_records_marked: int = Field(0, ge=0)
+    attendance_records_marked: int = Field(default=0, ge=0)
     attendance_accuracy_rate: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=100,
         decimal_places=2,
@@ -1044,33 +1044,33 @@ class SupervisorActivitySummary(BaseSchema):
     
     # Highlights
     peak_activity_hour: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         le=23,
         description="Hour with most activity"
     )
     peak_activity_day: Optional[str] = Field(
-        None,
+        default=None,
         description="Day of week with most activity"
     )
     busiest_date: Optional[date] = Field(
-        None,
+        default=None,
         description="Date with most activities"
     )
     
     # Achievements
     high_quality_actions: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Actions with quality score >= 4.0"
     )
     quick_resolutions: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Actions completed in < 30 minutes"
     )
     perfect_days: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Days with 100% completion rate"
     )
@@ -1137,7 +1137,7 @@ class SupervisorShiftReport(BaseSchema):
     
     # Handover notes
     handover_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=2000,
         description="Notes for next shift"
     )

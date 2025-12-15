@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 
@@ -260,7 +260,6 @@ class AlertConfig(BaseSchema):
         Decimal("75.00"),
         ge=0,
         le=100,
-        decimal_places=2,
         description="Attendance percentage threshold for alerts",
     )
     low_attendance_check_period: str = Field(
@@ -516,11 +515,10 @@ class AlertAcknowledgment(BaseCreateSchema):
         description="Additional notes",
     )
 
-
-    @field_validator("action_taken", "additional_notes")    
+    @field_validator("action_taken", "additional_notes")
     @classmethod
-    def validate_text_fields(cls, v: Optional[str], info: FieldValidationInfo) -> Optional[str]:
-                
+    def validate_text_fields(cls, v: Optional[str], info) -> Optional[str]:
+        """Normalize and validate text fields."""
         if v is None:
             return None
         v = v.strip() or None
@@ -741,7 +739,8 @@ class AlertSummary(BaseSchema):
     @classmethod
     def validate_period(cls, v: date, info) -> date:
         """Validate period dates."""
-        if "period_start" in info.data:
+        # In Pydantic v2, we need to access data through info.data
+        if info.data.get("period_start"):
             if v < info.data["period_start"]:
                 raise ValueError("period_end must be after period_start")
         return v

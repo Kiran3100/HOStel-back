@@ -8,7 +8,7 @@ summaries, trends, user activity analysis, and entity change history.
 
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, ForwardRef
 from enum import Enum
 
 from pydantic import Field, field_validator, computed_field, model_validator
@@ -55,7 +55,7 @@ class CategoryAnalytics(BaseSchema):
         description="Action category"
     )
     category_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Human-readable category name"
     )
     
@@ -71,7 +71,7 @@ class CategoryAnalytics(BaseSchema):
         description="Number of unique users in this category"
     )
     unique_entities: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique entities affected"
     )
@@ -79,7 +79,7 @@ class CategoryAnalytics(BaseSchema):
     # Status breakdown
     successful_events: int = Field(..., ge=0)
     failed_events: int = Field(..., ge=0)
-    pending_events: int = Field(0, ge=0)
+    pending_events: int = Field(default=0, ge=0)
     
     # Timing
     avg_events_per_day: Decimal = Field(
@@ -89,7 +89,7 @@ class CategoryAnalytics(BaseSchema):
         description="Average events per day"
     )
     peak_hour: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         le=23,
         description="Hour of day with most activity (0-23)"
@@ -104,12 +104,12 @@ class CategoryAnalytics(BaseSchema):
     
     # Trend
     trend_direction: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(increasing|decreasing|stable)$",
         description="Trend direction over the period"
     )
     trend_percentage: Optional[Decimal] = Field(
-        None,
+        default=None,
         decimal_places=2,
         description="Percentage change vs previous period"
     )
@@ -137,6 +137,10 @@ class CategoryAnalytics(BaseSchema):
         )
 
 
+# Forward reference for UserActivitySummary
+UserActivitySummaryRef = ForwardRef('UserActivitySummary')
+
+
 class AuditSummary(BaseSchema):
     """
     High-level summary for audit log report.
@@ -156,11 +160,11 @@ class AuditSummary(BaseSchema):
     
     # Scope
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Hostel scope (None = platform-wide)"
     )
     hostel_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Hostel name"
     )
     
@@ -176,12 +180,12 @@ class AuditSummary(BaseSchema):
         description="Number of unique users"
     )
     unique_ip_addresses: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique IP addresses"
     )
     unique_sessions: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique sessions"
     )
@@ -189,8 +193,8 @@ class AuditSummary(BaseSchema):
     # Status distribution
     successful_actions: int = Field(..., ge=0)
     failed_actions: int = Field(..., ge=0)
-    pending_actions: int = Field(0, ge=0)
-    partial_actions: int = Field(0, ge=0)
+    pending_actions: int = Field(default=0, ge=0)
+    partial_actions: int = Field(default=0, ge=0)
     
     # Distribution by category
     events_by_category: Dict[str, int] = Field(
@@ -215,34 +219,34 @@ class AuditSummary(BaseSchema):
     )
     
     # Top actors
-    top_users_by_events: List["UserActivitySummary"] = Field(
+    top_users_by_events: List[UserActivitySummaryRef] = Field(
         default_factory=list,
         max_length=10,
         description="Top 10 most active users"
     )
     
     # Security metrics
-    critical_events: int = Field(0, ge=0, description="Critical severity events")
-    high_severity_events: int = Field(0, ge=0, description="High severity events")
+    critical_events: int = Field(default=0, ge=0, description="Critical severity events")
+    high_severity_events: int = Field(default=0, ge=0, description="High severity events")
     sensitive_data_events: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Events involving sensitive data"
     )
     events_requiring_review: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Events flagged for review"
     )
     
     # Authentication metrics
-    login_attempts: int = Field(0, ge=0)
-    successful_logins: int = Field(0, ge=0)
-    failed_logins: int = Field(0, ge=0)
+    login_attempts: int = Field(default=0, ge=0)
+    successful_logins: int = Field(default=0, ge=0)
+    failed_logins: int = Field(default=0, ge=0)
     
     # Authorization metrics
-    access_granted: int = Field(0, ge=0)
-    access_denied: int = Field(0, ge=0)
+    access_granted: int = Field(default=0, ge=0)
+    access_denied: int = Field(default=0, ge=0)
     
     # Geographic distribution
     events_by_country: Dict[str, int] = Field(
@@ -340,27 +344,27 @@ class UserActivitySummary(BaseSchema):
     """
     
     user_id: UUID = Field(..., description="User identifier")
-    user_name: Optional[str] = Field(None, description="User display name")
-    user_email: Optional[str] = Field(None, description="User email")
-    user_role: Optional[UserRole] = Field(None, description="User role")
+    user_name: Optional[str] = Field(default=None, description="User display name")
+    user_email: Optional[str] = Field(default=None, description="User email")
+    user_role: Optional[UserRole] = Field(default=None, description="User role")
     
     # Activity period
     period_start: datetime = Field(..., description="Period start")
     period_end: datetime = Field(..., description="Period end")
     first_activity: Optional[datetime] = Field(
-        None,
+        default=None,
         description="First activity timestamp in period"
     )
     last_activity: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last activity timestamp in period"
     )
     
     # Volume metrics
     total_events: int = Field(..., ge=0, description="Total events by this user")
-    total_sessions: int = Field(0, ge=0, description="Number of sessions")
+    total_sessions: int = Field(default=0, ge=0, description="Number of sessions")
     unique_ip_addresses: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique IPs used"
     )
@@ -381,7 +385,7 @@ class UserActivitySummary(BaseSchema):
     
     # Entity interactions
     entities_affected: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique entities affected"
     )
@@ -391,39 +395,39 @@ class UserActivitySummary(BaseSchema):
     )
     
     # Security metrics
-    successful_actions: int = Field(0, ge=0)
-    failed_actions: int = Field(0, ge=0)
+    successful_actions: int = Field(default=0, ge=0)
+    failed_actions: int = Field(default=0, ge=0)
     sensitive_data_accessed: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Events involving sensitive data"
     )
     
     # Anomalies
     unusual_activity_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Flagged unusual activities"
     )
     access_denied_count: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Authorization failures"
     )
     
     # Activity patterns
     most_active_hour: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         le=23,
         description="Hour of day with most activity"
     )
     most_active_day: Optional[str] = Field(
-        None,
+        default=None,
         description="Day of week with most activity"
     )
     avg_daily_events: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         decimal_places=2,
         description="Average events per day"
@@ -511,6 +515,10 @@ class UserActivitySummary(BaseSchema):
             return "low"
 
 
+# Resolve forward reference
+AuditSummary.model_rebuild()
+
+
 class EntityChangeSummary(BaseSchema):
     """
     Summary of changes for one entity type.
@@ -526,7 +534,7 @@ class EntityChangeSummary(BaseSchema):
         description="Entity type name"
     )
     entity_type_display: Optional[str] = Field(
-        None,
+        default=None,
         description="Human-readable entity type name"
     )
     
@@ -543,22 +551,22 @@ class EntityChangeSummary(BaseSchema):
     )
     
     # Change types
-    creates: int = Field(0, ge=0, description="Create operations")
-    updates: int = Field(0, ge=0, description="Update operations")
-    deletes: int = Field(0, ge=0, description="Delete operations")
-    restores: int = Field(0, ge=0, description="Restore operations")
+    creates: int = Field(default=0, ge=0, description="Create operations")
+    updates: int = Field(default=0, ge=0, description="Update operations")
+    deletes: int = Field(default=0, ge=0, description="Delete operations")
+    restores: int = Field(default=0, ge=0, description="Restore operations")
     
     # Timing
     last_change_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Timestamp of most recent change"
     )
     first_change_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Timestamp of first change in period"
     )
     avg_changes_per_day: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         decimal_places=2,
         description="Average changes per day"
@@ -624,11 +632,11 @@ class EntityChangeRecord(BaseSchema):
     
     # Change data
     old_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Previous values"
     )
     new_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="New values"
     )
     changed_fields: List[str] = Field(
@@ -637,14 +645,14 @@ class EntityChangeRecord(BaseSchema):
     )
     
     # Actor
-    changed_by: Optional[UUID] = Field(None, description="User who made the change")
-    changed_by_name: Optional[str] = Field(None, description="User display name")
-    changed_by_role: Optional[UserRole] = Field(None, description="User role")
+    changed_by: Optional[UUID] = Field(default=None, description="User who made the change")
+    changed_by_name: Optional[str] = Field(default=None, description="User display name")
+    changed_by_role: Optional[UserRole] = Field(default=None, description="User role")
     
     # Context
     changed_at: datetime = Field(..., description="Change timestamp")
-    ip_address: Optional[str] = Field(None, description="IP address")
-    request_id: Optional[str] = Field(None, description="Request ID")
+    ip_address: Optional[str] = Field(default=None, description="IP address")
+    request_id: Optional[str] = Field(default=None, description="Request ID")
     
     # Status
     status: str = Field(..., description="Change status")
@@ -684,16 +692,16 @@ class EntityChangeHistory(BaseSchema):
     
     entity_type: str = Field(..., description="Entity type")
     entity_id: UUID = Field(..., description="Entity ID")
-    entity_name: Optional[str] = Field(None, description="Entity display name")
+    entity_name: Optional[str] = Field(default=None, description="Entity display name")
     
     # Lifecycle
-    created_at: Optional[datetime] = Field(None, description="Entity creation time")
-    created_by: Optional[UUID] = Field(None, description="Creator user ID")
+    created_at: Optional[datetime] = Field(default=None, description="Entity creation time")
+    created_by: Optional[UUID] = Field(default=None, description="Creator user ID")
     last_modified_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Last modification time"
     )
-    last_modified_by: Optional[UUID] = Field(None, description="Last modifier user ID")
+    last_modified_by: Optional[UUID] = Field(default=None, description="Last modifier user ID")
     
     # Change records
     total_changes: int = Field(..., ge=0, description="Total number of changes")
@@ -704,7 +712,7 @@ class EntityChangeHistory(BaseSchema):
     
     # Statistics
     unique_modifiers: int = Field(
-        0,
+        default=0,
         ge=0,
         description="Number of unique users who modified this entity"
     )
@@ -714,9 +722,9 @@ class EntityChangeHistory(BaseSchema):
     )
     
     # Current state
-    is_deleted: bool = Field(False, description="Whether entity is deleted")
-    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
-    deleted_by: Optional[UUID] = Field(None, description="User who deleted")
+    is_deleted: bool = Field(default=False, description="Whether entity is deleted")
+    deleted_at: Optional[datetime] = Field(default=None, description="Deletion timestamp")
+    deleted_by: Optional[UUID] = Field(default=None, description="User who deleted")
     
     @computed_field
     @property
@@ -789,36 +797,36 @@ class ComplianceReport(BaseSchema):
     )
     
     # Access control metrics
-    authentication_events: int = Field(0, ge=0)
-    authorization_events: int = Field(0, ge=0)
-    access_violations: int = Field(0, ge=0)
-    privileged_access_events: int = Field(0, ge=0)
+    authentication_events: int = Field(default=0, ge=0)
+    authorization_events: int = Field(default=0, ge=0)
+    access_violations: int = Field(default=0, ge=0)
+    privileged_access_events: int = Field(default=0, ge=0)
     
     # Data access metrics
-    sensitive_data_access: int = Field(0, ge=0)
-    pii_access_events: int = Field(0, ge=0)
-    data_export_events: int = Field(0, ge=0)
-    data_deletion_events: int = Field(0, ge=0)
+    sensitive_data_access: int = Field(default=0, ge=0)
+    pii_access_events: int = Field(default=0, ge=0)
+    data_export_events: int = Field(default=0, ge=0)
+    data_deletion_events: int = Field(default=0, ge=0)
     
     # Change management
-    configuration_changes: int = Field(0, ge=0)
-    user_changes: int = Field(0, ge=0)
-    permission_changes: int = Field(0, ge=0)
+    configuration_changes: int = Field(default=0, ge=0)
+    user_changes: int = Field(default=0, ge=0)
+    permission_changes: int = Field(default=0, ge=0)
     
     # Anomalies and incidents
-    failed_login_attempts: int = Field(0, ge=0)
-    unusual_access_patterns: int = Field(0, ge=0)
-    policy_violations: int = Field(0, ge=0)
-    security_incidents: int = Field(0, ge=0)
+    failed_login_attempts: int = Field(default=0, ge=0)
+    unusual_access_patterns: int = Field(default=0, ge=0)
+    policy_violations: int = Field(default=0, ge=0)
+    security_incidents: int = Field(default=0, ge=0)
     
     # User activity
-    unique_users: int = Field(0, ge=0)
-    admin_users_active: int = Field(0, ge=0)
-    external_access_count: int = Field(0, ge=0)
+    unique_users: int = Field(default=0, ge=0)
+    admin_users_active: int = Field(default=0, ge=0)
+    external_access_count: int = Field(default=0, ge=0)
     
     # Compliance status
-    compliant_events: int = Field(0, ge=0)
-    non_compliant_events: int = Field(0, ge=0)
+    compliant_events: int = Field(default=0, ge=0)
+    non_compliant_events: int = Field(default=0, ge=0)
     compliance_rate: Decimal = Field(
         ...,
         ge=0,
@@ -885,21 +893,21 @@ class SecurityAuditReport(BaseSchema):
     )
     
     # Authentication security
-    total_login_attempts: int = Field(0, ge=0)
-    successful_logins: int = Field(0, ge=0)
-    failed_logins: int = Field(0, ge=0)
-    brute_force_attempts: int = Field(0, ge=0)
-    compromised_accounts: int = Field(0, ge=0)
+    total_login_attempts: int = Field(default=0, ge=0)
+    successful_logins: int = Field(default=0, ge=0)
+    failed_logins: int = Field(default=0, ge=0)
+    brute_force_attempts: int = Field(default=0, ge=0)
+    compromised_accounts: int = Field(default=0, ge=0)
     
     # Authorization security
-    total_access_attempts: int = Field(0, ge=0)
-    unauthorized_access_attempts: int = Field(0, ge=0)
-    privilege_escalation_attempts: int = Field(0, ge=0)
+    total_access_attempts: int = Field(default=0, ge=0)
+    unauthorized_access_attempts: int = Field(default=0, ge=0)
+    privilege_escalation_attempts: int = Field(default=0, ge=0)
     
     # Data security
-    sensitive_data_exposures: int = Field(0, ge=0)
-    data_exfiltration_attempts: int = Field(0, ge=0)
-    suspicious_data_access: int = Field(0, ge=0)
+    sensitive_data_exposures: int = Field(default=0, ge=0)
+    data_exfiltration_attempts: int = Field(default=0, ge=0)
+    suspicious_data_access: int = Field(default=0, ge=0)
     
     # Threat indicators
     suspicious_ips: List[str] = Field(
@@ -910,12 +918,12 @@ class SecurityAuditReport(BaseSchema):
         default_factory=list,
         description="Users with suspicious activity"
     )
-    anomalous_patterns: int = Field(0, ge=0)
+    anomalous_patterns: int = Field(default=0, ge=0)
     
     # Security events
-    critical_events: int = Field(0, ge=0)
-    security_policy_violations: int = Field(0, ge=0)
-    configuration_changes: int = Field(0, ge=0)
+    critical_events: int = Field(default=0, ge=0)
+    security_policy_violations: int = Field(default=0, ge=0)
+    configuration_changes: int = Field(default=0, ge=0)
     
     # Risk metrics
     overall_risk_score: Decimal = Field(
@@ -1011,7 +1019,7 @@ class AuditTrendAnalysis(BaseSchema):
     std_deviation: Decimal = Field(..., ge=0, decimal_places=2)
     
     # Anomalies
-    anomaly_count: int = Field(0, ge=0, description="Number of detected anomalies")
+    anomaly_count: int = Field(default=0, ge=0, description="Number of detected anomalies")
     anomaly_dates: List[date] = Field(
         default_factory=list,
         description="Dates with anomalous activity"
@@ -1019,9 +1027,9 @@ class AuditTrendAnalysis(BaseSchema):
     
     # Peak/low points
     peak_value: Decimal = Field(..., description="Highest value in period")
-    peak_date: Optional[date] = Field(None, description="Date of peak value")
+    peak_date: Optional[date] = Field(default=None, description="Date of peak value")
     low_value: Decimal = Field(..., description="Lowest value in period")
-    low_date: Optional[date] = Field(None, description="Date of lowest value")
+    low_date: Optional[date] = Field(default=None, description="Date of lowest value")
     
     @computed_field
     @property
@@ -1054,7 +1062,7 @@ class AuditReport(BaseSchema):
         default_factory=datetime.utcnow,
         description="Report generation timestamp"
     )
-    generated_by: Optional[UUID] = Field(None, description="User who generated report")
+    generated_by: Optional[UUID] = Field(default=None, description="User who generated report")
     
     period: DateRangeFilter = Field(..., description="Reporting period")
     
@@ -1062,7 +1070,7 @@ class AuditReport(BaseSchema):
     hostel_id: Optional[UUID] = None
     hostel_name: Optional[str] = None
     scope_description: str = Field(
-        "Platform-wide audit report",
+        default="Platform-wide audit report",
         description="Report scope description"
     )
     
@@ -1080,11 +1088,11 @@ class AuditReport(BaseSchema):
     
     # Specialized reports
     compliance_report: Optional[ComplianceReport] = Field(
-        None,
+        default=None,
         description="Compliance report (if applicable)"
     )
     security_report: Optional[SecurityAuditReport] = Field(
-        None,
+        default=None,
         description="Security audit report"
     )
     

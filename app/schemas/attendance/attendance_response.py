@@ -8,12 +8,12 @@ detailed, summary, and list views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date as Date, datetime as DateTime, time as Time
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import Field, computed_field
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import AttendanceMode, AttendanceStatus
@@ -53,15 +53,15 @@ class AttendanceResponse(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: Date = Field(
+    attendance_date: date = Field(
         ...,
         description="Date of attendance",
     )
-    check_in_time: Optional[Time] = Field(
+    check_in_time: Optional[time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[Time] = Field(
+    check_out_time: Optional[time] = Field(
         None,
         description="Check-out time",
     )
@@ -86,7 +86,7 @@ class AttendanceResponse(BaseResponseSchema):
         description="Name of user who marked attendance",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -136,15 +136,15 @@ class AttendanceDetail(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: Date = Field(
+    attendance_date: date = Field(
         ...,
         description="Date of attendance",
     )
-    check_in_time: Optional[Time] = Field(
+    check_in_time: Optional[time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[Time] = Field(
+    check_out_time: Optional[time] = Field(
         None,
         description="Check-out time",
     )
@@ -196,22 +196,22 @@ class AttendanceDetail(BaseResponseSchema):
         None,
         description="Device information (for mobile check-in)",
     )
-    created_at: DateTime = Field(
+    created_at: datetime = Field(
         ...,
         description="Record creation timestamp",
     )
-    updated_at: DateTime = Field(
+    updated_at: datetime = Field(
         ...,
         description="Last update timestamp",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def has_location_data(self) -> bool:
         """Check if location data is available."""
         return self.location_lat is not None and self.location_lng is not None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def marking_method(self) -> str:
         """Human-readable marking method."""
@@ -247,7 +247,7 @@ class AttendanceListItem(BaseSchema):
         None,
         description="Room number",
     )
-    attendance_date: Date = Field(
+    attendance_date: date = Field(
         ...,
         description="Attendance date",
     )
@@ -255,7 +255,7 @@ class AttendanceListItem(BaseSchema):
         ...,
         description="Attendance status",
     )
-    check_in_time: Optional[Time] = Field(
+    check_in_time: Optional[time] = Field(
         None,
         description="Check-in time",
     )
@@ -268,7 +268,7 @@ class AttendanceListItem(BaseSchema):
         description="Marked by user name",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_badge_color(self) -> str:
         """
@@ -302,7 +302,7 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    date: Date = Field(
+    date: date = Field(
         ...,
         description="Attendance date",
     )
@@ -354,12 +354,12 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Whether attendance marking is complete",
     )
-    marked_at: Optional[DateTime] = Field(
+    marked_at: Optional[datetime] = Field(
         None,
         description="Timestamp when marking was completed",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def pending_students(self) -> int:
         """Calculate number of students with pending attendance."""
@@ -372,7 +372,7 @@ class DailyAttendanceSummary(BaseSchema):
         )
         return max(0, self.total_students - marked)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def attendance_status(self) -> str:
         """

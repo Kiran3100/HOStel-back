@@ -8,7 +8,7 @@ metadata and traceability.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from ipaddress import IPv4Address, IPv6Address, ip_address
 import re
 
@@ -36,13 +36,13 @@ class AuditContext(BaseSchema):
     
     # Request context
     request_id: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=100,
         description="Unique request/trace ID for correlation"
     )
     session_id: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=100,
         description="User session identifier"
@@ -50,58 +50,58 @@ class AuditContext(BaseSchema):
     
     # Network context
     ip_address: Optional[str] = Field(
-        None,
+        default=None,
         max_length=45,
         description="IP address (IPv4 or IPv6)"
     )
     user_agent: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="User-Agent string from request"
     )
     
     # Geographic context
     country_code: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^[A-Z]{2}$",
         description="ISO 3166-1 alpha-2 country code"
     )
     region: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Geographic region/state"
     )
     city: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="City name"
     )
     
     # Device context
     device_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(desktop|mobile|tablet|api|system)$",
         description="Type of device used"
     )
     platform: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Operating system/platform"
     )
     
     # API context
     api_version: Optional[str] = Field(
-        None,
+        default=None,
         max_length=20,
         description="API version used"
     )
     endpoint: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="API endpoint accessed"
     )
     http_method: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$",
         description="HTTP method used"
     )
@@ -193,16 +193,16 @@ class ChangeDetail(BaseSchema):
         description="Name of the field that changed"
     )
     field_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Data type of the field"
     )
     old_value: Optional[Any] = Field(
-        None,
+        default=None,
         description="Previous value before change"
     )
     new_value: Optional[Any] = Field(
-        None,
+        default=None,
         description="New value after change"
     )
     change_type: str = Field(
@@ -211,7 +211,7 @@ class ChangeDetail(BaseSchema):
         description="Type of change operation"
     )
     is_sensitive: bool = Field(
-        False,
+        default=False,
         description="Whether this field contains sensitive data"
     )
     
@@ -250,20 +250,20 @@ class AuditLogBase(BaseSchema):
     
     # Actor information
     user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of user who performed the action"
     )
     user_role: Optional[UserRole] = Field(
-        None,
+        default=None,
         description="Role of the user at time of action"
     )
     user_email: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Email of the user (for reference)"
     )
     impersonator_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of user impersonating (if applicable)"
     )
     
@@ -287,86 +287,86 @@ class AuditLogBase(BaseSchema):
     
     # Entity information
     entity_type: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=50,
         description="Type of entity affected (e.g., 'Booking', 'Payment')"
     )
     entity_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Primary key of the affected entity"
     )
     entity_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Display name/identifier of the entity"
     )
     
     # Related entity (for relationships)
     related_entity_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Type of related entity"
     )
     related_entity_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of related entity"
     )
     
     # Organizational context
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Hostel context (if applicable)"
     )
     hostel_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Hostel name for display"
     )
     
     # Change tracking
     old_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Previous values (for update/delete actions)"
     )
     new_values: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="New values (for create/update actions)"
     )
-    change_details: Optional[list[ChangeDetail]] = Field(
-        None,
+    change_details: Optional[List[ChangeDetail]] = Field(
+        default=None,
         description="Detailed field-level changes"
     )
     
     # Request context
     context: Optional[AuditContext] = Field(
-        None,
+        default=None,
         description="Contextual information about the action"
     )
     
     # Legacy fields for backward compatibility
     ip_address: Optional[str] = Field(
-        None,
+        default=None,
         description="IP address (deprecated: use context.ip_address)"
     )
     user_agent: Optional[str] = Field(
-        None,
+        default=None,
         description="User agent (deprecated: use context.user_agent)"
     )
     request_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Request ID (deprecated: use context.request_id)"
     )
     
     # Status and result
     status: str = Field(
-        "success",
+        default="success",
         pattern="^(success|failure|partial|pending)$",
         description="Outcome status of the action"
     )
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Error message if status is failure"
     )
@@ -379,15 +379,15 @@ class AuditLogBase(BaseSchema):
     
     # Security and compliance
     is_sensitive: bool = Field(
-        False,
+        default=False,
         description="Whether this log contains sensitive information"
     )
     retention_days: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Number of days to retain this log entry"
     )
-    compliance_tags: list[str] = Field(
+    compliance_tags: List[str] = Field(
         default_factory=list,
         description="Compliance framework tags (GDPR, HIPAA, etc.)"
     )
@@ -490,7 +490,7 @@ class AuditLogBase(BaseSchema):
     
     @computed_field
     @property
-    def changed_fields(self) -> list[str]:
+    def changed_fields(self) -> List[str]:
         """Get list of fields that were changed."""
         if self.change_details:
             return [

@@ -42,17 +42,17 @@ class AdminOverrideBase(BaseSchema):
         description="Admin who performed the override"
     )
     admin_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Admin name (for display)"
     )
     
     supervisor_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Supervisor whose decision was overridden (if applicable)"
     )
     supervisor_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Supervisor name (for display)"
     )
@@ -63,7 +63,7 @@ class AdminOverrideBase(BaseSchema):
         description="Hostel where the override occurred"
     )
     hostel_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Hostel name (for display)"
     )
@@ -93,7 +93,7 @@ class AdminOverrideBase(BaseSchema):
         description="Primary key of affected entity"
     )
     entity_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Display name of entity"
     )
@@ -106,14 +106,14 @@ class AdminOverrideBase(BaseSchema):
         description="Why the admin override was performed"
     )
     justification_category: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(quality_issue|policy_violation|emergency|customer_complaint|other)$",
         description="Category of justification"
     )
     
     # Original and override actions
     original_action: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Snapshot of supervisor's original action/decision"
     )
     override_action: Dict[str, Any] = Field(
@@ -123,48 +123,48 @@ class AdminOverrideBase(BaseSchema):
     
     # Impact assessment
     severity: str = Field(
-        "medium",
+        default="medium",
         pattern="^(low|medium|high|critical)$",
         description="Severity/impact of the override"
     )
     urgency: str = Field(
-        "normal",
+        default="normal",
         pattern="^(low|normal|high|urgent)$",
         description="Urgency of the override"
     )
     
     # Notification
     supervisor_notified: bool = Field(
-        False,
+        default=False,
         description="Whether supervisor was notified"
     )
     notification_sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When notification was sent"
     )
     
     # Approval workflow (if override requires approval)
     requires_approval: bool = Field(
-        False,
+        default=False,
         description="Whether override requires higher approval"
     )
     approved_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Senior admin who approved override"
     )
     approved_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When override was approved"
     )
     
     # Outcome
     outcome: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Outcome of the override"
     )
     outcome_status: str = Field(
-        "pending",
+        default="pending",
         pattern="^(pending|successful|failed|reversed)$",
         description="Status of override outcome"
     )
@@ -177,11 +177,11 @@ class AdminOverrideBase(BaseSchema):
     
     # Follow-up
     follow_up_required: bool = Field(
-        False,
+        default=False,
         description="Whether follow-up action is required"
     )
     follow_up_completed: Optional[bool] = Field(
-        None,
+        default=None,
         description="Whether follow-up was completed"
     )
     
@@ -456,10 +456,10 @@ class AdminOverrideTimelinePoint(BaseSchema):
     )
     
     # By severity
-    critical_count: int = Field(0, ge=0)
-    high_count: int = Field(0, ge=0)
-    medium_count: int = Field(0, ge=0)
-    low_count: int = Field(0, ge=0)
+    critical_count: int = Field(default=0, ge=0)
+    high_count: int = Field(default=0, ge=0)
+    medium_count: int = Field(default=0, ge=0)
+    low_count: int = Field(default=0, ge=0)
     
     # Top supervisors affected
     top_affected_supervisors: List[UUID] = Field(
@@ -470,7 +470,7 @@ class AdminOverrideTimelinePoint(BaseSchema):
     
     # Average impact
     avg_impact_score: Decimal = Field(
-        0,
+        default=0,
         ge=0,
         le=100,
         decimal_places=2,
@@ -513,10 +513,10 @@ class SupervisorImpactAnalysis(BaseSchema):
     overrides_by_category: Dict[str, int] = Field(default_factory=dict)
     
     # Severity distribution
-    critical_overrides: int = Field(0, ge=0)
-    high_overrides: int = Field(0, ge=0)
-    medium_overrides: int = Field(0, ge=0)
-    low_overrides: int = Field(0, ge=0)
+    critical_overrides: int = Field(default=0, ge=0)
+    high_overrides: int = Field(default=0, ge=0)
+    medium_overrides: int = Field(default=0, ge=0)
+    low_overrides: int = Field(default=0, ge=0)
     
     # Performance context
     total_decisions_made: int = Field(..., ge=0, description="Total decisions by supervisor")
@@ -537,7 +537,7 @@ class SupervisorImpactAnalysis(BaseSchema):
     
     # Trend
     trend_direction: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(improving|worsening|stable)$",
         description="Trend in override frequency"
     )
@@ -588,11 +588,11 @@ class AdminOverrideSummary(BaseSchema):
     
     # Scope
     supervisor_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="If summarizing overrides for specific supervisor"
     )
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="If summarizing for specific hostel"
     )
     
@@ -621,7 +621,7 @@ class AdminOverrideSummary(BaseSchema):
     
     # Performance impact
     override_rate_for_supervisor: Optional[Decimal] = Field(
-        None,
+        default=None,
         ge=0,
         le=100,
         decimal_places=2,

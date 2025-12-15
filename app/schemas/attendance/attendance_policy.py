@@ -8,12 +8,12 @@ attendance management with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema, BaseUpdateSchema
 
@@ -47,7 +47,6 @@ class AttendancePolicy(BaseResponseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Minimum required attendance percentage",
     )
 
@@ -101,7 +100,6 @@ class AttendancePolicy(BaseResponseSchema):
         Decimal("75.00"),
         ge=0,
         le=100,
-        decimal_places=2,
         description="Threshold for low attendance notifications",
     )
 
@@ -337,7 +335,6 @@ class PolicyUpdate(BaseUpdateSchema):
         None,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Updated minimum attendance percentage",
     )
     late_entry_threshold_minutes: Optional[int] = Field(
@@ -371,7 +368,6 @@ class PolicyUpdate(BaseUpdateSchema):
         None,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Updated low attendance threshold",
     )
     auto_mark_absent_enabled: Optional[bool] = None

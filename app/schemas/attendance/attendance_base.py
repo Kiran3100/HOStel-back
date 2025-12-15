@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import AttendanceMode, AttendanceStatus

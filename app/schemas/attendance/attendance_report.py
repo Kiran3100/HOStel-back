@@ -8,13 +8,12 @@ trends, comparisons, and multi-level aggregations.
 
 from __future__ import annotations
 
-
-from datetime import date as Date, datetime as DateTime, time as Time
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Dict, List, Optional
 
 from pydantic import Field, computed_field, field_validator
-from uuid import UUID
+from pydantic.types import UUID4 as UUID
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.enums import AttendanceStatus
@@ -76,14 +75,12 @@ class AttendanceSummary(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Overall attendance percentage",
     )
     late_percentage: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Percentage of late arrivals",
     )
 
@@ -132,7 +129,7 @@ class AttendanceSummary(BaseSchema):
         """Round percentages to 2 decimal places."""
         return round(v, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_accounted_days(self) -> int:
         """Calculate total days with attendance recorded."""
@@ -144,7 +141,7 @@ class AttendanceSummary(BaseSchema):
             + self.total_half_day
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def unrecorded_days(self) -> int:
         """Calculate days without attendance record."""
@@ -159,7 +156,7 @@ class DailyAttendanceRecord(BaseSchema):
     for timeline views and detailed reports.
     """
 
-    date: Date = Field(
+    date: date = Field(
         ...,
         description="Attendance date",
     )
@@ -171,11 +168,11 @@ class DailyAttendanceRecord(BaseSchema):
         ...,
         description="Attendance status",
     )
-    check_in_time: Optional[Time] = Field(
+    check_in_time: Optional[time] = Field(
         None,
         description="Check-in time",
     )
-    check_out_time: Optional[Time] = Field(
+    check_out_time: Optional[time] = Field(
         None,
         description="Check-out time",
     )
@@ -201,7 +198,7 @@ class DailyAttendanceRecord(BaseSchema):
         description="Whether day was a weekend",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_display(self) -> str:
         """Human-readable status display."""
@@ -226,11 +223,11 @@ class WeeklyAttendance(BaseSchema):
         ge=2000,
         description="Year for the week",
     )
-    week_start_date: Date = Field(
+    week_start_date: date = Field(
         ...,
         description="Monday of the week",
     )
-    week_end_date: Date = Field(
+    week_end_date: date = Field(
         ...,
         description="Sunday of the week",
     )
@@ -259,7 +256,6 @@ class WeeklyAttendance(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Weekly attendance percentage",
     )
 
@@ -267,7 +263,7 @@ class WeeklyAttendance(BaseSchema):
     @classmethod
     def validate_week_dates(cls, v: date, info) -> date:
         """Validate week end date is after start date."""
-        if "week_start_date" in info.data:
+        if info.data.get("week_start_date"):
             if v < info.data["week_start_date"]:
                 raise ValueError("week_end_date must be after week_start_date")
         return v
@@ -298,7 +294,6 @@ class MonthlyComparison(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Monthly attendance percentage",
     )
     total_present: int = Field(
@@ -322,7 +317,7 @@ class MonthlyComparison(BaseSchema):
         description="Total working days in month",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def trend_indicator(self) -> str:
         """Get trend indicator (up, down, stable) - requires comparison context."""
@@ -400,9 +395,9 @@ class TrendAnalysis(BaseSchema):
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: Date, info) -> Date:
+    def validate_period(cls, v: date, info) -> date:
         """Validate period dates are logical."""
-        if "period_start" in info.data:
+        if info.data.get("period_start"):
             if v < info.data["period_start"]:
                 raise ValueError("period_end must be after period_start")
         return v
@@ -476,7 +471,7 @@ class AttendanceReport(BaseSchema):
         description="Whether holidays are included",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def total_days_analyzed(self) -> int:
         """Total days included in analysis."""
@@ -544,7 +539,6 @@ class StudentMonthlySummary(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Monthly attendance percentage",
     )
     meets_requirement: bool = Field(
@@ -573,7 +567,7 @@ class StudentMonthlySummary(BaseSchema):
         description="Percentage point change from last month",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_indicator(self) -> str:
         """
@@ -639,7 +633,6 @@ class MonthlyReport(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Average attendance across all students",
     )
     total_students: int = Field(
@@ -677,7 +670,7 @@ class MonthlyReport(BaseSchema):
     )
     
     # Report metadata
-    generated_at: DateTime = Field(
+    generated_at: datetime = Field(
         ...,
         description="Report generation timestamp",
     )
@@ -686,7 +679,7 @@ class MonthlyReport(BaseSchema):
         description="User who generated report",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def compliance_rate(self) -> Decimal:
         """Calculate percentage of students meeting requirements."""
@@ -722,7 +715,6 @@ class ComparisonItem(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Attendance percentage",
     )
     total_present: int = Field(
@@ -749,11 +741,10 @@ class ComparisonItem(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Percentile ranking",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def performance_indicator(self) -> str:
         """Get performance indicator based on percentile."""
@@ -829,7 +820,7 @@ class AttendanceComparison(BaseSchema):
     )
     
     # Report metadata
-    generated_at: DateTime = Field(
+    generated_at: datetime = Field(
         ...,
         description="Comparison generation timestamp",
     )
