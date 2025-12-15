@@ -206,7 +206,7 @@ class BookingHistoryItem(BaseSchema):
     )
     check_in_date: Date = Field(
         ...,
-        description="Check-in date",
+        description="Check-in Date",
     )
     duration_months: int = Field(
         ...,
@@ -243,7 +243,7 @@ class BookingHistoryItem(BaseSchema):
     @computed_field
     @property
     def check_out_date(self) -> Date:
-        """Calculate check-out date based on duration."""
+        """Calculate check-out Date based on duration."""
         from dateutil.relativedelta import relativedelta
 
         return self.check_in_date + relativedelta(months=self.duration_months)

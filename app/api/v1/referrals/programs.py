@@ -1,7 +1,7 @@
 # app/api/v1/referrals/programs.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 

@@ -1,7 +1,7 @@
 # app/api/v1/referrals/rewards.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional, List
 from uuid import UUID
 
@@ -92,13 +92,13 @@ def list_payout_requests(
         None,
         description="Optional filter by payout status (e.g., pending, approved, paid).",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Optional start date for payout requests (inclusive).",
+        description="Optional start Date for payout requests (inclusive).",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="Optional end date for payout requests (inclusive).",
+        description="Optional end Date for payout requests (inclusive).",
     ),
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_admin),
@@ -110,8 +110,8 @@ def list_payout_requests(
     # Expected:
     #   list_payout_requests(
     #       status: Optional[str],
-    #       start_date: Optional[date],
-    #       end_date: Optional[date],
+    #       start_date: Optional[Date],
+    #       end_date: Optional[Date],
     #   ) -> list[PayoutRequestResponse]
     return service.list_payout_requests(
         status=status_filter,

@@ -26,7 +26,7 @@ def get_room_availability(
     session: Session = Depends(get_session),
 ) -> AvailabilityResponse:
     """
-    Compute room availability for a hostel/date/room_type combination.
+    Compute room availability for a hostel/Date/room_type combination.
 
     Expected service method:
         get_availability(request: RoomAvailabilityRequest) -> AvailabilityResponse

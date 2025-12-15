@@ -1,7 +1,7 @@
 # app/api/v1/reviews/analytics.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from uuid import UUID
 from typing import Optional
 
@@ -25,13 +25,13 @@ def _get_service(session: Session) -> ReviewAnalyticsService:
 @router.get("/hostels/{hostel_id}", response_model=ReviewAnalytics)
 def get_hostel_review_analytics(
     hostel_id: UUID,
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive) for analytics period",
+        description="Start Date (inclusive) for analytics period",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive) for analytics period",
+        description="End Date (inclusive) for analytics period",
     ),
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
@@ -45,8 +45,8 @@ def get_hostel_review_analytics(
     # Expected:
     #   get_analytics_for_hostel(
     #       hostel_id: UUID,
-    #       start_date: Optional[date],
-    #       end_date: Optional[date],
+    #       start_date: Optional[Date],
+    #       end_date: Optional[Date],
     #   ) -> ReviewAnalytics
     return service.get_analytics_for_hostel(
         hostel_id=hostel_id,

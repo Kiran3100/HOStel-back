@@ -1,7 +1,7 @@
 # app/api/v1/search/analytics.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -23,13 +23,13 @@ def _get_service(session: Session) -> SearchAnalyticsService:
 
 @router.get("/summary", response_model=SearchAnalytics)
 def get_search_analytics(
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date for analytics window (inclusive). If omitted, uses a default window.",
+        description="Start Date for analytics window (inclusive). If omitted, uses a default window.",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date for analytics window (inclusive). If omitted, uses today.",
+        description="End Date for analytics window (inclusive). If omitted, uses today.",
     ),
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
@@ -38,7 +38,7 @@ def get_search_analytics(
     Aggregated search analytics for a period.
 
     Expected service method:
-        get_analytics(start_date: Optional[date], end_date: Optional[date]) -> SearchAnalytics
+        get_analytics(start_date: Optional[Date], end_date: Optional[Date]) -> SearchAnalytics
     """
     service = _get_service(session)
     return service.get_analytics(
