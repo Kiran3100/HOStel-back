@@ -8,7 +8,7 @@ detailed, summary, and list views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Optional
 
 from pydantic import ConfigDict, Field, computed_field
@@ -68,13 +68,13 @@ class LeaveResponse(BaseResponseSchema):
         ...,
         description="Type of leave",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Leave start date",
+        description="Leave start Date",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="Leave end date",
+        description="Leave end Date",
     )
     total_days: int = Field(
         ...,
@@ -125,7 +125,7 @@ class LeaveResponse(BaseResponseSchema):
         if self.status != LeaveStatus.APPROVED:
             return False
         
-        today = date.today()
+        today = Date.today()
         return self.from_date <= today <= self.to_date
 
     @computed_field  # type: ignore[misc]
@@ -135,7 +135,7 @@ class LeaveResponse(BaseResponseSchema):
         if not self.is_active:
             return None
         
-        return (self.to_date - date.today()).days + 1
+        return (self.to_date - Date.today()).days + 1
 
 
 class LeaveDetail(BaseResponseSchema):
@@ -197,13 +197,13 @@ class LeaveDetail(BaseResponseSchema):
         ...,
         description="Type of leave",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Leave start date",
+        description="Leave start Date",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="Leave end date",
+        description="Leave end Date",
     )
     total_days: int = Field(
         ...,
@@ -319,7 +319,7 @@ class LeaveDetail(BaseResponseSchema):
         if self.status != LeaveStatus.APPROVED:
             return False
         
-        today = date.today()
+        today = Date.today()
         return self.from_date <= today <= self.to_date
 
     @computed_field  # type: ignore[misc]
@@ -329,13 +329,13 @@ class LeaveDetail(BaseResponseSchema):
         if self.status != LeaveStatus.APPROVED:
             return False
         
-        return self.from_date > date.today()
+        return self.from_date > Date.today()
 
     @computed_field  # type: ignore[misc]
     @property
     def is_past(self) -> bool:
         """Check if leave is in the past."""
-        return self.to_date < date.today()
+        return self.to_date < Date.today()
 
     @computed_field  # type: ignore[misc]
     @property
@@ -395,13 +395,13 @@ class LeaveListItem(BaseSchema):
         ...,
         description="Leave type",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Start date",
+        description="Start Date",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="End date",
+        description="End Date",
     )
     total_days: int = Field(
         ...,
@@ -413,7 +413,7 @@ class LeaveListItem(BaseSchema):
     )
     applied_at: datetime = Field(
         ...,
-        description="Application date",
+        description="Application Date",
     )
 
     @computed_field  # type: ignore[misc]
@@ -434,7 +434,7 @@ class LeaveListItem(BaseSchema):
         """Check if leave requires urgent attention."""
         # Pending leaves starting soon are urgent
         if self.status == LeaveStatus.PENDING:
-            days_until_start = (self.from_date - date.today()).days
+            days_until_start = (self.from_date - Date.today()).days
             return days_until_start <= 2
         return False
 
@@ -471,13 +471,13 @@ class LeaveSummary(BaseSchema):
         None,
         description="Hostel ID (if hostel-specific summary)",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Summary period start date",
+        description="Summary period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Summary period end date",
+        description="Summary period end Date",
     )
 
     # Count by status

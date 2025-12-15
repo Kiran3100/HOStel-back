@@ -8,7 +8,7 @@ and workflow tracking with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -158,9 +158,9 @@ class MenuApprovalResponse(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     hostel_id: UUID = Field(
         ...,
@@ -276,9 +276,9 @@ class ApprovalWorkflow(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     hostel_id: UUID = Field(
         ...,
@@ -502,9 +502,9 @@ class ApprovalHistory(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     total_submissions: int = Field(
         ...,

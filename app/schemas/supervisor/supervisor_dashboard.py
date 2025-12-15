@@ -8,7 +8,7 @@ task management, and actionable insights.
 
 from __future__ import annotations
 
-from datetime import datetime, time, date
+from datetime import datetime, time, date as Date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -193,7 +193,7 @@ class TaskSummary(BaseSchema):
     overdue_maintenance: int = Field(
         ...,
         ge=0,
-        description="Maintenance past due date",
+        description="Maintenance past due Date",
     )
     
     # Total pending
@@ -301,9 +301,9 @@ class RecentMaintenanceItem(BaseSchema):
         description="Estimated cost",
     )
     created_at: datetime = Field(..., description="Request creation time")
-    scheduled_date: Optional[date] = Field(
+    scheduled_date: Optional[Date] = Field(
         default=None,
-        description="Scheduled completion date",
+        description="Scheduled completion Date",
     )
     
     # Assignment
@@ -318,7 +318,7 @@ class RecentMaintenanceItem(BaseSchema):
         """Check if maintenance is overdue."""
         if not self.scheduled_date:
             return False
-        return date.today() > self.scheduled_date
+        return Date.today() > self.scheduled_date
 
     @computed_field  # type: ignore[misc]
     @property
@@ -336,8 +336,8 @@ class PendingLeaveItem(BaseSchema):
     
     # Leave details
     leave_type: str = Field(..., description="Type of leave")
-    from_date: date = Field(..., description="Leave start date")
-    to_date: date = Field(..., description="Leave end date")
+    from_date: Date = Field(..., description="Leave start Date")
+    to_date: Date = Field(..., description="Leave end Date")
     total_days: int = Field(..., ge=1, description="Total leave days")
     reason: str = Field(..., description="Leave reason")
     
@@ -357,7 +357,7 @@ class PendingLeaveItem(BaseSchema):
     def is_urgent(self) -> bool:
         """Check if leave approval is urgent."""
         # Urgent if leave starts within 2 days
-        return (self.from_date - date.today()).days <= 2
+        return (self.from_date - Date.today()).days <= 2
 
     @computed_field  # type: ignore[misc]
     @property
@@ -401,7 +401,7 @@ class ScheduledMeeting(BaseSchema):
 class TodaySchedule(BaseSchema):
     """Today's schedule and planned activities."""
     
-    date: date = Field(..., description="Schedule date")
+    Date: Date = Field(..., description="Schedule Date")
     
     # Routine tasks
     attendance_marking_time: time = Field(

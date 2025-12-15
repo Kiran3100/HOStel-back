@@ -7,7 +7,7 @@ schemas for student management.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -96,21 +96,21 @@ class StudentFilterParams(BaseFilterSchema):
     )
 
     # Date filters
-    checked_in_after: Optional[date] = Field(
+    checked_in_after: Optional[Date] = Field(
         default=None,
-        description="Checked in after this date",
+        description="Checked in after this Date",
     )
-    checked_in_before: Optional[date] = Field(
+    checked_in_before: Optional[Date] = Field(
         default=None,
-        description="Checked in before this date",
+        description="Checked in before this Date",
     )
-    expected_checkout_after: Optional[date] = Field(
+    expected_checkout_after: Optional[Date] = Field(
         default=None,
-        description="Expected checkout after this date",
+        description="Expected checkout after this Date",
     )
-    expected_checkout_before: Optional[date] = Field(
+    expected_checkout_before: Optional[Date] = Field(
         default=None,
-        description="Expected checkout before this date",
+        description="Expected checkout before this Date",
     )
 
     # Financial filters
@@ -458,9 +458,9 @@ class StudentBulkActionRequest(BaseCreateSchema):
         ge=0,
         description="New rent amount (for update_rent)",
     )
-    effective_date: Optional[date] = Field(
+    effective_date: Optional[Date] = Field(
         default=None,
-        description="Effective date for changes",
+        description="Effective Date for changes",
     )
 
     # Confirmation

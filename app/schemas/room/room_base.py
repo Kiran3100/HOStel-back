@@ -8,7 +8,7 @@ bulk operations, and pricing/status management.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -594,9 +594,9 @@ class RoomPricingUpdate(BaseUpdateSchema):
         decimal_places=2,
         description="Yearly rent (optional discount)",
     )
-    effective_from: Optional[date] = Field(
+    effective_from: Optional[Date] = Field(
         default=None,
-        description="Effective date for new pricing (optional)",
+        description="Effective Date for new pricing (optional)",
     )
 
     @model_validator(mode="after")
@@ -626,11 +626,11 @@ class RoomPricingUpdate(BaseUpdateSchema):
 
     @field_validator("effective_from")
     @classmethod
-    def validate_effective_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate effective date is not in the past."""
+    def validate_effective_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate effective Date is not in the past."""
         if v is not None:
-            if v < date.today():
-                raise ValueError("Effective date cannot be in the past")
+            if v < Date.today():
+                raise ValueError("Effective Date cannot be in the past")
         return v
 
 
@@ -658,13 +658,13 @@ class RoomStatusUpdate(BaseUpdateSchema):
         max_length=1000,
         description="Maintenance details and notes",
     )
-    maintenance_start_date: Optional[date] = Field(
+    maintenance_start_date: Optional[Date] = Field(
         default=None,
-        description="Maintenance start date",
+        description="Maintenance start Date",
     )
-    maintenance_end_date: Optional[date] = Field(
+    maintenance_end_date: Optional[Date] = Field(
         default=None,
-        description="Expected maintenance completion date",
+        description="Expected maintenance completion Date",
     )
 
     @model_validator(mode="after")
@@ -680,10 +680,10 @@ class RoomStatusUpdate(BaseUpdateSchema):
                 raise ValueError(
                     "Maintenance notes are required when room is under maintenance"
                 )
-            # Require maintenance start date
+            # Require maintenance start Date
             if not self.maintenance_start_date:
                 raise ValueError(
-                    "Maintenance start date is required when room is under maintenance"
+                    "Maintenance start Date is required when room is under maintenance"
                 )
             # Set room as unavailable for booking
             if self.is_available_for_booking:
@@ -695,11 +695,11 @@ class RoomStatusUpdate(BaseUpdateSchema):
 
     @model_validator(mode="after")
     def validate_maintenance_dates(self) -> "RoomStatusUpdate":
-        """Validate maintenance date range."""
+        """Validate maintenance Date range."""
         if self.maintenance_start_date and self.maintenance_end_date:
             if self.maintenance_end_date < self.maintenance_start_date:
                 raise ValueError(
-                    "Maintenance end date must be after or equal to start date"
+                    "Maintenance end Date must be after or equal to start Date"
                 )
         return self
 

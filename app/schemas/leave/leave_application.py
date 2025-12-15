@@ -8,7 +8,7 @@ with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date 
 from typing import Optional
 
 from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
@@ -58,13 +58,13 @@ class LeaveApplicationRequest(BaseCreateSchema):
         ...,
         description="Type of leave being requested",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Leave start date",
+        description="Leave start Date",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="Leave end date",
+        description="Leave end Date",
     )
     reason: str = Field(
         ...,
@@ -96,21 +96,21 @@ class LeaveApplicationRequest(BaseCreateSchema):
         max_length=500,
         description="Destination address during leave",
     )
-    expected_return_date: Optional[date] = Field(
+    expected_return_date: Optional[Date] = Field(
         None,
-        description="Expected return date (may differ from to_date)",
+        description="Expected return Date (may differ from to_date)",
     )
 
     @field_validator("from_date")
     @classmethod
-    def validate_from_date(cls, v: date) -> date:
+    def validate_from_date(cls, v: Date) -> Date:
         """
-        Validate leave start date.
+        Validate leave start Date.
         
         Students can apply for leave up to 30 days in advance
         or up to 7 days in the past (for backdated applications).
         """
-        today = date.today()
+        today = Date.today()
         
         # Allow backdated applications up to 7 days
         days_past = (today - v).days
@@ -185,9 +185,9 @@ class LeaveApplicationRequest(BaseCreateSchema):
         - Required documents are provided
         - Contact information is sufficient
         """
-        # Validate date range
+        # Validate Date range
         if self.to_date < self.from_date:
-            raise ValueError("End date must be after or equal to start date")
+            raise ValueError("End Date must be after or equal to start Date")
         
         # Calculate duration
         total_days = (self.to_date - self.from_date).days + 1
@@ -233,18 +233,18 @@ class LeaveApplicationRequest(BaseCreateSchema):
                 "Emergency contact required for leave exceeding 15 days"
             )
         
-        # Validate expected return date if provided
+        # Validate expected return Date if provided
         if self.expected_return_date:
             if self.expected_return_date < self.to_date:
                 raise ValueError(
-                    "Expected return date cannot be before leave end date"
+                    "Expected return Date cannot be before leave end Date"
                 )
             
             # Reasonable buffer (max 7 days after scheduled end)
             days_after = (self.expected_return_date - self.to_date).days
             if days_after > 7:
                 raise ValueError(
-                    "Expected return date cannot be more than 7 days after leave end date"
+                    "Expected return Date cannot be more than 7 days after leave end Date"
                 )
         
         return self
@@ -287,9 +287,9 @@ class LeaveCancellationRequest(BaseCreateSchema):
         default=False,
         description="Whether student is returning immediately (for ongoing leaves)",
     )
-    actual_return_date: Optional[date] = Field(
+    actual_return_date: Optional[Date] = Field(
         None,
-        description="Actual return date (for early return from ongoing leave)",
+        description="Actual return Date (for early return from ongoing leave)",
     )
 
     @field_validator("cancellation_reason")
@@ -316,31 +316,31 @@ class LeaveCancellationRequest(BaseCreateSchema):
         """
         Validate cancellation request consistency.
         
-        Ensures immediate return and actual return date are consistent.
+        Ensures immediate return and actual return Date are consistent.
         """
         # If immediate return, actual_return_date should be today or not provided
         if self.immediate_return:
             if self.actual_return_date:
-                if self.actual_return_date > date.today():
+                if self.actual_return_date > Date.today():
                     raise ValueError(
                         "immediate_return is True but actual_return_date is in future"
                     )
         
         # If actual_return_date provided, validate it's reasonable
         if self.actual_return_date:
-            today = date.today()
+            today = Date.today()
             
             # Can't be in future for cancellation
             if self.actual_return_date > today:
                 raise ValueError(
-                    "Actual return date cannot be in the future"
+                    "Actual return Date cannot be in the future"
                 )
             
             # Shouldn't be too far in the past
             days_past = (today - self.actual_return_date).days
             if days_past > 30:
                 raise ValueError(
-                    "Actual return date cannot be more than 30 days in the past"
+                    "Actual return Date cannot be more than 30 days in the past"
                 )
         
         return self

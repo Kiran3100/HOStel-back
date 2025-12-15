@@ -8,7 +8,7 @@ updates, and base validation logic for the payment lifecycle.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -68,13 +68,13 @@ class PaymentBase(BaseSchema):
     )
 
     # Payment Period (for recurring fees)
-    payment_period_start: Optional[date] = Field(
+    payment_period_start: Optional[Date] = Field(
         None,
-        description="Start date of the period this payment covers",
+        description="Start Date of the period this payment covers",
     )
-    payment_period_end: Optional[date] = Field(
+    payment_period_end: Optional[Date] = Field(
         None,
-        description="End date of the period this payment covers",
+        description="End Date of the period this payment covers",
     )
 
     # Payment Method Details
@@ -89,9 +89,9 @@ class PaymentBase(BaseSchema):
     )
 
     # Due Date
-    due_date: Optional[date] = Field(
+    due_date: Optional[Date] = Field(
         None,
-        description="Payment due date (for scheduled payments)",
+        description="Payment due Date (for scheduled payments)",
     )
 
     @field_validator("amount")
@@ -182,17 +182,17 @@ class PaymentBase(BaseSchema):
 
     @field_validator("due_date")
     @classmethod
-    def validate_due_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate due date is reasonable."""
+    def validate_due_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate due Date is reasonable."""
         if v is not None:
-            # Warn if due date is too far in the past
-            days_ago = (date.today() - v).days
+            # Warn if due Date is too far in the past
+            days_ago = (Date.today() - v).days
             if days_ago > 365:
                 # Log warning - might be data migration
                 pass
             
-            # Warn if due date is too far in the future
-            days_ahead = (v - date.today()).days
+            # Warn if due Date is too far in the future
+            days_ahead = (v - Date.today()).days
             if days_ahead > 365:
                 # Log warning
                 pass
@@ -204,14 +204,14 @@ class PaymentBase(BaseSchema):
         """Check if payment is overdue."""
         if self.due_date is None:
             return False
-        return date.today() > self.due_date
+        return Date.today() > self.due_date
 
     @property
     def days_overdue(self) -> int:
         """Calculate days overdue (0 if not overdue)."""
         if not self.is_overdue:
             return 0
-        return (date.today() - self.due_date).days  # type: ignore
+        return (Date.today() - self.due_date).days  # type: ignore
 
 
 class PaymentCreate(PaymentBase, BaseCreateSchema):

@@ -7,7 +7,7 @@ Provides modular, composable filter schemas for advanced search functionality.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -275,13 +275,13 @@ class AvailabilityFilter(BaseFilterSchema):
     )
 
     # Date-based availability
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Desired check-in date",
+        description="Desired check-in Date",
     )
-    check_out_date: Optional[date] = Field(
+    check_out_date: Optional[Date] = Field(
         default=None,
-        description="Desired check-out date",
+        description="Desired check-out Date",
     )
 
     # Booking preferences
@@ -296,7 +296,7 @@ class AvailabilityFilter(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "AvailabilityFilter":
-        """Validate check-in and check-out date logic."""
+        """Validate check-in and check-out Date logic."""
         if self.check_in_date and self.check_out_date:
             if self.check_in_date >= self.check_out_date:
                 raise ValueError(
@@ -304,7 +304,7 @@ class AvailabilityFilter(BaseFilterSchema):
                 )
 
             # Validate dates are not in the past
-            today = date.today()
+            today = Date.today()
             if self.check_in_date < today:
                 raise ValueError("check_in_date cannot be in the past")
 

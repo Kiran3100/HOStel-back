@@ -8,7 +8,7 @@ updating, and managing hostel subscriptions.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -65,14 +65,14 @@ class SubscriptionBase(BaseSchema):
         description="ISO 4217 currency code",
     )
 
-    start_date: date = Field(..., description="Subscription start date")
-    end_date: date = Field(..., description="Subscription end date")
+    start_date: Date = Field(..., description="Subscription start Date")
+    end_date: Date = Field(..., description="Subscription end Date")
 
     auto_renew: bool = Field(
         default=True, description="Auto-renew subscription on expiry"
     )
-    next_billing_date: Optional[date] = Field(
-        None, description="Next scheduled billing date"
+    next_billing_date: Optional[Date] = Field(
+        None, description="Next scheduled billing Date"
     )
 
     status: SubscriptionStatus = Field(
@@ -82,7 +82,7 @@ class SubscriptionBase(BaseSchema):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "SubscriptionBase":
-        """Validate subscription date relationships."""
+        """Validate subscription Date relationships."""
         if self.end_date < self.start_date:
             raise ValueError("end_date must be after or equal to start_date")
 
@@ -142,22 +142,22 @@ class SubscriptionCreate(BaseCreateSchema):
         description="ISO 4217 currency code",
     )
 
-    start_date: date = Field(..., description="Subscription start date")
-    end_date: date = Field(..., description="Subscription end date")
+    start_date: Date = Field(..., description="Subscription start Date")
+    end_date: Date = Field(..., description="Subscription end Date")
 
     auto_renew: bool = Field(default=True)
-    next_billing_date: Optional[date] = Field(None)
+    next_billing_date: Optional[Date] = Field(None)
 
     status: SubscriptionStatus = Field(default=SubscriptionStatus.ACTIVE)
 
-    trial_end_date: Optional[date] = Field(
+    trial_end_date: Optional[Date] = Field(
         None,
-        description="Trial period end date (if applicable)",
+        description="Trial period end Date (if applicable)",
     )
 
     @model_validator(mode="after")
     def validate_create_dates(self) -> "SubscriptionCreate":
-        """Validate all date relationships for creation."""
+        """Validate all Date relationships for creation."""
         if self.end_date < self.start_date:
             raise ValueError("end_date must be after or equal to start_date")
 
@@ -190,14 +190,14 @@ class SubscriptionUpdate(BaseUpdateSchema):
     status: Optional[SubscriptionStatus] = Field(
         None, description="New subscription status"
     )
-    end_date: Optional[date] = Field(
-        None, description="New subscription end date"
+    end_date: Optional[Date] = Field(
+        None, description="New subscription end Date"
     )
     auto_renew: Optional[bool] = Field(
         None, description="Update auto-renewal setting"
     )
-    next_billing_date: Optional[date] = Field(
-        None, description="Update next billing date"
+    next_billing_date: Optional[Date] = Field(
+        None, description="Update next billing Date"
     )
 
     # Additional updatable fields

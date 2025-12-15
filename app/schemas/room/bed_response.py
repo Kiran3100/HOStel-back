@@ -8,7 +8,7 @@ availability, assignments, and history.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -42,9 +42,9 @@ class BedResponse(BaseResponseSchema):
         default=None,
         description="Current occupant ID",
     )
-    occupied_from: Optional[date] = Field(
+    occupied_from: Optional[Date] = Field(
         default=None,
-        description="Occupancy start date",
+        description="Occupancy start Date",
     )
 
     @computed_field  # Pydantic v2: Use @computed_field for computed properties
@@ -69,7 +69,7 @@ class BedAvailability(BaseSchema):
     # Availability
     is_available: bool = Field(..., description="Available for assignment")
     status: BedStatus = Field(..., description="Current status")
-    available_from: Optional[date] = Field(
+    available_from: Optional[Date] = Field(
         default=None,
         description="Date when bed becomes available",
     )
@@ -83,9 +83,9 @@ class BedAvailability(BaseSchema):
         default=None,
         description="Current occupant ID",
     )
-    expected_vacate_date: Optional[date] = Field(
+    expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout date",
+        description="Expected checkout Date",
     )
     
     # Room info
@@ -105,7 +105,7 @@ class BedAvailability(BaseSchema):
             return None
         if self.is_available:
             return 0
-        today = date.today()
+        today = Date.today()
         if self.available_from <= today:
             return 0
         return (self.available_from - today).days
@@ -136,14 +136,14 @@ class BedAssignment(BaseResponseSchema):
     )
     
     # Assignment dates
-    occupied_from: date = Field(..., description="Occupancy start date")
-    expected_vacate_date: Optional[date] = Field(
+    occupied_from: Date = Field(..., description="Occupancy start Date")
+    expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout date",
+        description="Expected checkout Date",
     )
-    actual_vacate_date: Optional[date] = Field(
+    actual_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Actual checkout date (if completed)",
+        description="Actual checkout Date (if completed)",
     )
     
     # Pricing
@@ -176,7 +176,7 @@ class BedAssignment(BaseResponseSchema):
     @property
     def days_occupied(self) -> int:
         """Calculate days occupied."""
-        end_date = self.actual_vacate_date or date.today()
+        end_date = self.actual_vacate_date or Date.today()
         return (end_date - self.occupied_from).days
 
     @computed_field  # Pydantic v2: Use @computed_field for computed properties
@@ -198,10 +198,10 @@ class BedAssignmentHistory(BaseSchema):
     assignment_id: str = Field(..., description="Assignment ID")
     student_id: str = Field(..., description="Student ID")
     student_name: str = Field(..., description="Student name")
-    move_in_date: date = Field(..., description="Move-in date")
-    move_out_date: Optional[date] = Field(
+    move_in_date: Date = Field(..., description="Move-in Date")
+    move_out_date: Optional[Date] = Field(
         default=None,
-        description="Move-out date (null if current)",
+        description="Move-out Date (null if current)",
     )
     duration_days: Optional[int] = Field(
         default=None,
@@ -267,9 +267,9 @@ class BedHistory(BaseSchema):
         ge=0,
         description="Average stay duration",
     )
-    last_occupied_date: Optional[date] = Field(
+    last_occupied_date: Optional[Date] = Field(
         default=None,
-        description="Last occupancy date",
+        description="Last occupancy Date",
     )
 
     @computed_field  # Pydantic v2: Use @computed_field for computed properties
@@ -285,7 +285,7 @@ class BedHistory(BaseSchema):
         
         # Get earliest assignment
         earliest = min(a.move_in_date for a in self.assignments)
-        total_days = (date.today() - earliest).days
+        total_days = (Date.today() - earliest).days
         
         if total_days == 0:
             return None
@@ -320,21 +320,21 @@ class BedDetailedStatus(BaseResponseSchema):
         default=None,
         description="Current student name",
     )
-    occupied_from: Optional[date] = Field(
+    occupied_from: Optional[Date] = Field(
         default=None,
-        description="Current occupancy start date",
+        description="Current occupancy start Date",
     )
-    expected_vacate_date: Optional[date] = Field(
+    expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout date",
+        description="Expected checkout Date",
     )
     
     # Maintenance
-    last_maintenance_date: Optional[date] = Field(
+    last_maintenance_date: Optional[Date] = Field(
         default=None,
-        description="Last maintenance date",
+        description="Last maintenance Date",
     )
-    next_scheduled_maintenance: Optional[date] = Field(
+    next_scheduled_maintenance: Optional[Date] = Field(
         default=None,
         description="Next scheduled maintenance",
     )
@@ -350,9 +350,9 @@ class BedDetailedStatus(BaseResponseSchema):
         le=5,
         description="Condition rating (1-5, 5 being excellent)",
     )
-    last_inspection_date: Optional[date] = Field(
+    last_inspection_date: Optional[Date] = Field(
         default=None,
-        description="Last inspection date",
+        description="Last inspection Date",
     )
     reported_issues: List[str] = Field(
         default_factory=list,
@@ -403,4 +403,4 @@ class BedDetailedStatus(BaseResponseSchema):
         """Calculate days of current occupancy."""
         if not self.occupied_from:
             return None
-        return (date.today() - self.occupied_from).days
+        return (Date.today() - self.occupied_from).days

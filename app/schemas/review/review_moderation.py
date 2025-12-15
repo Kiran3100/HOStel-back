@@ -7,7 +7,7 @@ Handles review moderation queue, approval/rejection, and flagging.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -392,8 +392,8 @@ class ModerationStats(BaseSchema):
         default=None,
         description="Hostel filter (None = all hostels)",
     )
-    period_start: date = Field(..., description="Statistics period start")
-    period_end: date = Field(..., description="Statistics period end")
+    period_start: Date = Field(..., description="Statistics period start")
+    period_end: Date = Field(..., description="Statistics period end")
     
     # Volume metrics
     total_reviews: int = Field(..., ge=0, description="Total reviews received")

@@ -8,7 +8,7 @@ including creation, updates, and core validation logic.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -212,9 +212,9 @@ class MaintenanceCreate(MaintenanceBase, BaseCreateSchema):
     )
 
     # Additional creation context
-    preferred_completion_date: Optional[date] = Field(
+    preferred_completion_date: Optional[Date] = Field(
         None,
-        description="Preferred completion date (if any)",
+        description="Preferred completion Date (if any)",
     )
     notify_on_completion: bool = Field(
         default=True,
@@ -227,26 +227,26 @@ class MaintenanceCreate(MaintenanceBase, BaseCreateSchema):
 
     @field_validator("preferred_completion_date")
     @classmethod
-    def validate_completion_date(cls, v: Optional[date]) -> Optional[date]:
+    def validate_completion_date(cls, v: Optional[Date]) -> Optional[Date]:
         """
-        Validate preferred completion date.
+        Validate preferred completion Date.
         
-        Ensures date is in the future and within reasonable range.
+        Ensures Date is in the future and within reasonable range.
         """
         if v is not None:
-            today = date.today()
+            today = Date.today()
             
             # Can't be in the past
             if v < today:
                 raise ValueError(
-                    "Preferred completion date cannot be in the past"
+                    "Preferred completion Date cannot be in the past"
                 )
             
             # Should be within reasonable timeframe (1 year)
             days_ahead = (v - today).days
             if days_ahead > 365:
                 raise ValueError(
-                    "Preferred completion date cannot be more than 1 year ahead"
+                    "Preferred completion Date cannot be more than 1 year ahead"
                 )
         
         return v
@@ -261,12 +261,12 @@ class MaintenanceCreate(MaintenanceBase, BaseCreateSchema):
         if self.issue_type == MaintenanceIssueType.EMERGENCY:
             if self.preferred_completion_date:
                 days_ahead = (
-                    self.preferred_completion_date - date.today()
+                    self.preferred_completion_date - Date.today()
                 ).days
                 
                 if days_ahead > 3:
                     raise ValueError(
-                        "Emergency requests should have completion date within 3 days"
+                        "Emergency requests should have completion Date within 3 days"
                     )
         
         return self
@@ -349,9 +349,9 @@ class MaintenanceUpdate(BaseUpdateSchema):
     )
 
     # Timeline
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
-        description="Estimated completion date",
+        description="Estimated completion Date",
     )
 
     @field_validator("title", "description", "location", "specific_area")

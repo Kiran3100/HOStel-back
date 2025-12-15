@@ -5,7 +5,7 @@ Hostel search schemas with comprehensive search and filtering.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -355,17 +355,17 @@ class HostelSearchFilters(BaseFilterSchema):
     )
 
     # Availability
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Desired check-in date",
+        description="Desired check-in Date",
     )
 
     @field_validator("check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate check-in date is not in the past."""
+    def validate_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate check-in Date is not in the past."""
         if v is not None:
-            from datetime import date as dt
+            from datetime import Date as dt
             if v < dt.today():
-                raise ValueError("Check-in date cannot be in the past")
+                raise ValueError("Check-in Date cannot be in the past")
         return v

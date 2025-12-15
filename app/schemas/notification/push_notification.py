@@ -8,7 +8,7 @@ mobile platforms (iOS, Android) and web with device management.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -734,18 +734,18 @@ class PushStats(BaseSchema):
     )
 
     # Time period
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
         description="Statistics period start",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
         description="Statistics period end",
     )
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period end is after period start."""
         period_start = info.data.get("period_start")
         if period_start and v < period_start:

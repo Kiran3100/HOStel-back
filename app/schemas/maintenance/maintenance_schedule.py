@@ -8,7 +8,7 @@ execution tracking, and checklist management.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -158,13 +158,13 @@ class PreventiveSchedule(BaseResponseSchema):
         ...,
         description="Recurrence pattern",
     )
-    next_due_date: date = Field(
+    next_due_date: Date = Field(
         ...,
-        description="Next scheduled execution date",
+        description="Next scheduled execution Date",
     )
-    last_execution_date: Optional[date] = Field(
+    last_execution_date: Optional[Date] = Field(
         None,
-        description="Last execution date",
+        description="Last execution Date",
     )
     assigned_to: Optional[UUID] = Field(
         None,
@@ -193,9 +193,9 @@ class PreventiveSchedule(BaseResponseSchema):
         ge=0,
         description="Total times executed",
     )
-    last_completed_date: Optional[date] = Field(
+    last_completed_date: Optional[Date] = Field(
         None,
-        description="Last successful completion date",
+        description="Last successful completion Date",
     )
     priority_level: Optional[str] = Field(
         None,
@@ -207,13 +207,13 @@ class PreventiveSchedule(BaseResponseSchema):
     @property
     def is_overdue(self) -> bool:
         """Check if schedule is overdue."""
-        return self.next_due_date < date.today()
+        return self.next_due_date < Date.today()
 
     @computed_field  # type: ignore[misc]
     @property
     def days_until_due(self) -> int:
-        """Calculate days until next due date."""
-        return (self.next_due_date - date.today()).days
+        """Calculate days until next due Date."""
+        return (self.next_due_date - Date.today()).days
 
 
 class ScheduleCreate(BaseCreateSchema):
@@ -265,13 +265,13 @@ class ScheduleCreate(BaseCreateSchema):
         ...,
         description="Recurrence pattern",
     )
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="First scheduled date",
+        description="First scheduled Date",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         None,
-        description="Last scheduled date (optional)",
+        description="Last scheduled Date (optional)",
     )
     assigned_to: Optional[UUID] = Field(
         None,
@@ -297,13 +297,13 @@ class ScheduleCreate(BaseCreateSchema):
     )
     auto_create_requests: bool = Field(
         default=True,
-        description="Auto-create maintenance requests on due date",
+        description="Auto-create maintenance requests on due Date",
     )
     notification_days_before: int = Field(
         default=3,
         ge=0,
         le=30,
-        description="Days before due date to send notification",
+        description="Days before due Date to send notification",
     )
     priority_level: Optional[str] = Field(
         None,
@@ -313,13 +313,13 @@ class ScheduleCreate(BaseCreateSchema):
 
     @field_validator("start_date")
     @classmethod
-    def validate_start_date(cls, v: date) -> date:
-        """Validate start date is reasonable."""
+    def validate_start_date(cls, v: Date) -> Date:
+        """Validate start Date is reasonable."""
         # Can't be too far in past
-        days_past = (date.today() - v).days
+        days_past = (Date.today() - v).days
         if days_past > 365:
             raise ValueError(
-                "Start date cannot be more than 1 year in the past"
+                "Start Date cannot be more than 1 year in the past"
             )
         
         return v
@@ -342,13 +342,13 @@ class ScheduleCreate(BaseCreateSchema):
     @model_validator(mode="after")
     def validate_date_range(self) -> "ScheduleCreate":
         """
-        Validate schedule date range.
+        Validate schedule Date range.
         
-        End date should be after start date if provided.
+        End Date should be after start Date if provided.
         """
         if self.end_date:
             if self.end_date <= self.start_date:
-                raise ValueError("End date must be after start date")
+                raise ValueError("End Date must be after start Date")
             
             # Reasonable maximum duration
             duration_years = (self.end_date - self.start_date).days / 365
@@ -422,9 +422,9 @@ class RecurrenceConfig(BaseSchema):
         le=12,
         description="Month for yearly recurrence",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         None,
-        description="Stop recurring after this date",
+        description="Stop recurring after this Date",
     )
     max_occurrences: Optional[int] = Field(
         None,
@@ -569,9 +569,9 @@ class ScheduleExecution(BaseCreateSchema):
         ...,
         description="Schedule unique identifier",
     )
-    execution_date: date = Field(
+    execution_date: Date = Field(
         ...,
-        description="Execution date",
+        description="Execution Date",
     )
     executed_by: UUID = Field(
         ...,
@@ -623,9 +623,9 @@ class ScheduleExecution(BaseCreateSchema):
         False,
         description="Skip the next scheduled occurrence",
     )
-    reschedule_next_to: Optional[date] = Field(
+    reschedule_next_to: Optional[Date] = Field(
         None,
-        description="Reschedule next occurrence to specific date",
+        description="Reschedule next occurrence to specific Date",
     )
     execution_photos: Optional[List[str]] = Field(
         None,
@@ -635,10 +635,10 @@ class ScheduleExecution(BaseCreateSchema):
 
     @field_validator("execution_date")
     @classmethod
-    def validate_execution_date(cls, v: date) -> date:
-        """Validate execution date is not in future."""
-        if v > date.today():
-            raise ValueError("Execution date cannot be in the future")
+    def validate_execution_date(cls, v: Date) -> Date:
+        """Validate execution Date is not in future."""
+        if v > Date.today():
+            raise ValueError("Execution Date cannot be in the future")
         return v
 
     @field_validator("actual_cost", "actual_duration_hours")
@@ -687,10 +687,10 @@ class ScheduleExecution(BaseCreateSchema):
             )
         
         if self.reschedule_next_to:
-            # Rescheduled date should be in future
-            if self.reschedule_next_to <= date.today():
+            # Rescheduled Date should be in future
+            if self.reschedule_next_to <= Date.today():
                 raise ValueError(
-                    "Rescheduled date must be in the future"
+                    "Rescheduled Date must be in the future"
                 )
         
         return self
@@ -729,9 +729,9 @@ class ScheduleUpdate(BaseUpdateSchema):
         None,
         description="Updated recurrence pattern",
     )
-    next_due_date: Optional[date] = Field(
+    next_due_date: Optional[Date] = Field(
         None,
-        description="Updated next due date",
+        description="Updated next due Date",
     )
     assigned_to: Optional[UUID] = Field(
         None,
@@ -762,7 +762,7 @@ class ScheduleUpdate(BaseUpdateSchema):
         None,
         ge=0,
         le=30,
-        description="Notification days before due date",
+        description="Notification days before due Date",
     )
     priority_level: Optional[str] = Field(
         None,
@@ -787,14 +787,14 @@ class ScheduleUpdate(BaseUpdateSchema):
 
     @field_validator("next_due_date")
     @classmethod
-    def validate_due_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate next due date is reasonable."""
+    def validate_due_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate next due Date is reasonable."""
         if v is not None:
             # Should not be too far in past
-            days_past = (date.today() - v).days
+            days_past = (Date.today() - v).days
             if days_past > 30:
                 raise ValueError(
-                    "Next due date cannot be more than 30 days in the past"
+                    "Next due Date cannot be more than 30 days in the past"
                 )
         return v
 
@@ -823,13 +823,13 @@ class ExecutionHistoryItem(BaseSchema):
         ...,
         description="Execution unique identifier",
     )
-    execution_date: date = Field(
+    execution_date: Date = Field(
         ...,
-        description="Execution date",
+        description="Execution Date",
     )
-    scheduled_date: date = Field(
+    scheduled_date: Date = Field(
         ...,
-        description="Originally scheduled date",
+        description="Originally scheduled Date",
     )
     executed_by: UUID = Field(
         ...,
@@ -867,11 +867,11 @@ class ExecutionHistoryItem(BaseSchema):
     )
     was_on_time: bool = Field(
         ...,
-        description="Whether executed on scheduled date",
+        description="Whether executed on scheduled Date",
     )
     days_delay: int = Field(
         default=0,
-        description="Days delayed from scheduled date",
+        description="Days delayed from scheduled Date",
     )
     quality_rating: Optional[int] = Field(
         None,

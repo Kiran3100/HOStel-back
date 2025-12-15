@@ -8,7 +8,7 @@ including creation, updates, and core validation logic.
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date as Date, time
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -35,7 +35,7 @@ class MessMenuBase(BaseSchema):
         ...,
         description="Hostel unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
         description="Date for which menu is planned",
     )
@@ -125,17 +125,17 @@ class MessMenuBase(BaseSchema):
 
     @field_validator("menu_date", mode="after")
     @classmethod
-    def validate_menu_date(cls, v: date) -> date:
+    def validate_menu_date(cls, v: Date) -> Date:
         """
-        Validate menu date constraints.
+        Validate menu Date constraints.
         
         Menu can be created for today or future dates, but not too far ahead.
         """
-        today = date.today()
+        today = Date.today()
         
         # Can't create menu for past dates (except today)
         if v < today:
-            raise ValueError("Menu date cannot be in the past")
+            raise ValueError("Menu Date cannot be in the past")
         
         # Limit advance menu planning to 90 days
         days_ahead = (v - today).days
@@ -151,9 +151,9 @@ class MessMenuBase(BaseSchema):
     @classmethod
     def validate_day_consistency(cls, v: str, info) -> str:
         """
-        Validate day of week matches the menu date.
+        Validate day of week matches the menu Date.
         
-        Ensures data consistency between date and day name.
+        Ensures data consistency between Date and day name.
         """
         if info.data.get("menu_date"):
             menu_date = info.data["menu_date"]
@@ -161,7 +161,7 @@ class MessMenuBase(BaseSchema):
             
             if v != expected_day:
                 raise ValueError(
-                    f"Day of week '{v}' doesn't match menu date {menu_date} "
+                    f"Day of week '{v}' doesn't match menu Date {menu_date} "
                     f"(should be {expected_day})"
                 )
         

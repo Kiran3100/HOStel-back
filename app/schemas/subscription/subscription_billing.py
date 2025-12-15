@@ -8,7 +8,7 @@ and invoice tracking for subscriptions.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
@@ -54,8 +54,8 @@ class BillingCycleInfo(BaseSchema):
         ..., description="Plan display name for UI"
     )
 
-    cycle_start: date = Field(..., description="Current cycle start date")
-    cycle_end: date = Field(..., description="Current cycle end date")
+    cycle_start: Date = Field(..., description="Current cycle start Date")
+    cycle_end: Date = Field(..., description="Current cycle end Date")
     billing_cycle: str = Field(
         ...,
         pattern=r"^(monthly|yearly)$",
@@ -76,7 +76,7 @@ class BillingCycleInfo(BaseSchema):
         description="ISO 4217 currency code",
     )
 
-    next_billing_date: date = Field(..., description="Next billing date")
+    next_billing_date: Date = Field(..., description="Next billing Date")
     days_until_billing: int = Field(
         ...,
         description="Days until next billing",
@@ -93,7 +93,7 @@ class BillingCycleInfo(BaseSchema):
 
     @model_validator(mode="after")
     def validate_cycle_dates(self) -> "BillingCycleInfo":
-        """Validate billing cycle date relationships."""
+        """Validate billing cycle Date relationships."""
         if self.cycle_end < self.cycle_start:
             raise ValueError("cycle_end must be after cycle_start")
         return self
@@ -103,15 +103,15 @@ class GenerateInvoiceRequest(BaseCreateSchema):
     """
     Request to generate invoice for subscription cycle.
 
-    Allows specifying the billing date and optionally overriding
+    Allows specifying the billing Date and optionally overriding
     the standard billing amount.
     """
 
     subscription_id: UUID = Field(
         ..., description="Subscription to invoice"
     )
-    billing_date: date = Field(
-        ..., description="Invoice billing date"
+    billing_date: Date = Field(
+        ..., description="Invoice billing Date"
     )
 
     # Optional overrides
@@ -121,8 +121,8 @@ class GenerateInvoiceRequest(BaseCreateSchema):
         decimal_places=2,
         description="Override standard billing amount",
     )
-    due_date_override: Optional[date] = Field(
-        None, description="Override standard due date"
+    due_date_override: Optional[Date] = Field(
+        None, description="Override standard due Date"
     )
     notes: Optional[str] = Field(
         None,
@@ -173,8 +173,8 @@ class InvoiceInfo(BaseSchema):
         pattern=r"^INV-\d{4}-\d{6,}$",
         description="Invoice number (e.g., INV-2024-000001)",
     )
-    invoice_date: date = Field(..., description="Invoice issue date")
-    due_date: date = Field(..., description="Payment due date")
+    invoice_date: Date = Field(..., description="Invoice issue Date")
+    due_date: Date = Field(..., description="Payment due Date")
 
     # Amounts
     subtotal: Decimal = Field(
@@ -239,7 +239,7 @@ class InvoiceInfo(BaseSchema):
 
     @model_validator(mode="after")
     def validate_invoice_dates_and_amounts(self) -> "InvoiceInfo":
-        """Validate invoice date relationships and amount calculations."""
+        """Validate invoice Date relationships and amount calculations."""
         if self.due_date < self.invoice_date:
             raise ValueError("due_date cannot be before invoice_date")
 
@@ -262,10 +262,10 @@ class InvoiceInfo(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
-        """Check if invoice is overdue based on current date."""
+        """Check if invoice is overdue based on current Date."""
         return (
             self.status not in (InvoiceStatus.PAID, InvoiceStatus.CANCELLED)
-            and date.today() > self.due_date
+            and Date.today() > self.due_date
         )
 
     @computed_field  # type: ignore[misc]

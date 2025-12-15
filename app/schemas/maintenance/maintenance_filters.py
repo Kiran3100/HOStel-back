@@ -9,7 +9,7 @@ for searches, exports, and advanced queries.
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import data as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -37,7 +37,7 @@ class MaintenanceFilterParams(BaseFilterSchema):
     Comprehensive maintenance filter parameters.
     
     Supports multi-dimensional filtering for maintenance requests
-    with text search, date ranges, and status filters.
+    with text search, Date ranges, and status filters.
     """
     
     model_config = ConfigDict(
@@ -172,29 +172,29 @@ class MaintenanceFilterParams(BaseFilterSchema):
     )
     
     # Date filters
-    created_date_from: Optional[date] = Field(
+    created_date_from: Optional[Date] = Field(
         None,
-        description="Filter requests created from this date",
+        description="Filter requests created from this Date",
     )
-    created_date_to: Optional[date] = Field(
+    created_date_to: Optional[Date] = Field(
         None,
-        description="Filter requests created until this date",
+        description="Filter requests created until this Date",
     )
-    completion_date_from: Optional[date] = Field(
+    completion_date_from: Optional[Date] = Field(
         None,
-        description="Filter by completion date from",
+        description="Filter by completion Date from",
     )
-    completion_date_to: Optional[date] = Field(
+    completion_date_to: Optional[Date] = Field(
         None,
-        description="Filter by completion date to",
+        description="Filter by completion Date to",
     )
-    due_date_from: Optional[date] = Field(
+    due_date_from: Optional[Date] = Field(
         None,
-        description="Filter by due date from",
+        description="Filter by due Date from",
     )
-    due_date_to: Optional[date] = Field(
+    due_date_to: Optional[Date] = Field(
         None,
-        description="Filter by due date to",
+        description="Filter by due Date to",
     )
     
     # Cost filters
@@ -273,7 +273,7 @@ class MaintenanceFilterParams(BaseFilterSchema):
         Ensures compatible filters are used together and
         no conflicting options are specified.
         """
-        # Validate date ranges
+        # Validate Date ranges
         if self.created_date_from and self.created_date_to:
             if self.created_date_to < self.created_date_from:
                 raise ValueError(
@@ -398,13 +398,13 @@ class SearchRequest(BaseFilterSchema):
         None,
         description="Filter by priority",
     )
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Search from this date",
+        description="Search from this Date",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="Search until this date",
+        description="Search until this Date",
     )
     fuzzy_search: bool = Field(
         False,
@@ -713,13 +713,13 @@ class MaintenanceExportRequest(BaseFilterSchema):
     )
     
     # Date range for export
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Export data from this date",
+        description="Export data from this Date",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="Export data until this date",
+        description="Export data until this Date",
     )
     
     # Limits
@@ -767,14 +767,14 @@ class MaintenanceExportRequest(BaseFilterSchema):
                     "Charts are not supported in JSON format"
                 )
         
-        # Validate date range
+        # Validate Date range
         if self.date_from and self.date_to:
             if self.date_to < self.date_from:
                 raise ValueError(
                     "date_to must be after or equal to date_from"
                 )
             
-            # Warn for large date ranges
+            # Warn for large Date ranges
             days_diff = (self.date_to - self.date_from).days
             if days_diff > 365 and self.format == "pdf":
                 raise ValueError(

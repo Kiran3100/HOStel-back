@@ -8,7 +8,7 @@ basic responses, detailed information, and list items.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Dict, Optional
 from uuid import UUID
 
@@ -74,9 +74,9 @@ class InquiryResponse(BaseResponseSchema):
     )
 
     # Preferences
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,
@@ -184,9 +184,9 @@ class InquiryDetail(BaseResponseSchema):
     )
 
     # Preferences
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,
@@ -337,9 +337,9 @@ class InquiryListItem(BaseSchema):
     )
 
     # Preferences
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,

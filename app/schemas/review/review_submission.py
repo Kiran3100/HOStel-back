@@ -8,7 +8,7 @@ verification and eligibility checks.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -180,13 +180,13 @@ class ReviewSubmissionRequest(BaseCreateSchema):
         le=24,
         description="Duration of stay in months",
     )
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Approximate check-in date",
+        description="Approximate check-in Date",
     )
-    check_out_date: Optional[date] = Field(
+    check_out_date: Optional[Date] = Field(
         default=None,
-        description="Approximate check-out date (if moved out)",
+        description="Approximate check-out Date (if moved out)",
     )
     
     # Specific feedback (optional)
@@ -273,11 +273,11 @@ class ReviewSubmissionRequest(BaseCreateSchema):
         if self.check_in_date and self.check_out_date:
             if self.check_out_date <= self.check_in_date:
                 raise ValueError(
-                    "Check-out date must be after check-in date"
+                    "Check-out Date must be after check-in Date"
                 )
         
-        if self.check_in_date and self.check_in_date > date.today():
-            raise ValueError("Check-in date cannot be in the future")
+        if self.check_in_date and self.check_in_date > Date.today():
+            raise ValueError("Check-in Date cannot be in the future")
         
         return self
     
@@ -464,7 +464,7 @@ class ReviewEligibility(BaseSchema):
     )
     
     # Additional info
-    last_stay_date: Optional[date] = Field(
+    last_stay_date: Optional[Date] = Field(
         default=None,
         description="Date of last stay (if applicable)",
     )

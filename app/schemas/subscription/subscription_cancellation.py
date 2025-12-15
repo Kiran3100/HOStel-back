@@ -8,7 +8,7 @@ and response tracking.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Optional, List
 from uuid import UUID
@@ -92,11 +92,11 @@ class CancellationPreview(BaseSchema):
     billing_cycle: str = Field(..., description="Current billing cycle")
 
     # Dates
-    cancellation_effective_date: date = Field(
+    cancellation_effective_date: Date = Field(
         ..., description="When cancellation takes effect"
     )
-    current_period_end: date = Field(
-        ..., description="Current billing period end date"
+    current_period_end: Date = Field(
+        ..., description="Current billing period end Date"
     )
     days_remaining: int = Field(
         ...,
@@ -142,7 +142,7 @@ class CancellationResponse(BaseSchema):
     cancelled: bool = Field(
         ..., description="Whether cancellation was successful"
     )
-    cancellation_effective_date: date = Field(
+    cancellation_effective_date: Date = Field(
         ..., description="Date when cancellation takes effect"
     )
     cancelled_at: datetime = Field(
@@ -175,7 +175,7 @@ class CancellationResponse(BaseSchema):
         default=True,
         description="Whether subscription can be reactivated",
     )
-    reactivation_deadline: Optional[date] = Field(
+    reactivation_deadline: Optional[Date] = Field(
         None, description="Deadline to reactivate subscription"
     )
 

@@ -8,7 +8,7 @@ and zero-result searches for optimization.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import Field, field_validator, model_validator, computed_field
@@ -278,7 +278,7 @@ class SearchAnalyticsRequest(BaseSchema):
     """
     Request parameters for search analytics.
 
-    Allows filtering analytics by date range and other criteria.
+    Allows filtering analytics by Date range and other criteria.
     """
 
     # Date range
@@ -320,7 +320,7 @@ class SearchAnalyticsRequest(BaseSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "SearchAnalyticsRequest":
-        """Validate date range is reasonable."""
+        """Validate Date range is reasonable."""
         if self.date_range.start_date and self.date_range.end_date:
             delta = self.date_range.end_date - self.date_range.start_date
             if delta.days > 365:

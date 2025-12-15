@@ -8,7 +8,7 @@ and efficient data serialization.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, Optional
 
@@ -49,7 +49,7 @@ class SupervisorResponse(BaseResponseSchema):
 
     # Employment
     employee_id: Optional[str] = Field(default=None, description="Employee ID")
-    join_date: date = Field(..., description="Joining date")
+    join_date: Date = Field(..., description="Joining Date")
     employment_type: EmploymentType = Field(..., description="Employment type")
     designation: Optional[str] = Field(default=None, description="Designation")
 
@@ -59,13 +59,13 @@ class SupervisorResponse(BaseResponseSchema):
 
     # Assignment metadata
     assigned_by: str = Field(..., description="Admin who assigned")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment Date")
 
     @computed_field  # type: ignore[misc]
     @property
     def tenure_days(self) -> int:
         """Calculate tenure in days since joining."""
-        return (date.today() - self.join_date).days
+        return (Date.today() - self.join_date).days
 
     @computed_field  # type: ignore[misc]
     @property
@@ -93,7 +93,7 @@ class SupervisorDetail(BaseResponseSchema):
     email: str = Field(..., description="Email")
     phone: str = Field(..., description="Phone")
     gender: Optional[str] = Field(default=None, description="Gender")
-    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    date_of_birth: Optional[Date] = Field(default=None, description="Date of birth")
     profile_image_url: Optional[str] = Field(
         default=None,
         description="Profile image",
@@ -104,11 +104,11 @@ class SupervisorDetail(BaseResponseSchema):
     hostel_name: str = Field(..., description="Hostel name")
     assigned_by: str = Field(..., description="Admin user ID who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment Date")
 
     # Employment details
     employee_id: Optional[str] = Field(default=None, description="Employee ID")
-    join_date: date = Field(..., description="Joining date")
+    join_date: Date = Field(..., description="Joining Date")
     employment_type: EmploymentType = Field(..., description="Employment type")
     shift_timing: Optional[str] = Field(default=None, description="Shift timing")
     designation: Optional[str] = Field(default=None, description="Designation")
@@ -122,9 +122,9 @@ class SupervisorDetail(BaseResponseSchema):
     is_active: bool = Field(..., description="Active status")
 
     # Termination information
-    termination_date: Optional[date] = Field(
+    termination_date: Optional[Date] = Field(
         default=None,
-        description="Termination date",
+        description="Termination Date",
     )
     termination_reason: Optional[str] = Field(
         default=None,
@@ -136,13 +136,13 @@ class SupervisorDetail(BaseResponseSchema):
     )
 
     # Suspension information
-    suspension_start_date: Optional[date] = Field(
+    suspension_start_date: Optional[Date] = Field(
         default=None,
-        description="Suspension start date",
+        description="Suspension start Date",
     )
-    suspension_end_date: Optional[date] = Field(
+    suspension_end_date: Optional[Date] = Field(
         default=None,
-        description="Suspension end date",
+        description="Suspension end Date",
     )
     suspension_reason: Optional[str] = Field(
         default=None,
@@ -176,9 +176,9 @@ class SupervisorDetail(BaseResponseSchema):
         ge=0,
         description="Total maintenance requests",
     )
-    last_performance_review: Optional[date] = Field(
+    last_performance_review: Optional[Date] = Field(
         default=None,
-        description="Last performance review date",
+        description="Last performance review Date",
     )
     performance_rating: Optional[Decimal] = Field(
         default=None,
@@ -211,11 +211,11 @@ class SupervisorDetail(BaseResponseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def age(self) -> Optional[int]:
-        """Calculate age from date of birth."""
+        """Calculate age from Date of birth."""
         if not self.date_of_birth:
             return None
         
-        today = date.today()
+        today = Date.today()
         age = (
             today.year
             - self.date_of_birth.year
@@ -227,7 +227,7 @@ class SupervisorDetail(BaseResponseSchema):
     @property
     def tenure_months(self) -> int:
         """Calculate tenure in complete months."""
-        return (date.today() - self.join_date).days // 30
+        return (Date.today() - self.join_date).days // 30
 
     @computed_field  # type: ignore[misc]
     @property
@@ -254,7 +254,7 @@ class SupervisorDetail(BaseResponseSchema):
         if self.status != SupervisorStatus.SUSPENDED or not self.suspension_end_date:
             return None
         
-        remaining = (self.suspension_end_date - date.today()).days
+        remaining = (self.suspension_end_date - Date.today()).days
         return max(0, remaining)
 
 
@@ -282,7 +282,7 @@ class SupervisorListItem(BaseSchema):
 
     # Employment
     employment_type: EmploymentType = Field(..., description="Employment type")
-    join_date: date = Field(..., description="Joining date")
+    join_date: Date = Field(..., description="Joining Date")
 
     # Status
     status: SupervisorStatus = Field(..., description="Status")
@@ -311,7 +311,7 @@ class SupervisorListItem(BaseSchema):
     @property
     def tenure_months(self) -> int:
         """Calculate tenure in months."""
-        return (date.today() - self.join_date).days // 30
+        return (Date.today() - self.join_date).days // 30
 
     @computed_field  # type: ignore[misc]
     @property
@@ -424,19 +424,19 @@ class SupervisorEmploymentInfo(BaseSchema):
 
     # Employment details
     employee_id: Optional[str] = Field(default=None, description="Employee ID")
-    join_date: date = Field(..., description="Joining date")
+    join_date: Date = Field(..., description="Joining Date")
     employment_type: EmploymentType = Field(..., description="Employment type")
     designation: Optional[str] = Field(default=None, description="Designation")
     shift_timing: Optional[str] = Field(default=None, description="Shift timing")
 
     # Contract
-    contract_start_date: Optional[date] = Field(
+    contract_start_date: Optional[Date] = Field(
         default=None,
-        description="Contract start date",
+        description="Contract start Date",
     )
-    contract_end_date: Optional[date] = Field(
+    contract_end_date: Optional[Date] = Field(
         default=None,
-        description="Contract end date",
+        description="Contract end Date",
     )
     is_contract_active: bool = Field(
         default=True,
@@ -448,9 +448,9 @@ class SupervisorEmploymentInfo(BaseSchema):
         default=None,
         description="Monthly salary",
     )
-    last_salary_revision: Optional[date] = Field(
+    last_salary_revision: Optional[Date] = Field(
         default=None,
-        description="Last salary revision date",
+        description="Last salary revision Date",
     )
 
     # Status
@@ -460,12 +460,12 @@ class SupervisorEmploymentInfo(BaseSchema):
     # Assignment
     assigned_hostel: str = Field(..., description="Assigned hostel")
     assigned_by: str = Field(..., description="Admin who assigned")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment Date")
 
     # Termination
-    termination_date: Optional[date] = Field(
+    termination_date: Optional[Date] = Field(
         default=None,
-        description="Termination date",
+        description="Termination Date",
     )
     termination_reason: Optional[str] = Field(
         default=None,
@@ -480,7 +480,7 @@ class SupervisorEmploymentInfo(BaseSchema):
     @property
     def tenure_days(self) -> int:
         """Calculate total tenure in days."""
-        end_date = self.termination_date or date.today()
+        end_date = self.termination_date or Date.today()
         return (end_date - self.join_date).days
 
     @computed_field  # type: ignore[misc]
@@ -511,7 +511,7 @@ class SupervisorEmploymentInfo(BaseSchema):
         if not self.contract_end_date or not self.is_contract_active:
             return False
         
-        days_until_expiry = (self.contract_end_date - date.today()).days
+        days_until_expiry = (self.contract_end_date - Date.today()).days
         return 0 < days_until_expiry <= 30
 
     @computed_field  # type: ignore[misc]
@@ -524,7 +524,7 @@ class SupervisorEmploymentInfo(BaseSchema):
         if not self.is_contract_active:
             return "Expired"
         
-        days_remaining = (self.contract_end_date - date.today()).days
+        days_remaining = (self.contract_end_date - Date.today()).days
         
         if days_remaining < 0:
             return "Expired"

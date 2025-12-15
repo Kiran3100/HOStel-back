@@ -8,7 +8,7 @@ permission management, and transfer handling.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date as Date
 from typing import Optional
 from decimal import Decimal
 
@@ -43,7 +43,7 @@ class SupervisorAssignment(BaseResponseSchema):
     
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment Date")
     
     is_active: bool = Field(..., description="Assignment is active")
     
@@ -94,9 +94,9 @@ class AssignmentRequest(BaseCreateSchema):
         max_length=100,
         description="Employee/Staff ID",
     )
-    join_date: date = Field(
+    join_date: Date = Field(
         ...,
-        description="Joining date",
+        description="Joining Date",
     )
     employment_type: str = Field(
         default="full_time",
@@ -121,17 +121,17 @@ class AssignmentRequest(BaseCreateSchema):
 
     @field_validator("join_date")
     @classmethod
-    def validate_join_date(cls, v: date) -> date:
-        """Validate join date is reasonable."""
-        today = date.today()
+    def validate_join_date(cls, v: Date) -> Date:
+        """Validate join Date is reasonable."""
+        today = Date.today()
         
         # Allow up to 30 days in future for scheduled assignments
         if v > today + timedelta(days=30):
-            raise ValueError("Join date cannot be more than 30 days in the future")
+            raise ValueError("Join Date cannot be more than 30 days in the future")
         
         # Allow up to 1 year in past for historical data entry
         if v < today - timedelta(days=365):
-            raise ValueError("Join date cannot be more than 1 year in the past")
+            raise ValueError("Join Date cannot be more than 1 year in the past")
         
         return v
 
@@ -193,9 +193,9 @@ class RevokeAssignmentRequest(BaseCreateSchema):
         ...,
         description="Supervisor ID",
     )
-    revoke_date: date = Field(
+    revoke_date: Date = Field(
         ...,
-        description="Effective revocation date",
+        description="Effective revocation Date",
     )
     reason: str = Field(
         ...,
@@ -223,17 +223,17 @@ class RevokeAssignmentRequest(BaseCreateSchema):
 
     @field_validator("revoke_date")
     @classmethod
-    def validate_revoke_date(cls, v: date) -> date:
-        """Validate revocation date."""
-        today = date.today()
+    def validate_revoke_date(cls, v: Date) -> Date:
+        """Validate revocation Date."""
+        today = Date.today()
         
         # Can't revoke in past (except today)
         if v < today:
-            raise ValueError("Revoke date cannot be in the past")
+            raise ValueError("Revoke Date cannot be in the past")
         
         # Limit future revocation
         if v > today + timedelta(days=90):
-            raise ValueError("Revoke date cannot be more than 90 days in future")
+            raise ValueError("Revoke Date cannot be more than 90 days in future")
         
         return v
 
@@ -268,9 +268,9 @@ class AssignmentTransfer(BaseCreateSchema):
         ...,
         description="New hostel",
     )
-    transfer_date: date = Field(
+    transfer_date: Date = Field(
         ...,
-        description="Transfer effective date",
+        description="Transfer effective Date",
     )
     reason: str = Field(
         ...,
@@ -295,15 +295,15 @@ class AssignmentTransfer(BaseCreateSchema):
 
     @field_validator("transfer_date")
     @classmethod
-    def validate_transfer_date(cls, v: date) -> date:
-        """Validate transfer date."""
-        today = date.today()
+    def validate_transfer_date(cls, v: Date) -> Date:
+        """Validate transfer Date."""
+        today = Date.today()
         
         if v < today:
-            raise ValueError("Transfer date cannot be in the past")
+            raise ValueError("Transfer Date cannot be in the past")
         
         if v > today + timedelta(days=90):
-            raise ValueError("Transfer date cannot be more than 90 days in future")
+            raise ValueError("Transfer Date cannot be more than 90 days in future")
         
         return v
 

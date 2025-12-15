@@ -8,7 +8,7 @@ requests, responses, webhooks, callbacks, and refund operations.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, Optional
 from uuid import UUID
@@ -386,9 +386,9 @@ class GatewayRefundResponse(BaseSchema):
     )
 
     # Timeline
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
-        description="Estimated date when refund will be completed",
+        description="Estimated Date when refund will be completed",
     )
 
     # Gateway Response

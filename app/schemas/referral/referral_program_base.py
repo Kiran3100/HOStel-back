@@ -8,7 +8,7 @@ with reward structures, eligibility criteria, and validity periods.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -157,13 +157,13 @@ class ReferralProgramBase(BaseSchema):
         default=True,
         description="Whether program is currently active",
     )
-    valid_from: Optional[date] = Field(
+    valid_from: Optional[Date] = Field(
         None,
-        description="Program start date",
+        description="Program start Date",
     )
-    valid_to: Optional[date] = Field(
+    valid_to: Optional[Date] = Field(
         None,
-        description="Program end date",
+        description="Program end Date",
     )
 
     # Terms and conditions
@@ -358,8 +358,8 @@ class ProgramUpdate(BaseUpdateSchema):
         max_length=5000,
     )
     is_active: Optional[bool] = None
-    valid_from: Optional[date] = None
-    valid_to: Optional[date] = None
+    valid_from: Optional[Date] = None
+    valid_to: Optional[Date] = None
     auto_approve_rewards: Optional[bool] = None
     track_conversion: Optional[bool] = None
 

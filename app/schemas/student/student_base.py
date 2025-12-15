@@ -7,7 +7,7 @@ check-in/check-out operations, and student-specific attributes.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Optional
 
@@ -154,17 +154,17 @@ class StudentBase(BaseSchema):
     )
 
     # Check-in/Check-out dates
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Actual check-in date",
+        description="Actual check-in Date",
     )
-    expected_checkout_date: Optional[date] = Field(
+    expected_checkout_date: Optional[Date] = Field(
         default=None,
-        description="Expected/planned checkout date",
+        description="Expected/planned checkout Date",
     )
-    actual_checkout_date: Optional[date] = Field(
+    actual_checkout_date: Optional[Date] = Field(
         default=None,
-        description="Actual checkout date (when checked out)",
+        description="Actual checkout Date (when checked out)",
     )
 
     # Financial information
@@ -179,7 +179,7 @@ class StudentBase(BaseSchema):
         default=False,
         description="Security deposit payment status",
     )
-    security_deposit_paid_date: Optional[date] = Field(
+    security_deposit_paid_date: Optional[Date] = Field(
         default=None,
         description="Date security deposit was paid",
     )
@@ -212,13 +212,13 @@ class StudentBase(BaseSchema):
         default=StudentStatus.ACTIVE,
         description="Current student status",
     )
-    notice_period_start: Optional[date] = Field(
+    notice_period_start: Optional[Date] = Field(
         default=None,
-        description="Notice period start date (if leaving)",
+        description="Notice period start Date (if leaving)",
     )
-    notice_period_end: Optional[date] = Field(
+    notice_period_end: Optional[Date] = Field(
         default=None,
-        description="Notice period end date",
+        description="Notice period end Date",
     )
 
     @field_validator("guardian_name")
@@ -284,20 +284,20 @@ class StudentBase(BaseSchema):
     @model_validator(mode="after")
     def validate_checkout_dates(self) -> "StudentBase":
         """
-        Validate checkout date relationships.
+        Validate checkout Date relationships.
         
         Ensures expected checkout is after check-in and actual is after expected.
         """
         if self.check_in_date and self.expected_checkout_date:
             if self.expected_checkout_date <= self.check_in_date:
                 raise ValueError(
-                    "Expected checkout date must be after check-in date"
+                    "Expected checkout Date must be after check-in Date"
                 )
 
         if self.check_in_date and self.actual_checkout_date:
             if self.actual_checkout_date < self.check_in_date:
                 raise ValueError(
-                    "Actual checkout date cannot be before check-in date"
+                    "Actual checkout Date cannot be before check-in Date"
                 )
 
         return self
@@ -308,7 +308,7 @@ class StudentBase(BaseSchema):
         if self.notice_period_start and self.notice_period_end:
             if self.notice_period_end <= self.notice_period_start:
                 raise ValueError(
-                    "Notice period end must be after start date"
+                    "Notice period end must be after start Date"
                 )
         return self
 
@@ -486,17 +486,17 @@ class StudentUpdate(BaseUpdateSchema):
     )
 
     # Date updates
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Check-in date",
+        description="Check-in Date",
     )
-    expected_checkout_date: Optional[date] = Field(
+    expected_checkout_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout date",
+        description="Expected checkout Date",
     )
-    actual_checkout_date: Optional[date] = Field(
+    actual_checkout_date: Optional[Date] = Field(
         default=None,
-        description="Actual checkout date",
+        description="Actual checkout Date",
     )
 
     # Financial updates
@@ -509,9 +509,9 @@ class StudentUpdate(BaseUpdateSchema):
         default=None,
         description="Security deposit paid status",
     )
-    security_deposit_paid_date: Optional[date] = Field(
+    security_deposit_paid_date: Optional[Date] = Field(
         default=None,
-        description="Security deposit paid date",
+        description="Security deposit paid Date",
     )
     monthly_rent_amount: Optional[Decimal] = Field(
         default=None,
@@ -539,11 +539,11 @@ class StudentUpdate(BaseUpdateSchema):
         default=None,
         description="Student status",
     )
-    notice_period_start: Optional[date] = Field(
+    notice_period_start: Optional[Date] = Field(
         default=None,
         description="Notice period start",
     )
-    notice_period_end: Optional[date] = Field(
+    notice_period_end: Optional[Date] = Field(
         default=None,
         description="Notice period end",
     )
@@ -596,9 +596,9 @@ class StudentCheckInRequest(BaseCreateSchema):
         ...,
         description="Student ID to check in",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
-        description="Check-in date",
+        description="Check-in Date",
     )
     room_id: str = Field(
         ...,
@@ -656,22 +656,22 @@ class StudentCheckInRequest(BaseCreateSchema):
 
     @field_validator("check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date is reasonable."""
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date is reasonable."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
 
         # Allow up to 30 days in the past for data entry
         if v < today - timedelta(days=30):
             raise ValueError(
-                "Check-in date cannot be more than 30 days in the past"
+                "Check-in Date cannot be more than 30 days in the past"
             )
 
         # Warn if more than 7 days in future
         if v > today + timedelta(days=7):
             raise ValueError(
-                "Check-in date cannot be more than 7 days in the future"
+                "Check-in Date cannot be more than 7 days in the future"
             )
 
         return v
@@ -704,9 +704,9 @@ class StudentCheckOutRequest(BaseCreateSchema):
         ...,
         description="Student ID to check out",
     )
-    checkout_date: date = Field(
+    checkout_date: Date = Field(
         ...,
-        description="Actual checkout date",
+        description="Actual checkout Date",
     )
     reason: Optional[str] = Field(
         default=None,
@@ -807,17 +807,17 @@ class StudentCheckOutRequest(BaseCreateSchema):
 
     @field_validator("checkout_date")
     @classmethod
-    def validate_checkout_date(cls, v: date) -> date:
-        """Validate checkout date."""
+    def validate_checkout_date(cls, v: Date) -> Date:
+        """Validate checkout Date."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
 
         # Allow past dates for data entry
         # Future dates for scheduled checkout
         if v > today + timedelta(days=90):
             raise ValueError(
-                "Checkout date cannot be more than 90 days in the future"
+                "Checkout Date cannot be more than 90 days in the future"
             )
 
         return v
@@ -869,9 +869,9 @@ class StudentRoomAssignment(BaseCreateSchema):
         ...,
         description="Bed ID to assign",
     )
-    assignment_date: date = Field(
+    assignment_date: Date = Field(
         ...,
-        description="Assignment effective date",
+        description="Assignment effective Date",
     )
     reason: Optional[str] = Field(
         default=None,
@@ -891,15 +891,15 @@ class StudentRoomAssignment(BaseCreateSchema):
 
     @field_validator("assignment_date")
     @classmethod
-    def validate_assignment_date(cls, v: date) -> date:
-        """Validate assignment date."""
+    def validate_assignment_date(cls, v: Date) -> Date:
+        """Validate assignment Date."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
 
         if v < today - timedelta(days=7):
             raise ValueError(
-                "Assignment date cannot be more than 7 days in the past"
+                "Assignment Date cannot be more than 7 days in the past"
             )
 
         return v
@@ -920,9 +920,9 @@ class StudentStatusUpdate(BaseCreateSchema):
         ...,
         description="New student status",
     )
-    effective_date: date = Field(
+    effective_date: Date = Field(
         ...,
-        description="Status change effective date",
+        description="Status change effective Date",
     )
     reason: str = Field(
         ...,
@@ -940,9 +940,9 @@ class StudentStatusUpdate(BaseCreateSchema):
     )
 
     # For suspension
-    suspension_end_date: Optional[date] = Field(
+    suspension_end_date: Optional[Date] = Field(
         default=None,
-        description="Suspension end date (for SUSPENDED status)",
+        description="Suspension end Date (for SUSPENDED status)",
     )
 
     # Additional notes
@@ -958,7 +958,7 @@ class StudentStatusUpdate(BaseCreateSchema):
         if self.new_status == StudentStatus.SUSPENDED:
             if not self.suspension_end_date:
                 raise ValueError(
-                    "Suspension end date is required for SUSPENDED status"
+                    "Suspension end Date is required for SUSPENDED status"
                 )
 
         if self.new_status == StudentStatus.NOTICE_PERIOD:
@@ -971,11 +971,11 @@ class StudentStatusUpdate(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_suspension_date(self) -> "StudentStatusUpdate":
-        """Validate suspension end date."""
+        """Validate suspension end Date."""
         if self.suspension_end_date:
             if self.suspension_end_date <= self.effective_date:
                 raise ValueError(
-                    "Suspension end date must be after effective date"
+                    "Suspension end Date must be after effective Date"
                 )
 
         return self

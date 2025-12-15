@@ -8,7 +8,7 @@ assignments, and releases.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -227,7 +227,7 @@ class BedAssignmentRequest(BaseCreateSchema):
     """
     Schema for assigning a bed to a student.
     
-    Creates a bed assignment with proper date tracking.
+    Creates a bed assignment with proper Date tracking.
     """
 
     bed_id: str = Field(
@@ -238,13 +238,13 @@ class BedAssignmentRequest(BaseCreateSchema):
         ...,
         description="Student ID to assign bed to",
     )
-    occupied_from: date = Field(
+    occupied_from: Date = Field(
         ...,
-        description="Occupancy start date",
+        description="Occupancy start Date",
     )
-    expected_vacate_date: Optional[date] = Field(
+    expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected vacate/checkout date (optional)",
+        description="Expected vacate/checkout Date (optional)",
     )
     booking_id: Optional[str] = Field(
         default=None,
@@ -258,9 +258,9 @@ class BedAssignmentRequest(BaseCreateSchema):
 
     @field_validator("occupied_from")
     @classmethod
-    def validate_occupied_from(cls, v: date) -> date:
+    def validate_occupied_from(cls, v: Date) -> Date:
         """
-        Validate occupancy start date.
+        Validate occupancy start Date.
         
         Allows past dates for historical assignments but warns for future dates.
         """
@@ -271,11 +271,11 @@ class BedAssignmentRequest(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "BedAssignmentRequest":
-        """Validate expected vacate date is after occupied_from."""
+        """Validate expected vacate Date is after occupied_from."""
         if self.expected_vacate_date:
             if self.expected_vacate_date <= self.occupied_from:
                 raise ValueError(
-                    "Expected vacate date must be after occupancy start date"
+                    "Expected vacate Date must be after occupancy start Date"
                 )
         return self
 
@@ -295,9 +295,9 @@ class BedReleaseRequest(BaseCreateSchema):
         default=None,
         description="Student ID (optional, for validation)",
     )
-    release_date: date = Field(
+    release_date: Date = Field(
         ...,
-        description="Actual release/checkout date",
+        description="Actual release/checkout Date",
     )
     reason: Optional[str] = Field(
         default=None,
@@ -322,9 +322,9 @@ class BedReleaseRequest(BaseCreateSchema):
 
     @field_validator("release_date")
     @classmethod
-    def validate_release_date(cls, v: date) -> date:
+    def validate_release_date(cls, v: Date) -> Date:
         """
-        Validate release date.
+        Validate release Date.
         
         Allows past dates for historical entries.
         """
@@ -356,7 +356,7 @@ class BedSwapRequest(BaseCreateSchema):
         ...,
         description="Second student's current bed ID",
     )
-    swap_date: date = Field(
+    swap_date: Date = Field(
         ...,
         description="Date of bed swap",
     )
@@ -378,12 +378,12 @@ class BedSwapRequest(BaseCreateSchema):
 
     @field_validator("swap_date")
     @classmethod
-    def validate_swap_date(cls, v: date) -> date:
-        """Validate swap date is not too far in the past."""
+    def validate_swap_date(cls, v: Date) -> Date:
+        """Validate swap Date is not too far in the past."""
         from datetime import timedelta
         
-        # Warn if swap date is more than 30 days in the past
-        if v < date.today() - timedelta(days=30):
+        # Warn if swap Date is more than 30 days in the past
+        if v < Date.today() - timedelta(days=30):
             # Could log a warning here
             pass
         
@@ -424,9 +424,9 @@ class BulkBedStatusUpdate(BaseCreateSchema):
         max_length=500,
         description="Reason for bulk status change",
     )
-    effective_date: Optional[date] = Field(
+    effective_date: Optional[Date] = Field(
         default=None,
-        description="Effective date for status change",
+        description="Effective Date for status change",
     )
 
     @field_validator("bed_ids")

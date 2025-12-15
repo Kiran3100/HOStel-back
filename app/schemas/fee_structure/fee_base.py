@@ -8,7 +8,7 @@ hostel pricing across different room types and billing frequencies.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -102,13 +102,13 @@ class FeeStructureBase(BaseSchema):
     )
 
     # Validity Period
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ...,
         description="Date from which this fee structure is effective",
     )
-    effective_to: Optional[date] = Field(
+    effective_to: Optional[Date] = Field(
         default=None,
-        description="End date of fee structure validity (null for indefinite)",
+        description="End Date of fee structure validity (null for indefinite)",
     )
 
     # Status
@@ -164,10 +164,10 @@ class FeeStructureBase(BaseSchema):
 
     @field_validator("effective_from")
     @classmethod
-    def validate_effective_from(cls, v: date) -> date:
-        """Validate effective_from date."""
+    def validate_effective_from(cls, v: Date) -> Date:
+        """Validate effective_from Date."""
         # Allow backdated fee structures but warn if too old
-        days_ago = (date.today() - v).days
+        days_ago = (Date.today() - v).days
         if days_ago > 365:
             # Log warning - might be data migration
             pass
@@ -234,7 +234,7 @@ class FeeStructureBase(BaseSchema):
                     f"effective_from ({self.effective_from})"
                 )
             
-            # Check if date range is reasonable (not too long)
+            # Check if Date range is reasonable (not too long)
             days_diff = (self.effective_to - self.effective_from).days
             max_validity_days = 1825  # 5 years
             
@@ -249,8 +249,8 @@ class FeeStructureBase(BaseSchema):
     @computed_field
     @property
     def is_currently_effective(self) -> bool:
-        """Check if fee structure is currently within effective date range."""
-        today = date.today()
+        """Check if fee structure is currently within effective Date range."""
+        today = Date.today()
         if today < self.effective_from:
             return False
         if self.effective_to is not None and today > self.effective_to:
@@ -261,8 +261,8 @@ class FeeStructureBase(BaseSchema):
     @property
     def days_until_effective(self) -> int:
         """Calculate days until fee structure becomes effective."""
-        if self.effective_from > date.today():
-            return (self.effective_from - date.today()).days
+        if self.effective_from > Date.today():
+            return (self.effective_from - Date.today()).days
         return 0
 
     @computed_field
@@ -271,9 +271,9 @@ class FeeStructureBase(BaseSchema):
         """Calculate days remaining until fee structure expires."""
         if self.effective_to is None:
             return None
-        if self.effective_to < date.today():
+        if self.effective_to < Date.today():
             return 0
-        return (self.effective_to - date.today()).days
+        return (self.effective_to - Date.today()).days
 
     @computed_field
     @property
@@ -380,13 +380,13 @@ class FeeStructureUpdate(BaseUpdateSchema):
     )
 
     # Validity
-    effective_from: Optional[date] = Field(
+    effective_from: Optional[Date] = Field(
         default=None,
-        description="Update effective start date",
+        description="Update effective start Date",
     )
-    effective_to: Optional[date] = Field(
+    effective_to: Optional[Date] = Field(
         default=None,
-        description="Update effective end date",
+        description="Update effective end Date",
     )
 
     # Status
@@ -424,7 +424,7 @@ class FeeStructureUpdate(BaseUpdateSchema):
                     "water_charges to FIXED_MONTHLY"
                 )
         
-        # Validate date range if both dates are being updated
+        # Validate Date range if both dates are being updated
         if self.effective_from is not None and self.effective_to is not None:
             if self.effective_to <= self.effective_from:
                 raise ValueError(

@@ -8,7 +8,7 @@ logging, manual sending, and statistics.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -47,13 +47,13 @@ class ReminderConfig(BaseSchema):
         default_factory=lambda: [7, 3, 1],
         min_length=1,
         max_length=10,
-        description="Days before due date to send reminders",
+        description="Days before due Date to send reminders",
     )
     days_after_due: List[int] = Field(
         default_factory=lambda: [1, 3, 7, 15],
         min_length=1,
         max_length=10,
-        description="Days after due date for overdue reminders",
+        description="Days after due Date for overdue reminders",
     )
 
     # Communication Channels
@@ -378,11 +378,11 @@ class ReminderStats(BaseSchema):
         ...,
         description="Hostel ID",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
         description="Statistics period start",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
         description="Statistics period end",
     )

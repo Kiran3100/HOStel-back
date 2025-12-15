@@ -8,7 +8,7 @@ and vendor analysis for data-driven decision making.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -52,15 +52,15 @@ class TrendPoint(BaseSchema):
 
     period: str = Field(
         ...,
-        description="Period identifier (date, week, month, etc.)",
+        description="Period identifier (Date, week, month, etc.)",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Period start date",
+        description="Period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Period end date",
+        description="Period end Date",
     )
     request_count: int = Field(
         ...,
@@ -121,13 +121,13 @@ class CostTrendPoint(BaseSchema):
         ...,
         description="Period identifier",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Period start date",
+        description="Period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Period end date",
+        description="Period end Date",
     )
     total_cost: Decimal = Field(
         ...,
@@ -446,11 +446,11 @@ class VendorPerformance(BaseSchema):
     )
     
     # Engagement period
-    first_job_date: Optional[date] = Field(
+    first_job_date: Optional[Date] = Field(
         None,
         description="Date of first job",
     )
-    last_job_date: Optional[date] = Field(
+    last_job_date: Optional[Date] = Field(
         None,
         description="Date of most recent job",
     )

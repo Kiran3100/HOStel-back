@@ -8,7 +8,7 @@ sending, tracking, templates, and bulk operations.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -697,18 +697,18 @@ class EmailStats(BaseSchema):
     )
 
     # Time period
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Statistics period start date",
+        description="Statistics period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Statistics period end date",
+        description="Statistics period end Date",
     )
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period end is after period start."""
         period_start = info.data.get("period_start")
         if period_start and v < period_start:
@@ -744,7 +744,7 @@ class EmailSchedule(BaseCreateSchema):
         pattern="^(daily|weekly|monthly|yearly)$",
         description="Recurrence pattern if recurring",
     )
-    recurrence_end_date: Optional[date] = Field(
+    recurrence_end_date: Optional[Date] = Field(
         None,
         description="When to stop recurring",
     )
@@ -769,7 +769,7 @@ class EmailSchedule(BaseCreateSchema):
                 raise ValueError(
                     "recurrence_end_date required for recurring emails"
                 )
-            if self.recurrence_end_date <= date.today():
+            if self.recurrence_end_date <= Date.today():
                 raise ValueError(
                     "recurrence_end_date must be in the future"
                 )

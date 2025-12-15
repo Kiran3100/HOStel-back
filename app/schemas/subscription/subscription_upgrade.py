@@ -8,7 +8,7 @@ for subscription modifications.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
@@ -53,7 +53,7 @@ class PlanChangeRequest(BaseCreateSchema):
     )
 
     # Timing
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ..., description="When new plan takes effect"
     )
     prorate: bool = Field(
@@ -86,7 +86,7 @@ class PlanChangeRequest(BaseCreateSchema):
                 "new_plan_id must be different from current_plan_id"
             )
 
-        today = date.today()
+        today = Date.today()
         if self.effective_from < today:
             raise ValueError("effective_from cannot be in the past")
 
@@ -133,10 +133,10 @@ class PlanChangePreview(BaseSchema):
     currency: str = Field(default="INR", description="Currency code")
 
     # Current period info
-    current_period_start: date = Field(
+    current_period_start: Date = Field(
         ..., description="Current billing period start"
     )
-    current_period_end: date = Field(
+    current_period_end: Date = Field(
         ..., description="Current billing period end"
     )
     days_remaining: int = Field(
@@ -173,11 +173,11 @@ class PlanChangePreview(BaseSchema):
     )
 
     # Dates
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ..., description="When change takes effect"
     )
-    next_billing_date: date = Field(
-        ..., description="Next billing date after change"
+    next_billing_date: Date = Field(
+        ..., description="Next billing Date after change"
     )
 
     # Additional info
@@ -255,10 +255,10 @@ class PlanChangeConfirmation(BaseSchema):
     currency: str = Field(default="INR")
 
     # Dates
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ..., description="When change took effect"
     )
-    next_billing_date: date = Field(..., description="Next billing date")
+    next_billing_date: Date = Field(..., description="Next billing Date")
     new_billing_amount: Decimal = Field(
         ...,
         ge=Decimal("0"),

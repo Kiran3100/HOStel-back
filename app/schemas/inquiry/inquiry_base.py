@@ -8,7 +8,7 @@ inquiries about hostel availability and bookings.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import  date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -72,9 +72,9 @@ class InquiryBase(BaseSchema):
     )
 
     # Inquiry Preferences
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Preferred or approximate check-in date",
+        description="Preferred or approximate check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,
@@ -139,19 +139,19 @@ class InquiryBase(BaseSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate preferred check-in date."""
+    def validate_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate preferred check-in Date."""
         if v is not None:
             # Allow past dates for inquiries (they might be inquiring for future)
             # but warn if too far in the past
-            days_ago = (date.today() - v).days
+            days_ago = (Date.today() - v).days
             if days_ago > 7:
                 # This might be an error, but we'll allow it
                 # In production, you might want to log a warning
                 pass
             
             # Warn if too far in the future (> 1 year)
-            days_ahead = (v - date.today()).days
+            days_ahead = (v - Date.today()).days
             if days_ahead > 365:
                 # Log warning but allow
                 pass
@@ -176,7 +176,7 @@ class InquiryBase(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def has_date_preference(self) -> bool:
-        """Check if visitor has specified a preferred check-in date."""
+        """Check if visitor has specified a preferred check-in Date."""
         return self.preferred_check_in_date is not None
 
     @computed_field  # type: ignore[misc]
@@ -278,9 +278,9 @@ class InquiryUpdate(BaseUpdateSchema):
     )
 
     # Preferences (can be updated as inquiry is refined)
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Update preferred check-in date",
+        description="Update preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,

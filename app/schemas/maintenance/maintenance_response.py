@@ -8,7 +8,7 @@ detailed, summary, and list views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -110,9 +110,9 @@ class MaintenanceResponse(BaseResponseSchema):
         ...,
         description="Request creation timestamp",
     )
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
-        description="Estimated completion date",
+        description="Estimated completion Date",
     )
     completed_at: Optional[datetime] = Field(
         None,
@@ -158,7 +158,7 @@ class MaintenanceResponse(BaseResponseSchema):
         if self.status == MaintenanceStatus.COMPLETED:
             return False
         
-        return self.estimated_completion_date < date.today()
+        return self.estimated_completion_date < Date.today()
 
     @computed_field  # type: ignore[misc]
     @property
@@ -390,15 +390,15 @@ class MaintenanceDetail(BaseResponseSchema):
     )
     
     # Timeline estimates
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
-        description="Estimated completion date",
+        description="Estimated completion Date",
     )
-    actual_completion_date: Optional[date] = Field(
+    actual_completion_date: Optional[Date] = Field(
         None,
-        description="Actual completion date",
+        description="Actual completion Date",
     )
-    deadline: Optional[date] = Field(
+    deadline: Optional[Date] = Field(
         None,
         description="Completion deadline",
     )
@@ -454,9 +454,9 @@ class MaintenanceDetail(BaseResponseSchema):
         None,
         description="Related preventive schedule ID",
     )
-    next_scheduled_date: Optional[date] = Field(
+    next_scheduled_date: Optional[Date] = Field(
         None,
-        description="Next scheduled maintenance date",
+        description="Next scheduled maintenance Date",
     )
     recurrence: Optional[str] = Field(
         None,
@@ -472,9 +472,9 @@ class MaintenanceDetail(BaseResponseSchema):
         None,
         description="Warranty period in months",
     )
-    warranty_expiry_date: Optional[date] = Field(
+    warranty_expiry_date: Optional[Date] = Field(
         None,
-        description="Warranty expiry date",
+        description="Warranty expiry Date",
     )
 
     @computed_field  # type: ignore[misc]
@@ -582,7 +582,7 @@ class RequestListItem(BaseSchema):
         ...,
         description="Creation timestamp",
     )
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
         description="Estimated completion",
     )
@@ -652,11 +652,11 @@ class MaintenanceSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    period_start: Optional[date] = Field(
+    period_start: Optional[Date] = Field(
         None,
         description="Summary period start",
     )
-    period_end: Optional[date] = Field(
+    period_end: Optional[Date] = Field(
         None,
         description="Summary period end",
     )

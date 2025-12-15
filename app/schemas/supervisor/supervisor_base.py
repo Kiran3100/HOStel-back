@@ -8,7 +8,7 @@ status management, and hostel reassignment with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date as Date, timedelta
 from decimal import Decimal
 from typing import Dict, Optional
 
@@ -74,9 +74,9 @@ class SupervisorBase(BaseSchema):
         description="Employee/Staff ID number",
         examples=["EMP001", "SUP-2024-001"],
     )
-    join_date: date = Field(
+    join_date: Date = Field(
         ...,
-        description="Joining/start date",
+        description="Joining/start Date",
     )
     employment_type: EmploymentType = Field(
         default=EmploymentType.FULL_TIME,
@@ -128,33 +128,33 @@ class SupervisorBase(BaseSchema):
 
     @field_validator("join_date")
     @classmethod
-    def validate_join_date(cls, v: date) -> date:
+    def validate_join_date(cls, v: Date) -> Date:
         """
-        Validate join date is within reasonable bounds.
+        Validate join Date is within reasonable bounds.
         
         Args:
-            v: Join date to validate
+            v: Join Date to validate
             
         Returns:
-            Validated join date
+            Validated join Date
             
         Raises:
-            ValueError: If date is outside acceptable range
+            ValueError: If Date is outside acceptable range
         """
-        today = date.today()
+        today = Date.today()
         
-        # Future date validation
+        # Future Date validation
         max_future = today + timedelta(days=SupervisorValidationConstants.MAX_FUTURE_JOIN_DAYS)
         if v > max_future:
             raise ValueError(
-                f"Join date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_JOIN_DAYS} days in the future"
+                f"Join Date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_JOIN_DAYS} days in the future"
             )
         
-        # Past date validation
+        # Past Date validation
         max_past = today - timedelta(days=365 * SupervisorValidationConstants.MAX_PAST_JOIN_YEARS)
         if v < max_past:
             raise ValueError(
-                f"Join date cannot be more than {SupervisorValidationConstants.MAX_PAST_JOIN_YEARS} years in the past"
+                f"Join Date cannot be more than {SupervisorValidationConstants.MAX_PAST_JOIN_YEARS} years in the past"
             )
         
         return v
@@ -191,9 +191,9 @@ class SupervisorCreate(SupervisorBase, BaseCreateSchema):
         ...,
         description="Hostel ID to assign supervisor to (required)",
     )
-    join_date: date = Field(
+    join_date: Date = Field(
         ...,
-        description="Joining date (required)",
+        description="Joining Date (required)",
     )
     assigned_by: str = Field(
         ...,
@@ -348,9 +348,9 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
         ...,
         description="Active status (false for terminated/suspended)",
     )
-    effective_date: date = Field(
+    effective_date: Date = Field(
         ...,
-        description="Status change effective date",
+        description="Status change effective Date",
     )
     reason: str = Field(
         ...,
@@ -360,9 +360,9 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
     )
 
     # Termination-specific fields
-    termination_date: Optional[date] = Field(
+    termination_date: Optional[Date] = Field(
         default=None,
-        description="Termination date (required if status is TERMINATED)",
+        description="Termination Date (required if status is TERMINATED)",
     )
     termination_reason: Optional[str] = Field(
         default=None,
@@ -375,13 +375,13 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
     )
 
     # Suspension-specific fields
-    suspension_start_date: Optional[date] = Field(
+    suspension_start_date: Optional[Date] = Field(
         default=None,
-        description="Suspension start date (required if SUSPENDED)",
+        description="Suspension start Date (required if SUSPENDED)",
     )
-    suspension_end_date: Optional[date] = Field(
+    suspension_end_date: Optional[Date] = Field(
         default=None,
-        description="Expected suspension end date (required if SUSPENDED)",
+        description="Expected suspension end Date (required if SUSPENDED)",
     )
     suspension_reason: Optional[str] = Field(
         default=None,
@@ -390,13 +390,13 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
     )
 
     # Leave-specific fields
-    leave_start_date: Optional[date] = Field(
+    leave_start_date: Optional[Date] = Field(
         default=None,
-        description="Leave start date (required if ON_LEAVE)",
+        description="Leave start Date (required if ON_LEAVE)",
     )
-    leave_end_date: Optional[date] = Field(
+    leave_end_date: Optional[Date] = Field(
         default=None,
-        description="Expected return date from leave (required if ON_LEAVE)",
+        description="Expected return Date from leave (required if ON_LEAVE)",
     )
     leave_type: Optional[str] = Field(
         default=None,
@@ -417,21 +417,21 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
 
     @field_validator("effective_date")
     @classmethod
-    def validate_effective_date(cls, v: date) -> date:
-        """Validate effective date is within acceptable range."""
-        today = date.today()
+    def validate_effective_date(cls, v: Date) -> Date:
+        """Validate effective Date is within acceptable range."""
+        today = Date.today()
         
         min_date = today - timedelta(days=SupervisorValidationConstants.MAX_PAST_EFFECTIVE_DAYS)
         max_date = today + timedelta(days=SupervisorValidationConstants.MAX_FUTURE_EFFECTIVE_DAYS)
         
         if v < min_date:
             raise ValueError(
-                f"Effective date cannot be more than {SupervisorValidationConstants.MAX_PAST_EFFECTIVE_DAYS} days in the past"
+                f"Effective Date cannot be more than {SupervisorValidationConstants.MAX_PAST_EFFECTIVE_DAYS} days in the past"
             )
         
         if v > max_date:
             raise ValueError(
-                f"Effective date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_EFFECTIVE_DAYS} days in the future"
+                f"Effective Date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_EFFECTIVE_DAYS} days in the future"
             )
         
         return v
@@ -479,7 +479,7 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
     @model_validator(mode="after")
     def validate_date_ranges(self) -> "SupervisorStatusUpdate":
         """
-        Validate date range consistency for suspension and leave.
+        Validate Date range consistency for suspension and leave.
         
         Returns:
             Self with validated dates
@@ -487,12 +487,12 @@ class SupervisorStatusUpdate(BaseUpdateSchema):
         Raises:
             ValueError: If end dates are before start dates
         """
-        # Suspension date range
+        # Suspension Date range
         if self.suspension_start_date and self.suspension_end_date:
             if self.suspension_end_date <= self.suspension_start_date:
                 raise ValueError("suspension_end_date must be after suspension_start_date")
         
-        # Leave date range
+        # Leave Date range
         if self.leave_start_date and self.leave_end_date:
             if self.leave_end_date <= self.leave_start_date:
                 raise ValueError("leave_end_date must be after leave_start_date")
@@ -520,9 +520,9 @@ class SupervisorReassignment(BaseCreateSchema):
         ...,
         description="New hostel ID to assign",
     )
-    effective_date: date = Field(
+    effective_date: Date = Field(
         ...,
-        description="Reassignment effective date",
+        description="Reassignment effective Date",
     )
     reason: str = Field(
         ...,
@@ -574,17 +574,17 @@ class SupervisorReassignment(BaseCreateSchema):
 
     @field_validator("effective_date")
     @classmethod
-    def validate_effective_date(cls, v: date) -> date:
-        """Validate effective date is in acceptable future range."""
-        today = date.today()
+    def validate_effective_date(cls, v: Date) -> Date:
+        """Validate effective Date is in acceptable future range."""
+        today = Date.today()
         
         if v < today:
-            raise ValueError("Effective date cannot be in the past")
+            raise ValueError("Effective Date cannot be in the past")
         
         max_date = today + timedelta(days=SupervisorValidationConstants.MAX_FUTURE_REASSIGNMENT_DAYS)
         if v > max_date:
             raise ValueError(
-                f"Effective date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_REASSIGNMENT_DAYS} days in the future"
+                f"Effective Date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_REASSIGNMENT_DAYS} days in the future"
             )
         
         return v
@@ -632,9 +632,9 @@ class SupervisorTermination(BaseCreateSchema):
         ...,
         description="Supervisor ID to terminate",
     )
-    termination_date: date = Field(
+    termination_date: Date = Field(
         ...,
-        description="Termination effective date",
+        description="Termination effective Date",
     )
     termination_type: str = Field(
         ...,
@@ -716,9 +716,9 @@ class SupervisorTermination(BaseCreateSchema):
         decimal_places=2,
         description="Final settlement amount",
     )
-    settlement_date: Optional[date] = Field(
+    settlement_date: Optional[Date] = Field(
         default=None,
-        description="Settlement payment date",
+        description="Settlement payment Date",
     )
 
     # Handover
@@ -738,21 +738,21 @@ class SupervisorTermination(BaseCreateSchema):
 
     @field_validator("termination_date")
     @classmethod
-    def validate_termination_date(cls, v: date) -> date:
-        """Validate termination date is within acceptable range."""
-        today = date.today()
+    def validate_termination_date(cls, v: Date) -> Date:
+        """Validate termination Date is within acceptable range."""
+        today = Date.today()
         
         min_date = today - timedelta(days=SupervisorValidationConstants.MAX_PAST_TERMINATION_DAYS)
         max_date = today + timedelta(days=SupervisorValidationConstants.MAX_FUTURE_TERMINATION_DAYS)
         
         if v < min_date:
             raise ValueError(
-                f"Termination date cannot be more than {SupervisorValidationConstants.MAX_PAST_TERMINATION_DAYS} days in the past"
+                f"Termination Date cannot be more than {SupervisorValidationConstants.MAX_PAST_TERMINATION_DAYS} days in the past"
             )
         
         if v > max_date:
             raise ValueError(
-                f"Termination date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_TERMINATION_DAYS} days in the future"
+                f"Termination Date cannot be more than {SupervisorValidationConstants.MAX_FUTURE_TERMINATION_DAYS} days in the future"
             )
         
         return v
@@ -795,7 +795,7 @@ class SupervisorTermination(BaseCreateSchema):
             Self with validation warnings (non-blocking)
         """
         # For past terminations, all clearances should ideally be complete
-        if self.termination_date <= date.today():
+        if self.termination_date <= Date.today():
             incomplete_clearances = []
             
             if not self.hostel_clearance_obtained:

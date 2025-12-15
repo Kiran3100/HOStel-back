@@ -7,7 +7,7 @@ capabilities for complaint queries.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -103,21 +103,21 @@ class ComplaintFilterParams(BaseFilterSchema):
     )
 
     # Date range filters
-    opened_date_from: Optional[date] = Field(
+    opened_date_from: Optional[Date] = Field(
         default=None,
-        description="Opened date range start (inclusive)",
+        description="Opened Date range start (inclusive)",
     )
-    opened_date_to: Optional[date] = Field(
+    opened_date_to: Optional[Date] = Field(
         default=None,
-        description="Opened date range end (inclusive)",
+        description="Opened Date range end (inclusive)",
     )
-    resolved_date_from: Optional[date] = Field(
+    resolved_date_from: Optional[Date] = Field(
         default=None,
-        description="Resolved date range start",
+        description="Resolved Date range start",
     )
-    resolved_date_to: Optional[date] = Field(
+    resolved_date_to: Optional[Date] = Field(
         default=None,
-        description="Resolved date range end",
+        description="Resolved Date range end",
     )
 
     # Special filters
@@ -168,13 +168,13 @@ class ComplaintFilterParams(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_date_and_age_ranges(self) -> "ComplaintFilterParams":
-        """Validate date and age ranges are logical."""
-        # Validate opened date range
+        """Validate Date and age ranges are logical."""
+        # Validate opened Date range
         if self.opened_date_to is not None and self.opened_date_from is not None:
             if self.opened_date_to < self.opened_date_from:
                 raise ValueError("opened_date_to must be >= opened_date_from")
         
-        # Validate resolved date range
+        # Validate resolved Date range
         if self.resolved_date_to is not None and self.resolved_date_from is not None:
             if self.resolved_date_to < self.resolved_date_from:
                 raise ValueError("resolved_date_to must be >= resolved_date_from")

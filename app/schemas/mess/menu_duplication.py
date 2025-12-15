@@ -8,7 +8,7 @@ recurring patterns and multi-hostel deployment.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date as Date, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -28,7 +28,7 @@ __all__ = [
 
 class DuplicateMenuRequest(BaseCreateSchema):
     """
-    Duplicate existing menu to another date.
+    Duplicate existing menu to another Date.
     
     Creates copy of menu with optional modifications for
     efficient menu planning.
@@ -38,7 +38,7 @@ class DuplicateMenuRequest(BaseCreateSchema):
         ...,
         description="Menu to duplicate",
     )
-    target_date: date = Field(
+    target_date: Date = Field(
         ...,
         description="Date for duplicated menu",
     )
@@ -91,14 +91,14 @@ class DuplicateMenuRequest(BaseCreateSchema):
 
     @field_validator("target_date", mode="after")
     @classmethod
-    def validate_target_date(cls, v: date) -> date:
-        """Validate target date is appropriate for duplication."""
+    def validate_target_date(cls, v: Date) -> Date:
+        """Validate target Date is appropriate for duplication."""
         # Can't duplicate to past dates
-        if v < date.today():
+        if v < Date.today():
             raise ValueError("Cannot duplicate menu to past dates")
         
         # Limit advance duplication
-        days_ahead = (v - date.today()).days
+        days_ahead = (v - Date.today()).days
         if days_ahead > 90:
             raise ValueError(
                 "Cannot duplicate menu more than 90 days in advance"
@@ -127,7 +127,7 @@ class BulkMenuCreate(BaseCreateSchema):
     """
     Create menus for multiple dates using template or pattern.
     
-    Efficiently generates menus for date range using various sources.
+    Efficiently generates menus for Date range using various sources.
     """
 
     hostel_id: UUID = Field(
@@ -136,13 +136,13 @@ class BulkMenuCreate(BaseCreateSchema):
     )
     
     # Date range
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="Start date for menu creation",
+        description="Start Date for menu creation",
     )
-    end_date: date = Field(
+    end_date: Date = Field(
         ...,
-        description="End date for menu creation",
+        description="End Date for menu creation",
     )
     
     # Source configuration
@@ -214,21 +214,21 @@ class BulkMenuCreate(BaseCreateSchema):
 
     @field_validator("start_date", mode="after")
     @classmethod
-    def validate_start_date(cls, v: date) -> date:
-        """Validate start date constraints."""
+    def validate_start_date(cls, v: Date) -> Date:
+        """Validate start Date constraints."""
         # Allow starting from yesterday for convenience
-        if v < date.today() - timedelta(days=1):
+        if v < Date.today() - timedelta(days=1):
             raise ValueError(
-                "Start date cannot be more than 1 day in the past"
+                "Start Date cannot be more than 1 day in the past"
             )
         return v
 
     @model_validator(mode="after")
     def validate_bulk_create(self) -> "BulkMenuCreate":
         """Validate bulk creation configuration."""
-        # Validate date range
+        # Validate Date range
         if self.end_date < self.start_date:
-            raise ValueError("End date must be after start date")
+            raise ValueError("End Date must be after start Date")
         
         # Limit bulk creation period
         days_span = (self.end_date - self.start_date).days + 1
@@ -282,15 +282,15 @@ class DuplicateResponse(BaseSchema):
         ...,
         description="Source menu ID",
     )
-    source_menu_date: date = Field(
+    source_menu_date: Date = Field(
         ...,
-        description="Source menu date",
+        description="Source menu Date",
     )
     created_menus: List[UUID] = Field(
         ...,
         description="IDs of created menus",
     )
-    created_dates: List[date] = Field(
+    created_dates: List[Date] = Field(
         ...,
         description="Dates for which menus were created",
     )
@@ -359,7 +359,7 @@ class CrossHostelDuplication(BaseCreateSchema):
         max_length=50,
         description="Target hostel IDs",
     )
-    target_date: date = Field(
+    target_date: Date = Field(
         ...,
         description="Date for duplicated menus in target hostels",
     )
@@ -397,7 +397,7 @@ class CrossHostelDuplication(BaseCreateSchema):
     # Creation options
     skip_existing: bool = Field(
         default=True,
-        description="Skip hostels that already have menu for date",
+        description="Skip hostels that already have menu for Date",
     )
     created_by: UUID = Field(
         ...,

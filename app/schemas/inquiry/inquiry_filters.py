@@ -8,7 +8,7 @@ inquiry data.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -86,23 +86,23 @@ class InquiryFilterParams(BaseFilterSchema):
     )
 
     # Date Filters
-    created_from: Optional[date] = Field(
+    created_from: Optional[Date] = Field(
         None,
-        description="Filter inquiries created from this date",
+        description="Filter inquiries created from this Date",
     )
-    created_to: Optional[date] = Field(
+    created_to: Optional[Date] = Field(
         None,
-        description="Filter inquiries created until this date",
+        description="Filter inquiries created until this Date",
     )
 
     # Check-in Date Filter
-    check_in_from: Optional[date] = Field(
+    check_in_from: Optional[Date] = Field(
         None,
-        description="Filter by preferred check-in date from",
+        description="Filter by preferred check-in Date from",
     )
-    check_in_to: Optional[date] = Field(
+    check_in_to: Optional[Date] = Field(
         None,
-        description="Filter by preferred check-in date to",
+        description="Filter by preferred check-in Date to",
     )
 
     # Room Type Filter
@@ -139,8 +139,8 @@ class InquiryFilterParams(BaseFilterSchema):
 
     @field_validator("created_to")
     @classmethod
-    def validate_created_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate created date range."""
+    def validate_created_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate created Date range."""
         created_from = info.data.get("created_from")
         if v is not None and created_from is not None:
             if v < created_from:
@@ -149,8 +149,8 @@ class InquiryFilterParams(BaseFilterSchema):
 
     @field_validator("check_in_to")
     @classmethod
-    def validate_check_in_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate check-in date range."""
+    def validate_check_in_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate check-in Date range."""
         check_in_from = info.data.get("check_in_from")
         if v is not None and check_in_from is not None:
             if v < check_in_from:

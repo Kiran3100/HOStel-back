@@ -8,7 +8,7 @@ data, billing history, and subscription summaries.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -62,25 +62,25 @@ class SubscriptionResponse(BaseResponseSchema):
     currency: str = Field(default="INR", description="Currency code")
 
     # Dates
-    start_date: date = Field(..., description="Subscription start date")
-    end_date: date = Field(..., description="Subscription end date")
+    start_date: Date = Field(..., description="Subscription start Date")
+    end_date: Date = Field(..., description="Subscription end Date")
     auto_renew: bool = Field(..., description="Auto-renewal enabled")
-    next_billing_date: Optional[date] = Field(
-        None, description="Next billing date"
+    next_billing_date: Optional[Date] = Field(
+        None, description="Next billing Date"
     )
     status: SubscriptionStatus = Field(..., description="Current status")
 
     # Trial info
-    trial_end_date: Optional[date] = Field(
-        None, description="Trial period end date"
+    trial_end_date: Optional[Date] = Field(
+        None, description="Trial period end Date"
     )
     is_in_trial: bool = Field(
         default=False, description="Currently in trial period"
     )
 
     # Payment info
-    last_payment_date: Optional[date] = Field(
-        None, description="Last payment date"
+    last_payment_date: Optional[Date] = Field(
+        None, description="Last payment Date"
     )
     last_payment_amount: Optional[Decimal] = Field(
         None,
@@ -93,7 +93,7 @@ class SubscriptionResponse(BaseResponseSchema):
     cancelled_at: Optional[datetime] = Field(
         None, description="Cancellation timestamp"
     )
-    cancellation_effective_date: Optional[date] = Field(
+    cancellation_effective_date: Optional[Date] = Field(
         None, description="When cancellation takes effect"
     )
 
@@ -101,7 +101,7 @@ class SubscriptionResponse(BaseResponseSchema):
     @property
     def days_until_expiry(self) -> int:
         """Calculate days until subscription expires."""
-        today = date.today()
+        today = Date.today()
         if self.end_date < today:
             return 0
         return (self.end_date - today).days
@@ -112,7 +112,7 @@ class SubscriptionResponse(BaseResponseSchema):
         """Calculate days until next billing."""
         if self.next_billing_date is None:
             return None
-        today = date.today()
+        today = Date.today()
         if self.next_billing_date < today:
             return 0
         return (self.next_billing_date - today).days
@@ -157,7 +157,7 @@ class SubscriptionSummary(BaseSchema):
     amount: Decimal = Field(..., description="Billing amount")
     currency: str = Field(default="INR")
 
-    end_date: date = Field(..., description="Expiry date")
+    end_date: Date = Field(..., description="Expiry Date")
     auto_renew: bool = Field(..., description="Auto-renewal status")
 
     is_in_trial: bool = Field(default=False)
@@ -172,7 +172,7 @@ class BillingHistoryItem(BaseSchema):
     """
 
     id: Optional[UUID] = Field(None, description="Transaction ID")
-    billing_date: date = Field(..., description="Billing date")
+    billing_date: Date = Field(..., description="Billing Date")
 
     # Amounts
     amount: Decimal = Field(
@@ -213,10 +213,10 @@ class BillingHistoryItem(BaseSchema):
     )
 
     # Period covered
-    period_start: Optional[date] = Field(
+    period_start: Optional[Date] = Field(
         None, description="Billing period start"
     )
-    period_end: Optional[date] = Field(
+    period_end: Optional[Date] = Field(
         None, description="Billing period end"
     )
 

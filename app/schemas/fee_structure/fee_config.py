@@ -8,7 +8,7 @@ and comprehensive fee configurations.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, Optional
 from uuid import UUID
@@ -310,13 +310,13 @@ class DiscountConfiguration(BaseSchema):
     )
 
     # Validity
-    valid_from: Optional[date] = Field(
+    valid_from: Optional[Date] = Field(
         default=None,
-        description="Discount valid from date",
+        description="Discount valid from Date",
     )
-    valid_to: Optional[date] = Field(
+    valid_to: Optional[Date] = Field(
         default=None,
-        description="Discount valid until date",
+        description="Discount valid until Date",
     )
 
     is_active: bool = Field(
@@ -346,7 +346,7 @@ class DiscountConfiguration(BaseSchema):
         if not self.is_active:
             return False
         
-        today = date.today()
+        today = Date.today()
         
         if self.valid_from and today < self.valid_from:
             return False

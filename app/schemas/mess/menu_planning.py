@@ -8,7 +8,7 @@ monthly schedules, special menus, and reusable templates.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date as Date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -108,7 +108,7 @@ class MenuPlanRequest(BaseCreateSchema):
     """
     Request to create comprehensive menu plan.
     
-    Initiates menu planning for a date range with various
+    Initiates menu planning for a Date range with various
     configuration options.
     """
 
@@ -118,13 +118,13 @@ class MenuPlanRequest(BaseCreateSchema):
     )
     
     # Planning period
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="Plan start date",
+        description="Plan start Date",
     )
-    end_date: date = Field(
+    end_date: Date = Field(
         ...,
-        description="Plan end date",
+        description="Plan end Date",
     )
     
     # Template usage
@@ -205,14 +205,14 @@ class MenuPlanRequest(BaseCreateSchema):
 
     @field_validator("start_date", mode="after")
     @classmethod
-    def validate_start_date(cls, v: date) -> date:
-        """Validate start date is not too far in past."""
-        today = date.today()
+    def validate_start_date(cls, v: Date) -> Date:
+        """Validate start Date is not too far in past."""
+        today = Date.today()
         
         days_past = (today - v).days
         if days_past > 7:
             raise ValueError(
-                "Start date cannot be more than 7 days in the past"
+                "Start Date cannot be more than 7 days in the past"
             )
         
         return v
@@ -228,9 +228,9 @@ class MenuPlanRequest(BaseCreateSchema):
     @model_validator(mode="after")
     def validate_plan_request(self) -> "MenuPlanRequest":
         """Validate menu plan request consistency."""
-        # Validate date range
+        # Validate Date range
         if self.end_date < self.start_date:
-            raise ValueError("End date must be after start date")
+            raise ValueError("End Date must be after start Date")
         
         # Limit planning period
         days_span = (self.end_date - self.start_date).days + 1
@@ -264,9 +264,9 @@ class WeeklyPlan(BaseCreateSchema):
         ...,
         description="Hostel unique identifier",
     )
-    week_start_date: date = Field(
+    week_start_date: Date = Field(
         ...,
-        description="Week start date (Monday)",
+        description="Week start Date (Monday)",
     )
     week_number: int = Field(
         ...,
@@ -333,7 +333,7 @@ class WeeklyPlan(BaseCreateSchema):
 
     @field_validator("week_start_date", mode="after")
     @classmethod
-    def validate_monday(cls, v: date) -> date:
+    def validate_monday(cls, v: Date) -> Date:
         """Ensure week starts on Monday."""
         if v.weekday() != 0:  # 0 = Monday
             raise ValueError("Week must start on Monday")
@@ -352,12 +352,12 @@ class SpecialDayMenu(BaseSchema):
     """
     Special day menu in monthly plan.
     
-    Associates special occasion with specific date and menu.
+    Associates special occasion with specific Date and menu.
     """
 
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Special day date",
+        description="Special day Date",
     )
     occasion: str = Field(
         ...,
@@ -487,9 +487,9 @@ class SpecialMenu(BaseCreateSchema):
         ...,
         description="Hostel unique identifier",
     )
-    occasion_date: date = Field(
+    occasion_date: Date = Field(
         ...,
-        description="Occasion date",
+        description="Occasion Date",
     )
     occasion_name: str = Field(
         ...,
@@ -588,9 +588,9 @@ class SpecialMenu(BaseCreateSchema):
 
     @field_validator("occasion_date", mode="after")
     @classmethod
-    def validate_occasion_date(cls, v: date) -> date:
-        """Validate occasion date is not too far in future."""
-        days_ahead = (v - date.today()).days
+    def validate_occasion_date(cls, v: Date) -> Date:
+        """Validate occasion Date is not too far in future."""
+        days_ahead = (v - Date.today()).days
         
         if days_ahead < -7:
             raise ValueError(
@@ -740,7 +740,7 @@ class MenuSuggestion(BaseSchema):
         ...,
         description="Hostel unique identifier",
     )
-    suggestion_date: date = Field(
+    suggestion_date: Date = Field(
         ...,
         description="Date for suggested menu",
     )

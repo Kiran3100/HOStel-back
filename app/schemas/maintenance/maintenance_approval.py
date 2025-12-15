@@ -8,7 +8,7 @@ and rejection handling with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -116,9 +116,9 @@ class ApprovalRequest(BaseCreateSchema):
     )
     
     # Timeline
-    requested_completion_date: Optional[date] = Field(
+    requested_completion_date: Optional[Date] = Field(
         None,
-        description="Requested completion date",
+        description="Requested completion Date",
     )
     
     # Requester

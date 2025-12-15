@@ -509,7 +509,7 @@ class ActivityFilterParams(BaseFilterSchema):
     # Time range
     date_range: Optional[DateTimeRangeFilter] = Field(
         default=None,
-        description="Filter by date/time range",
+        description="Filter by Date/time range",
     )
     
     # Action filters
@@ -658,7 +658,7 @@ class ActivityExportRequest(BaseCreateSchema):
     )
     group_by_date: bool = Field(
         default=False,
-        description="Group activities by date",
+        description="Group activities by Date",
     )
     
     # Summary options

@@ -8,7 +8,7 @@ applications, updates, and core validation logic.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 
 from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
@@ -58,13 +58,13 @@ class LeaveBase(BaseSchema):
         ...,
         description="Type of leave being requested",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Leave start date (inclusive)",
+        description="Leave start Date (inclusive)",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="Leave end date (inclusive)",
+        description="Leave end Date (inclusive)",
     )
     total_days: int = Field(
         ...,
@@ -95,28 +95,28 @@ class LeaveBase(BaseSchema):
 
     @field_validator("from_date")
     @classmethod
-    def validate_from_date(cls, v: date) -> date:
+    def validate_from_date(cls, v: Date) -> Date:
         """
-        Validate leave start date constraints.
+        Validate leave start Date constraints.
         
         Ensures:
-        - Start date is not too far in the past (max 30 days)
-        - Start date is within reasonable future range (max 1 year)
+        - Start Date is not too far in the past (max 30 days)
+        - Start Date is within reasonable future range (max 1 year)
         """
-        today = date.today()
+        today = Date.today()
         
         # Don't allow leaves starting more than 30 days in the past
         days_past = (today - v).days
         if days_past > 30:
             raise ValueError(
-                "Leave start date cannot be more than 30 days in the past"
+                "Leave start Date cannot be more than 30 days in the past"
             )
         
         # Don't allow leaves starting more than 1 year in the future
         days_future = (v - today).days
         if days_future > 365:
             raise ValueError(
-                "Leave start date cannot be more than 1 year in the future"
+                "Leave start Date cannot be more than 1 year in the future"
             )
         
         return v
@@ -151,16 +151,16 @@ class LeaveBase(BaseSchema):
     @model_validator(mode="after")
     def validate_leave_dates(self) -> "LeaveBase":
         """
-        Validate leave date consistency and calculate total days.
+        Validate leave Date consistency and calculate total days.
         
         Ensures:
-        - End date is after or equal to start date
+        - End Date is after or equal to start Date
         - Total days matches actual duration
         - Leave duration is reasonable (not too long)
         """
-        # Validate end date is after start date
+        # Validate end Date is after start Date
         if self.to_date < self.from_date:
-            raise ValueError("Leave end date must be after or equal to start date")
+            raise ValueError("Leave end Date must be after or equal to start Date")
         
         # Calculate expected total days
         expected_days = (self.to_date - self.from_date).days + 1
@@ -276,13 +276,13 @@ class LeaveUpdate(BaseUpdateSchema):
         None,
         description="Updated leave type",
     )
-    from_date: Optional[date] = Field(
+    from_date: Optional[Date] = Field(
         None,
-        description="Updated start date",
+        description="Updated start Date",
     )
-    to_date: Optional[date] = Field(
+    to_date: Optional[Date] = Field(
         None,
-        description="Updated end date",
+        description="Updated end Date",
     )
     total_days: Optional[int] = Field(
         None,
@@ -339,14 +339,14 @@ class LeaveUpdate(BaseUpdateSchema):
     @model_validator(mode="after")
     def validate_date_consistency(self) -> "LeaveUpdate":
         """
-        Validate date consistency when both dates are updated.
+        Validate Date consistency when both dates are updated.
         
-        Ensures end date is after start date when both are provided.
+        Ensures end Date is after start Date when both are provided.
         """
         # Only validate if both dates are being updated
         if self.from_date is not None and self.to_date is not None:
             if self.to_date < self.from_date:
-                raise ValueError("End date must be after or equal to start date")
+                raise ValueError("End Date must be after or equal to start Date")
             
             # Recalculate total_days if dates changed but total_days not provided
             if self.total_days is None:

@@ -7,7 +7,7 @@ for complaint management performance.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -152,7 +152,7 @@ class ComplaintTrendPoint(BaseSchema):
 
     period: str = Field(
         ...,
-        description="Time period (date, week, or month)",
+        description="Time period (Date, week, or month)",
         examples=["2024-01-15", "2024-W03", "2024-01"],
     )
     total_complaints: int = Field(..., ge=0, description="Total complaints")
@@ -275,8 +275,8 @@ class ComplaintAnalytics(BaseSchema):
         default=None,
         description="Hostel ID (None for system-wide analytics)",
     )
-    period_start: date = Field(..., description="Analytics period start")
-    period_end: date = Field(..., description="Analytics period end")
+    period_start: Date = Field(..., description="Analytics period start")
+    period_end: Date = Field(..., description="Analytics period end")
 
     # Summary counts
     total_complaints: int = Field(..., ge=0, description="Total complaints")

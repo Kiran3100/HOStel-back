@@ -8,7 +8,7 @@ material tracking, and completion certificates.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import List, Optional
 
@@ -260,13 +260,13 @@ class CompletionRequest(BaseCreateSchema):
     )
     
     # Timeline
-    actual_start_date: Optional[date] = Field(
+    actual_start_date: Optional[Date] = Field(
         None,
-        description="Actual work start date",
+        description="Actual work start Date",
     )
-    actual_completion_date: date = Field(
+    actual_completion_date: Date = Field(
         ...,
-        description="Actual completion date",
+        description="Actual completion Date",
     )
     total_working_days: Optional[int] = Field(
         None,
@@ -284,9 +284,9 @@ class CompletionRequest(BaseCreateSchema):
         max_length=500,
         description="Follow-up requirements",
     )
-    follow_up_date: Optional[date] = Field(
+    follow_up_date: Optional[Date] = Field(
         None,
-        description="Scheduled follow-up date",
+        description="Scheduled follow-up Date",
     )
     
     # Warranty
@@ -332,19 +332,19 @@ class CompletionRequest(BaseCreateSchema):
     @model_validator(mode="after")
     def validate_completion_dates(self) -> "CompletionRequest":
         """
-        Validate completion date consistency.
+        Validate completion Date consistency.
         
         Ensures dates are logical and in proper sequence.
         """
-        # Completion date can't be in future
-        if self.actual_completion_date > date.today():
-            raise ValueError("Completion date cannot be in the future")
+        # Completion Date can't be in future
+        if self.actual_completion_date > Date.today():
+            raise ValueError("Completion Date cannot be in the future")
         
-        # Start date should be before completion
+        # Start Date should be before completion
         if self.actual_start_date:
             if self.actual_start_date > self.actual_completion_date:
                 raise ValueError(
-                    "Start date must be before or equal to completion date"
+                    "Start Date must be before or equal to completion Date"
                 )
             
             # Calculate working days if not provided
@@ -422,7 +422,7 @@ class CompletionRequest(BaseCreateSchema):
         """
         Validate follow-up information.
         
-        If follow-up required, notes and date should be provided.
+        If follow-up required, notes and Date should be provided.
         """
         if self.follow_up_required:
             if not self.follow_up_notes:
@@ -432,13 +432,13 @@ class CompletionRequest(BaseCreateSchema):
             
             if not self.follow_up_date:
                 raise ValueError(
-                    "Follow-up date is required when follow-up is needed"
+                    "Follow-up Date is required when follow-up is needed"
                 )
             
-            # Follow-up date should be in future
+            # Follow-up Date should be in future
             if self.follow_up_date <= self.actual_completion_date:
                 raise ValueError(
-                    "Follow-up date must be after completion date"
+                    "Follow-up Date must be after completion Date"
                 )
         
         return self
@@ -595,9 +595,9 @@ class QualityCheck(BaseCreateSchema):
         ...,
         description="User ID who performed quality check",
     )
-    inspection_date: date = Field(
+    inspection_date: Date = Field(
         ...,
-        description="Inspection date",
+        description="Inspection Date",
     )
     inspection_time: Optional[time] = Field(
         None,
@@ -614,7 +614,7 @@ class QualityCheck(BaseCreateSchema):
         max_length=1000,
         description="Details of required rework",
     )
-    rework_deadline: Optional[date] = Field(
+    rework_deadline: Optional[Date] = Field(
         None,
         description="Deadline for completing rework",
     )
@@ -639,10 +639,10 @@ class QualityCheck(BaseCreateSchema):
 
     @field_validator("inspection_date")
     @classmethod
-    def validate_inspection_date(cls, v: date) -> date:
-        """Validate inspection date is not in future."""
-        if v > date.today():
-            raise ValueError("Inspection date cannot be in the future")
+    def validate_inspection_date(cls, v: Date) -> Date:
+        """Validate inspection Date is not in future."""
+        if v > Date.today():
+            raise ValueError("Inspection Date cannot be in the future")
         return v
 
     @field_validator(
@@ -678,7 +678,7 @@ class QualityCheck(BaseCreateSchema):
                 )
             
             # Rework deadline should be in future
-            if self.rework_deadline < date.today():
+            if self.rework_deadline < Date.today():
                 raise ValueError("Rework deadline cannot be in the past")
             
             # Quality check should fail if rework needed
@@ -799,9 +799,9 @@ class CompletionResponse(BaseSchema):
     )
     
     # Timeline
-    actual_completion_date: date = Field(
+    actual_completion_date: Date = Field(
         ...,
-        description="Actual completion date",
+        description="Actual completion Date",
     )
     total_days_taken: Optional[int] = Field(
         None,
@@ -933,21 +933,21 @@ class CompletionCertificate(BaseSchema):
     )
     
     # Dates
-    work_start_date: date = Field(
+    work_start_date: Date = Field(
         ...,
-        description="Work start date",
+        description="Work start Date",
     )
-    completion_date: date = Field(
+    completion_date: Date = Field(
         ...,
-        description="Work completion date",
+        description="Work completion Date",
     )
-    verification_date: date = Field(
+    verification_date: Date = Field(
         ...,
-        description="Verification date",
+        description="Verification Date",
     )
-    certificate_issue_date: date = Field(
+    certificate_issue_date: Date = Field(
         ...,
-        description="Certificate issue date",
+        description="Certificate issue Date",
     )
     
     # Warranty
@@ -965,9 +965,9 @@ class CompletionCertificate(BaseSchema):
         None,
         description="Warranty terms and conditions",
     )
-    warranty_valid_until: Optional[date] = Field(
+    warranty_valid_until: Optional[Date] = Field(
         None,
-        description="Warranty expiry date",
+        description="Warranty expiry Date",
     )
     
     # Quality assurance
@@ -1010,13 +1010,13 @@ class CompletionCertificate(BaseSchema):
         Start < Completion <= Verification <= Certificate Issue
         """
         if self.work_start_date > self.completion_date:
-            raise ValueError("Start date must be before completion date")
+            raise ValueError("Start Date must be before completion Date")
         
         if self.completion_date > self.verification_date:
-            raise ValueError("Completion date must be before verification date")
+            raise ValueError("Completion Date must be before verification Date")
         
         if self.verification_date > self.certificate_issue_date:
-            raise ValueError("Verification date must be before certificate issue date")
+            raise ValueError("Verification Date must be before certificate issue Date")
         
         return self
 
@@ -1040,7 +1040,7 @@ class CompletionCertificate(BaseSchema):
             
             if not self.warranty_valid_until:
                 raise ValueError(
-                    "Warranty expiry date is required when warranty is applicable"
+                    "Warranty expiry Date is required when warranty is applicable"
                 )
         
         return self

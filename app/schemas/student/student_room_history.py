@@ -7,7 +7,7 @@ movement history for students.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -49,10 +49,10 @@ class RoomHistoryItem(BaseResponseSchema):
     bed_number: Optional[str] = Field(default=None, description="Bed number")
 
     # Duration
-    move_in_date: date = Field(..., description="Move-in date")
-    move_out_date: Optional[date] = Field(
+    move_in_date: Date = Field(..., description="Move-in Date")
+    move_out_date: Optional[Date] = Field(
         default=None,
-        description="Move-out date (null if current)",
+        description="Move-out Date (null if current)",
     )
     duration_days: Optional[int] = Field(
         default=None,
@@ -182,9 +182,9 @@ class RoomTransferRequest(BaseCreateSchema):
         description="Desired bed ID (if specific bed requested)",
     )
 
-    transfer_date: date = Field(
+    transfer_date: Date = Field(
         ...,
-        description="Desired transfer date",
+        description="Desired transfer Date",
     )
     reason: str = Field(
         ...,
@@ -224,20 +224,20 @@ class RoomTransferRequest(BaseCreateSchema):
 
     @field_validator("transfer_date")
     @classmethod
-    def validate_transfer_date(cls, v: date) -> date:
-        """Validate transfer date is reasonable."""
+    def validate_transfer_date(cls, v: Date) -> Date:
+        """Validate transfer Date is reasonable."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
 
         # Must be at least today or future
         if v < today:
-            raise ValueError("Transfer date cannot be in the past")
+            raise ValueError("Transfer Date cannot be in the past")
 
         # Warn if too far in future (more than 90 days)
         if v > today + timedelta(days=90):
             raise ValueError(
-                "Transfer date cannot be more than 90 days in the future"
+                "Transfer Date cannot be more than 90 days in the future"
             )
 
         return v
@@ -277,9 +277,9 @@ class RoomTransferApproval(BaseCreateSchema):
         default=None,
         description="Assigned bed in new room",
     )
-    transfer_date: Optional[date] = Field(
+    transfer_date: Optional[Date] = Field(
         default=None,
-        description="Approved transfer date (may differ from requested)",
+        description="Approved transfer Date (may differ from requested)",
     )
 
     # If rejected
@@ -344,17 +344,17 @@ class RoomTransferApproval(BaseCreateSchema):
 
     @field_validator("transfer_date")
     @classmethod
-    def validate_transfer_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate transfer date."""
+    def validate_transfer_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate transfer Date."""
         if v is not None:
             from datetime import timedelta
 
-            today = date.today()
+            today = Date.today()
             if v < today:
-                raise ValueError("Transfer date cannot be in the past")
+                raise ValueError("Transfer Date cannot be in the past")
             if v > today + timedelta(days=90):
                 raise ValueError(
-                    "Transfer date cannot be more than 90 days in the future"
+                    "Transfer Date cannot be more than 90 days in the future"
                 )
         return v
 
@@ -385,7 +385,7 @@ class RoomTransferStatus(BaseSchema):
     )
 
     # Dates
-    transfer_date: date = Field(..., description="Transfer date")
+    transfer_date: Date = Field(..., description="Transfer Date")
     requested_at: datetime = Field(..., description="Request timestamp")
     processed_at: Optional[datetime] = Field(
         default=None,
@@ -473,9 +473,9 @@ class BulkRoomTransfer(BaseCreateSchema):
         max_length=50,
         description="List of transfers to perform (max 50)",
     )
-    transfer_date: date = Field(
+    transfer_date: Date = Field(
         ...,
-        description="Transfer date for all students",
+        description="Transfer Date for all students",
     )
     reason: str = Field(
         ...,
@@ -522,16 +522,16 @@ class BulkRoomTransfer(BaseCreateSchema):
 
     @field_validator("transfer_date")
     @classmethod
-    def validate_transfer_date(cls, v: date) -> date:
-        """Validate transfer date."""
+    def validate_transfer_date(cls, v: Date) -> Date:
+        """Validate transfer Date."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
         if v < today:
-            raise ValueError("Transfer date cannot be in the past")
+            raise ValueError("Transfer Date cannot be in the past")
         if v > today + timedelta(days=30):
             raise ValueError(
-                "Bulk transfer date cannot be more than 30 days in the future"
+                "Bulk transfer Date cannot be more than 30 days in the future"
             )
         return v
 
@@ -560,9 +560,9 @@ class RoomSwapRequest(BaseCreateSchema):
         ...,
         description="Second student ID",
     )
-    swap_date: date = Field(
+    swap_date: Date = Field(
         ...,
-        description="Swap date",
+        description="Swap Date",
     )
     reason: str = Field(
         ...,
@@ -594,16 +594,16 @@ class RoomSwapRequest(BaseCreateSchema):
 
     @field_validator("swap_date")
     @classmethod
-    def validate_swap_date(cls, v: date) -> date:
-        """Validate swap date."""
+    def validate_swap_date(cls, v: Date) -> Date:
+        """Validate swap Date."""
         from datetime import timedelta
 
-        today = date.today()
+        today = Date.today()
         if v < today:
-            raise ValueError("Swap date cannot be in the past")
+            raise ValueError("Swap Date cannot be in the past")
         if v > today + timedelta(days=30):
             raise ValueError(
-                "Swap date cannot be more than 30 days in the future"
+                "Swap Date cannot be more than 30 days in the future"
             )
         return v
 

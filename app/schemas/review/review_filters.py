@@ -5,7 +5,7 @@ Review filter and search schemas with advanced filtering options.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -67,13 +67,13 @@ class ReviewFilterParams(BaseFilterSchema):
     )
     
     # Date filters
-    posted_date_from: Optional[date] = Field(
+    posted_date_from: Optional[Date] = Field(
         default=None,
-        description="Reviews posted on or after this date",
+        description="Reviews posted on or after this Date",
     )
-    posted_date_to: Optional[date] = Field(
+    posted_date_to: Optional[Date] = Field(
         default=None,
-        description="Reviews posted on or before this date",
+        description="Reviews posted on or before this Date",
     )
     
     # Status filters
@@ -282,13 +282,13 @@ class ReviewExportRequest(BaseFilterSchema):
     )
     
     # Date range for export
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         default=None,
-        description="Export reviews from this date onwards",
+        description="Export reviews from this Date onwards",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         default=None,
-        description="Export reviews up to this date",
+        description="Export reviews up to this Date",
     )
     
     @field_validator("format")
@@ -299,7 +299,7 @@ class ReviewExportRequest(BaseFilterSchema):
     
     @model_validator(mode="after")
     def validate_date_range(self) -> "ReviewExportRequest":
-        """Validate export date range."""
+        """Validate export Date range."""
         if self.date_to is not None and self.date_from is not None:
             if self.date_to < self.date_from:
                 raise ValueError("date_to must be on or after date_from")

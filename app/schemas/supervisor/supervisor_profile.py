@@ -8,7 +8,7 @@ performance summaries, and personal preferences.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -34,7 +34,7 @@ class SupervisorEmployment(BaseSchema):
         default=None,
         description="Employee/Staff ID",
     )
-    join_date: date = Field(..., description="Joining date")
+    join_date: Date = Field(..., description="Joining Date")
     employment_type: EmploymentType = Field(..., description="Employment type")
     shift_timing: Optional[str] = Field(
         default=None,
@@ -50,19 +50,19 @@ class SupervisorEmployment(BaseSchema):
     is_active: bool = Field(..., description="Active employment status")
     
     # Contract details
-    contract_start_date: Optional[date] = Field(
+    contract_start_date: Optional[Date] = Field(
         default=None,
-        description="Contract start date (for contract employees)",
+        description="Contract start Date (for contract employees)",
     )
-    contract_end_date: Optional[date] = Field(
+    contract_end_date: Optional[Date] = Field(
         default=None,
-        description="Contract end date (for contract employees)",
+        description="Contract end Date (for contract employees)",
     )
     
     # Termination details (if applicable)
-    termination_date: Optional[date] = Field(
+    termination_date: Optional[Date] = Field(
         default=None,
-        description="Termination date",
+        description="Termination Date",
     )
     termination_reason: Optional[str] = Field(
         default=None,
@@ -76,7 +76,7 @@ class SupervisorEmployment(BaseSchema):
     # Assignment details
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_by_name: str = Field(..., description="Admin name")
-    assigned_date: date = Field(..., description="Assignment date")
+    assigned_date: Date = Field(..., description="Assignment Date")
     
     # Compensation (admin view only)
     salary: Optional[Decimal] = Field(
@@ -84,16 +84,16 @@ class SupervisorEmployment(BaseSchema):
         ge=0,
         description="Monthly salary",
     )
-    last_salary_revision: Optional[date] = Field(
+    last_salary_revision: Optional[Date] = Field(
         default=None,
-        description="Last salary revision date",
+        description="Last salary revision Date",
     )
 
     @computed_field  # type: ignore[misc]
     @property
     def tenure_days(self) -> int:
         """Calculate total tenure in days."""
-        end_date = self.termination_date or date.today()
+        end_date = self.termination_date or Date.today()
         return (end_date - self.join_date).days
 
     @computed_field  # type: ignore[misc]
@@ -130,7 +130,7 @@ class SupervisorEmployment(BaseSchema):
         if not self.is_contract_employee or not self.contract_end_date:
             return None
         
-        today = date.today()
+        today = Date.today()
         days_remaining = (self.contract_end_date - today).days
         
         if days_remaining < 0:
@@ -214,9 +214,9 @@ class PerformanceSummary(BaseSchema):
         le=5,
         description="Latest performance rating (1-5 scale)",
     )
-    last_performance_review: Optional[date] = Field(
+    last_performance_review: Optional[Date] = Field(
         default=None,
-        description="Last performance review date",
+        description="Last performance review Date",
     )
     
     # Student feedback
@@ -272,10 +272,10 @@ class EmploymentHistory(BaseSchema):
     
     hostel_id: str = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
-    start_date: date = Field(..., description="Assignment start date")
-    end_date: Optional[date] = Field(
+    start_date: Date = Field(..., description="Assignment start Date")
+    end_date: Optional[Date] = Field(
         default=None,
-        description="Assignment end date (null if current)",
+        description="Assignment end Date (null if current)",
     )
     designation: Optional[str] = Field(
         default=None,
@@ -300,7 +300,7 @@ class EmploymentHistory(BaseSchema):
     @property
     def duration_days(self) -> int:
         """Calculate duration of this assignment."""
-        end = self.end_date or date.today()
+        end = self.end_date or Date.today()
         return (end - self.start_date).days
 
     @computed_field  # type: ignore[misc]

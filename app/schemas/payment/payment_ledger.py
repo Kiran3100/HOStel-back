@@ -8,7 +8,7 @@ ledger entries, summaries, statements, and adjustments.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -45,7 +45,7 @@ class LedgerEntry(BaseResponseSchema):
     )
 
     # Entry Details
-    entry_date: date = Field(
+    entry_date: Date = Field(
         ...,
         description="Date of entry",
     )
@@ -173,11 +173,11 @@ class LedgerSummary(BaseSchema):
     )
 
     # Last Transaction
-    last_transaction_date: Optional[date] = Field(
+    last_transaction_date: Optional[Date] = Field(
         None,
         description="Date of last transaction",
     )
-    last_payment_date: Optional[date] = Field(
+    last_payment_date: Optional[Date] = Field(
         None,
         description="Date of last payment",
     )
@@ -235,13 +235,13 @@ class AccountStatement(BaseSchema):
     )
 
     # Statement Period
-    statement_period_start: date = Field(
+    statement_period_start: Date = Field(
         ...,
-        description="Statement period start date",
+        description="Statement period start Date",
     )
-    statement_period_end: date = Field(
+    statement_period_end: Date = Field(
         ...,
-        description="Statement period end date",
+        description="Statement period end Date",
     )
     generated_at: datetime = Field(
         ...,
@@ -426,7 +426,7 @@ class BalanceAdjustment(BaseSchema):
         ...,
         description="Admin who made the adjustment",
     )
-    adjustment_date: date = Field(
+    adjustment_date: Date = Field(
         ...,
         description="Date of adjustment",
     )
@@ -486,7 +486,7 @@ class WriteOff(BaseSchema):
         ...,
         description="Admin who approved write-off",
     )
-    approval_date: date = Field(
+    approval_date: Date = Field(
         ...,
         description="Date of approval",
     )

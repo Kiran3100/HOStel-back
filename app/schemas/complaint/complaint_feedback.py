@@ -7,7 +7,7 @@ feedback analytics for service improvement.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -132,8 +132,8 @@ class FeedbackSummary(BaseSchema):
     )
 
     # Time period
-    period_start: date = Field(..., description="Summary period start date")
-    period_end: date = Field(..., description="Summary period end date")
+    period_start: Date = Field(..., description="Summary period start Date")
+    period_end: Date = Field(..., description="Summary period end Date")
 
     # Overall statistics
     total_feedbacks: int = Field(..., ge=0, description="Total feedback count")
@@ -205,7 +205,7 @@ class RatingTrendPoint(BaseSchema):
 
     period: str = Field(
         ...,
-        description="Time period (date, week, or month)",
+        description="Time period (Date, week, or month)",
         examples=["2024-01", "Week 1", "2024-01-15"],
     )
     average_rating: Decimal = Field(
@@ -229,8 +229,8 @@ class FeedbackAnalysis(BaseSchema):
     """
 
     hostel_id: str = Field(..., description="Hostel identifier")
-    period_start: date = Field(..., description="Analysis period start")
-    period_end: date = Field(..., description="Analysis period end")
+    period_start: Date = Field(..., description="Analysis period start")
+    period_end: Date = Field(..., description="Analysis period end")
 
     # Trend data
     rating_trend: List[RatingTrendPoint] = Field(

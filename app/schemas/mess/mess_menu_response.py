@@ -8,7 +8,7 @@ detailed, summary, weekly, and monthly views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -44,9 +44,9 @@ class MenuResponse(BaseResponseSchema):
         ...,
         description="Hostel name",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     day_of_week: str = Field(
         ...,
@@ -124,9 +124,9 @@ class MenuDetail(BaseResponseSchema):
         ...,
         description="Hostel name",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     day_of_week: str = Field(
         ...,
@@ -300,9 +300,9 @@ class DailyMenuSummary(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     day_of_week: str = Field(
         ...,
@@ -390,13 +390,13 @@ class WeeklyMenu(BaseSchema):
         ge=2000,
         description="Year",
     )
-    week_start_date: date = Field(
+    week_start_date: Date = Field(
         ...,
-        description="Week start date (Monday)",
+        description="Week start Date (Monday)",
     )
-    week_end_date: date = Field(
+    week_end_date: Date = Field(
         ...,
-        description="Week end date (Sunday)",
+        description="Week end Date (Sunday)",
     )
     menus: List[DailyMenuSummary] = Field(
         ...,
@@ -470,7 +470,7 @@ class MonthlyMenu(BaseSchema):
     )
     menus_by_date: Dict[str, DailyMenuSummary] = Field(
         ...,
-        description="Menus indexed by date (YYYY-MM-DD)",
+        description="Menus indexed by Date (YYYY-MM-DD)",
     )
     
     # Summary statistics
@@ -546,9 +546,9 @@ class TodayMenu(BaseSchema):
         ...,
         description="Hostel name",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Today's date",
+        description="Today's Date",
     )
     day_of_week: str = Field(
         ...,
@@ -671,9 +671,9 @@ class MenuListItem(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     day_of_week: str = Field(
         ...,

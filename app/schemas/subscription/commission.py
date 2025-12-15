@@ -8,7 +8,7 @@ platform revenue from hostel bookings.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, Optional
@@ -159,11 +159,11 @@ class BookingCommissionResponse(BaseResponseSchema):
         default=CommissionStatus.PENDING,
         description="Commission payment status",
     )
-    due_date: Optional[date] = Field(
-        None, description="Commission payment due date"
+    due_date: Optional[Date] = Field(
+        None, description="Commission payment due Date"
     )
-    paid_date: Optional[date] = Field(
-        None, description="Actual payment date"
+    paid_date: Optional[Date] = Field(
+        None, description="Actual payment Date"
     )
     payment_reference: Optional[str] = Field(
         None,
@@ -199,8 +199,8 @@ class CommissionSummary(BaseSchema):
         description="Hostel ID (required when scope_type is 'hostel')",
     )
 
-    period_start: date = Field(..., description="Summary period start date")
-    period_end: date = Field(..., description="Summary period end date")
+    period_start: Date = Field(..., description="Summary period start Date")
+    period_end: Date = Field(..., description="Summary period end Date")
 
     total_bookings_count: int = Field(
         ...,
@@ -248,7 +248,7 @@ class CommissionSummary(BaseSchema):
 
     @model_validator(mode="after")
     def validate_scope_and_dates(self) -> "CommissionSummary":
-        """Validate hostel scope and date range."""
+        """Validate hostel scope and Date range."""
         if self.scope_type == "hostel" and self.hostel_id is None:
             raise ValueError("hostel_id is required when scope_type is 'hostel'")
         if self.period_end < self.period_start:

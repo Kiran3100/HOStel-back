@@ -8,7 +8,7 @@ and vendor invoice management with detailed analytics.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -289,13 +289,13 @@ class BudgetAllocation(BaseSchema):
         pattern=r"^\d{4}$",
         description="Fiscal year (YYYY format)",
     )
-    fiscal_year_start: date = Field(
+    fiscal_year_start: Date = Field(
         ...,
-        description="Fiscal year start date",
+        description="Fiscal year start Date",
     )
-    fiscal_year_end: date = Field(
+    fiscal_year_end: Date = Field(
         ...,
-        description="Fiscal year end date",
+        description="Fiscal year end Date",
     )
     total_budget: Decimal = Field(
         ...,
@@ -359,7 +359,7 @@ class BudgetAllocation(BaseSchema):
 
     @field_validator("fiscal_year_end")
     @classmethod
-    def validate_fiscal_year(cls, v: date, info) -> date:
+    def validate_fiscal_year(cls, v: Date, info) -> Date:
         """Validate fiscal year dates."""
         if "fiscal_year_start" in info.data:
             if v <= info.data["fiscal_year_start"]:
@@ -376,7 +376,7 @@ class BudgetAllocation(BaseSchema):
     @property
     def months_remaining(self) -> int:
         """Calculate months remaining in fiscal year."""
-        today = date.today()
+        today = Date.today()
         if today > self.fiscal_year_end:
             return 0
         
@@ -518,9 +518,9 @@ class ExpenseItem(BaseSchema):
         ...,
         description="Cost variance amount",
     )
-    completion_date: date = Field(
+    completion_date: Date = Field(
         ...,
-        description="Completion date",
+        description="Completion Date",
     )
     vendor_name: Optional[str] = Field(
         None,
@@ -815,9 +815,9 @@ class VendorInvoice(BaseCreateSchema):
         max_length=100,
         description="Vendor invoice number",
     )
-    invoice_date: date = Field(
+    invoice_date: Date = Field(
         ...,
-        description="Invoice issue date",
+        description="Invoice issue Date",
     )
     purchase_order_number: Optional[str] = Field(
         None,
@@ -859,9 +859,9 @@ class VendorInvoice(BaseCreateSchema):
         max_length=200,
         description="Payment terms (e.g., Net 30, Due on receipt)",
     )
-    due_date: date = Field(
+    due_date: Date = Field(
         ...,
-        description="Payment due date",
+        description="Payment due Date",
     )
     currency: str = Field(
         default="INR",
@@ -880,13 +880,13 @@ class VendorInvoice(BaseCreateSchema):
 
     @field_validator("invoice_date", "due_date")
     @classmethod
-    def validate_dates(cls, v: date) -> date:
+    def validate_dates(cls, v: Date) -> Date:
         """Validate invoice dates are reasonable."""
-        # Invoice date shouldn't be too far in past or future
-        days_diff = abs((date.today() - v).days)
+        # Invoice Date shouldn't be too far in past or future
+        days_diff = abs((Date.today() - v).days)
         if days_diff > 365:
             raise ValueError(
-                "Invoice date cannot be more than 1 year from today"
+                "Invoice Date cannot be more than 1 year from today"
             )
         return v
 
@@ -914,9 +914,9 @@ class VendorInvoice(BaseCreateSchema):
                 f"subtotal ({self.subtotal}) + tax ({self.tax_amount}) - discount ({self.discount_amount})"
             )
         
-        # Due date should be on or after invoice date
+        # Due Date should be on or after invoice Date
         if self.due_date < self.invoice_date:
-            raise ValueError("Due date cannot be before invoice date")
+            raise ValueError("Due Date cannot be before invoice Date")
         
         return self
 

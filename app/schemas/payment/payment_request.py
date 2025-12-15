@@ -8,7 +8,7 @@ including online payments, manual payments, and bulk operations.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -58,13 +58,13 @@ class PaymentRequest(BaseCreateSchema):
     )
 
     # Payment Period (for recurring fees)
-    payment_period_start: Optional[date] = Field(
+    payment_period_start: Optional[Date] = Field(
         None,
-        description="Period start date",
+        description="Period start Date",
     )
-    payment_period_end: Optional[date] = Field(
+    payment_period_end: Optional[Date] = Field(
         None,
-        description="Period end date",
+        description="Period end Date",
     )
 
     # Payment Gateway Selection
@@ -240,9 +240,9 @@ class ManualPaymentRequest(BaseCreateSchema):
         max_length=50,
         description="Cheque number (if payment_method is cheque)",
     )
-    cheque_date: Optional[date] = Field(
+    cheque_date: Optional[Date] = Field(
         None,
-        description="Cheque date",
+        description="Cheque Date",
     )
     bank_name: Optional[str] = Field(
         None,
@@ -256,19 +256,19 @@ class ManualPaymentRequest(BaseCreateSchema):
         max_length=100,
         description="Bank transaction reference number",
     )
-    transfer_date: Optional[date] = Field(
+    transfer_date: Optional[Date] = Field(
         None,
         description="Date of bank transfer",
     )
 
     # Payment Period
-    payment_period_start: Optional[date] = Field(
+    payment_period_start: Optional[Date] = Field(
         None,
-        description="Period start date",
+        description="Period start Date",
     )
-    payment_period_end: Optional[date] = Field(
+    payment_period_end: Optional[Date] = Field(
         None,
-        description="Period end date",
+        description="Period end Date",
     )
 
     # Collection Details
@@ -276,7 +276,7 @@ class ManualPaymentRequest(BaseCreateSchema):
         ...,
         description="Staff member who collected the payment",
     )
-    collection_date: date = Field(
+    collection_date: Date = Field(
         ...,
         description="Date payment was collected",
     )
@@ -315,9 +315,9 @@ class ManualPaymentRequest(BaseCreateSchema):
             if not self.cheque_date:
                 raise ValueError("cheque_date is required for cheque payments")
             
-            # Validate cheque date is not in the future
-            if self.cheque_date > date.today():
-                raise ValueError("Cheque date cannot be in the future")
+            # Validate cheque Date is not in the future
+            if self.cheque_date > Date.today():
+                raise ValueError("Cheque Date cannot be in the future")
         
         return self
 
@@ -337,13 +337,13 @@ class ManualPaymentRequest(BaseCreateSchema):
 
     @field_validator("collection_date")
     @classmethod
-    def validate_collection_date(cls, v: date) -> date:
-        """Validate collection date."""
-        if v > date.today():
-            raise ValueError("Collection date cannot be in the future")
+    def validate_collection_date(cls, v: Date) -> Date:
+        """Validate collection Date."""
+        if v > Date.today():
+            raise ValueError("Collection Date cannot be in the future")
         
-        # Warn if collection date is too old
-        days_ago = (date.today() - v).days
+        # Warn if collection Date is too old
+        days_ago = (Date.today() - v).days
         if days_ago > 90:
             # Log warning
             pass
@@ -419,7 +419,7 @@ class BulkPaymentRequest(BaseCreateSchema):
         ...,
         description="Staff member who collected all payments",
     )
-    collection_date: date = Field(
+    collection_date: Date = Field(
         ...,
         description="Date all payments were collected",
     )
@@ -445,8 +445,8 @@ class BulkPaymentRequest(BaseCreateSchema):
 
     @field_validator("collection_date")
     @classmethod
-    def validate_collection_date(cls, v: date) -> date:
-        """Validate collection date."""
-        if v > date.today():
-            raise ValueError("Collection date cannot be in the future")
+    def validate_collection_date(cls, v: Date) -> Date:
+        """Validate collection Date."""
+        if v > Date.today():
+            raise ValueError("Collection Date cannot be in the future")
         return v

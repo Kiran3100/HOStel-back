@@ -7,7 +7,7 @@ reopening, and final closure with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
@@ -59,9 +59,9 @@ class ResolutionRequest(BaseCreateSchema):
         default=False,
         description="Whether follow-up check is needed",
     )
-    follow_up_date: Optional[date] = Field(
+    follow_up_date: Optional[Date] = Field(
         default=None,
-        description="Scheduled follow-up date",
+        description="Scheduled follow-up Date",
     )
     follow_up_notes: Optional[str] = Field(
         default=None,
@@ -98,11 +98,11 @@ class ResolutionRequest(BaseCreateSchema):
 
     @field_validator("follow_up_date")
     @classmethod
-    def validate_follow_up_date(cls, v: Optional[date]) -> Optional[date]:
-        """Ensure follow-up date is in the future."""
-        if v is not None and v <= date.today():
+    def validate_follow_up_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Ensure follow-up Date is in the future."""
+        if v is not None and v <= Date.today():
             raise ValueError(
-                "Follow-up date must be in the future"
+                "Follow-up Date must be in the future"
             )
         return v
 
@@ -115,7 +115,7 @@ class ResolutionRequest(BaseCreateSchema):
         """
         if self.follow_up_required and not self.follow_up_date:
             raise ValueError(
-                "Follow-up date is required when follow-up is marked as needed"
+                "Follow-up Date is required when follow-up is marked as needed"
             )
         
         return self

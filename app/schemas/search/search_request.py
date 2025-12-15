@@ -12,7 +12,7 @@ Provides schemas for:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -212,13 +212,13 @@ class AdvancedSearchRequest(BaseFilterSchema):
     )
 
     # Date-based availability
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Desired check-in date for availability check",
+        description="Desired check-in Date for availability check",
     )
-    check_out_date: Optional[date] = Field(
+    check_out_date: Optional[Date] = Field(
         default=None,
-        description="Desired check-out date for availability check",
+        description="Desired check-out Date for availability check",
     )
 
     # Sorting options
@@ -291,7 +291,7 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
         - Ensure radius is provided only with coordinates
         - Validate price range
-        - Validate date range
+        - Validate Date range
         """
         # Validate radius requires coordinates
         if self.radius_km is not None:
@@ -308,13 +308,13 @@ class AdvancedSearchRequest(BaseFilterSchema):
         ):
             raise ValueError("min_price cannot be greater than max_price")
 
-        # Validate date range
+        # Validate Date range
         if self.check_in_date and self.check_out_date:
             if self.check_in_date >= self.check_out_date:
                 raise ValueError("check_in_date must be before check_out_date")
 
             # Validate dates are not in the past
-            today = date.today()
+            today = Date.today()
             if self.check_in_date < today:
                 raise ValueError("check_in_date cannot be in the past")
 

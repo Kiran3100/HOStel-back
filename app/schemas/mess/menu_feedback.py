@@ -8,7 +8,7 @@ and quality metrics for menu improvement.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -192,9 +192,9 @@ class FeedbackResponse(BaseResponseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     student_id: UUID = Field(
         ...,
@@ -281,9 +281,9 @@ class ItemRating(BaseSchema):
         le=100,
         description="Popularity score (0-100)",
     )
-    last_served: Optional[date] = Field(
+    last_served: Optional[Date] = Field(
         None,
-        description="Last date item was served",
+        description="Last Date item was served",
     )
 
     @field_validator("average_rating", "popularity_score", mode="after")
@@ -334,9 +334,9 @@ class RatingsSummary(BaseSchema):
         ...,
         description="Menu unique identifier",
     )
-    menu_date: date = Field(
+    menu_date: Date = Field(
         ...,
-        description="Menu date",
+        description="Menu Date",
     )
     hostel_id: UUID = Field(
         ...,
@@ -610,11 +610,11 @@ class QualityMetrics(BaseSchema):
         ...,
         description="Hostel name",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
         description="Analysis period start",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
         description="Analysis period end",
     )

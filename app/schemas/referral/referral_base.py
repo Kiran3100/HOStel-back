@@ -281,7 +281,7 @@ class ReferralUpdate(BaseSchema):
     )
     conversion_date: Optional[datetime] = Field(
         None,
-        description="Set conversion date",
+        description="Set conversion Date",
     )
 
     # Reward updates
@@ -341,7 +341,7 @@ class ReferralConversion(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_conversion_date(self) -> "ReferralConversion":
-        """Ensure conversion date is not in future."""
+        """Ensure conversion Date is not in future."""
         if self.conversion_date > datetime.utcnow():
-            raise ValueError("Conversion date cannot be in the future")
+            raise ValueError("Conversion Date cannot be in the future")
         return self

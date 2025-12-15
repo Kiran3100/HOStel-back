@@ -8,7 +8,7 @@ and exporting payment data with comprehensive analytics support.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -108,29 +108,29 @@ class PaymentFilterParams(BaseFilterSchema):
     )
 
     # Date Filters
-    paid_date_from: Optional[date] = Field(
+    paid_date_from: Optional[Date] = Field(
         None,
-        description="Filter payments paid from this date",
+        description="Filter payments paid from this Date",
     )
-    paid_date_to: Optional[date] = Field(
+    paid_date_to: Optional[Date] = Field(
         None,
-        description="Filter payments paid until this date",
+        description="Filter payments paid until this Date",
     )
-    due_date_from: Optional[date] = Field(
+    due_date_from: Optional[Date] = Field(
         None,
-        description="Filter by due date from",
+        description="Filter by due Date from",
     )
-    due_date_to: Optional[date] = Field(
+    due_date_to: Optional[Date] = Field(
         None,
-        description="Filter by due date to",
+        description="Filter by due Date to",
     )
-    created_date_from: Optional[date] = Field(
+    created_date_from: Optional[Date] = Field(
         None,
-        description="Filter by creation date from",
+        description="Filter by creation Date from",
     )
-    created_date_to: Optional[date] = Field(
+    created_date_to: Optional[Date] = Field(
         None,
-        description="Filter by creation date to",
+        description="Filter by creation Date to",
     )
 
     # Special Filters
@@ -167,7 +167,7 @@ class PaymentFilterParams(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_paid_date_range(self) -> "PaymentFilterParams":
-        """Validate paid date range."""
+        """Validate paid Date range."""
         if self.paid_date_from is not None and self.paid_date_to is not None:
             if self.paid_date_to < self.paid_date_from:
                 raise ValueError(
@@ -177,7 +177,7 @@ class PaymentFilterParams(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_due_date_range(self) -> "PaymentFilterParams":
-        """Validate due date range."""
+        """Validate due Date range."""
         if self.due_date_from is not None and self.due_date_to is not None:
             if self.due_date_to < self.due_date_from:
                 raise ValueError(
@@ -187,7 +187,7 @@ class PaymentFilterParams(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_created_date_range(self) -> "PaymentFilterParams":
-        """Validate created date range."""
+        """Validate created Date range."""
         if self.created_date_from is not None and self.created_date_to is not None:
             if self.created_date_to < self.created_date_from:
                 raise ValueError(
@@ -295,13 +295,13 @@ class PaymentReportRequest(BaseFilterSchema):
     )
 
     # Date Range (Required)
-    date_from: date = Field(
+    date_from: Date = Field(
         ...,
-        description="Report start date",
+        description="Report start Date",
     )
-    date_to: date = Field(
+    date_to: Date = Field(
         ...,
-        description="Report end date",
+        description="Report end Date",
     )
 
     # Filters
@@ -346,8 +346,8 @@ class PaymentReportRequest(BaseFilterSchema):
 
     @field_validator("date_to")
     @classmethod
-    def validate_date_range(cls, v: date, info) -> date:
-        """Validate date range."""
+    def validate_date_range(cls, v: Date, info) -> Date:
+        """Validate Date range."""
         # In Pydantic v2, info.data contains the other validated fields
         date_from = info.data.get("date_from")
         if date_from is not None:
@@ -429,7 +429,7 @@ class PaymentAnalyticsRequest(BaseFilterSchema):
     Payment analytics request.
     
     Generates analytics and insights for payments within
-    a specified date range.
+    a specified Date range.
     """
 
     hostel_id: Optional[UUID] = Field(
@@ -438,13 +438,13 @@ class PaymentAnalyticsRequest(BaseFilterSchema):
     )
 
     # Date Range (Required)
-    date_from: date = Field(
+    date_from: Date = Field(
         ...,
-        description="Analytics start date",
+        description="Analytics start Date",
     )
-    date_to: date = Field(
+    date_to: Date = Field(
         ...,
-        description="Analytics end date",
+        description="Analytics end Date",
     )
 
     # Grouping/Aggregation
@@ -478,8 +478,8 @@ class PaymentAnalyticsRequest(BaseFilterSchema):
 
     @field_validator("date_to")
     @classmethod
-    def validate_date_range(cls, v: date, info) -> date:
-        """Validate analytics date range."""
+    def validate_date_range(cls, v: Date, info) -> Date:
+        """Validate analytics Date range."""
         date_from = info.data.get("date_from")
         if date_from is not None:
             if v < date_from:

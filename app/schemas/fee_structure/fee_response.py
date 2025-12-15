@@ -8,7 +8,7 @@ basic responses, detailed information, and list views.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -104,13 +104,13 @@ class FeeStructureResponse(BaseResponseSchema):
     )
 
     # Validity Period
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ...,
-        description="Effective start date",
+        description="Effective start Date",
     )
-    effective_to: Optional[date] = Field(
+    effective_to: Optional[Date] = Field(
         default=None,
-        description="Effective end date",
+        description="Effective end Date",
     )
 
     # Status
@@ -146,7 +146,7 @@ class FeeStructureResponse(BaseResponseSchema):
     @property
     def is_currently_effective(self) -> bool:
         """Check if fee structure is currently in effect."""
-        today = date.today()
+        today = Date.today()
         
         if today < self.effective_from:
             return False
@@ -164,7 +164,7 @@ class FeeStructureResponse(BaseResponseSchema):
             return "Inactive"
         
         if not self.is_currently_effective:
-            if date.today() < self.effective_from:
+            if Date.today() < self.effective_from:
                 return "Scheduled"
             else:
                 return "Expired"
@@ -375,13 +375,13 @@ class FeeHistoryItem(BaseSchema):
         description="Rent amount",
     )
 
-    effective_from: date = Field(
+    effective_from: Date = Field(
         ...,
-        description="Effective start date",
+        description="Effective start Date",
     )
-    effective_to: Optional[date] = Field(
+    effective_to: Optional[Date] = Field(
         default=None,
-        description="Effective end date",
+        description="Effective end Date",
     )
 
     # Change Information
@@ -456,7 +456,7 @@ class FeeHistory(BaseSchema):
     # History Entries
     history: List[FeeHistoryItem] = Field(
         default_factory=list,
-        description="List of historical fee structures (ordered by date)",
+        description="List of historical fee structures (ordered by Date)",
     )
 
     # Statistics
@@ -475,7 +475,7 @@ class FeeHistory(BaseSchema):
     @property
     def current_fee(self) -> Optional[FeeHistoryItem]:
         """Get current active fee structure."""
-        today = date.today()
+        today = Date.today()
         
         for entry in self.history:
             if entry.effective_from <= today:

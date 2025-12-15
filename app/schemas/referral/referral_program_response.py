@@ -8,7 +8,7 @@ including detailed program information, lists, and statistics.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -67,8 +67,8 @@ class ProgramResponse(BaseResponseSchema):
 
     # Status
     is_active: bool = Field(..., description="Active status")
-    valid_from: Optional[date] = Field(None, description="Start date")
-    valid_to: Optional[date] = Field(None, description="End date")
+    valid_from: Optional[Date] = Field(None, description="Start Date")
+    valid_to: Optional[Date] = Field(None, description="End Date")
 
     # Terms
     terms_and_conditions: Optional[str] = Field(None, description="T&C")
@@ -97,7 +97,7 @@ class ProgramResponse(BaseResponseSchema):
         """Check if program has expired."""
         if self.valid_to is None:
             return False
-        return date.today() > self.valid_to
+        return Date.today() > self.valid_to
 
     @computed_field
     @property
@@ -105,7 +105,7 @@ class ProgramResponse(BaseResponseSchema):
         """Check if program hasn't started yet."""
         if self.valid_from is None:
             return False
-        return date.today() < self.valid_from
+        return Date.today() < self.valid_from
 
     @computed_field
     @property
@@ -122,7 +122,7 @@ class ProgramResponse(BaseResponseSchema):
         """Calculate days remaining until expiration."""
         if self.valid_to is None:
             return None
-        delta = self.valid_to - date.today()
+        delta = self.valid_to - Date.today()
         return max(0, delta.days)
 
 
@@ -250,8 +250,8 @@ class ProgramStats(BaseSchema):
     )
 
     # Time period
-    period_start: date = Field(..., description="Statistics start date")
-    period_end: date = Field(..., description="Statistics end date")
+    period_start: Date = Field(..., description="Statistics start Date")
+    period_end: Date = Field(..., description="Statistics end Date")
     generated_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="When statistics were generated",

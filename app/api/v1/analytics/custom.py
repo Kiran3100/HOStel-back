@@ -112,7 +112,7 @@ async def get_report_definition(
 async def delete_report_definition(
     report_id: UUID = Path(..., description="Report definition ID"),
     uow: UnitOfWork = Depends(get_uow),
-) -> None:
+):
     """
     Delete a saved custom report definition.
     """

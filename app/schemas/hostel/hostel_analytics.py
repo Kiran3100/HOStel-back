@@ -5,7 +5,7 @@ Hostel analytics and reporting schemas with comprehensive metrics.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -41,7 +41,7 @@ class OccupancyDataPoint(BaseSchema):
     Represents occupancy at a specific point in time.
     """
 
-    data_date: date = Field(..., description="Date of the data point")
+    data_date: Date = Field(..., description="Date of the data point")
     occupancy_rate: Decimal = Field(
         ...,
         ge=0,
@@ -135,7 +135,7 @@ class RevenueDataPoint(BaseSchema):
     Represents revenue metrics at a specific point in time.
     """
 
-    data_date: date = Field(..., description="Date of the data point")
+    data_date: Date = Field(..., description="Date of the data point")
     revenue: Decimal = Field(
         ...,
         ge=0,
@@ -235,7 +235,7 @@ class BookingDataPoint(BaseSchema):
     Represents booking metrics at a specific point in time.
     """
 
-    data_date: date = Field(..., description="Date of the data point")
+    data_date: Date = Field(..., description="Date of the data point")
     total_bookings: int = Field(
         ...,
         ge=0,
@@ -501,8 +501,8 @@ class HostelAnalytics(BaseSchema):
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
-    period_start: date = Field(..., description="Analytics period start")
-    period_end: date = Field(..., description="Analytics period end")
+    period_start: Date = Field(..., description="Analytics period start")
+    period_end: Date = Field(..., description="Analytics period end")
 
     occupancy: OccupancyAnalytics = Field(
         ...,
@@ -757,8 +757,8 @@ class AnalyticsRequest(BaseSchema):
     """
 
     hostel_id: UUID = Field(..., description="Hostel ID")
-    start_date: date = Field(..., description="Analytics start date")
-    end_date: date = Field(..., description="Analytics end date")
+    start_date: Date = Field(..., description="Analytics start Date")
+    end_date: Date = Field(..., description="Analytics end Date")
     include_predictions: bool = Field(
         default=False,
         description="Include predictive analytics",
@@ -771,11 +771,11 @@ class AnalyticsRequest(BaseSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "AnalyticsRequest":
-        """Validate date range is reasonable."""
+        """Validate Date range is reasonable."""
         if self.end_date < self.start_date:
             raise ValueError("end_date must be after or equal to start_date")
         
-        # Check if date range is not too large (max 2 years)
+        # Check if Date range is not too large (max 2 years)
         days_diff = (self.end_date - self.start_date).days
         if days_diff > 730:  # 2 years
             raise ValueError("Date range cannot exceed 2 years")

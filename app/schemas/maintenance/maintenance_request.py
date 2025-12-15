@@ -8,7 +8,7 @@ standard, detailed supervisor submissions, and emergency requests.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import data as Date
 from decimal import Decimal
 from typing import List, Optional
 

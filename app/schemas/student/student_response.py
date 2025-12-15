@@ -7,7 +7,7 @@ detailed views, list items, profiles, and specialized information.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -61,13 +61,13 @@ class StudentResponse(BaseResponseSchema):
 
     # Status
     student_status: StudentStatus = Field(..., description="Student status")
-    check_in_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(
         default=None,
-        description="Check-in date",
+        description="Check-in Date",
     )
-    expected_checkout_date: Optional[date] = Field(
+    expected_checkout_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout date",
+        description="Expected checkout Date",
     )
 
     # Financial
@@ -93,7 +93,7 @@ class StudentResponse(BaseResponseSchema):
         """Calculate days stayed in hostel."""
         if not self.check_in_date:
             return None
-        end_date = getattr(self, 'actual_checkout_date', None) or date.today()
+        end_date = getattr(self, 'actual_checkout_date', None) or Date.today()
         return (end_date - self.check_in_date).days
 
     @computed_field
@@ -119,7 +119,7 @@ class StudentDetail(BaseResponseSchema):
     email: str = Field(..., description="Email")
     phone: str = Field(..., description="Phone")
     gender: Optional[str] = Field(default=None, description="Gender")
-    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    date_of_birth: Optional[Date] = Field(default=None, description="Date of birth")
     profile_image_url: Optional[str] = Field(
         default=None,
         description="Profile image",
@@ -191,12 +191,12 @@ class StudentDetail(BaseResponseSchema):
     )
 
     # Dates
-    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
-    expected_checkout_date: Optional[date] = Field(
+    check_in_date: Optional[Date] = Field(default=None, description="Check-in Date")
+    expected_checkout_date: Optional[Date] = Field(
         default=None,
         description="Expected checkout",
     )
-    actual_checkout_date: Optional[date] = Field(
+    actual_checkout_date: Optional[Date] = Field(
         default=None,
         description="Actual checkout",
     )
@@ -210,9 +210,9 @@ class StudentDetail(BaseResponseSchema):
         ...,
         description="Security deposit paid",
     )
-    security_deposit_paid_date: Optional[date] = Field(
+    security_deposit_paid_date: Optional[Date] = Field(
         default=None,
-        description="Deposit paid date",
+        description="Deposit paid Date",
     )
     monthly_rent_amount: Optional[Decimal] = Field(
         default=None,
@@ -232,11 +232,11 @@ class StudentDetail(BaseResponseSchema):
 
     # Status
     student_status: StudentStatus = Field(..., description="Student status")
-    notice_period_start: Optional[date] = Field(
+    notice_period_start: Optional[Date] = Field(
         default=None,
         description="Notice period start",
     )
-    notice_period_end: Optional[date] = Field(
+    notice_period_end: Optional[Date] = Field(
         default=None,
         description="Notice period end",
     )
@@ -256,10 +256,10 @@ class StudentDetail(BaseResponseSchema):
     @computed_field
     @property
     def age(self) -> Optional[int]:
-        """Calculate age from date of birth."""
+        """Calculate age from Date of birth."""
         if not self.date_of_birth:
             return None
-        today = date.today()
+        today = Date.today()
         return (
             today.year
             - self.date_of_birth.year
@@ -275,7 +275,7 @@ class StudentDetail(BaseResponseSchema):
         """Calculate total days in hostel."""
         if not self.check_in_date:
             return None
-        end_date = self.actual_checkout_date or date.today()
+        end_date = self.actual_checkout_date or Date.today()
         return (end_date - self.check_in_date).days
 
     @computed_field
@@ -316,7 +316,7 @@ class StudentProfile(BaseSchema):
     )
     hostel_name: str = Field(..., description="Hostel name")
     room_number: Optional[str] = Field(default=None, description="Room number")
-    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
+    check_in_date: Optional[Date] = Field(default=None, description="Check-in Date")
 
     # Optional info (based on privacy settings)
     institution_name: Optional[str] = Field(
@@ -334,7 +334,7 @@ class StudentProfile(BaseSchema):
         if not self.check_in_date:
             return None
 
-        days = (date.today() - self.check_in_date).days
+        days = (Date.today() - self.check_in_date).days
         if days < 30:
             return f"{days} days"
         elif days < 365:
@@ -368,7 +368,7 @@ class StudentListItem(BaseSchema):
 
     # Status
     student_status: StudentStatus = Field(..., description="Status")
-    check_in_date: Optional[date] = Field(default=None, description="Check-in date")
+    check_in_date: Optional[Date] = Field(default=None, description="Check-in Date")
 
     # Financial
     monthly_rent: Optional[Decimal] = Field(default=None, description="Monthly rent")
@@ -390,7 +390,7 @@ class StudentListItem(BaseSchema):
         """Calculate days in hostel."""
         if not self.check_in_date:
             return None
-        return (date.today() - self.check_in_date).days
+        return (Date.today() - self.check_in_date).days
 
 
 class StudentFinancialInfo(BaseSchema):
@@ -410,9 +410,9 @@ class StudentFinancialInfo(BaseSchema):
     # Security deposit
     security_deposit_amount: Decimal = Field(..., description="Security deposit")
     security_deposit_paid: bool = Field(..., description="Deposit paid status")
-    security_deposit_paid_date: Optional[date] = Field(
+    security_deposit_paid_date: Optional[Date] = Field(
         default=None,
-        description="Deposit paid date",
+        description="Deposit paid Date",
     )
     security_deposit_refundable: Decimal = Field(
         ...,
@@ -422,11 +422,11 @@ class StudentFinancialInfo(BaseSchema):
     # Payments
     total_paid: Decimal = Field(..., description="Total amount paid")
     total_due: Decimal = Field(..., description="Total amount due")
-    last_payment_date: Optional[date] = Field(
+    last_payment_date: Optional[Date] = Field(
         default=None,
-        description="Last payment date",
+        description="Last payment Date",
     )
-    next_due_date: Optional[date] = Field(default=None, description="Next due date")
+    next_due_date: Optional[Date] = Field(default=None, description="Next due Date")
 
     # Outstanding
     overdue_amount: Decimal = Field(..., description="Overdue amount")

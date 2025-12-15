@@ -5,7 +5,7 @@ Hostel filter and sort schemas with advanced filtering options.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -175,13 +175,13 @@ class AdvancedFilters(BaseFilterSchema):
     """
 
     # Date filters
-    created_after: Optional[date] = Field(
+    created_after: Optional[Date] = Field(
         default=None,
-        description="Filter hostels created after this date",
+        description="Filter hostels created after this Date",
     )
-    created_before: Optional[date] = Field(
+    created_before: Optional[Date] = Field(
         default=None,
-        description="Filter hostels created before this date",
+        description="Filter hostels created before this Date",
     )
 
     # Occupancy
@@ -231,8 +231,8 @@ class AdvancedFilters(BaseFilterSchema):
 
     @field_validator("created_before")
     @classmethod
-    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate date range."""
+    def validate_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate Date range."""
         if v is not None:
             created_after = info.data.get("created_after")
             if created_after is not None and v < created_after:

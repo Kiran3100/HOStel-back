@@ -7,7 +7,7 @@ capabilities for file queries.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -144,7 +144,7 @@ class FileFilterParams(BaseFilterSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "FileFilterParams":
-        """Validate date range is logical."""
+        """Validate Date range is logical."""
         if self.uploaded_before is not None and self.uploaded_after is not None:
             if self.uploaded_before < self.uploaded_after:
                 raise ValueError(
@@ -283,13 +283,13 @@ class DocumentFilterParams(BaseFilterSchema):
         le=365,
         description="Filter documents expiring within N days",
     )
-    expiry_date_from: Optional[date] = Field(
+    expiry_date_from: Optional[Date] = Field(
         default=None,
-        description="Expiry date range start",
+        description="Expiry Date range start",
     )
-    expiry_date_to: Optional[date] = Field(
+    expiry_date_to: Optional[Date] = Field(
         default=None,
-        description="Expiry date range end",
+        description="Expiry Date range end",
     )
 
     # OCR filters

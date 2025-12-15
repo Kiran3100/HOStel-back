@@ -8,7 +8,7 @@ and remaining balance with validation.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -198,13 +198,13 @@ class LeaveBalanceSummary(BaseSchema):
     )
 
     # Academic period
-    academic_year_start: date = Field(
+    academic_year_start: Date = Field(
         ...,
-        description="Academic year start date",
+        description="Academic year start Date",
     )
-    academic_year_end: date = Field(
+    academic_year_end: Date = Field(
         ...,
-        description="Academic year end date",
+        description="Academic year end Date",
     )
     current_semester: Optional[str] = Field(
         None,
@@ -241,14 +241,14 @@ class LeaveBalanceSummary(BaseSchema):
     )
 
     # Last updated
-    last_updated: date = Field(
+    last_updated: Date = Field(
         ...,
-        description="Last balance update date",
+        description="Last balance update Date",
     )
 
     @field_validator("academic_year_end")
     @classmethod
-    def validate_academic_year(cls, v: date, info) -> date:
+    def validate_academic_year(cls, v: Date, info) -> Date:
         """Validate academic year dates are logical."""
         if "academic_year_start" in info.data:
             if v <= info.data["academic_year_start"]:
@@ -273,7 +273,7 @@ class LeaveBalanceSummary(BaseSchema):
     @property
     def days_until_year_end(self) -> int:
         """Calculate days remaining in academic year."""
-        today = date.today()
+        today = Date.today()
         if today > self.academic_year_end:
             return 0
         return (self.academic_year_end - today).days
@@ -417,26 +417,26 @@ class LeaveUsageDetail(BaseSchema):
         ...,
         description="Leave type",
     )
-    from_date: date = Field(
+    from_date: Date = Field(
         ...,
-        description="Leave start date",
+        description="Leave start Date",
     )
-    to_date: date = Field(
+    to_date: Date = Field(
         ...,
-        description="Leave end date",
+        description="Leave end Date",
     )
     total_days: int = Field(
         ...,
         ge=1,
         description="Total leave days",
     )
-    applied_at: date = Field(
+    applied_at: Date = Field(
         ...,
-        description="Application date",
+        description="Application Date",
     )
-    approved_at: Optional[date] = Field(
+    approved_at: Optional[Date] = Field(
         None,
-        description="Approval date",
+        description="Approval Date",
     )
     days_notice: int = Field(
         ...,

@@ -8,7 +8,7 @@ creation, updates, generation, and suspension of scheduled payments.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date as Date, timedelta
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -70,17 +70,17 @@ class PaymentSchedule(BaseResponseSchema):
     )
 
     # Schedule Period
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="Schedule start date",
+        description="Schedule start Date",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         None,
-        description="Schedule end date (null for indefinite)",
+        description="Schedule end Date (null for indefinite)",
     )
-    next_due_date: date = Field(
+    next_due_date: Date = Field(
         ...,
-        description="Next payment due date",
+        description="Next payment due Date",
     )
 
     # Settings
@@ -96,20 +96,20 @@ class PaymentSchedule(BaseResponseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def is_indefinite(self) -> bool:
-        """Check if schedule has no end date."""
+        """Check if schedule has no end Date."""
         return self.end_date is None
 
     @computed_field  # type: ignore[misc]
     @property
     def days_until_next_payment(self) -> int:
         """Calculate days until next payment."""
-        return (self.next_due_date - date.today()).days
+        return (self.next_due_date - Date.today()).days
 
     @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Check if next payment is overdue."""
-        return self.next_due_date < date.today()
+        return self.next_due_date < Date.today()
 
 
 class ScheduleCreate(BaseCreateSchema):
@@ -140,19 +140,19 @@ class ScheduleCreate(BaseCreateSchema):
     )
 
     # Schedule Period
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
         description="When schedule should start",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         None,
         description="When schedule should end (null for indefinite)",
     )
 
     # First Payment
-    first_due_date: date = Field(
+    first_due_date: Date = Field(
         ...,
-        description="Due date for first payment",
+        description="Due Date for first payment",
     )
 
     # Settings
@@ -183,10 +183,10 @@ class ScheduleCreate(BaseCreateSchema):
 
     @field_validator("start_date")
     @classmethod
-    def validate_start_date(cls, v: date) -> date:
-        """Validate start date is reasonable."""
+    def validate_start_date(cls, v: Date) -> Date:
+        """Validate start Date is reasonable."""
         # Allow past dates for backdated schedules, but warn
-        days_ago = (date.today() - v).days
+        days_ago = (Date.today() - v).days
         if days_ago > 365:
             # Log warning - might be data migration
             pass
@@ -195,15 +195,15 @@ class ScheduleCreate(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "ScheduleCreate":
-        """Validate schedule date range."""
+        """Validate schedule Date range."""
         if self.end_date is not None:
             if self.end_date < self.start_date:
                 raise ValueError(
-                    f"End date ({self.end_date}) must be after "
-                    f"start date ({self.start_date})"
+                    f"End Date ({self.end_date}) must be after "
+                    f"start Date ({self.start_date})"
                 )
             
-            # Check if end date is reasonable
+            # Check if end Date is reasonable
             days_diff = (self.end_date - self.start_date).days
             if days_diff > 1825:  # 5 years
                 # Log warning - very long schedule
@@ -213,17 +213,17 @@ class ScheduleCreate(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_first_due_date(self) -> "ScheduleCreate":
-        """Validate first due date is within schedule period."""
+        """Validate first due Date is within schedule period."""
         if self.first_due_date < self.start_date:
             raise ValueError(
-                f"First due date ({self.first_due_date}) cannot be "
-                f"before start date ({self.start_date})"
+                f"First due Date ({self.first_due_date}) cannot be "
+                f"before start Date ({self.start_date})"
             )
         
         if self.end_date is not None and self.first_due_date > self.end_date:
             raise ValueError(
-                f"First due date ({self.first_due_date}) cannot be "
-                f"after end date ({self.end_date})"
+                f"First due Date ({self.first_due_date}) cannot be "
+                f"after end Date ({self.end_date})"
             )
         
         return self
@@ -241,13 +241,13 @@ class ScheduleUpdate(BaseUpdateSchema):
         ge=0,
         description="Update amount per period",
     )
-    next_due_date: Optional[date] = Field(
+    next_due_date: Optional[Date] = Field(
         None,
-        description="Update next due date",
+        description="Update next due Date",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         None,
-        description="Update end date",
+        description="Update end Date",
     )
     auto_generate_invoice: Optional[bool] = Field(
         None,
@@ -283,13 +283,13 @@ class ScheduleGeneration(BaseSchema):
     )
 
     # Generation Period
-    generate_from_date: date = Field(
+    generate_from_date: Date = Field(
         ...,
-        description="Start date for payment generation",
+        description="Start Date for payment generation",
     )
-    generate_to_date: date = Field(
+    generate_to_date: Date = Field(
         ...,
-        description="End date for payment generation",
+        description="End Date for payment generation",
     )
 
     # Options
@@ -307,8 +307,8 @@ class ScheduleGeneration(BaseSchema):
         """Validate generation period."""
         if self.generate_to_date < self.generate_from_date:
             raise ValueError(
-                f"End date ({self.generate_to_date}) must be after "
-                f"start date ({self.generate_from_date})"
+                f"End Date ({self.generate_to_date}) must be after "
+                f"start Date ({self.generate_from_date})"
             )
         
         # Limit generation period to 1 year
@@ -352,7 +352,7 @@ class ScheduledPaymentGenerated(BaseSchema):
     )
 
     # Next Generation
-    next_generation_date: date = Field(
+    next_generation_date: Date = Field(
         ...,
         description="When next generation should occur",
     )
@@ -402,13 +402,13 @@ class BulkScheduleCreate(BaseCreateSchema):
     )
 
     # Common Schedule Period
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="Start date for all schedules",
+        description="Start Date for all schedules",
     )
-    first_due_date: date = Field(
+    first_due_date: Date = Field(
         ...,
-        description="First due date for all schedules",
+        description="First due Date for all schedules",
     )
 
     @field_validator("student_ids")
@@ -437,11 +437,11 @@ class BulkScheduleCreate(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BulkScheduleCreate":
-        """Validate date consistency."""
+        """Validate Date consistency."""
         if self.first_due_date < self.start_date:
             raise ValueError(
-                f"First due date ({self.first_due_date}) cannot be "
-                f"before start date ({self.start_date})"
+                f"First due Date ({self.first_due_date}) cannot be "
+                f"before start Date ({self.start_date})"
             )
         return self
 
@@ -465,13 +465,13 @@ class ScheduleSuspension(BaseCreateSchema):
     )
 
     # Suspension Period
-    suspend_from_date: date = Field(
+    suspend_from_date: Date = Field(
         ...,
-        description="Suspension start date",
+        description="Suspension start Date",
     )
-    suspend_to_date: date = Field(
+    suspend_to_date: Date = Field(
         ...,
-        description="Suspension end date",
+        description="Suspension end Date",
     )
 
     # Handling Options
@@ -494,8 +494,8 @@ class ScheduleSuspension(BaseCreateSchema):
         """Validate suspension period."""
         if self.suspend_to_date <= self.suspend_from_date:
             raise ValueError(
-                f"Suspension end date ({self.suspend_to_date}) must be "
-                f"after start date ({self.suspend_from_date})"
+                f"Suspension end Date ({self.suspend_to_date}) must be "
+                f"after start Date ({self.suspend_from_date})"
             )
         
         # Limit suspension to 1 year
@@ -506,7 +506,7 @@ class ScheduleSuspension(BaseCreateSchema):
             )
         
         # Warn if suspension starts in the past
-        if self.suspend_from_date < date.today():
+        if self.suspend_from_date < Date.today():
             # Log warning
             pass
         

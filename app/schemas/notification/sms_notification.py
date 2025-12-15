@@ -8,7 +8,7 @@ sending, delivery tracking, templates, and bulk operations.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -426,7 +426,7 @@ class SMSTemplate(BaseSchema):
         default=False,
         description="Whether template is DLT approved",
     )
-    dlt_approval_date: Optional[date] = Field(
+    dlt_approval_date: Optional[Date] = Field(
         None,
         description="Date of DLT approval",
     )
@@ -619,18 +619,18 @@ class SMSStats(BaseSchema):
     rejected_count: int = Field(default=0, ge=0)
 
     # Time period
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Statistics period start date",
+        description="Statistics period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Statistics period end date",
+        description="Statistics period end Date",
     )
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period end is after period start."""
         period_start = info.data.get("period_start")
         if period_start and v < period_start:

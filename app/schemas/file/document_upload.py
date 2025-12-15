@@ -7,7 +7,7 @@ and other official documents with OCR and verification support.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Dict, List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator, computed_field
@@ -87,13 +87,13 @@ class DocumentUploadInitRequest(BaseCreateSchema):
     )
 
     # Dates
-    issue_date: Optional[date] = Field(
+    issue_date: Optional[Date] = Field(
         default=None,
-        description="Document issue date",
+        description="Document issue Date",
     )
-    expiry_date: Optional[date] = Field(
+    expiry_date: Optional[Date] = Field(
         default=None,
-        description="Document expiry date (if applicable)",
+        description="Document expiry Date (if applicable)",
     )
 
     # Processing options
@@ -138,11 +138,11 @@ class DocumentUploadInitRequest(BaseCreateSchema):
 
     @field_validator("expiry_date")
     @classmethod
-    def validate_expiry_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate expiry date is in the future."""
-        if v is not None and v < date.today():
+    def validate_expiry_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate expiry Date is in the future."""
+        if v is not None and v < Date.today():
             raise ValueError(
-                "Document expiry date cannot be in the past"
+                "Document expiry Date cannot be in the past"
             )
         return v
 
@@ -152,7 +152,7 @@ class DocumentUploadInitRequest(BaseCreateSchema):
         if self.issue_date and self.expiry_date:
             if self.expiry_date <= self.issue_date:
                 raise ValueError(
-                    "Expiry date must be after issue date"
+                    "Expiry Date must be after issue Date"
                 )
         
         return self
@@ -280,8 +280,8 @@ class DocumentInfo(BaseResponseSchema):
 
     # Document details
     reference_number: Optional[str] = Field(default=None, description="Reference number")
-    issue_date: Optional[date] = Field(default=None, description="Issue date")
-    expiry_date: Optional[date] = Field(default=None, description="Expiry date")
+    issue_date: Optional[Date] = Field(default=None, description="Issue Date")
+    expiry_date: Optional[Date] = Field(default=None, description="Expiry Date")
 
     # File metadata
     filename: str = Field(..., description="Original filename")
@@ -341,7 +341,7 @@ class DocumentInfo(BaseResponseSchema):
         """Check if document has expired."""
         if self.expiry_date is None:
             return False
-        return self.expiry_date < date.today()
+        return self.expiry_date < Date.today()
 
     @computed_field
     @property
@@ -349,7 +349,7 @@ class DocumentInfo(BaseResponseSchema):
         """Get days until expiry."""
         if self.expiry_date is None:
             return None
-        delta = self.expiry_date - date.today()
+        delta = self.expiry_date - Date.today()
         return delta.days
 
     @computed_field
@@ -444,13 +444,13 @@ class DocumentVerificationRequest(BaseCreateSchema):
         max_length=100,
         description="Manually extracted reference number",
     )
-    extracted_issue_date: Optional[date] = Field(
+    extracted_issue_date: Optional[Date] = Field(
         default=None,
-        description="Manually extracted issue date",
+        description="Manually extracted issue Date",
     )
-    extracted_expiry_date: Optional[date] = Field(
+    extracted_expiry_date: Optional[Date] = Field(
         default=None,
-        description="Manually extracted expiry date",
+        description="Manually extracted expiry Date",
     )
 
     @model_validator(mode="after")
@@ -528,7 +528,7 @@ class DocumentOCRResult(BaseSchema):
     # For ID documents
     extracted_name: Optional[str] = Field(default=None, description="Extracted name")
     extracted_id_number: Optional[str] = Field(default=None, description="Extracted ID number")
-    extracted_dob: Optional[str] = Field(default=None, description="Extracted date of birth")
+    extracted_dob: Optional[str] = Field(default=None, description="Extracted Date of birth")
     extracted_address: Optional[str] = Field(default=None, description="Extracted address")
 
     # Processing metadata
@@ -567,7 +567,7 @@ class DocumentExpiryAlert(BaseSchema):
     owner_name: str = Field(..., description="Owner name")
 
     # Expiry information
-    expiry_date: date = Field(..., description="Document expiry date")
+    expiry_date: Date = Field(..., description="Document expiry Date")
     days_until_expiry: int = Field(
         ...,
         description="Days until expiry (negative if already expired)",

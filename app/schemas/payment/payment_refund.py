@@ -8,7 +8,7 @@ status tracking, and approval workflows.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -188,9 +188,9 @@ class RefundResponse(BaseResponseSchema):
         None,
         description="When refund was completed",
     )
-    estimated_completion_date: Optional[date] = Field(
+    estimated_completion_date: Optional[Date] = Field(
         None,
-        description="Estimated completion date",
+        description="Estimated completion Date",
     )
 
     # Destination
@@ -269,9 +269,9 @@ class RefundStatus(BaseSchema):
         None,
         description="Next action required (if any)",
     )
-    expected_completion_date: Optional[date] = Field(
+    expected_completion_date: Optional[Date] = Field(
         None,
-        description="Expected completion date",
+        description="Expected completion Date",
     )
 
     @computed_field  # type: ignore[misc]

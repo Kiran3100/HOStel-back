@@ -8,7 +8,7 @@ basic responses, detailed information, receipts, and summaries.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -94,9 +94,9 @@ class PaymentResponse(BaseResponseSchema):
         None,
         description="When payment was completed",
     )
-    due_date: Optional[date] = Field(
+    due_date: Optional[Date] = Field(
         None,
-        description="Payment due date",
+        description="Payment due Date",
     )
     is_overdue: bool = Field(
         ...,
@@ -173,8 +173,8 @@ class PaymentDetail(BaseResponseSchema):
     currency: str = Field(..., description="Currency")
 
     # Payment Period
-    payment_period_start: Optional[date] = Field(None, description="Period start")
-    payment_period_end: Optional[date] = Field(None, description="Period end")
+    payment_period_start: Optional[Date] = Field(None, description="Period start")
+    payment_period_end: Optional[Date] = Field(None, description="Period end")
 
     # Payment Method
     payment_method: PaymentMethod = Field(..., description="Payment method")
@@ -217,7 +217,7 @@ class PaymentDetail(BaseResponseSchema):
     collected_at: Optional[datetime] = Field(None, description="Collection timestamp")
 
     # Due Date
-    due_date: Optional[date] = Field(None, description="Due date")
+    due_date: Optional[Date] = Field(None, description="Due Date")
     is_overdue: bool = Field(..., description="Overdue status")
 
     # Reminders
@@ -258,7 +258,7 @@ class PaymentDetail(BaseResponseSchema):
         """Calculate days overdue."""
         if not self.is_overdue or self.due_date is None:
             return 0
-        return (date.today() - self.due_date).days
+        return (Date.today() - self.due_date).days
 
     @computed_field  # type: ignore[misc]
     @property
@@ -316,8 +316,8 @@ class PaymentReceipt(BaseSchema):
     )
 
     # Dates
-    payment_date: datetime = Field(..., description="Payment date")
-    due_date: Optional[date] = Field(None, description="Due date")
+    payment_date: datetime = Field(..., description="Payment Date")
+    due_date: Optional[Date] = Field(None, description="Due Date")
 
     # Receipt Metadata
     receipt_generated_at: datetime = Field(..., description="Receipt generation time")
@@ -358,7 +358,7 @@ class PaymentListItem(BaseSchema):
     payment_status: PaymentStatus = Field(..., description="Status")
 
     paid_at: Optional[datetime] = Field(None, description="Payment time")
-    due_date: Optional[date] = Field(None, description="Due date")
+    due_date: Optional[Date] = Field(None, description="Due Date")
     is_overdue: bool = Field(..., description="Overdue status")
 
     created_at: datetime = Field(..., description="Creation time")
@@ -413,7 +413,7 @@ class PaymentSummary(BaseSchema):
     )
 
     # Last Payment
-    last_payment_date: Optional[date] = Field(
+    last_payment_date: Optional[Date] = Field(
         None,
         description="Date of last payment",
     )
@@ -424,9 +424,9 @@ class PaymentSummary(BaseSchema):
     )
 
     # Next Payment
-    next_payment_due_date: Optional[date] = Field(
+    next_payment_due_date: Optional[Date] = Field(
         None,
-        description="Next payment due date",
+        description="Next payment due Date",
     )
     next_payment_amount: Optional[Decimal] = Field(
         None,
@@ -485,8 +485,8 @@ class PaymentAnalytics(BaseSchema):
     """
 
     # Time Period
-    period_start: date = Field(..., description="Analytics period start")
-    period_end: date = Field(..., description="Analytics period end")
+    period_start: Date = Field(..., description="Analytics period start")
+    period_end: Date = Field(..., description="Analytics period end")
 
     # Volume Metrics
     total_transactions: int = Field(..., ge=0, description="Total transactions")

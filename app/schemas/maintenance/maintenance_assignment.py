@@ -8,7 +8,7 @@ and contractors with tracking and history management.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -80,7 +80,7 @@ class TaskAssignment(BaseSchema):
         ...,
         description="Assignment timestamp",
     )
-    deadline: Optional[date] = Field(
+    deadline: Optional[Date] = Field(
         None,
         description="Task completion deadline",
     )
@@ -114,14 +114,14 @@ class TaskAssignment(BaseSchema):
 
     @field_validator("deadline")
     @classmethod
-    def validate_deadline(cls, v: Optional[date]) -> Optional[date]:
+    def validate_deadline(cls, v: Optional[Date]) -> Optional[Date]:
         """
         Validate deadline is in the future.
         
         Deadlines should be reasonable and not too far out.
         """
         if v is not None:
-            today = date.today()
+            today = Date.today()
             
             if v < today:
                 raise ValueError("Deadline cannot be in the past")
@@ -208,9 +208,9 @@ class VendorAssignment(BaseCreateSchema):
         max_length=100,
         description="Quote reference number",
     )
-    quote_valid_until: Optional[date] = Field(
+    quote_valid_until: Optional[Date] = Field(
         None,
-        description="Quote validity date",
+        description="Quote validity Date",
     )
     payment_terms: Optional[str] = Field(
         None,
@@ -232,13 +232,13 @@ class VendorAssignment(BaseCreateSchema):
     )
 
     # Timeline
-    estimated_start_date: Optional[date] = Field(
+    estimated_start_date: Optional[Date] = Field(
         None,
-        description="Estimated work start date",
+        description="Estimated work start Date",
     )
-    estimated_completion_date: date = Field(
+    estimated_completion_date: Date = Field(
         ...,
-        description="Estimated completion date",
+        description="Estimated completion Date",
     )
     
     # Contract details
@@ -310,28 +310,28 @@ class VendorAssignment(BaseCreateSchema):
     @model_validator(mode="after")
     def validate_dates_consistency(self) -> "VendorAssignment":
         """
-        Validate date consistency.
+        Validate Date consistency.
         
-        Ensures start date is before completion date and dates are reasonable.
+        Ensures start Date is before completion Date and dates are reasonable.
         """
-        # Completion date should be in future
-        if self.estimated_completion_date < date.today():
+        # Completion Date should be in future
+        if self.estimated_completion_date < Date.today():
             raise ValueError(
-                "Estimated completion date cannot be in the past"
+                "Estimated completion Date cannot be in the past"
             )
         
-        # Start date should be before completion
+        # Start Date should be before completion
         if self.estimated_start_date:
             if self.estimated_start_date > self.estimated_completion_date:
                 raise ValueError(
-                    "Start date must be before completion date"
+                    "Start Date must be before completion Date"
                 )
         
         # Quote validity
         if self.quote_valid_until:
-            if self.quote_valid_until < date.today():
+            if self.quote_valid_until < Date.today():
                 raise ValueError(
-                    "Quote validity date cannot be in the past"
+                    "Quote validity Date cannot be in the past"
                 )
         
         return self
@@ -417,7 +417,7 @@ class AssignmentUpdate(BaseCreateSchema):
     )
 
     # Deadline modification
-    new_deadline: Optional[date] = Field(
+    new_deadline: Optional[Date] = Field(
         None,
         description="Updated deadline",
     )
@@ -465,9 +465,9 @@ class AssignmentUpdate(BaseCreateSchema):
 
     @field_validator("new_deadline")
     @classmethod
-    def validate_new_deadline(cls, v: Optional[date]) -> Optional[date]:
+    def validate_new_deadline(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate new deadline is in future."""
-        if v is not None and v < date.today():
+        if v is not None and v < Date.today():
             raise ValueError("New deadline cannot be in the past")
         return v
 
@@ -541,7 +541,7 @@ class BulkAssignment(BaseCreateSchema):
         ...,
         description="User ID making the assignments",
     )
-    common_deadline: Optional[date] = Field(
+    common_deadline: Optional[Date] = Field(
         None,
         description="Common deadline for all requests",
     )
@@ -590,9 +590,9 @@ class BulkAssignment(BaseCreateSchema):
 
     @field_validator("common_deadline")
     @classmethod
-    def validate_deadline(cls, v: Optional[date]) -> Optional[date]:
+    def validate_deadline(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate deadline is in future."""
-        if v is not None and v < date.today():
+        if v is not None and v < Date.today():
             raise ValueError("Deadline cannot be in the past")
         return v
 
@@ -654,7 +654,7 @@ class AssignmentEntry(BaseSchema):
         ...,
         description="Assignment timestamp",
     )
-    deadline: Optional[date] = Field(
+    deadline: Optional[Date] = Field(
         None,
         description="Task deadline",
     )

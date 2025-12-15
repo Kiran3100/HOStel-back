@@ -8,7 +8,7 @@ comparative analysis with peer benchmarking.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date as Date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -46,8 +46,8 @@ class PerformanceMetrics(BaseSchema):
     supervisor_id: str = Field(..., description="Supervisor ID")
     supervisor_name: str = Field(..., description="Supervisor name")
     hostel_id: str = Field(..., description="Hostel ID")
-    period_start: date = Field(..., description="Metrics period start")
-    period_end: date = Field(..., description="Metrics period end")
+    period_start: Date = Field(..., description="Metrics period start")
+    period_end: Date = Field(..., description="Metrics period end")
     
     # ============ Complaint Handling Metrics ============
     complaints_handled: int = Field(..., ge=0, description="Total complaints handled")
@@ -936,7 +936,7 @@ class PerformanceReviewResponse(BaseSchema):
     supervisor_name: str = Field(..., description="Supervisor name")
     reviewed_by: str = Field(..., description="Reviewer ID")
     reviewed_by_name: str = Field(..., description="Reviewer name")
-    review_date: date = Field(..., description="Review date")
+    review_date: Date = Field(..., description="Review Date")
     
     review_period: DateRangeFilter = Field(..., description="Review period")
     
@@ -1027,8 +1027,8 @@ class PerformanceGoal(BaseCreateSchema):
     )
     
     # Timeline
-    start_date: date = Field(..., description="Goal start date")
-    end_date: date = Field(..., description="Goal target completion date")
+    start_date: Date = Field(..., description="Goal start Date")
+    end_date: Date = Field(..., description="Goal target completion Date")
     
     # Priority and category
     priority: str = Field(
@@ -1051,12 +1051,12 @@ class PerformanceGoal(BaseCreateSchema):
 
     @field_validator("end_date")
     @classmethod
-    def validate_end_date(cls, v: date, info) -> date:
-        """Validate end date is after start date."""
+    def validate_end_date(cls, v: Date, info) -> Date:
+        """Validate end Date is after start Date."""
         # In Pydantic v2, we use info.data instead of values
         start_date = info.data.get("start_date")
         if start_date and v <= start_date:
-            raise ValueError("End date must be after start date")
+            raise ValueError("End Date must be after start Date")
         return v
 
     @computed_field  # type: ignore[misc]
@@ -1090,8 +1090,8 @@ class PerformanceGoalProgress(BaseSchema):
     )
     
     # Timeline
-    start_date: date = Field(..., description="Goal start date")
-    end_date: date = Field(..., description="Goal end date")
+    start_date: Date = Field(..., description="Goal start Date")
+    end_date: Date = Field(..., description="Goal end Date")
     days_remaining: int = Field(..., ge=0, description="Days remaining to achieve goal")
     
     # Status
@@ -1112,7 +1112,7 @@ class PerformanceGoalProgress(BaseSchema):
     @property
     def days_elapsed(self) -> int:
         """Calculate days elapsed since goal start."""
-        return (date.today() - self.start_date).days
+        return (Date.today() - self.start_date).days
 
     @computed_field  # type: ignore[misc]
     @property
@@ -1138,8 +1138,8 @@ class PerformanceGoalProgress(BaseSchema):
 
     @computed_field  # type: ignore[misc]
     @property
-    def projected_completion_date(self) -> Optional[date]:
-        """Project completion date based on current progress rate."""
+    def projected_completion_date(self) -> Optional[Date]:
+        """Project completion Date based on current progress rate."""
         if self.progress_percentage == 0:
             return None
         
@@ -1154,7 +1154,7 @@ class PerformanceGoalProgress(BaseSchema):
         remaining_progress = 100 - float(self.progress_percentage)
         days_to_complete = remaining_progress / progress_rate
         
-        projected_date = date.today() + timedelta(days=int(days_to_complete))
+        projected_date = Date.today() + timedelta(days=int(days_to_complete))
         return projected_date
 
 

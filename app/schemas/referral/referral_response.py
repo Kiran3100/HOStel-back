@@ -57,7 +57,7 @@ class ReferralResponse(BaseResponseSchema):
 
     # Conversion information
     booking_id: Optional[UUID] = Field(None, description="Associated booking ID")
-    conversion_date: Optional[datetime] = Field(None, description="Conversion date")
+    conversion_date: Optional[datetime] = Field(None, description="Conversion Date")
     booking_amount: Optional[Decimal] = Field(None, description="Booking amount")
 
     # Reward information
@@ -149,8 +149,8 @@ class ReferralDetail(BaseResponseSchema):
     # Conversion tracking
     booking_id: Optional[UUID] = Field(None, description="Booking ID")
     booking_amount: Optional[Decimal] = Field(None, description="Booking amount")
-    booking_date: Optional[datetime] = Field(None, description="Booking date")
-    conversion_date: Optional[datetime] = Field(None, description="Conversion date")
+    booking_date: Optional[datetime] = Field(None, description="Booking Date")
+    conversion_date: Optional[datetime] = Field(None, description="Conversion Date")
     stay_duration_months: Optional[int] = Field(None, description="Stay duration")
     hostel_id: Optional[UUID] = Field(None, description="Hostel ID")
     hostel_name: Optional[str] = Field(None, description="Hostel name")
@@ -455,8 +455,8 @@ class ReferralAnalytics(BaseSchema):
     program_id: Optional[UUID] = Field(None, description="Program ID (null for all)")
     
     # Time period
-    period_start: datetime = Field(..., description="Analysis start date")
-    period_end: datetime = Field(..., description="Analysis end date")
+    period_start: datetime = Field(..., description="Analysis start Date")
+    period_end: datetime = Field(..., description="Analysis end Date")
 
     # Overall metrics
     total_referrals: int = Field(..., ge=0, description="Total referrals")
