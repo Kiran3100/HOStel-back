@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -52,8 +52,8 @@ async def get_latest_platform_metrics(
     summary="Get platform growth metrics for a period",
 )
 async def get_growth_metrics(
-    period_start: date = Query(...),
-    period_end: date = Query(...),
+    period_start: Date = Query(...),
+    period_end: Date = Query(...),
     uow: UnitOfWork = Depends(get_uow),
 ) -> GrowthMetrics:
     """

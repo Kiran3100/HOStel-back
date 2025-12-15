@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -36,8 +36,8 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 async def get_supervisor_dashboard(
     supervisor_id: UUID = Path(..., description="Supervisor ID"),
     hostel_id: UUID = Query(..., description="Hostel ID"),
-    period_start: date = Query(...),
-    period_end: date = Query(...),
+    period_start: Date = Query(...),
+    period_end: Date = Query(...),
     uow: UnitOfWork = Depends(get_uow),
 ) -> SupervisorDashboardAnalytics:
     """
@@ -62,8 +62,8 @@ async def get_supervisor_dashboard(
 )
 async def compare_supervisors(
     hostel_id: UUID = Query(..., description="Hostel ID"),
-    period_start: date = Query(...),
-    period_end: date = Query(...),
+    period_start: Date = Query(...),
+    period_end: Date = Query(...),
     uow: UnitOfWork = Depends(get_uow),
 ) -> SupervisorComparison:
     """

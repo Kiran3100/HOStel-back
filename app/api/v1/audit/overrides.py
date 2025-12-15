@@ -1,7 +1,7 @@
 # api/v1/audit/overrides.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 
@@ -65,13 +65,13 @@ async def list_admin_overrides(
         None,
         description="Filter by entity ID",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> List[AdminOverrideLogResponse]:
@@ -125,13 +125,13 @@ async def get_admin_override_summary(
         None,
         description="Filter by supervisor ID",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> AdminOverrideSummary:
@@ -164,13 +164,13 @@ async def get_admin_override_timeline(
         None,
         description="Filter by supervisor ID",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> List[AdminOverrideTimelinePoint]:

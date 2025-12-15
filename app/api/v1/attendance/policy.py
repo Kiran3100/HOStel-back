@@ -1,7 +1,7 @@
 # api/v1/attendance/policy.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List
 from uuid import UUID
 
@@ -92,8 +92,8 @@ async def update_attendance_policy(
 async def get_policy_violations_for_student(
     hostel_id: UUID = Path(..., description="Hostel ID"),
     student_id: UUID = Path(..., description="Student ID"),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> List[PolicyViolation]:
     """
