@@ -8,7 +8,7 @@ detailed, summary, and list views with computed fields.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import Optional
 
@@ -53,7 +53,7 @@ class AttendanceResponse(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance",
     )
@@ -136,7 +136,7 @@ class AttendanceDetail(BaseResponseSchema):
         None,
         description="Student room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance",
     )
@@ -247,9 +247,9 @@ class AttendanceListItem(BaseSchema):
         None,
         description="Room number",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
-        description="Attendance date",
+        description="Attendance Date",
     )
     status: AttendanceStatus = Field(
         ...,
@@ -302,9 +302,9 @@ class DailyAttendanceSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    date: date = Field(
+    Date: Date = Field(
         ...,
-        description="Attendance date",
+        description="Attendance Date",
     )
     total_students: int = Field(
         ...,

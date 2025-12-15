@@ -3,12 +3,12 @@
 Attendance filter schemas for querying and exporting.
 
 Provides comprehensive filtering capabilities with validation
-for date ranges, status filters, and export configurations.
+for Date ranges, status filters, and export configurations.
 """
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 import re
 
@@ -30,7 +30,7 @@ class AttendanceFilterParams(BaseFilterSchema):
     """
     Comprehensive attendance filter parameters.
     
-    Supports multi-dimensional filtering by hostel, student, date,
+    Supports multi-dimensional filtering by hostel, student, Date,
     status, and marking metadata.
     """
 
@@ -69,17 +69,17 @@ class AttendanceFilterParams(BaseFilterSchema):
     )
 
     # Date range filters
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     )
-    specific_date: Optional[date] = Field(
+    specific_date: Optional[Date] = Field(
         None,
-        description="Filter by specific date",
+        description="Filter by specific Date",
     )
 
     # Status filters
@@ -130,8 +130,8 @@ class AttendanceFilterParams(BaseFilterSchema):
 
     @field_validator("date_to")
     @classmethod
-    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate end date is after or equal to start date."""
+    def validate_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate end Date is after or equal to start Date."""
         if v is not None and info.data.get("date_from"):
             date_from = info.data["date_from"]
             if date_from is not None and v < date_from:
@@ -185,27 +185,27 @@ class AttendanceFilterParams(BaseFilterSchema):
 
 class DateRangeRequest(BaseFilterSchema):
     """
-    Simple date range request with validation.
+    Simple Date range request with validation.
     
-    Used for reports and queries requiring date range specification.
+    Used for reports and queries requiring Date range specification.
     """
 
-    start_date: date = Field(
+    start_date: Date = Field(
         ...,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     )
-    end_date: date = Field(
+    end_date: Date = Field(
         ...,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     )
 
     @field_validator("start_date")
     @classmethod
-    def validate_start_date(cls, v: date) -> date:
-        """Ensure start date is not too far in the past."""
+    def validate_start_date(cls, v: Date) -> Date:
+        """Ensure start Date is not too far in the past."""
         # Allow up to 5 years of historical data
         max_past_days = 365 * 5
-        days_diff = (date.today() - v).days
+        days_diff = (Date.today() - v).days
         
         if days_diff > max_past_days:
             raise ValueError(
@@ -216,20 +216,20 @@ class DateRangeRequest(BaseFilterSchema):
 
     @field_validator("end_date")
     @classmethod
-    def validate_end_date(cls, v: date, info) -> date:
+    def validate_end_date(cls, v: Date, info) -> Date:
         """
-        Validate end date constraints.
+        Validate end Date constraints.
         
         Ensures:
-        - End date is after or equal to start date
-        - End date is not in future
+        - End Date is after or equal to start Date
+        - End Date is not in future
         - Date range is reasonable (not too large)
         """
         # Validate not in future
-        if v > date.today():
+        if v > Date.today():
             raise ValueError("end_date cannot be in the future")
 
-        # Validate against start date
+        # Validate against start Date
         if info.data.get("start_date"):
             start_date = info.data["start_date"]
             if v < start_date:
@@ -316,12 +316,12 @@ class AttendanceExportRequest(BaseFilterSchema):
     # Grouping and sorting
     group_by: str = Field(
         "student",
-        pattern=r"^(student|date|room|status)$",
-        description="Group records by: student, date, room, or status",
+        pattern=r"^(student|Date|room|status)$",
+        description="Group records by: student, Date, room, or status",
     )
     sort_by: str = Field(
-        "date",
-        pattern=r"^(date|student_name|room|status)$",
+        "Date",
+        pattern=r"^(Date|student_name|room|status)$",
         description="Sort records by field",
     )
     sort_order: str = Field(
@@ -361,12 +361,12 @@ class AttendanceExportRequest(BaseFilterSchema):
         """
         # PDF-specific validations
         if self.format == "pdf":
-            if self.group_by not in ["student", "date"]:
+            if self.group_by not in ["student", "Date"]:
                 raise ValueError(
-                    "PDF format supports only 'student' or 'date' grouping"
+                    "PDF format supports only 'student' or 'Date' grouping"
                 )
 
-        # Validate date range
+        # Validate Date range
         if self.date_range.start_date and self.date_range.end_date:
             days_diff = (
                 self.date_range.end_date - self.date_range.start_date
@@ -375,7 +375,7 @@ class AttendanceExportRequest(BaseFilterSchema):
             # Large exports might cause performance issues
             if days_diff > 365:
                 raise ValueError(
-                    "Export date range cannot exceed 365 days"
+                    "Export Date range cannot exceed 365 days"
                 )
 
         return self

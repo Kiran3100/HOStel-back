@@ -267,8 +267,8 @@ class OverrideSummary(BaseSchema):
     """
 
     admin_id: UUID = Field(..., description="Admin user ID")
-    period_start: Date = Field(..., description="Summary period start date")
-    period_end: Date = Field(..., description="Summary period end date")
+    period_start: Date = Field(..., description="Summary period start Date")
+    period_end: Date = Field(..., description="Summary period end Date")
 
     total_overrides: int = Field(..., ge=0, description="Total overrides in period")
 

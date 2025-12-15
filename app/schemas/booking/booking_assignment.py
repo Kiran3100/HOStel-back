@@ -8,7 +8,7 @@ including bulk operations and reassignment workflows.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -73,9 +73,9 @@ class RoomAssignment(BaseSchema):
         description="Assignment timestamp",
     )
 
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
-        description="Scheduled check-in date",
+        description="Scheduled check-in Date",
     )
 
 
@@ -148,9 +148,9 @@ class AssignmentRequest(BaseCreateSchema):
     )
 
     # Optional Override
-    override_check_in_date: Optional[date] = Field(
+    override_check_in_date: Optional[Date] = Field(
         None,
-        description="Override the preferred check-in date if needed",
+        description="Override the preferred check-in Date if needed",
     )
 
     notes: Optional[str] = Field(
@@ -161,11 +161,11 @@ class AssignmentRequest(BaseCreateSchema):
 
     @field_validator("override_check_in_date")
     @classmethod
-    def validate_override_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate override check-in date."""
-        if v is not None and v < date.today():
+    def validate_override_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate override check-in Date."""
+        if v is not None and v < Date.today():
             raise ValueError(
-                f"Override check-in date ({v}) cannot be in the past"
+                f"Override check-in Date ({v}) cannot be in the past"
             )
         return v
 

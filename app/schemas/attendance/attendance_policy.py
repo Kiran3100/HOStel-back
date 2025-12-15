@@ -8,7 +8,7 @@ attendance management with comprehensive validation.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import List, Optional
 
@@ -128,11 +128,11 @@ class AttendancePolicy(BaseResponseSchema):
         True,
         description="Whether policy is currently active",
     )
-    effective_from: Optional[date] = Field(
+    effective_from: Optional[Date] = Field(
         None,
         description="Date from which policy is effective",
     )
-    effective_until: Optional[date] = Field(
+    effective_until: Optional[Date] = Field(
         None,
         description="Date until which policy is effective",
     )
@@ -375,8 +375,8 @@ class PolicyUpdate(BaseUpdateSchema):
     track_weekend_attendance: Optional[bool] = None
     track_holiday_attendance: Optional[bool] = None
     is_active: Optional[bool] = None
-    effective_from: Optional[date] = None
-    effective_until: Optional[date] = None
+    effective_from: Optional[Date] = None
+    effective_until: Optional[Date] = None
 
     @field_validator(
         "minimum_attendance_percentage",
@@ -481,11 +481,11 @@ class PolicyViolation(BaseSchema):
     )
 
     # Violation tracking
-    violation_date: date = Field(
+    violation_date: Date = Field(
         ...,
         description="Date when violation was detected",
     )
-    first_violation_date: Optional[date] = Field(
+    first_violation_date: Optional[Date] = Field(
         None,
         description="Date of first related violation",
     )

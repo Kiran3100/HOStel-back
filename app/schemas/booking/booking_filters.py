@@ -8,7 +8,7 @@ and exporting booking data.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 
@@ -64,21 +64,21 @@ class BookingFilterParams(BaseFilterSchema):
     )
 
     # Date Filters
-    booking_date_from: Optional[date] = Field(
+    booking_date_from: Optional[Date] = Field(
         None,
-        description="Filter bookings created from this date",
+        description="Filter bookings created from this Date",
     )
-    booking_date_to: Optional[date] = Field(
+    booking_date_to: Optional[Date] = Field(
         None,
-        description="Filter bookings created until this date",
+        description="Filter bookings created until this Date",
     )
-    check_in_date_from: Optional[date] = Field(
+    check_in_date_from: Optional[Date] = Field(
         None,
-        description="Filter by check-in date from",
+        description="Filter by check-in Date from",
     )
-    check_in_date_to: Optional[date] = Field(
+    check_in_date_to: Optional[Date] = Field(
         None,
-        description="Filter by check-in date until",
+        description="Filter by check-in Date until",
     )
 
     # Room Type Filter
@@ -117,8 +117,8 @@ class BookingFilterParams(BaseFilterSchema):
 
     @field_validator("booking_date_to")
     @classmethod
-    def validate_booking_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate booking date range."""
+    def validate_booking_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate booking Date range."""
         booking_date_from = info.data.get("booking_date_from")
         if v is not None and booking_date_from is not None:
             if v < booking_date_from:
@@ -129,8 +129,8 @@ class BookingFilterParams(BaseFilterSchema):
 
     @field_validator("check_in_date_to")
     @classmethod
-    def validate_check_in_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate check-in date range."""
+    def validate_check_in_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate check-in Date range."""
         check_in_date_from = info.data.get("check_in_date_from")
         if v is not None and check_in_date_from is not None:
             if v < check_in_date_from:
@@ -279,20 +279,20 @@ class BookingAnalyticsRequest(BaseFilterSchema):
     Request for booking analytics data.
     
     Generate analytics and reports for bookings within
-    a specified date range.
+    a specified Date range.
     """
 
     hostel_id: Optional[UUID] = Field(
         None,
         description="Generate analytics for specific hostel (or all)",
     )
-    date_from: date = Field(
+    date_from: Date = Field(
         ...,
-        description="Analytics start date",
+        description="Analytics start Date",
     )
-    date_to: date = Field(
+    date_to: Date = Field(
         ...,
-        description="Analytics end date",
+        description="Analytics end Date",
     )
 
     # Grouping
@@ -304,8 +304,8 @@ class BookingAnalyticsRequest(BaseFilterSchema):
 
     @field_validator("date_to")
     @classmethod
-    def validate_date_range(cls, v: date, info) -> date:
-        """Validate date range."""
+    def validate_date_range(cls, v: Date, info) -> Date:
+        """Validate Date range."""
         date_from = info.data.get("date_from")
         if date_from is not None:
             if v < date_from:

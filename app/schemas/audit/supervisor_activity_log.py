@@ -7,7 +7,7 @@ task management, student interactions, facility oversight, and
 performance metrics for accountability and analytics.
 """
 
-from datetime import datetime, date
+from datetime import datetime, date as Date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from enum import Enum
@@ -1053,7 +1053,7 @@ class SupervisorActivitySummary(BaseSchema):
         default=None,
         description="Day of week with most activity"
     )
-    busiest_date: Optional[date] = Field(
+    busiest_date: Optional[Date] = Field(
         default=None,
         description="Date with most activities"
     )

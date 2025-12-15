@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -36,8 +36,8 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 )
 async def get_visitor_funnel(
     hostel_id: Optional[UUID] = Query(None, description="Optional hostel filter"),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> VisitorFunnel:
     """
@@ -61,8 +61,8 @@ async def get_visitor_funnel(
 )
 async def get_traffic_sources(
     hostel_id: Optional[UUID] = Query(None, description="Optional hostel filter"),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> TrafficSourceAnalytics:
     """

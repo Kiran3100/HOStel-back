@@ -6,7 +6,7 @@ Provides detailed reporting capabilities for audit logs including
 summaries, trends, user activity analysis, and entity change history.
 """
 
-from datetime import datetime, date
+from datetime import datetime, date as Date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, ForwardRef
 from enum import Enum
@@ -1020,16 +1020,16 @@ class AuditTrendAnalysis(BaseSchema):
     
     # Anomalies
     anomaly_count: int = Field(default=0, ge=0, description="Number of detected anomalies")
-    anomaly_dates: List[date] = Field(
+    anomaly_dates: List[Date] = Field(
         default_factory=list,
         description="Dates with anomalous activity"
     )
     
     # Peak/low points
     peak_value: Decimal = Field(..., description="Highest value in period")
-    peak_date: Optional[date] = Field(default=None, description="Date of peak value")
+    peak_date: Optional[Date] = Field(default=None, description="Date of peak value")
     low_value: Decimal = Field(..., description="Lowest value in period")
-    low_date: Optional[date] = Field(default=None, description="Date of lowest value")
+    low_date: Optional[Date] = Field(default=None, description="Date of lowest value")
     
     @computed_field
     @property

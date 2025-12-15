@@ -8,7 +8,7 @@ including full bookings, inquiries, and quick bookings.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -173,9 +173,9 @@ class BookingRequest(BaseCreateSchema):
         ...,
         description="Desired type of room (single, double, dormitory, etc.)",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Desired check-in date",
+        description="Desired check-in Date",
     )
     stay_duration_months: int = Field(
         ...,
@@ -220,16 +220,16 @@ class BookingRequest(BaseCreateSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date is in the future."""
-        if v < date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date is in the future."""
+        if v < Date.today():
             raise ValueError(
-                f"Check-in date ({v.strftime('%Y-%m-%d')}) cannot be in the past. "
-                "Please select today or a future date."
+                f"Check-in Date ({v.strftime('%Y-%m-%d')}) cannot be in the past. "
+                "Please select today or a future Date."
             )
         
         # Warn about very far future dates (> 6 months)
-        days_ahead = (v - date.today()).days
+        days_ahead = (v - Date.today()).days
         if days_ahead > 180:
             # Log warning but don't reject
             # In production, this could trigger a notification
@@ -293,9 +293,9 @@ class BookingInquiry(BaseCreateSchema):
         None,
         description="Room type of interest",
     )
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Approximate check-in date if known",
+        description="Approximate check-in Date if known",
     )
     message: Optional[str] = Field(
         None,
@@ -320,10 +320,10 @@ class BookingInquiry(BaseCreateSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate check-in date if provided."""
-        if v is not None and v < date.today():
-            raise ValueError("Check-in date cannot be in the past")
+    def validate_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate check-in Date if provided."""
+        if v is not None and v < Date.today():
+            raise ValueError("Check-in Date cannot be in the past")
         return v
 
 
@@ -343,9 +343,9 @@ class QuickBookingRequest(BaseCreateSchema):
         ...,
         description="Desired room type",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
-        description="Check-in date",
+        description="Check-in Date",
     )
     duration_months: int = Field(
         ...,
@@ -373,11 +373,11 @@ class QuickBookingRequest(BaseCreateSchema):
 
     @field_validator("check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date."""
-        if v < date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date."""
+        if v < Date.today():
             raise ValueError(
-                f"Check-in date ({v.strftime('%Y-%m-%d')}) must be today or in the future"
+                f"Check-in Date ({v.strftime('%Y-%m-%d')}) must be today or in the future"
             )
         return v
 

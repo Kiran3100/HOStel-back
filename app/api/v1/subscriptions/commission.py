@@ -1,7 +1,7 @@
 # app/api/v1/subscriptions/commission.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date 
 from typing import Optional
 from uuid import UUID
 
@@ -75,8 +75,8 @@ def get_booking_commission(
 
 @router.get("/summary", response_model=CommissionSummary)
 def get_commission_summary(
-    start_date: date = Query(..., description="Start date for the summary period"),
-    end_date: date = Query(..., description="End date for the summary period"),
+    start_date: Date = Query(..., description="Start Date for the summary period"),
+    end_date: Date = Query(..., description="End Date for the summary period"),
     plan_id: Optional[UUID] = Query(
         None,
         description="Optionally restrict summary to a specific subscription plan.",
@@ -88,7 +88,7 @@ def get_commission_summary(
     Get commission summary for a period (optionally per plan).
 
     Expected service method:
-        get_commission_summary(start_date: date, end_date: date, plan_id: Optional[UUID]) -> CommissionSummary
+        get_commission_summary(start_date: Date, end_date: Date, plan_id: Optional[UUID]) -> CommissionSummary
     """
     service = _get_service(session)
     return service.get_commission_summary(

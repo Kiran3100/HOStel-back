@@ -8,7 +8,7 @@ booking approval workflows including bulk operations and settings.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
@@ -50,9 +50,9 @@ class BookingApprovalRequest(BaseCreateSchema):
     )
 
     # Date Confirmation/Adjustment
-    approved_check_in_date: date = Field(
+    approved_check_in_date: Date = Field(
         ...,
-        description="Confirmed or adjusted check-in date",
+        description="Confirmed or adjusted check-in Date",
     )
 
     # Pricing Confirmation/Adjustment
@@ -104,11 +104,11 @@ class BookingApprovalRequest(BaseCreateSchema):
 
     @field_validator("approved_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate approved check-in date is not in the past."""
-        if v < date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate approved check-in Date is not in the past."""
+        if v < Date.today():
             raise ValueError(
-                f"Approved check-in date ({v.strftime('%Y-%m-%d')}) "
+                f"Approved check-in Date ({v.strftime('%Y-%m-%d')}) "
                 "cannot be in the past"
             )
         return v
@@ -219,9 +219,9 @@ class ApprovalResponse(BaseSchema):
         ...,
         description="Approval timestamp",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
-        description="Confirmed check-in date",
+        description="Confirmed check-in Date",
     )
 
     # Next Steps
@@ -263,7 +263,7 @@ class RejectionRequest(BaseCreateSchema):
         False,
         description="Whether to suggest alternative check-in dates",
     )
-    alternative_check_in_dates: Optional[List[date]] = Field(
+    alternative_check_in_dates: Optional[List[Date]] = Field(
         None,
         max_length=3,
         description="Up to 3 alternative check-in dates",
@@ -309,9 +309,9 @@ class RejectionRequest(BaseCreateSchema):
             
             # Validate all dates are in future
             for alt_date in self.alternative_check_in_dates:
-                if alt_date < date.today():
+                if alt_date < Date.today():
                     raise ValueError(
-                        f"Alternative date {alt_date} cannot be in the past"
+                        f"Alternative Date {alt_date} cannot be in the past"
                     )
         
         return self

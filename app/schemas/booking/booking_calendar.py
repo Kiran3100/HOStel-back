@@ -109,7 +109,7 @@ class DayBookings(BaseSchema):
 
     day_date: dt.date = Field(
         ...,
-        description="Date for this day's bookings",
+        description="date for this day's bookings",
     )
 
     # Events by Type
@@ -207,10 +207,10 @@ class CalendarView(BaseSchema):
     )
     peak_occupancy_date: Optional[dt.date] = Field(
         None,
-        description="Date with highest occupancy this month",
+        description="date with highest occupancy this month",
     )
 
-    # Room Availability by Date
+    # Room Availability by date
     available_rooms_by_date: Dict[str, int] = Field(
         ...,
         description="Available rooms count by date (YYYY-MM-DD as key)",
@@ -345,7 +345,7 @@ class DayAvailability(BaseSchema):
 
     day_date: dt.date = Field(
         ...,
-        description="Date for this availability snapshot",
+        description="date for this availability snapshot",
     )
     total_beds: int = Field(
         ...,
@@ -452,7 +452,7 @@ class AvailabilityCalendar(BaseSchema):
         description="Month in YYYY-MM format",
     )
 
-    # Availability by Date
+    # Availability by date
     availability: Dict[str, DayAvailability] = Field(
         ...,
         description="Daily availability keyed by date (YYYY-MM-DD)",

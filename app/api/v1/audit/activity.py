@@ -1,7 +1,7 @@
 # api/v1/audit/activity.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 
@@ -76,7 +76,7 @@ async def list_supervisor_activity(
     uow: UnitOfWork = Depends(get_uow),
 ) -> PaginatedResponse[SupervisorActivityLogResponse]:
     """
-    List supervisor activity logs with filters (hostel, supervisor, category, date range)
+    List supervisor activity logs with filters (hostel, supervisor, category, Date range)
     and pagination.
     """
     service = SupervisorActivityService(uow)
@@ -119,13 +119,13 @@ async def get_supervisor_activity_summary(
         None,
         description="Filter by supervisor ID",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> SupervisorActivitySummary:
@@ -158,13 +158,13 @@ async def get_supervisor_activity_timeline(
         None,
         description="Filter by supervisor ID",
     ),
-    start_date: Optional[date] = Query(
+    start_date: Optional[Date] = Query(
         None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     ),
-    end_date: Optional[date] = Query(
+    end_date: Optional[Date] = Query(
         None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> List[SupervisorActivityTimelinePoint]:

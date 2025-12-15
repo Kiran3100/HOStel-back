@@ -8,7 +8,7 @@ for identifying and responding to attendance issues.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import Dict, List, Optional, Any
 
@@ -542,13 +542,13 @@ class AlertList(BaseSchema):
         None,
         description="Student filter (if applicable)",
     )
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Filter alerts from this date",
+        description="Filter alerts from this Date",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="Filter alerts to this date",
+        description="Filter alerts to this Date",
     )
 
     # Summary statistics
@@ -612,13 +612,13 @@ class AlertSummary(BaseSchema):
         ...,
         description="Hostel name",
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Summary period start date",
+        description="Summary period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Summary period end date",
+        description="Summary period end Date",
     )
 
     # Overall counts
@@ -737,7 +737,7 @@ class AlertSummary(BaseSchema):
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period dates."""
         # In Pydantic v2, we need to access data through info.data
         if info.data.get("period_start"):

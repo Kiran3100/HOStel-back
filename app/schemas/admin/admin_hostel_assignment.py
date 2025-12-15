@@ -169,7 +169,7 @@ class AssignmentCreate(BaseCreateSchema):
     )
     effective_date: Optional[Date] = Field(
         None,
-        description="Effective date for assignment (defaults to today)"
+        description="Effective Date for assignment (defaults to today)"
     )
     
     # Notification preferences
@@ -188,18 +188,18 @@ class AssignmentCreate(BaseCreateSchema):
             if not isinstance(self.permissions, dict) or len(self.permissions) == 0:
                 raise ValueError("Permissions must be a non-empty dictionary for LIMITED_ACCESS")
         
-        # Validate effective date
+        # Validate effective Date
         if self.effective_date:
             if self.effective_date < Date.today():
                 # Allow past dates for historical assignments but validate reasonableness
                 days_past = (Date.today() - self.effective_date).days
                 if days_past > 365:  # More than 1 year in past
-                    raise ValueError("Effective date cannot be more than 1 year in the past")
+                    raise ValueError("Effective Date cannot be more than 1 year in the past")
             elif self.effective_date > Date.today():
                 # Allow future dates for scheduled assignments
                 days_future = (self.effective_date - Date.today()).days
                 if days_future > 90:  # More than 3 months in future
-                    raise ValueError("Effective date cannot be more than 90 days in the future")
+                    raise ValueError("Effective Date cannot be more than 90 days in the future")
         
         return self
 
@@ -472,7 +472,7 @@ class RevokeAssignment(BaseCreateSchema):
     # Revocation timing and options
     effective_date: Optional[Date] = Field(
         None,
-        description="Effective revocation date (defaults to today)"
+        description="Effective revocation Date (defaults to today)"
     )
     immediate_revocation: bool = Field(
         True,
@@ -513,7 +513,7 @@ class RevokeAssignment(BaseCreateSchema):
     @field_validator("effective_date")
     @classmethod
     def validate_effective_date(cls, v: Optional[Date]) -> Optional[Date]:
-        """Validate revocation effective date."""
+        """Validate revocation effective Date."""
         if v is not None:
             today = Date.today()
             
@@ -521,13 +521,13 @@ class RevokeAssignment(BaseCreateSchema):
             if v < today:
                 days_past = (today - v).days
                 if days_past > 30:  # More than 30 days in past
-                    raise ValueError("Effective date cannot be more than 30 days in the past")
+                    raise ValueError("Effective Date cannot be more than 30 days in the past")
             
             # Allow future dates for scheduled revocations
             elif v > today:
                 days_future = (v - today).days
                 if days_future > 90:  # More than 90 days in future
-                    raise ValueError("Effective date cannot be more than 90 days in the future")
+                    raise ValueError("Effective Date cannot be more than 90 days in the future")
         
         return v
 
@@ -544,12 +544,12 @@ class RevokeAssignment(BaseCreateSchema):
         # Validate immediate vs scheduled revocation
         if not self.immediate_revocation and not self.effective_date:
             raise ValueError(
-                "Effective date must be specified for non-immediate revocation"
+                "Effective Date must be specified for non-immediate revocation"
             )
         
         if self.immediate_revocation and self.effective_date and self.effective_date != Date.today():
             raise ValueError(
-                "Immediate revocation cannot have future effective date"
+                "Immediate revocation cannot have future effective Date"
             )
         
         return self
@@ -714,7 +714,7 @@ class HostelAdminItem(BaseSchema):
     is_active: bool = Field(True, description="Assignment is active")
     
     # Assignment metadata
-    assigned_date: Date = Field(..., description="Assignment creation date")
+    assigned_date: Date = Field(..., description="Assignment creation Date")
     assigned_by_name: Optional[str] = Field(None, description="Name of assigning admin")
     
     # Activity tracking

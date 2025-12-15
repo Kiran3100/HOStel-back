@@ -8,7 +8,7 @@ single and bulk operations with enhanced validation logic.
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date as Date, time
 from decimal import Decimal
 from typing import List, Optional
 
@@ -42,7 +42,7 @@ class AttendanceBase(BaseSchema):
         ...,
         description="Student unique identifier",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance record",
     )
@@ -88,13 +88,13 @@ class AttendanceBase(BaseSchema):
 
     @field_validator("attendance_date")
     @classmethod
-    def validate_attendance_date(cls, v: date) -> date:
+    def validate_attendance_date(cls, v: Date) -> Date:
         """
-        Validate attendance date is not in future.
+        Validate attendance Date is not in future.
         
         Attendance should only be marked for current or past dates.
         """
-        if v > date.today():
+        if v > Date.today():
             raise ValueError("Attendance cannot be marked for future dates")
         return v
 
@@ -336,7 +336,7 @@ class BulkAttendanceCreate(BaseCreateSchema):
         ...,
         description="Hostel unique identifier",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date for all attendance records",
     )
@@ -357,9 +357,9 @@ class BulkAttendanceCreate(BaseCreateSchema):
 
     @field_validator("attendance_date")
     @classmethod
-    def validate_attendance_date(cls, v: date) -> date:
-        """Validate attendance date is not in future."""
-        if v > date.today():
+    def validate_attendance_date(cls, v: Date) -> Date:
+        """Validate attendance Date is not in future."""
+        if v > Date.today():
             raise ValueError("Attendance cannot be marked for future dates")
         return v
 
@@ -368,7 +368,7 @@ class BulkAttendanceCreate(BaseCreateSchema):
         """
         Ensure no duplicate student IDs in bulk operation.
         
-        Prevents multiple attendance records for same student on same date.
+        Prevents multiple attendance records for same student on same Date.
         """
         student_ids = [record.student_id for record in self.records]
         unique_ids = set(student_ids)

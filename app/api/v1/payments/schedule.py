@@ -97,7 +97,7 @@ def generate_payments_from_schedule(
     current_user: CurrentUser = Depends(get_current_admin_or_staff),
 ) -> List[ScheduledPaymentGenerated]:
     """
-    Generate pending Payment records from a schedule across a date range.
+    Generate pending Payment records from a schedule across a Date range.
     """
     service = _get_service(session)
     # Expected:

@@ -8,7 +8,7 @@ updates, and base validation logic for the booking lifecycle.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date as Date, timedelta
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -47,9 +47,9 @@ class BookingBase(BaseSchema):
         ...,
         description="Type of room requested (single, double, dormitory, etc.)",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: int = Field(
         ...,
@@ -118,17 +118,17 @@ class BookingBase(BaseSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date is not in the past."""
-        if v < date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date is not in the past."""
+        if v < Date.today():
             raise ValueError(
-                f"Check-in date ({v}) cannot be in the past. "
-                f"Please select today or a future date."
+                f"Check-in Date ({v}) cannot be in the past. "
+                f"Please select today or a future Date."
             )
         
         # Warn if check-in is too far in the future (e.g., > 6 months)
         max_advance_days = 180  # 6 months
-        if (v - date.today()).days > max_advance_days:
+        if (v - Date.today()).days > max_advance_days:
             # Note: This is a warning, not an error
             # Could be logged or handled differently in production
             pass
@@ -226,8 +226,8 @@ class BookingBase(BaseSchema):
 
     @computed_field
     @property
-    def expected_check_out_date(self) -> date:
-        """Calculate expected check-out date based on duration."""
+    def expected_check_out_date(self) -> Date:
+        """Calculate expected check-out Date based on duration."""
         # Approximate: 1 month = 30 days
         return self.preferred_check_in_date + timedelta(
             days=self.stay_duration_months * 30
@@ -237,7 +237,7 @@ class BookingBase(BaseSchema):
     @property
     def days_until_check_in(self) -> int:
         """Calculate days remaining until check-in."""
-        return (self.preferred_check_in_date - date.today()).days
+        return (self.preferred_check_in_date - Date.today()).days
 
     @computed_field
     @property
@@ -390,9 +390,9 @@ class BookingUpdate(BaseUpdateSchema):
         None,
         description="Update requested room type",
     )
-    preferred_check_in_date: Optional[date] = Field(
+    preferred_check_in_date: Optional[Date] = Field(
         None,
-        description="Update preferred check-in date",
+        description="Update preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
         None,
@@ -430,11 +430,11 @@ class BookingUpdate(BaseUpdateSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate updated check-in date."""
-        if v is not None and v < date.today():
+    def validate_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate updated check-in Date."""
+        if v is not None and v < Date.today():
             raise ValueError(
-                f"Check-in date ({v}) cannot be in the past"
+                f"Check-in Date ({v}) cannot be in the past"
             )
         return v
 

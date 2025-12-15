@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -39,8 +39,8 @@ async def get_financial_report(
         None,
         description="Scope ID (hostel_id, admin_id, or null for platform-wide)",
     ),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> FinancialReport:
     """

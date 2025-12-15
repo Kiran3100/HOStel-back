@@ -1,7 +1,8 @@
 # api/v1/complaints/feedback.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
+
 from typing import Optional
 from uuid import UUID
 
@@ -92,8 +93,8 @@ async def get_feedback(
 )
 async def get_feedback_summary(
     hostel_id: UUID = Query(..., description="Hostel ID"),
-    period_start: Optional[date] = Query(None, description="Start date (inclusive)"),
-    period_end: Optional[date] = Query(None, description="End date (inclusive)"),
+    period_start: Optional[Date] = Query(None, description="Start Date (inclusive)"),
+    period_end: Optional[Date] = Query(None, description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> FeedbackSummary:
     """
@@ -117,8 +118,8 @@ async def get_feedback_summary(
 )
 async def get_feedback_analysis(
     hostel_id: UUID = Query(..., description="Hostel ID"),
-    period_start: Optional[date] = Query(None, description="Start date (inclusive)"),
-    period_end: Optional[date] = Query(None, description="End date (inclusive)"),
+    period_start: Optional[Date] = Query(None, description="Start Date (inclusive)"),
+    period_end: Optional[Date] = Query(None, description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> FeedbackAnalysis:
     """

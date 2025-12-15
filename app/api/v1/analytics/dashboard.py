@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -36,13 +36,13 @@ async def get_dashboard_metrics(
         None,
         description="Scope ID (hostel_id or admin_id); null for platform scope",
     ),
-    period_start: Optional[date] = Query(
+    period_start: Optional[Date] = Query(
         None,
-        description="Start date (inclusive). If omitted, service will choose a default window.",
+        description="Start Date (inclusive). If omitted, service will choose a default window.",
     ),
-    period_end: Optional[date] = Query(
+    period_end: Optional[Date] = Query(
         None,
-        description="End date (inclusive). If omitted, service will choose a default window.",
+        description="End Date (inclusive). If omitted, service will choose a default window.",
     ),
     uow: UnitOfWork = Depends(get_uow),
 ) -> DashboardMetricsSchema:

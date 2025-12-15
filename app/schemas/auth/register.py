@@ -6,7 +6,7 @@ Pydantic v2 compliant.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
@@ -67,7 +67,7 @@ class RegisterRequest(BaseCreateSchema):
         default=None,
         description="Gender (optional)",
     )
-    date_of_birth: Optional[date] = Field(
+    date_of_birth: Optional[Date] = Field(
         default=None,
         description="Date of birth (optional)",
     )
@@ -101,16 +101,16 @@ class RegisterRequest(BaseCreateSchema):
 
     @field_validator("date_of_birth")
     @classmethod
-    def validate_age(cls, v: Optional[date]) -> Optional[date]:
+    def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """
-        Validate date of birth for reasonable age constraints.
+        Validate Date of birth for reasonable age constraints.
         
         Ensures user is at least 13 years old and not born in the future.
         """
         if v is None:
             return v
 
-        today = date.today()
+        today = Date.today()
         if v >= today:
             raise ValueError("Date of birth cannot be in the future")
 
@@ -118,7 +118,7 @@ class RegisterRequest(BaseCreateSchema):
         if age < 13:
             raise ValueError("User must be at least 13 years old")
         if age > 120:
-            raise ValueError("Invalid date of birth")
+            raise ValueError("Invalid Date of birth")
 
         return v
 

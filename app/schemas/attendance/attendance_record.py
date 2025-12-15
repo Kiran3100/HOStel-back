@@ -8,7 +8,7 @@ operations with comprehensive validation logic.
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date as Date, time
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -41,7 +41,7 @@ class AttendanceRecordRequest(BaseCreateSchema):
         ...,
         description="Student unique identifier",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date of attendance",
     )
@@ -75,10 +75,10 @@ class AttendanceRecordRequest(BaseCreateSchema):
 
     @field_validator("attendance_date")
     @classmethod
-    def validate_date(cls, v: date) -> date:
-        """Ensure attendance date is not in future."""
-        if v > date.today():
-            raise ValueError("Attendance date cannot be in the future")
+    def validate_date(cls, v: Date) -> Date:
+        """Ensure attendance Date is not in future."""
+        if v > Date.today():
+            raise ValueError("Attendance Date cannot be in the future")
         return v
 
     @field_validator("notes")
@@ -228,7 +228,7 @@ class BulkAttendanceRequest(BaseCreateSchema):
         ...,
         description="Hostel unique identifier",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date for all attendance records",
     )
@@ -257,10 +257,10 @@ class BulkAttendanceRequest(BaseCreateSchema):
 
     @field_validator("attendance_date")
     @classmethod
-    def validate_date(cls, v: date) -> date:
-        """Validate attendance date is not in future."""
-        if v > date.today():
-            raise ValueError("Attendance date cannot be in the future")
+    def validate_date(cls, v: Date) -> Date:
+        """Validate attendance Date is not in future."""
+        if v > Date.today():
+            raise ValueError("Attendance Date cannot be in the future")
         return v
 
     @model_validator(mode="after")
@@ -268,7 +268,7 @@ class BulkAttendanceRequest(BaseCreateSchema):
         """
         Ensure no duplicate student IDs in the request.
         
-        Prevents multiple records for same student on same date.
+        Prevents multiple records for same student on same Date.
         """
         student_ids = [record.student_id for record in self.student_records]
         unique_ids = set(student_ids)
@@ -392,7 +392,7 @@ class QuickAttendanceMarkAll(BaseCreateSchema):
         ...,
         description="Hostel unique identifier",
     )
-    attendance_date: date = Field(
+    attendance_date: Date = Field(
         ...,
         description="Date for attendance marking",
     )
@@ -426,10 +426,10 @@ class QuickAttendanceMarkAll(BaseCreateSchema):
 
     @field_validator("attendance_date")
     @classmethod
-    def validate_date(cls, v: date) -> date:
-        """Validate attendance date is not in future."""
-        if v > date.today():
-            raise ValueError("Attendance date cannot be in the future")
+    def validate_date(cls, v: Date) -> Date:
+        """Validate attendance Date is not in future."""
+        if v > Date.today():
+            raise ValueError("Attendance Date cannot be in the future")
         return v
 
     @model_validator(mode="after")

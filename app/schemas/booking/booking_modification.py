@@ -3,12 +3,12 @@
 Booking modification schemas.
 
 This module defines schemas for modifying existing bookings including
-date changes, duration changes, and room type changes.
+Date changes, duration changes, and room type changes.
 """
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -44,11 +44,11 @@ class ModificationRequest(BaseCreateSchema):
     # Check-in Date Modification
     modify_check_in_date: bool = Field(
         False,
-        description="Whether to modify check-in date",
+        description="Whether to modify check-in Date",
     )
-    new_check_in_date: Optional[date] = Field(
+    new_check_in_date: Optional[Date] = Field(
         None,
-        description="New check-in date if modifying",
+        description="New check-in Date if modifying",
     )
 
     # Duration Modification
@@ -97,7 +97,7 @@ class ModificationRequest(BaseCreateSchema):
         ):
             raise ValueError(
                 "At least one modification type must be selected "
-                "(check-in date, duration, or room type)"
+                "(check-in Date, duration, or room type)"
             )
         return self
 
@@ -123,11 +123,11 @@ class ModificationRequest(BaseCreateSchema):
 
     @field_validator("new_check_in_date")
     @classmethod
-    def validate_new_check_in_date(cls, v: Optional[date]) -> Optional[date]:
-        """Validate new check-in date."""
-        if v is not None and v < date.today():
+    def validate_new_check_in_date(cls, v: Optional[Date]) -> Optional[Date]:
+        """Validate new check-in Date."""
+        if v is not None and v < Date.today():
             raise ValueError(
-                f"New check-in date ({v}) cannot be in the past"
+                f"New check-in Date ({v}) cannot be in the past"
             )
         return v
 
@@ -212,33 +212,33 @@ class ModificationResponse(BaseSchema):
 
 class DateChangeRequest(BaseCreateSchema):
     """
-    Specific request to change check-in date.
+    Specific request to change check-in Date.
     
-    Simplified schema for date-only modifications.
+    Simplified schema for Date-only modifications.
     """
 
     booking_id: UUID = Field(
         ...,
         description="Booking ID",
     )
-    new_check_in_date: date = Field(
+    new_check_in_date: Date = Field(
         ...,
-        description="New desired check-in date",
+        description="New desired check-in Date",
     )
     reason: str = Field(
         ...,
         min_length=10,
         max_length=500,
-        description="Reason for date change",
+        description="Reason for Date change",
     )
 
     @field_validator("new_check_in_date")
     @classmethod
-    def validate_new_date(cls, v: date) -> date:
-        """Validate new check-in date."""
-        if v < date.today():
+    def validate_new_date(cls, v: Date) -> Date:
+        """Validate new check-in Date."""
+        if v < Date.today():
             raise ValueError(
-                f"New check-in date ({v.strftime('%Y-%m-%d')}) cannot be in the past"
+                f"New check-in Date ({v.strftime('%Y-%m-%d')}) cannot be in the past"
             )
         return v
 

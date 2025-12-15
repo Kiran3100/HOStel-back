@@ -10,7 +10,7 @@ Provides detailed occupancy metrics including:
 - Capacity utilization analysis
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 from enum import Enum
@@ -216,10 +216,10 @@ class OccupancyTrendPoint(BaseSchema):
     """
     Single data point in occupancy trend analysis.
     
-    Represents occupancy metrics for a specific date.
+    Represents occupancy metrics for a specific Date.
     """
     
-    trend_date: date = Field(
+    trend_date: Date = Field(
         ...,
         description="Date of the data point"
     )
@@ -228,7 +228,7 @@ class OccupancyTrendPoint(BaseSchema):
         ge=0,
         le=100,
         decimal_places=2,
-        description="Occupancy rate for this date"
+        description="Occupancy rate for this Date"
     )
     occupied_beds: int = Field(
         ...,
@@ -243,12 +243,12 @@ class OccupancyTrendPoint(BaseSchema):
     check_ins: int = Field(
         0,
         ge=0,
-        description="Number of check-ins on this date"
+        description="Number of check-ins on this Date"
     )
     check_outs: int = Field(
         0,
         ge=0,
-        description="Number of check-outs on this date"
+        description="Number of check-outs on this Date"
     )
     
     @field_validator("occupied_beds")
@@ -397,12 +397,12 @@ class ForecastPoint(BaseSchema):
     """
     Single forecast data point.
     
-    Represents predicted occupancy for a future date.
+    Represents predicted occupancy for a future Date.
     """
     
-    forecast_date: date = Field(
+    forecast_date: Date = Field(
         ...,
-        description="Forecast date"
+        description="Forecast Date"
     )
     forecasted_occupancy_percentage: Decimal = Field(
         ...,
@@ -548,13 +548,13 @@ class ForecastData(BaseSchema):
     )
     
     # Training data info
-    training_data_start: Optional[date] = Field(
+    training_data_start: Optional[Date] = Field(
         None,
-        description="Start date of training data"
+        description="Start Date of training data"
     )
-    training_data_end: Optional[date] = Field(
+    training_data_end: Optional[Date] = Field(
         None,
-        description="End date of training data"
+        description="End Date of training data"
     )
     training_samples: Optional[int] = Field(
         None,
@@ -615,8 +615,8 @@ class ForecastData(BaseSchema):
     
     @computed_field  # type: ignore[misc]
     @property
-    def peak_forecasted_date(self) -> Optional[date]:
-        """Identify date with highest forecasted occupancy."""
+    def peak_forecasted_date(self) -> Optional[Date]:
+        """Identify Date with highest forecasted occupancy."""
         if not self.forecast_points:
             return None
         return max(
@@ -626,8 +626,8 @@ class ForecastData(BaseSchema):
     
     @computed_field  # type: ignore[misc]
     @property
-    def low_forecasted_date(self) -> Optional[date]:
-        """Identify date with lowest forecasted occupancy."""
+    def low_forecasted_date(self) -> Optional[Date]:
+        """Identify Date with lowest forecasted occupancy."""
         if not self.forecast_points:
             return None
         return min(

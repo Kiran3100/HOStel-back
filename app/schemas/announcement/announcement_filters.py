@@ -8,7 +8,7 @@ and exporting announcements.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from enum import Enum
 from typing import Optional
 from uuid import UUID
@@ -136,21 +136,21 @@ class AnnouncementFilterParams(BaseFilterSchema):
     )
     
     # Date filters
-    published_date_from: Optional[date] = Field(
+    published_date_from: Optional[Date] = Field(
         None,
-        description="Published on or after this date",
+        description="Published on or after this Date",
     )
-    published_date_to: Optional[date] = Field(
+    published_date_to: Optional[Date] = Field(
         None,
-        description="Published on or before this date",
+        description="Published on or before this Date",
     )
-    created_date_from: Optional[date] = Field(
+    created_date_from: Optional[Date] = Field(
         None,
-        description="Created on or after this date",
+        description="Created on or after this Date",
     )
-    created_date_to: Optional[date] = Field(
+    created_date_to: Optional[Date] = Field(
         None,
-        description="Created on or before this date",
+        description="Created on or before this Date",
     )
     
     # Expiry filters
@@ -162,13 +162,13 @@ class AnnouncementFilterParams(BaseFilterSchema):
         None,
         description="Only expired announcements",
     )
-    expires_before: Optional[date] = Field(
+    expires_before: Optional[Date] = Field(
         None,
-        description="Expires before this date",
+        description="Expires before this Date",
     )
-    expires_after: Optional[date] = Field(
+    expires_after: Optional[Date] = Field(
         None,
-        description="Expires after this date",
+        description="Expires after this Date",
     )
     
     # Approval filters
@@ -230,9 +230,9 @@ class AnnouncementFilterParams(BaseFilterSchema):
     @field_validator("published_date_to", mode="after")
     @classmethod
     def validate_published_date_range(
-        cls, v: Optional[date], info
-    ) -> Optional[date]:
-        """Validate date range."""
+        cls, v: Optional[Date], info
+    ) -> Optional[Date]:
+        """Validate Date range."""
         from_date = info.data.get("published_date_from")
         if v and from_date and v < from_date:
             raise ValueError("published_date_to must be after published_date_from")
@@ -241,9 +241,9 @@ class AnnouncementFilterParams(BaseFilterSchema):
     @field_validator("created_date_to", mode="after")
     @classmethod
     def validate_created_date_range(
-        cls, v: Optional[date], info
-    ) -> Optional[date]:
-        """Validate date range."""
+        cls, v: Optional[Date], info
+    ) -> Optional[Date]:
+        """Validate Date range."""
         from_date = info.data.get("created_date_from")
         if v and from_date and v < from_date:
             raise ValueError("created_date_to must be after created_date_from")
@@ -307,13 +307,13 @@ class SearchRequest(BaseFilterSchema):
     )
     
     # Date range
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Search from this date",
+        description="Search from this Date",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="Search until this date",
+        description="Search until this Date",
     )
     
     # Pagination
@@ -364,9 +364,9 @@ class ArchiveRequest(BaseCreateSchema):
     )
     
     # Archive criteria
-    archive_before_date: date = Field(
+    archive_before_date: Date = Field(
         ...,
-        description="Archive announcements published before this date",
+        description="Archive announcements published before this Date",
     )
     
     # Options
@@ -405,10 +405,10 @@ class ArchiveRequest(BaseCreateSchema):
     
     @field_validator("archive_before_date")
     @classmethod
-    def validate_archive_date(cls, v: date) -> date:
-        """Ensure archive date is in the past."""
-        if v >= date.today():
-            raise ValueError("Archive date must be in the past")
+    def validate_archive_date(cls, v: Date) -> Date:
+        """Ensure archive Date is in the past."""
+        if v >= Date.today():
+            raise ValueError("Archive Date must be in the past")
         return v
 
 
@@ -463,13 +463,13 @@ class AnnouncementExportRequest(BaseFilterSchema):
     )
     
     # Date range
-    date_from: Optional[date] = Field(
+    date_from: Optional[Date] = Field(
         None,
-        description="Export from this date",
+        description="Export from this Date",
     )
-    date_to: Optional[date] = Field(
+    date_to: Optional[Date] = Field(
         None,
-        description="Export until this date",
+        description="Export until this Date",
     )
     
     # Delivery
@@ -480,8 +480,8 @@ class AnnouncementExportRequest(BaseFilterSchema):
     
     @field_validator("date_to", mode="after")
     @classmethod
-    def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
-        """Validate date range."""
+    def validate_date_range(cls, v: Optional[Date], info) -> Optional[Date]:
+        """Validate Date range."""
         date_from = info.data.get("date_from")
         if v and date_from and v < date_from:
             raise ValueError("date_to must be after date_from")
@@ -549,13 +549,13 @@ class AnnouncementStatsRequest(BaseFilterSchema):
     )
     
     # Time range
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Statistics period start date",
+        description="Statistics period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Statistics period end date",
+        description="Statistics period end Date",
     )
     
     # Grouping
@@ -585,7 +585,7 @@ class AnnouncementStatsRequest(BaseFilterSchema):
     
     @field_validator("period_end", mode="after")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period range."""
         period_start = info.data.get("period_start")
         if period_start and v < period_start:

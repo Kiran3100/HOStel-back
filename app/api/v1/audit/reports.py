@@ -1,7 +1,7 @@
 # api/v1/audit/reports.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from typing import List, Optional
 from uuid import UUID
 
@@ -56,8 +56,8 @@ async def get_audit_report(
         None,
         description="Optional user filter",
     ),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> AuditReport:
     """
@@ -90,8 +90,8 @@ async def get_user_activity_summary(
         None,
         description="User ID to summarize activity for",
     ),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> UserActivitySummary:
     """
@@ -123,8 +123,8 @@ async def get_entity_change_summaries(
         None,
         description="Optional entity type filter (hostel, room, student, etc.)",
     ),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> List[EntityChangeSummary]:
     """

@@ -8,7 +8,7 @@ basic responses, detailed information, list items, and confirmations.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -57,18 +57,18 @@ class BookingResponse(BaseResponseSchema):
         ...,
         description="Type of room requested",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: int = Field(
         ...,
         ge=1,
         description="Stay duration in months",
     )
-    expected_check_out_date: date = Field(
+    expected_check_out_date: Date = Field(
         ...,
-        description="Calculated expected check-out date",
+        description="Calculated expected check-out Date",
     )
 
     # Guest Information
@@ -135,7 +135,7 @@ class BookingResponse(BaseResponseSchema):
     @property
     def days_until_check_in(self) -> int:
         """Calculate days until check-in."""
-        return (self.preferred_check_in_date - date.today()).days
+        return (self.preferred_check_in_date - Date.today()).days
 
     @computed_field
     @property
@@ -202,18 +202,18 @@ class BookingDetail(BaseResponseSchema):
         ...,
         description="Requested room type",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     stay_duration_months: int = Field(
         ...,
         ge=1,
         description="Stay duration in months",
     )
-    expected_check_out_date: date = Field(
+    expected_check_out_date: Date = Field(
         ...,
-        description="Expected check-out date",
+        description="Expected check-out Date",
     )
 
     # Room Assignment (if approved)
@@ -385,7 +385,7 @@ class BookingDetail(BaseResponseSchema):
         None,
         description="Student profile ID if converted",
     )
-    conversion_date: Optional[date] = Field(
+    conversion_date: Optional[Date] = Field(
         None,
         description="Date of conversion to student",
     )
@@ -420,7 +420,7 @@ class BookingDetail(BaseResponseSchema):
     @property
     def days_until_check_in(self) -> int:
         """Days remaining until check-in."""
-        return (self.preferred_check_in_date - date.today()).days
+        return (self.preferred_check_in_date - Date.today()).days
 
     @computed_field
     @property
@@ -465,9 +465,9 @@ class BookingListItem(BaseSchema):
         description="Requested room type",
     )
 
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Check-in date",
+        description="Check-in Date",
     )
     stay_duration_months: int = Field(
         ...,
@@ -491,7 +491,7 @@ class BookingListItem(BaseSchema):
     )
     booking_date: datetime = Field(
         ...,
-        description="Booking date",
+        description="Booking Date",
     )
 
     # Quick Indicators
@@ -545,9 +545,9 @@ class BookingConfirmation(BaseSchema):
         ...,
         description="Room type",
     )
-    check_in_date: date = Field(
+    check_in_date: Date = Field(
         ...,
-        description="Check-in date",
+        description="Check-in Date",
     )
 
     total_amount: Decimal = Field(
