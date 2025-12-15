@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import (
@@ -30,6 +30,9 @@ __all__ = [
     "StudentDocumentInfo",
 ]
 
+# Type aliases for Pydantic v2 decimal constraints
+MoneyAmount = Annotated[Decimal, Field(max_digits=10, decimal_places=2, ge=0)]
+
 
 class StudentResponse(BaseResponseSchema):
     """
@@ -37,6 +40,11 @@ class StudentResponse(BaseResponseSchema):
     
     Basic student information for general API responses.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     user_id: str = Field(..., description="User ID")
     hostel_id: str = Field(..., description="Hostel ID")
@@ -71,11 +79,11 @@ class StudentResponse(BaseResponseSchema):
     )
 
     # Financial
-    monthly_rent_amount: Optional[Decimal] = Field(
+    monthly_rent_amount: Optional[MoneyAmount] = Field(
         default=None,
         description="Monthly rent",
     )
-    security_deposit_amount: Decimal = Field(
+    security_deposit_amount: MoneyAmount = Field(
         ...,
         description="Security deposit amount",
     )
@@ -112,6 +120,11 @@ class StudentDetail(BaseResponseSchema):
     
     Comprehensive student profile with all attributes.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # User information
     user_id: str = Field(..., description="User ID")
@@ -202,7 +215,7 @@ class StudentDetail(BaseResponseSchema):
     )
 
     # Financial
-    security_deposit_amount: Decimal = Field(
+    security_deposit_amount: MoneyAmount = Field(
         ...,
         description="Security deposit amount",
     )
@@ -214,7 +227,7 @@ class StudentDetail(BaseResponseSchema):
         default=None,
         description="Deposit paid Date",
     )
-    monthly_rent_amount: Optional[Decimal] = Field(
+    monthly_rent_amount: Optional[MoneyAmount] = Field(
         default=None,
         description="Monthly rent",
     )
@@ -371,12 +384,12 @@ class StudentListItem(BaseSchema):
     check_in_date: Optional[Date] = Field(default=None, description="Check-in Date")
 
     # Financial
-    monthly_rent: Optional[Decimal] = Field(default=None, description="Monthly rent")
+    monthly_rent: Optional[MoneyAmount] = Field(default=None, description="Monthly rent")
     payment_status: str = Field(
         ...,
         description="Payment status (current/overdue/advance)",
     )
-    overdue_amount: Decimal = Field(
+    overdue_amount: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Overdue amount",
     )
@@ -400,28 +413,33 @@ class StudentFinancialInfo(BaseSchema):
     Comprehensive financial details for a student.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     student_id: str = Field(..., description="Student ID")
     student_name: str = Field(..., description="Student name")
 
     # Rent
-    monthly_rent_amount: Decimal = Field(..., description="Monthly rent")
+    monthly_rent_amount: MoneyAmount = Field(..., description="Monthly rent")
     rent_due_day: int = Field(..., description="Monthly due day")
 
     # Security deposit
-    security_deposit_amount: Decimal = Field(..., description="Security deposit")
+    security_deposit_amount: MoneyAmount = Field(..., description="Security deposit")
     security_deposit_paid: bool = Field(..., description="Deposit paid status")
     security_deposit_paid_date: Optional[Date] = Field(
         default=None,
         description="Deposit paid Date",
     )
-    security_deposit_refundable: Decimal = Field(
+    security_deposit_refundable: MoneyAmount = Field(
         ...,
         description="Refundable amount",
     )
 
     # Payments
-    total_paid: Decimal = Field(..., description="Total amount paid")
-    total_due: Decimal = Field(..., description="Total amount due")
+    total_paid: MoneyAmount = Field(..., description="Total amount paid")
+    total_due: MoneyAmount = Field(..., description="Total amount due")
     last_payment_date: Optional[Date] = Field(
         default=None,
         description="Last payment Date",
@@ -429,21 +447,21 @@ class StudentFinancialInfo(BaseSchema):
     next_due_date: Optional[Date] = Field(default=None, description="Next due Date")
 
     # Outstanding
-    overdue_amount: Decimal = Field(..., description="Overdue amount")
-    advance_amount: Decimal = Field(..., description="Advance balance")
+    overdue_amount: MoneyAmount = Field(..., description="Overdue amount")
+    advance_amount: MoneyAmount = Field(..., description="Advance balance")
 
     # Mess
-    mess_charges_monthly: Decimal = Field(
+    mess_charges_monthly: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Monthly mess charges",
     )
-    mess_balance: Decimal = Field(
+    mess_balance: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Mess account balance",
     )
 
     # Other charges
-    other_charges: Decimal = Field(
+    other_charges: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Other charges",
     )

@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_base.py ---
 """
 Hostel subscription base schemas.
 
@@ -10,10 +9,10 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -36,6 +35,7 @@ class SubscriptionBase(BaseSchema):
     Contains all core fields that define a subscription relationship
     between a hostel and a subscription plan.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     plan_id: UUID = Field(..., description="Subscription plan ID")
@@ -51,12 +51,11 @@ class SubscriptionBase(BaseSchema):
     billing_cycle: BillingCycle = Field(
         ..., description="Billing cycle (monthly/yearly)"
     )
-    amount: Decimal = Field(
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Amount per billing period",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -114,6 +113,7 @@ class SubscriptionCreate(BaseCreateSchema):
 
     Extends base subscription with trial period support.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     plan_id: UUID = Field(..., description="Subscription plan ID")
@@ -128,12 +128,11 @@ class SubscriptionCreate(BaseCreateSchema):
     billing_cycle: BillingCycle = Field(
         ..., description="Billing cycle (monthly/yearly)"
     )
-    amount: Decimal = Field(
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Amount per billing period",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -186,6 +185,7 @@ class SubscriptionUpdate(BaseUpdateSchema):
 
     Allows partial updates to subscription status, dates, and renewal settings.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     status: Optional[SubscriptionStatus] = Field(
         None, description="New subscription status"
@@ -201,12 +201,11 @@ class SubscriptionUpdate(BaseUpdateSchema):
     )
 
     # Additional updatable fields
-    amount: Optional[Decimal] = Field(
+    amount: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Updated billing amount",
-    )
+    )]]
     billing_cycle: Optional[BillingCycle] = Field(
         None, description="Updated billing cycle"
     )

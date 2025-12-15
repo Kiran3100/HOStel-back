@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date as Date, datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.filters import DateRangeFilter
@@ -33,6 +33,11 @@ class SearchTermStats(BaseSchema):
 
     Tracks usage patterns and result quality for search optimization.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     term: str = Field(
         ...,
@@ -109,6 +114,11 @@ class SearchMetrics(BaseSchema):
     Provides overview of search system health and performance.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Volume metrics
     total_searches: int = Field(
         ...,
@@ -182,6 +192,11 @@ class PopularSearchTerm(BaseSchema):
     Used for displaying trending/popular searches to users.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     rank: int = Field(
         ...,
         ge=1,
@@ -214,6 +229,11 @@ class TrendingSearch(BaseSchema):
     Identifies emerging search patterns.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     term: str = Field(
         ...,
         description="Trending search term",
@@ -245,6 +265,11 @@ class ZeroResultTerm(BaseSchema):
 
     Critical for search optimization and content gap analysis.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     term: str = Field(
         ...,
@@ -280,6 +305,11 @@ class SearchAnalyticsRequest(BaseSchema):
 
     Allows filtering analytics by Date range and other criteria.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Date range
     date_range: DateRangeFilter = Field(
@@ -335,13 +365,18 @@ class SearchAnalytics(BaseSchema):
     Provides detailed insights into search behavior and performance.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Period information
     period: DateRangeFilter = Field(
         ...,
         description="Analysis period",
     )
     generated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.utcnow(),
         description="When this analytics report was generated",
     )
 
@@ -387,7 +422,7 @@ class SearchAnalytics(BaseSchema):
         description="Search volume by location (city/state)",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def has_quality_issues(self) -> bool:
         """
@@ -400,7 +435,7 @@ class SearchAnalytics(BaseSchema):
             or self.metrics.p95_response_time_ms > 1000
         )
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def engagement_score(self) -> float:
         """

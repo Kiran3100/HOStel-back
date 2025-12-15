@@ -1,10 +1,10 @@
-### Combined Content from Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user ###
+### Combined Content from Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\user ###
 
 
 
-# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user =====
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\user =====
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_base.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_base.py ---
 # --- File: app/schemas/user/user_base.py ---
 """
 User base schemas with enhanced validation and type safety.
@@ -256,7 +256,7 @@ class UserUpdate(BaseUpdateSchema):
     def validate_age(cls, v: Optional[Date]) -> Optional[Date]:
         """Validate user age constraints."""
         if v is not None:
-            today = date.today()
+            today = Date.today()
             if v >= today:
                 raise ValueError("Date of birth cannot be in the future")
 
@@ -352,7 +352,7 @@ class UserEmergencyContactUpdate(EmergencyContactMixin, BaseUpdateSchema):
             return v.replace(" ", "").replace("-", "").strip()
         return v
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_profile.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_profile.py ---
 # --- File: app/schemas/user/user_profile.py ---
 """
 User profile update schemas with comprehensive field validation.
@@ -629,7 +629,7 @@ class NotificationPreferencesUpdate(BaseUpdateSchema):
             return v.lower().strip()
         return v
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_response.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_response.py ---
 # --- File: app/schemas/user/user_response.py ---
 """
 User response schemas with comprehensive user information.
@@ -871,7 +871,7 @@ class UserStats(BaseSchema):
         description="Last activity timestamp",
     )
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\user_session.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\user_session.py ---
 # --- File: app/schemas/user/user_session.py ---
 """
 User session schemas with enhanced tracking and management.
@@ -1085,7 +1085,7 @@ class CreateSessionRequest(BaseCreateSchema):
                 raise ValueError("Invalid IP address format")
         return v
 
-# --- File: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\__init__.py ---
+# --- File: D:\Last Github Push\Last\HOStel-back\app\schemas\user\__init__.py ---
 # --- File: app/schemas/user/__init__.py ---
 """
 User schemas package.
@@ -1155,4 +1155,4 @@ __all__ = [
 ]
 
 
-# ===== Folder: C:\Users\HP\OneDrive\Documents\GitHub\HOStel-back\app\schemas\user\__pycache__ =====
+# ===== Folder: D:\Last Github Push\Last\HOStel-back\app\schemas\user\__pycache__ =====

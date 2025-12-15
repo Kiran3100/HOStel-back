@@ -3,13 +3,20 @@
 Review moderation and approval workflow schemas.
 
 Handles review moderation queue, approval/rejection, and flagging.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- field_validator and model_validator already use v2 syntax
+- Rating fields use max_digits=2, decimal_places=1 for 1.0-5.0 range
+- Score fields use appropriate precision for 0-1 and -1 to 1 ranges
+- Time metrics use proper precision for hour calculations
 """
 
 from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from pydantic import Field, field_validator, model_validator
 from uuid import UUID
@@ -84,7 +91,11 @@ class ModerationRequest(BaseCreateSchema):
     
     @model_validator(mode="after")
     def validate_action_requirements(self) -> "ModerationRequest":
-        """Validate that required fields are provided for specific actions."""
+        """
+        Validate that required fields are provided for specific actions.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.action == "reject" and not self.rejection_reason:
             raise ValueError(
                 "rejection_reason is required when action is 'reject'"
@@ -166,12 +177,16 @@ class PendingReview(BaseSchema):
     # Reviewer info
     reviewer_id: UUID = Field(..., description="Reviewer ID")
     reviewer_name: str = Field(..., description="Reviewer name")
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating",
-    )
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating",
+        ),
+    ]
     
     # Content preview
     title: str = Field(..., description="Review title")
@@ -202,25 +217,43 @@ class PendingReview(BaseSchema):
     # Timestamps
     submitted_at: datetime = Field(..., description="Review submission time")
     
-    # AI moderation scores
-    spam_score: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("1"),
-        description="AI spam detection score (0-1, higher = more likely spam)",
-    )
-    sentiment_score: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("-1"),
-        le=Decimal("1"),
-        description="Sentiment analysis score (-1 to 1)",
-    )
-    toxicity_score: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("1"),
-        description="Content toxicity score (0-1, higher = more toxic)",
-    )
+    # AI moderation scores with proper constraints
+    spam_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                le=Decimal("1"),
+                max_digits=4,
+                decimal_places=3,
+                description="AI spam detection score (0-1, higher = more likely spam)",
+            ),
+        ]
+    ] = None
+    sentiment_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("-1"),
+                le=Decimal("1"),
+                max_digits=4,
+                decimal_places=3,
+                description="Sentiment analysis score (-1 to 1)",
+            ),
+        ]
+    ] = None
+    toxicity_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                le=Decimal("1"),
+                max_digits=4,
+                decimal_places=3,
+                description="Content toxicity score (0-1, higher = more toxic)",
+            ),
+        ]
+    ] = None
     
     # Priority indicators
     requires_immediate_attention: bool = Field(
@@ -257,17 +290,29 @@ class ModerationQueue(BaseSchema):
         description="List of pending reviews",
     )
     
-    # Queue health
-    average_wait_time_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Average time reviews spend in queue",
-    )
-    oldest_review_age_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Age of oldest pending review",
-    )
+    # Queue health with proper time constraints
+    average_wait_time_hours: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                max_digits=8,
+                decimal_places=2,
+                description="Average time reviews spend in queue",
+            ),
+        ]
+    ] = None
+    oldest_review_age_hours: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                max_digits=8,
+                decimal_places=2,
+                description="Age of oldest pending review",
+            ),
+        ]
+    ] = None
 
 
 class ApprovalWorkflow(BaseSchema):
@@ -315,13 +360,19 @@ class ApprovalWorkflow(BaseSchema):
         description="List of flag reasons",
     )
     
-    # Auto-moderation
-    auto_moderation_score: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("1"),
-        description="Automated moderation confidence score",
-    )
+    # Auto-moderation with proper score constraints
+    auto_moderation_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                le=Decimal("1"),
+                max_digits=4,
+                decimal_places=3,
+                description="Automated moderation confidence score",
+            ),
+        ]
+    ] = None
     auto_approved: bool = Field(
         default=False,
         description="Whether review was auto-approved",
@@ -406,17 +457,27 @@ class ModerationStats(BaseSchema):
     rejected: int = Field(..., ge=0, description="Rejected count")
     flagged: int = Field(..., ge=0, description="Flagged count")
     
-    # Performance metrics
-    average_moderation_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average time to moderate (in hours)",
-    )
-    median_moderation_time_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Median moderation time",
-    )
+    # Performance metrics with proper time constraints
+    average_moderation_time_hours: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            max_digits=8,
+            decimal_places=2,
+            description="Average time to moderate (in hours)",
+        ),
+    ]
+    median_moderation_time_hours: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                max_digits=8,
+                decimal_places=2,
+                description="Median moderation time",
+            ),
+        ]
+    ] = None
     
     # By moderator
     moderations_by_user: Dict[str, int] = Field(
@@ -424,29 +485,47 @@ class ModerationStats(BaseSchema):
         description="Moderator ID/name to moderation count mapping",
     )
     
-    # Quality metrics
-    approval_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of reviews approved",
-    )
-    rejection_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of reviews rejected",
-    )
-    auto_approval_accuracy: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Accuracy of auto-approval system",
-    )
+    # Quality metrics with percentage constraints
+    approval_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviews approved",
+        ),
+    ]
+    rejection_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviews rejected",
+        ),
+    ]
+    auto_approval_accuracy: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                le=Decimal("100"),
+                max_digits=5,
+                decimal_places=2,
+                description="Accuracy of auto-approval system",
+            ),
+        ]
+    ] = None
     
     @model_validator(mode="after")
     def validate_period(self) -> "ModerationStats":
-        """Validate period end is after start."""
+        """
+        Validate period end is after start.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.period_end < self.period_start:
             raise ValueError("period_end must be on or after period_start")
         return self

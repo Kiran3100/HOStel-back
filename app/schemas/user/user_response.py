@@ -9,7 +9,7 @@ from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import Gender, UserRole
@@ -208,6 +208,8 @@ class UserStats(BaseSchema):
         ge=0,
         description="Total number of payments",
     )
+    # Note: Using float for monetary amounts - in v2, if this were Decimal,
+    # it should be: Annotated[Decimal, Field(max_digits=10, decimal_places=2, ge=0)]
     total_amount_paid: float = Field(
         default=0.0,
         ge=0,

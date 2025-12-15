@@ -4,6 +4,12 @@ Room response schemas for API responses.
 
 Provides various response formats for room data including
 detailed views, list items, and statistics.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- All Decimal fields now have explicit max_digits/decimal_places constraints
+- Financial fields use appropriate precision for currency calculations
 """
 
 from __future__ import annotations
@@ -11,7 +17,7 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, computed_field
 
@@ -46,8 +52,16 @@ class RoomResponse(BaseResponseSchema):
     occupied_beds: int = Field(..., ge=0, description="Currently occupied beds")
     available_beds: int = Field(..., ge=0, description="Available beds")
     
-    # Pricing
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    # Pricing with proper Decimal constraints
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent",
+        ),
+    ]
     
     # Features
     is_ac: bool = Field(..., description="Air conditioned")
@@ -60,7 +74,7 @@ class RoomResponse(BaseResponseSchema):
         description="Available for booking",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -133,23 +147,49 @@ class RoomDetail(BaseResponseSchema):
     occupied_beds: int = Field(..., ge=0, description="Occupied beds")
     available_beds: int = Field(..., ge=0, description="Available beds")
 
-    # Pricing
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Quarterly rent",
-    )
-    price_half_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Half-yearly rent",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Yearly rent",
-    )
+    # Pricing with proper Decimal constraints
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent",
+        ),
+    ]
+    price_quarterly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Quarterly rent",
+            ),
+        ]
+    ] = None
+    price_half_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Half-yearly rent",
+            ),
+        ]
+    ] = None
+    price_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Yearly rent",
+            ),
+        ]
+    ] = None
 
     # Specifications
     room_size_sqft: Optional[int] = Field(
@@ -214,7 +254,7 @@ class RoomDetail(BaseResponseSchema):
         description="Detailed bed information",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate current occupancy percentage."""
@@ -224,13 +264,13 @@ class RoomDetail(BaseResponseSchema):
             (self.occupied_beds / self.total_beds * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def is_fully_occupied(self) -> bool:
         """Check if room is fully occupied."""
         return self.occupied_beds >= self.total_beds
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def discount_percentage_quarterly(self) -> Optional[Decimal]:
         """Calculate quarterly discount percentage."""
@@ -244,7 +284,7 @@ class RoomDetail(BaseResponseSchema):
         )
         return Decimal(discount).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def discount_percentage_yearly(self) -> Optional[Decimal]:
         """Calculate yearly discount percentage."""
@@ -273,13 +313,21 @@ class RoomListItem(BaseSchema):
     room_type: RoomType = Field(..., description="Room type")
     total_beds: int = Field(..., ge=0, description="Total beds")
     available_beds: int = Field(..., ge=0, description="Available beds")
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent",
+        ),
+    ]
     is_ac: bool = Field(..., description="AC available")
     status: RoomStatus = Field(..., description="Status")
     is_available_for_booking: bool = Field(..., description="Bookable")
     primary_image: Optional[str] = Field(default=None, description="Cover image")
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -325,13 +373,21 @@ class RoomWithBeds(BaseResponseSchema):
     total_beds: int = Field(..., ge=0, description="Total beds")
     occupied_beds: int = Field(..., ge=0, description="Occupied beds")
     available_beds: int = Field(..., ge=0, description="Available beds")
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent",
+        ),
+    ]
     beds: List[BedInfo] = Field(
         default_factory=list,
         description="Bed details",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate occupancy rate."""
@@ -363,18 +419,34 @@ class RoomOccupancyStats(BaseSchema):
         description="Reserved beds",
     )
     
-    # Revenue
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent per bed")
-    current_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Current monthly revenue",
-    )
-    potential_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Potential revenue at full capacity",
-    )
+    # Revenue with proper Decimal constraints
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent per bed",
+        ),
+    ]
+    current_revenue: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Current monthly revenue",
+        ),
+    ]
+    potential_revenue: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Potential revenue at full capacity",
+        ),
+    ]
     
     # Status
     status: RoomStatus = Field(..., description="Room status")
@@ -386,7 +458,7 @@ class RoomOccupancyStats(BaseSchema):
         description="Last occupancy change timestamp",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage."""
@@ -396,7 +468,7 @@ class RoomOccupancyStats(BaseSchema):
             (self.occupied_beds / self.total_beds * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def revenue_percentage(self) -> Decimal:
         """Calculate revenue realization percentage."""
@@ -406,7 +478,7 @@ class RoomOccupancyStats(BaseSchema):
             (self.current_revenue / self.potential_revenue * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def lost_revenue(self) -> Decimal:
         """Calculate lost revenue due to vacancy."""
@@ -423,63 +495,99 @@ class RoomFinancialSummary(BaseSchema):
     room_id: str = Field(..., description="Room ID")
     room_number: str = Field(..., description="Room number")
     
-    # Pricing
-    price_monthly_per_bed: Decimal = Field(
-        ...,
-        ge=0,
-        description="Monthly rent per bed",
-    )
+    # Pricing with proper Decimal constraints
+    price_monthly_per_bed: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent per bed",
+        ),
+    ]
     total_beds: int = Field(..., ge=0, description="Total beds")
     occupied_beds: int = Field(..., ge=0, description="Occupied beds")
     
-    # Current month
-    current_month_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Current month revenue",
-    )
-    current_month_collected: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount collected this month",
-    )
-    current_month_pending: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount pending this month",
-    )
+    # Current month financial data
+    current_month_revenue: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Current month revenue",
+        ),
+    ]
+    current_month_collected: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Amount collected this month",
+        ),
+    ]
+    current_month_pending: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Amount pending this month",
+        ),
+    ]
     
-    # Historical
-    total_revenue_ytd: Decimal = Field(
-        ...,
-        ge=0,
-        description="Year-to-date total revenue",
-    )
-    total_collected_ytd: Decimal = Field(
-        ...,
-        ge=0,
-        description="Year-to-date collected amount",
-    )
-    average_occupancy_ytd: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Year-to-date average occupancy %",
-    )
+    # Historical financial data
+    total_revenue_ytd: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=15,
+            decimal_places=2,
+            description="Year-to-date total revenue",
+        ),
+    ]
+    total_collected_ytd: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=15,
+            decimal_places=2,
+            description="Year-to-date collected amount",
+        ),
+    ]
+    average_occupancy_ytd: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            le=100,
+            max_digits=5,
+            decimal_places=2,
+            description="Year-to-date average occupancy %",
+        ),
+    ]
     
     # Projections
-    projected_monthly_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Projected revenue at current occupancy",
-    )
-    projected_yearly_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Projected yearly revenue",
-    )
+    projected_monthly_revenue: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Projected revenue at current occupancy",
+        ),
+    ]
+    projected_yearly_revenue: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=15,
+            decimal_places=2,
+            description="Projected yearly revenue",
+        ),
+    ]
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def collection_rate(self) -> Decimal:
         """Calculate collection rate for current month."""
@@ -489,7 +597,7 @@ class RoomFinancialSummary(BaseSchema):
             (self.current_month_collected / self.current_month_revenue * 100)
         ).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate."""

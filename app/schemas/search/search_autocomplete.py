@@ -10,7 +10,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -43,6 +43,11 @@ class AutocompleteRequest(BaseCreateSchema):
 
     Optimized for real-time typeahead functionality.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     prefix: str = Field(
         ...,
@@ -120,6 +125,11 @@ class Suggestion(BaseSchema):
     Provides rich metadata for displaying suggestions.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Core fields
     value: str = Field(
         ...,
@@ -183,6 +193,11 @@ class AutocompleteResponse(BaseSchema):
 
     Groups suggestions by type for better UX.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     suggestions: List[Suggestion] = Field(
         default_factory=list,

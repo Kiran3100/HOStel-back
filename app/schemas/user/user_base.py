@@ -9,7 +9,7 @@ from datetime import date as Date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -74,9 +74,10 @@ class UserBase(BaseSchema):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, v: EmailStr) -> str:
+    def normalize_email(cls, v: EmailStr) -> EmailStr:
         """Normalize email to lowercase and trim whitespace."""
-        return v.lower().strip()
+        # In v2, we should return EmailStr type to match the field type
+        return EmailStr(v.lower().strip())
 
     @field_validator("phone")
     @classmethod
@@ -217,10 +218,10 @@ class UserUpdate(BaseUpdateSchema):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, v: Optional[EmailStr]) -> Optional[str]:
+    def normalize_email(cls, v: Optional[EmailStr]) -> Optional[EmailStr]:
         """Normalize email to lowercase and trim whitespace."""
         if v is not None:
-            return v.lower().strip()
+            return EmailStr(v.lower().strip())
         return v
 
     @field_validator("phone")

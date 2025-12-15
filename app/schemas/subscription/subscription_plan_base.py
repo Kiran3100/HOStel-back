@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_plan_base.py ---
 """
 Subscription plan definition schemas.
 
@@ -9,9 +8,9 @@ features, limits, and configuration options.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Annotated
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -35,6 +34,7 @@ class PlanFeatureConfig(BaseSchema):
     Provides structured feature definition with value,
     display label, and enablement status.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     key: str = Field(..., description="Feature identifier key")
     label: str = Field(..., description="Human-readable feature label")
@@ -52,6 +52,7 @@ class SubscriptionPlanBase(BaseSchema):
     Contains all fields that define a subscription plan including
     identification, pricing, features, and limits.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     plan_name: str = Field(
         ...,
@@ -82,18 +83,16 @@ class SubscriptionPlanBase(BaseSchema):
     )
 
     # Pricing
-    price_monthly: Decimal = Field(
+    price_monthly: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Monthly subscription price",
-    )
-    price_yearly: Decimal = Field(
+    )]
+    price_yearly: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Yearly subscription price",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -169,15 +168,13 @@ class SubscriptionPlanBase(BaseSchema):
         """Normalize plan name to lowercase."""
         return v.lower().strip()
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def yearly_savings(self) -> Decimal:
         """Calculate yearly savings compared to monthly billing."""
         monthly_yearly = self.price_monthly * 12
         return (monthly_yearly - self.price_yearly).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def yearly_discount_percent(self) -> Decimal:
         """Calculate yearly discount percentage."""
         if self.price_monthly == Decimal("0"):
@@ -197,6 +194,7 @@ class PlanCreate(SubscriptionPlanBase, BaseCreateSchema):
 
     Inherits all fields from SubscriptionPlanBase for plan creation.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     # Additional creation-specific fields
     created_by: Optional[str] = Field(
@@ -218,6 +216,7 @@ class PlanUpdate(BaseUpdateSchema):
 
     All fields are optional to support partial updates.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     display_name: Optional[str] = Field(
         None,
@@ -237,18 +236,16 @@ class PlanUpdate(BaseUpdateSchema):
     )
 
     # Pricing updates
-    price_monthly: Optional[Decimal] = Field(
+    price_monthly: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Updated monthly price",
-    )
-    price_yearly: Optional[Decimal] = Field(
+    )]]
+    price_yearly: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Updated yearly price",
-    )
+    )]]
     currency: Optional[str] = Field(
         None,
         min_length=3,

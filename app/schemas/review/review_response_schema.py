@@ -3,13 +3,20 @@
 Hostel response to review schemas.
 
 Handles hostel management responses to customer reviews.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- field_validator already uses v2 syntax
+- Percentage fields use max_digits=5, decimal_places=2 for 0.00-100.00 range
+- Time fields use appropriate precision for hour calculations
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, field_validator, computed_field
 from uuid import UUID
@@ -168,7 +175,7 @@ class OwnerResponse(BaseResponseSchema):
     edited_at: Optional[datetime] = Field(default=None, description="Last edit time")
     edit_count: int = Field(default=0, ge=0, description="Number of edits")
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def response_age_days(self) -> int:
         """Days since response was posted."""
@@ -239,57 +246,91 @@ class ResponseStats(BaseSchema):
     total_reviews: int = Field(..., ge=0, description="Total reviews received")
     total_responses: int = Field(..., ge=0, description="Total responses given")
     
-    # Rate metrics
-    response_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of reviews with responses",
-    )
+    # Rate metrics with proper percentage constraints
+    response_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviews with responses",
+        ),
+    ]
     
-    # Timing metrics
-    average_response_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average time to respond in hours",
-    )
-    median_response_time_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Median time to respond",
-    )
+    # Timing metrics with proper time constraints
+    average_response_time_hours: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            max_digits=8,
+            decimal_places=2,
+            description="Average time to respond in hours",
+        ),
+    ]
+    median_response_time_hours: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                max_digits=8,
+                decimal_places=2,
+                description="Median time to respond",
+            ),
+        ]
+    ] = None
     
-    # Response by rating
-    response_rate_5_star: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Response rate for 5-star reviews",
-    )
-    response_rate_4_star: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Response rate for 4-star reviews",
-    )
-    response_rate_3_star: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Response rate for 3-star reviews",
-    )
-    response_rate_2_star: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Response rate for 2-star reviews",
-    )
-    response_rate_1_star: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Response rate for 1-star reviews",
-    )
+    # Response by rating with percentage constraints
+    response_rate_5_star: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Response rate for 5-star reviews",
+        ),
+    ]
+    response_rate_4_star: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Response rate for 4-star reviews",
+        ),
+    ]
+    response_rate_3_star: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Response rate for 3-star reviews",
+        ),
+    ]
+    response_rate_2_star: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Response rate for 2-star reviews",
+        ),
+    ]
+    response_rate_1_star: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Response rate for 1-star reviews",
+        ),
+    ]
     
     # Response quality
     average_response_length: int = Field(
@@ -310,7 +351,7 @@ class ResponseStats(BaseSchema):
         description="Age of oldest unanswered review in days",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def negative_review_response_rate(self) -> Decimal:
         """Response rate for negative reviews (1-2 stars)."""
@@ -320,7 +361,7 @@ class ResponseStats(BaseSchema):
         rate_2 = float(self.response_rate_2_star)
         return Decimal(str(round((rate_1 + rate_2) / 2, 2)))
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def response_health(self) -> str:
         """

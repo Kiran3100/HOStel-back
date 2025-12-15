@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_cancellation.py ---
 """
 Subscription cancellation schemas.
 
@@ -10,10 +9,10 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -31,6 +30,7 @@ class CancellationRequest(BaseCreateSchema):
     Supports both immediate cancellation and end-of-term cancellation
     with required reason tracking.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(
         ..., description="Subscription ID to cancel"
@@ -84,6 +84,7 @@ class CancellationPreview(BaseSchema):
     Shows what will happen if the cancellation proceeds,
     including refund calculations and effective dates.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(..., description="Subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -108,12 +109,11 @@ class CancellationPreview(BaseSchema):
     refund_eligible: bool = Field(
         ..., description="Whether eligible for refund"
     )
-    refund_amount: Decimal = Field(
+    refund_amount: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Calculated refund amount",
-    )
+    )]
     currency: str = Field(default="INR")
 
     # Warnings
@@ -135,6 +135,7 @@ class CancellationResponse(BaseSchema):
     Confirms the cancellation was processed and provides
     all relevant details about the cancellation.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(..., description="Cancelled subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -156,12 +157,11 @@ class CancellationResponse(BaseSchema):
     refund_issued: bool = Field(
         default=False, description="Whether refund was issued"
     )
-    refund_amount: Optional[Decimal] = Field(
+    refund_amount: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Refund amount if applicable",
-    )
+    )]]
     refund_reference: Optional[str] = Field(
         None,
         max_length=100,

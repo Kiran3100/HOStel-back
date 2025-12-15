@@ -65,7 +65,7 @@ class SupervisorAssignment(BaseResponseSchema):
         description="Total days in current assignment",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def assignment_duration_months(self) -> int:
         """Calculate assignment duration in months."""
@@ -378,7 +378,7 @@ class AssignmentSummary(BaseSchema):
         description="Coverage by shift",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def active_percentage(self) -> Decimal:
         """Calculate percentage of active supervisors."""
@@ -388,7 +388,7 @@ class AssignmentSummary(BaseSchema):
         rate = (self.active_supervisors / self.total_supervisors * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def needs_coverage(self) -> bool:
         """Check if hostel needs more supervisor coverage."""
