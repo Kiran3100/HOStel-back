@@ -14,7 +14,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -30,6 +30,8 @@ __all__ = [
     "FailedDelivery",
     "BatchDelivery",
     "RetryDelivery",
+    "DeliveryPause",
+    "DeliveryResume",
 ]
 
 

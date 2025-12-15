@@ -13,7 +13,8 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
+from pydantic.functional_validators import field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseFilterSchema
 from app.schemas.common.enums import AnnouncementCategory, Priority
@@ -226,7 +227,7 @@ class AnnouncementFilterParams(BaseFilterSchema):
             raise ValueError("Duplicate hostel IDs not allowed")
         return v
     
-    @field_validator("published_date_to")
+    @field_validator("published_date_to", mode="after")
     @classmethod
     def validate_published_date_range(
         cls, v: Optional[date], info
@@ -237,7 +238,7 @@ class AnnouncementFilterParams(BaseFilterSchema):
             raise ValueError("published_date_to must be after published_date_from")
         return v
     
-    @field_validator("created_date_to")
+    @field_validator("created_date_to", mode="after")
     @classmethod
     def validate_created_date_range(
         cls, v: Optional[date], info
@@ -477,7 +478,7 @@ class AnnouncementExportRequest(BaseFilterSchema):
         description="Email address to send export (optional)",
     )
     
-    @field_validator("date_to")
+    @field_validator("date_to", mode="after")
     @classmethod
     def validate_date_range(cls, v: Optional[date], info) -> Optional[date]:
         """Validate date range."""
@@ -582,7 +583,7 @@ class AnnouncementStatsRequest(BaseFilterSchema):
         description="Include comparison with previous period",
     )
     
-    @field_validator("period_end")
+    @field_validator("period_end", mode="after")
     @classmethod
     def validate_period(cls, v: date, info) -> date:
         """Validate period range."""

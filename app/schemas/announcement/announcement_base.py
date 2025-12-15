@@ -17,6 +17,7 @@ from pydantic import (
     HttpUrl,
     field_validator,
     model_validator,
+    ConfigDict,
 )
 
 from app.schemas.common.base import (

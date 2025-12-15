@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import (
