@@ -1,4 +1,3 @@
-# --- File: app/schemas/analytics/financial_analytics.py ---
 """
 Financial analytics schemas with comprehensive P&L and cashflow tracking.
 
@@ -12,10 +11,10 @@ Provides detailed financial analytics including:
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Annotated
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator, AfterValidator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -35,6 +34,18 @@ __all__ = [
     "FinancialReport",
     "TaxSummary",
 ]
+
+
+# Custom validators for decimal places
+def round_to_2_places(v: Decimal) -> Decimal:
+    """Round decimal to 2 places."""
+    if isinstance(v, (int, float)):
+        v = Decimal(str(v))
+    return round(v, 2)
+
+
+# Type aliases for common decimal fields
+DecimalField = Annotated[Decimal, AfterValidator(round_to_2_places)]
 
 
 class RevenueCategory(str, Enum):
@@ -73,80 +84,70 @@ class RevenueBreakdown(BaseSchema):
     """
     
     # Total revenue
-    total_revenue: Decimal = Field(
+    total_revenue: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total revenue for the period"
     )
     
     # Revenue by type
-    booking_revenue: Decimal = Field(
+    booking_revenue: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Revenue from new bookings"
     )
-    rent_revenue: Decimal = Field(
+    rent_revenue: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Monthly/periodic rent revenue"
     )
-    mess_revenue: Decimal = Field(
+    mess_revenue: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Mess/food service revenue"
     )
-    utility_revenue: Decimal = Field(
+    utility_revenue: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Utility charges collected"
     )
-    late_fee_revenue: Decimal = Field(
+    late_fee_revenue: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Late payment fees"
     )
-    other_revenue: Decimal = Field(
+    other_revenue: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Other miscellaneous revenue"
     )
     
     # Breakdown by hostel
-    revenue_by_hostel: Dict[str, Decimal] = Field(
+    revenue_by_hostel: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Revenue mapped by hostel ID"
     )
     
     # Breakdown by payment type
-    revenue_by_payment_type: Dict[str, Decimal] = Field(
+    revenue_by_payment_type: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Revenue by PaymentType category"
     )
     
     # Collection metrics
-    billed_amount: Decimal = Field(
+    billed_amount: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Total amount billed in period"
     )
-    collected_amount: Decimal = Field(
+    collected_amount: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Amount actually collected"
     )
-    pending_amount: Decimal = Field(
+    pending_amount: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Amount pending collection"
     )
     
@@ -171,9 +172,9 @@ class RevenueBreakdown(BaseSchema):
         
         return self
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def collection_rate(self) -> Decimal:
+    def collection_rate(self) -> DecimalField:
         """Calculate collection rate percentage."""
         if self.billed_amount == 0:
             return Decimal("100.00")
@@ -182,7 +183,7 @@ class RevenueBreakdown(BaseSchema):
             2
         )
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def primary_revenue_source(self) -> str:
         """Identify the largest revenue source."""
@@ -196,7 +197,7 @@ class RevenueBreakdown(BaseSchema):
         }
         return max(sources, key=sources.get)  # type: ignore[arg-type]
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def revenue_concentration_risk(self) -> str:
         """
@@ -234,80 +235,70 @@ class ExpenseBreakdown(BaseSchema):
     """
     
     # Total expenses
-    total_expenses: Decimal = Field(
+    total_expenses: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total expenses for the period"
     )
     
     # Expense by category
-    maintenance_expenses: Decimal = Field(
+    maintenance_expenses: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Maintenance and repair expenses"
     )
-    staff_expenses: Decimal = Field(
+    staff_expenses: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Staff salaries and benefits"
     )
-    utility_expenses: Decimal = Field(
+    utility_expenses: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Utility expenses (electricity, water, etc.)"
     )
-    supply_expenses: Decimal = Field(
+    supply_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Supplies and consumables"
     )
-    marketing_expenses: Decimal = Field(
+    marketing_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Marketing and advertising expenses"
     )
-    administrative_expenses: Decimal = Field(
+    administrative_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Administrative and overhead expenses"
     )
-    other_expenses: Decimal = Field(
+    other_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Other miscellaneous expenses"
     )
     
     # Breakdown by hostel
-    expenses_by_hostel: Dict[str, Decimal] = Field(
+    expenses_by_hostel: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Expenses mapped by hostel ID"
     )
     
     # Breakdown by category (detailed)
-    expenses_by_category: Dict[str, Decimal] = Field(
+    expenses_by_category: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Expenses by ExpenseCategory"
     )
     
     # Fixed vs. Variable
-    fixed_expenses: Decimal = Field(
+    fixed_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Fixed expenses (rent, salaries, etc.)"
     )
-    variable_expenses: Decimal = Field(
+    variable_expenses: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Variable expenses (utilities, supplies, etc.)"
     )
     
@@ -333,7 +324,7 @@ class ExpenseBreakdown(BaseSchema):
         
         return self
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def largest_expense_category(self) -> str:
         """Identify the largest expense category."""
@@ -348,9 +339,9 @@ class ExpenseBreakdown(BaseSchema):
         }
         return max(categories, key=categories.get)  # type: ignore[arg-type]
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def expense_ratio_staff(self) -> Decimal:
+    def expense_ratio_staff(self) -> DecimalField:
         """Calculate staff expense as percentage of total."""
         if self.total_expenses == 0:
             return Decimal("0.00")
@@ -369,74 +360,64 @@ class FinancialRatios(BaseSchema):
     """
     
     # Profitability ratios
-    gross_profit_margin: Decimal = Field(
+    gross_profit_margin: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Gross profit margin percentage"
     )
-    net_profit_margin: Decimal = Field(
+    net_profit_margin: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Net profit margin percentage"
     )
-    return_on_revenue: Decimal = Field(
+    return_on_revenue: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Return on revenue percentage"
     )
     
     # Efficiency ratios
-    operating_expense_ratio: Decimal = Field(
+    operating_expense_ratio: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Operating expenses as % of revenue"
     )
-    revenue_per_bed: Decimal = Field(
+    revenue_per_bed: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Average revenue per bed"
     )
-    revenue_per_student: Decimal = Field(
+    revenue_per_student: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Average revenue per student"
     )
     
     # Collection ratios
-    collection_efficiency: Decimal = Field(
+    collection_efficiency: DecimalField = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Collection efficiency percentage"
     )
-    days_sales_outstanding: Optional[Decimal] = Field(
+    days_sales_outstanding: Optional[DecimalField] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Average days to collect payment"
     )
     
     # Cost control
-    variable_cost_ratio: Decimal = Field(
+    variable_cost_ratio: DecimalField = Field(
         0,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Variable costs as % of revenue"
     )
-    fixed_cost_ratio: Decimal = Field(
+    fixed_cost_ratio: DecimalField = Field(
         0,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Fixed costs as % of revenue"
     )
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def profitability_status(self) -> str:
         """Assess overall profitability status."""
@@ -464,28 +445,24 @@ class BudgetComparison(BaseSchema):
         max_length=100,
         description="Budget category (revenue/expense type)"
     )
-    budgeted_amount: Decimal = Field(
+    budgeted_amount: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Budgeted amount for the period"
     )
-    actual_amount: Decimal = Field(
+    actual_amount: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Actual amount for the period"
     )
-    variance_amount: Decimal = Field(
+    variance_amount: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Variance (actual - budgeted)"
     )
-    variance_percentage: Decimal = Field(
+    variance_percentage: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Variance as percentage of budget"
     )
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_favorable(self) -> bool:
         """
@@ -498,7 +475,7 @@ class BudgetComparison(BaseSchema):
         # This should be contextualized by the caller
         return self.variance_amount >= 0
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def variance_severity(self) -> str:
         """Assess severity of budget variance."""
@@ -521,55 +498,48 @@ class TaxSummary(BaseSchema):
     Provides tax liability and compliance information.
     """
     
-    taxable_revenue: Decimal = Field(
+    taxable_revenue: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Revenue subject to taxation"
     )
-    tax_exempt_revenue: Decimal = Field(
+    tax_exempt_revenue: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Tax-exempt revenue"
     )
     
     # Tax liabilities
-    gst_collected: Decimal = Field(
+    gst_collected: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="GST collected from customers"
     )
-    gst_paid: Decimal = Field(
+    gst_paid: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="GST paid on expenses"
     )
-    gst_payable: Decimal = Field(
+    gst_payable: DecimalField = Field(
         0,
-        decimal_places=2,
         description="Net GST payable (collected - paid)"
     )
     
-    tds_deducted: Decimal = Field(
+    tds_deducted: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="TDS deducted at source"
     )
     
-    estimated_income_tax: Decimal = Field(
+    estimated_income_tax: DecimalField = Field(
         0,
         ge=0,
-        decimal_places=2,
         description="Estimated income tax liability"
     )
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def effective_tax_rate(self) -> Decimal:
+    def effective_tax_rate(self) -> DecimalField:
         """Calculate effective tax rate."""
         if self.taxable_revenue == 0:
             return Decimal("0.00")
@@ -624,43 +594,36 @@ class ProfitAndLossReport(BaseSchema):
     )
     
     # Calculated values
-    gross_profit: Decimal = Field(
+    gross_profit: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Gross profit (revenue - direct costs)"
     )
-    operating_profit: Decimal = Field(
+    operating_profit: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Operating profit (gross profit - operating expenses)"
     )
-    net_profit: Decimal = Field(
+    net_profit: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Net profit after all expenses"
     )
     
     # Margins
-    gross_profit_margin: Decimal = Field(
+    gross_profit_margin: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Gross profit margin percentage"
     )
-    operating_profit_margin: Decimal = Field(
+    operating_profit_margin: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Operating profit margin percentage"
     )
-    net_profit_margin: Decimal = Field(
+    net_profit_margin: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Net profit margin percentage"
     )
     
     # Legacy field
-    profit_margin_percentage: Decimal = Field(
+    profit_margin_percentage: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Profit margin percentage (deprecated: use net_profit_margin)"
     )
     
@@ -704,15 +667,15 @@ class ProfitAndLossReport(BaseSchema):
         
         return self
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_profitable(self) -> bool:
         """Check if the period was profitable."""
         return self.net_profit > 0
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def break_even_revenue(self) -> Decimal:
+    def break_even_revenue(self) -> DecimalField:
         """
         Calculate break-even revenue.
         
@@ -720,9 +683,9 @@ class ProfitAndLossReport(BaseSchema):
         """
         return self.expenses.total_expenses
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def revenue_above_break_even(self) -> Decimal:
+    def revenue_above_break_even(self) -> DecimalField:
         """Calculate revenue above break-even point."""
         return max(
             Decimal("0.00"),
@@ -762,26 +725,22 @@ class CashflowPoint(BaseSchema):
         ...,
         description="Date of cashflow point"
     )
-    inflow: Decimal = Field(
+    inflow: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Cash inflow for the day"
     )
-    outflow: Decimal = Field(
+    outflow: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Cash outflow for the day"
     )
-    net_flow: Decimal = Field(
+    net_flow: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Net cashflow (inflow - outflow)"
     )
-    balance: Decimal = Field(
+    balance: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Cumulative balance after this transaction"
     )
     
@@ -796,7 +755,7 @@ class CashflowPoint(BaseSchema):
             )
         return self
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_positive_flow(self) -> bool:
         """Check if net flow is positive."""
@@ -836,56 +795,49 @@ class CashflowSummary(BaseSchema):
     )
     
     # Balances
-    opening_balance: Decimal = Field(
+    opening_balance: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Cash balance at start of period"
     )
-    closing_balance: Decimal = Field(
+    closing_balance: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Cash balance at end of period"
     )
     
     # Totals
-    total_inflows: Decimal = Field(
+    total_inflows: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total cash inflows during period"
     )
-    total_outflows: Decimal = Field(
+    total_outflows: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total cash outflows during period"
     )
-    net_cashflow: Decimal = Field(
+    net_cashflow: DecimalField = Field(
         ...,
-        decimal_places=2,
         description="Net cashflow for the period"
     )
     
     # Legacy fields
-    inflows: Decimal = Field(
+    inflows: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total inflows (deprecated: use total_inflows)"
     )
-    outflows: Decimal = Field(
+    outflows: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Total outflows (deprecated: use total_outflows)"
     )
     
     # Breakdowns
-    inflow_breakdown: Dict[str, Decimal] = Field(
+    inflow_breakdown: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Inflows by category"
     )
-    outflow_breakdown: Dict[str, Decimal] = Field(
+    outflow_breakdown: Dict[str, DecimalField] = Field(
         default_factory=dict,
         description="Outflows by category"
     )
@@ -897,19 +849,16 @@ class CashflowSummary(BaseSchema):
     )
     
     # Liquidity metrics
-    average_daily_balance: Decimal = Field(
+    average_daily_balance: DecimalField = Field(
         0,
-        decimal_places=2,
         description="Average daily cash balance"
     )
-    minimum_balance: Decimal = Field(
+    minimum_balance: DecimalField = Field(
         0,
-        decimal_places=2,
         description="Minimum balance during period"
     )
-    maximum_balance: Decimal = Field(
+    maximum_balance: DecimalField = Field(
         0,
-        decimal_places=2,
         description="Maximum balance during period"
     )
     
@@ -948,7 +897,7 @@ class CashflowSummary(BaseSchema):
                 raise ValueError("Cashflow points must be in chronological order")
         return v
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def cashflow_health(self) -> str:
         """Assess overall cashflow health."""
@@ -961,7 +910,7 @@ class CashflowSummary(BaseSchema):
         else:
             return "good"
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def burn_rate_days(self) -> Optional[int]:
         """
@@ -986,9 +935,9 @@ class CashflowSummary(BaseSchema):
         
         return int(self.closing_balance / daily_burn)
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def operating_cash_ratio(self) -> Decimal:
+    def operating_cash_ratio(self) -> DecimalField:
         """Calculate operating cash flow ratio."""
         if self.total_outflows == 0:
             return Decimal("0.00")
@@ -1041,63 +990,55 @@ class FinancialReport(BaseSchema):
     )
     
     # Key metrics
-    collection_rate: Decimal = Field(
+    collection_rate: DecimalField = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Percentage of billed amount collected"
     )
-    overdue_ratio: Decimal = Field(
+    overdue_ratio: DecimalField = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Percentage of amount that is overdue"
     )
-    avg_revenue_per_student: Decimal = Field(
+    avg_revenue_per_student: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Average revenue per student"
     )
-    avg_revenue_per_bed: Decimal = Field(
+    avg_revenue_per_bed: DecimalField = Field(
         ...,
         ge=0,
-        decimal_places=2,
         description="Average revenue per bed"
     )
     
     # Operational metrics
-    occupancy_rate: Optional[Decimal] = Field(
+    occupancy_rate: Optional[DecimalField] = Field(
         None,
         ge=0,
         le=100,
-        decimal_places=2,
         description="Average occupancy rate during period"
     )
-    average_daily_rate: Optional[Decimal] = Field(
+    average_daily_rate: Optional[DecimalField] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Average daily rate (ADR) charged"
     )
     
     # Year-over-year comparison
-    revenue_growth_yoy: Optional[Decimal] = Field(
+    revenue_growth_yoy: Optional[DecimalField] = Field(
         None,
-        decimal_places=2,
         description="Year-over-year revenue growth percentage"
     )
-    profit_growth_yoy: Optional[Decimal] = Field(
+    profit_growth_yoy: Optional[DecimalField] = Field(
         None,
-        decimal_places=2,
         description="Year-over-year profit growth percentage"
     )
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def financial_health_score(self) -> Decimal:
+    def financial_health_score(self) -> DecimalField:
         """
         Calculate overall financial health score (0-100).
         
@@ -1135,7 +1076,7 @@ class FinancialReport(BaseSchema):
         
         return round(score, 2)
     
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def performance_grade(self) -> str:
         """Get letter grade for financial performance."""
