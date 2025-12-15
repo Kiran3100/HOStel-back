@@ -111,7 +111,7 @@ class SupervisorActivityLog(BaseResponseSchema):
         description="Error message if action failed",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def action_display_name(self) -> str:
         """Get human-readable action name."""
@@ -191,13 +191,13 @@ class ActivityDetail(BaseSchema):
         description="Number of users affected by action",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def has_changes(self) -> bool:
         """Check if activity involved data changes."""
         return bool(self.old_values or self.new_values)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def change_summary(self) -> Optional[str]:
         """Generate summary of changes made."""
@@ -239,7 +239,7 @@ class TopActivity(BaseSchema):
         description="Success rate percentage",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def frequency_description(self) -> str:
         """Get frequency description."""
@@ -280,7 +280,7 @@ class ActivityTimelinePoint(BaseSchema):
         description="Average response time",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def activity_level(self) -> str:
         """Categorize activity level."""
@@ -355,7 +355,7 @@ class ActivityMetrics(BaseSchema):
         description="Response time trend",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def activity_score(self) -> float:
         """Calculate overall activity score (0-100)."""
@@ -366,7 +366,7 @@ class ActivityMetrics(BaseSchema):
         
         return round(volume_score + consistency_score + performance_score, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def productivity_level(self) -> str:
         """Categorize productivity level."""
@@ -445,7 +445,7 @@ class ActivitySummary(BaseSchema):
         description="Overall success rate",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def most_common_activity(self) -> Optional[str]:
         """Get most frequently performed activity."""
@@ -453,7 +453,7 @@ class ActivitySummary(BaseSchema):
             return None
         return self.top_activities[0].action_display_name
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def activity_consistency(self) -> str:
         """Assess activity consistency."""

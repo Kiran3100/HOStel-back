@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/commission.py ---
 """
 Booking commission tracking schemas.
 
@@ -11,10 +10,10 @@ from __future__ import annotations
 from datetime import date as Date
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
@@ -44,28 +43,26 @@ class CommissionConfig(BaseSchema):
     Defines default commission rates and per-plan overrides for
     calculating platform fees on bookings.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
-    default_commission_percentage: Decimal = Field(
+    default_commission_percentage: Annotated[Decimal, Field(
         default=Decimal("5.00"),
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
         description="Default commission percentage for all plans",
-    )
-    min_commission_percentage: Decimal = Field(
+    )]
+    min_commission_percentage: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
         description="Minimum allowed commission percentage",
-    )
-    max_commission_percentage: Decimal = Field(
+    )]
+    max_commission_percentage: Annotated[Decimal, Field(
         default=Decimal("30.00"),
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
         description="Maximum allowed commission percentage",
-    )
+    )]
     commission_by_plan: Dict[str, Decimal] = Field(
         default_factory=dict,
         description="Plan type to commission percentage mapping (e.g., {'premium': 3.00})",
@@ -123,30 +120,28 @@ class BookingCommissionResponse(BaseResponseSchema):
     Tracks the commission owed to the platform for a specific booking,
     including calculation details and payment status.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     booking_id: UUID = Field(..., description="Associated booking ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
     subscription_id: UUID = Field(..., description="Active subscription ID")
 
-    booking_amount: Decimal = Field(
+    booking_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total booking amount",
-    )
-    commission_percentage: Decimal = Field(
+    )]
+    commission_percentage: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
         description="Applied commission percentage",
-    )
-    commission_amount: Decimal = Field(
+    )]
+    commission_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Calculated commission amount",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -188,6 +183,7 @@ class CommissionSummary(BaseSchema):
     Aggregates commission data over a specified period for
     reporting and reconciliation purposes.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     scope_type: str = Field(
         ...,
@@ -213,38 +209,33 @@ class CommissionSummary(BaseSchema):
         description="Bookings with commission calculated",
     )
 
-    total_booking_amount: Decimal = Field(
+    total_booking_amount: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total booking value in period",
-    )
-    total_commission_due: Decimal = Field(
+    )]
+    total_commission_due: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total commission amount due",
-    )
-    total_commission_paid: Decimal = Field(
+    )]
+    total_commission_paid: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total commission amount paid",
-    )
-    total_commission_pending: Decimal = Field(
+    )]
+    total_commission_pending: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Outstanding commission amount",
-    )
+    )]
 
-    average_commission_rate: Optional[Decimal] = Field(
+    average_commission_rate: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
         description="Average commission rate applied",
-    )
+    )]]
 
     @model_validator(mode="after")
     def validate_scope_and_dates(self) -> "CommissionSummary":
@@ -259,8 +250,7 @@ class CommissionSummary(BaseSchema):
             )
         return self
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def commission_collection_rate(self) -> Decimal:
         """Calculate commission collection rate as percentage."""
         if self.total_commission_due == Decimal("0"):

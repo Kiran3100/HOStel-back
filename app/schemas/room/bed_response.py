@@ -4,13 +4,18 @@ Bed response schemas for API responses.
 
 Provides various response formats for bed data including
 availability, assignments, and history.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- All Decimal fields now have explicit max_digits/decimal_places constraints
 """
 
 from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, computed_field
 
@@ -44,10 +49,10 @@ class BedResponse(BaseResponseSchema):
     )
     occupied_from: Optional[Date] = Field(
         default=None,
-        description="Occupancy start Date",
+        description="Occupancy start date",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def is_available(self) -> bool:
         """Check if bed is available for assignment."""
@@ -85,19 +90,27 @@ class BedAvailability(BaseSchema):
     )
     expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout Date",
+        description="Expected checkout date",
     )
     
-    # Room info
+    # Room info with proper Decimal constraints
     room_type: str = Field(..., description="Room type")
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent")
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent",
+        ),
+    ]
     is_ac: bool = Field(..., description="AC available in room")
     has_attached_bathroom: bool = Field(
         ...,
         description="Attached bathroom",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def days_until_available(self) -> Optional[int]:
         """Calculate days until bed becomes available."""
@@ -136,18 +149,26 @@ class BedAssignment(BaseResponseSchema):
     )
     
     # Assignment dates
-    occupied_from: Date = Field(..., description="Occupancy start Date")
+    occupied_from: Date = Field(..., description="Occupancy start date")
     expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout Date",
+        description="Expected checkout date",
     )
     actual_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Actual checkout Date (if completed)",
+        description="Actual checkout date (if completed)",
     )
     
-    # Pricing
-    monthly_rent: Decimal = Field(..., ge=0, description="Monthly rent amount")
+    # Pricing with proper Decimal constraints
+    monthly_rent: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent amount",
+        ),
+    ]
     
     # Related records
     booking_id: Optional[str] = Field(
@@ -172,14 +193,14 @@ class BedAssignment(BaseResponseSchema):
         description="Assignment notes",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def days_occupied(self) -> int:
         """Calculate days occupied."""
         end_date = self.actual_vacate_date or Date.today()
         return (end_date - self.occupied_from).days
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def expected_duration_days(self) -> Optional[int]:
         """Calculate expected duration in days."""
@@ -198,27 +219,41 @@ class BedAssignmentHistory(BaseSchema):
     assignment_id: str = Field(..., description="Assignment ID")
     student_id: str = Field(..., description="Student ID")
     student_name: str = Field(..., description="Student name")
-    move_in_date: Date = Field(..., description="Move-in Date")
+    move_in_date: Date = Field(..., description="Move-in date")
     move_out_date: Optional[Date] = Field(
         default=None,
-        description="Move-out Date (null if current)",
+        description="Move-out date (null if current)",
     )
     duration_days: Optional[int] = Field(
         default=None,
         description="Total duration in days",
     )
-    monthly_rent: Decimal = Field(..., ge=0, description="Monthly rent paid")
-    total_rent_paid: Decimal = Field(
-        default=Decimal("0.00"),
-        ge=0,
-        description="Total rent paid during stay",
-    )
+    # Pricing fields with proper Decimal constraints
+    monthly_rent: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent paid",
+        ),
+    ]
+    total_rent_paid: Annotated[
+        Decimal,
+        Field(
+            default=Decimal("0.00"),
+            ge=0,
+            max_digits=12,
+            decimal_places=2,
+            description="Total rent paid during stay",
+        ),
+    ]
     is_current: bool = Field(
         default=False,
         description="Currently active assignment",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def duration_months(self) -> Optional[Decimal]:
         """Calculate duration in months."""
@@ -262,17 +297,23 @@ class BedHistory(BaseSchema):
         ge=0,
         description="Total days occupied",
     )
-    average_stay_duration_days: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Average stay duration",
-    )
+    average_stay_duration_days: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=8,
+                decimal_places=1,
+                description="Average stay duration",
+            ),
+        ]
+    ] = None
     last_occupied_date: Optional[Date] = Field(
         default=None,
-        description="Last occupancy Date",
+        description="Last occupancy date",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def utilization_rate(self) -> Optional[Decimal]:
         """
@@ -322,17 +363,17 @@ class BedDetailedStatus(BaseResponseSchema):
     )
     occupied_from: Optional[Date] = Field(
         default=None,
-        description="Current occupancy start Date",
+        description="Current occupancy start date",
     )
     expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected checkout Date",
+        description="Expected checkout date",
     )
     
     # Maintenance
     last_maintenance_date: Optional[Date] = Field(
         default=None,
-        description="Last maintenance Date",
+        description="Last maintenance date",
     )
     next_scheduled_maintenance: Optional[Date] = Field(
         default=None,
@@ -352,7 +393,7 @@ class BedDetailedStatus(BaseResponseSchema):
     )
     last_inspection_date: Optional[Date] = Field(
         default=None,
-        description="Last inspection Date",
+        description="Last inspection date",
     )
     reported_issues: List[str] = Field(
         default_factory=list,
@@ -381,7 +422,7 @@ class BedDetailedStatus(BaseResponseSchema):
         description="Last status change timestamp",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def needs_maintenance(self) -> bool:
         """Check if bed needs maintenance."""
@@ -397,7 +438,7 @@ class BedDetailedStatus(BaseResponseSchema):
             return True
         return False
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def current_occupancy_days(self) -> Optional[int]:
         """Calculate days of current occupancy."""

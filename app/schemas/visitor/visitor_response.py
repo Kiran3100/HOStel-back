@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field
+from pydantic import BaseModel, Field, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import RoomType
@@ -54,19 +54,17 @@ class VisitorResponse(BaseResponseSchema):
         description="Contact phone number",
     )
 
-    # Preferences
+    # Preferences - Updated for Pydantic v2
     preferred_room_type: Optional[RoomType] = Field(
         default=None,
         description="Preferred room type",
     )
-    budget_min: Optional[Decimal] = Field(
+    budget_min: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum budget per month",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum budget per month",
     )
     preferred_cities: List[str] = Field(
@@ -200,19 +198,17 @@ class VisitorDetail(BaseResponseSchema):
         description="Profile image URL",
     )
 
-    # Preferences
+    # Preferences - Updated for Pydantic v2
     preferred_room_type: Optional[RoomType] = Field(
         default=None,
         description="Preferred room type",
     )
-    budget_min: Optional[Decimal] = Field(
+    budget_min: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum budget",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum budget",
     )
     preferred_cities: List[str] = Field(
@@ -263,10 +259,8 @@ class VisitorDetail(BaseResponseSchema):
         ge=0,
         description="Number of reviews written",
     )
-    average_rating_given: Optional[Decimal] = Field(
+    average_rating_given: Optional[Annotated[Decimal, Field(ge=0, le=5)]] = Field(
         default=None,
-        ge=0,
-        le=5,
         description="Average rating given in reviews",
     )
 
@@ -364,9 +358,8 @@ class VisitorStats(BaseSchema):
         ge=0,
         description="Number of unique hostels viewed",
     )
-    average_search_filters_used: Decimal = Field(
+    average_search_filters_used: Annotated[Decimal, Field(ge=0)] = Field(
         default=Decimal("0"),
-        ge=0,
         description="Average number of filters used per search",
     )
 
@@ -393,10 +386,8 @@ class VisitorStats(BaseSchema):
         ge=0,
         description="Total bookings made",
     )
-    booking_conversion_rate: Decimal = Field(
+    booking_conversion_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         default=Decimal("0"),
-        ge=0,
-        le=100,
         description="Percentage of views that resulted in bookings",
     )
 
@@ -409,9 +400,8 @@ class VisitorStats(BaseSchema):
         default=None,
         description="Most frequently viewed room type",
     )
-    average_budget: Optional[Decimal] = Field(
+    average_budget: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Average budget range from searches",
     )
 

@@ -4,13 +4,21 @@ Review analytics schemas with comprehensive metrics and trend analysis.
 
 Provides detailed analytics, sentiment analysis, and competitive insights
 for hostel reviews.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- field_validator already uses v2 syntax
+- All Decimal fields now have explicit max_digits/decimal_places constraints
+- Rating fields use appropriate precision for 1.0-5.0 range
+- Percentage fields use proper constraints for 0-100 range
 """
 
 from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from pydantic import Field, field_validator, computed_field
 from uuid import UUID
@@ -42,13 +50,16 @@ class MonthlyRating(BaseSchema):
         description="Month in YYYY-MM format",
         examples=["2024-01", "2024-02"],
     )
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Average rating for the month",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average rating for the month",
+        ),
+    ]
     review_count: int = Field(
         ...,
         ge=0,
@@ -76,42 +87,57 @@ class RatingDistribution(BaseSchema):
     rating_2_count: int = Field(..., ge=0, description="2-star reviews count")
     rating_1_count: int = Field(..., ge=0, description="1-star reviews count")
     
-    # Percentages
-    rating_5_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of 5-star reviews",
-    )
-    rating_4_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of 4-star reviews",
-    )
-    rating_3_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of 3-star reviews",
-    )
-    rating_2_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of 2-star reviews",
-    )
-    rating_1_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of 1-star reviews",
-    )
+    # Percentages with proper constraints
+    rating_5_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of 5-star reviews",
+        ),
+    ]
+    rating_4_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of 4-star reviews",
+        ),
+    ]
+    rating_3_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of 3-star reviews",
+        ),
+    ]
+    rating_2_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of 2-star reviews",
+        ),
+    ]
+    rating_1_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of 1-star reviews",
+        ),
+    ]
     
     # Aggregated metrics
     positive_reviews: int = Field(
@@ -130,29 +156,38 @@ class RatingDistribution(BaseSchema):
         description="Count of negative reviews (1-2 stars)",
     )
     
-    positive_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of positive reviews",
-    )
-    neutral_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of neutral reviews",
-    )
-    negative_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of negative reviews",
-    )
+    positive_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of positive reviews",
+        ),
+    ]
+    neutral_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of neutral reviews",
+        ),
+    ]
+    negative_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of negative reviews",
+        ),
+    ]
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def total_reviews(self) -> int:
         """Calculate total number of reviews."""
@@ -164,7 +199,7 @@ class RatingDistribution(BaseSchema):
             + self.rating_1_count
         )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def recommendation_score(self) -> Decimal:
         """
@@ -191,36 +226,50 @@ class TrendAnalysis(BaseSchema):
         pattern=r"^(improving|declining|stable)$",
         description="Overall trend direction",
     )
-    trend_percentage: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("-100"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage change in rating",
-    )
+    trend_percentage: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("-100"),
+                le=Decimal("100"),
+                max_digits=5,
+                decimal_places=2,
+                description="Percentage change in rating",
+            ),
+        ]
+    ] = None
     
-    # Time-based ratings
-    last_30_days_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Average rating in last 30 days",
-    )
-    last_90_days_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Average rating in last 90 days",
-    )
-    all_time_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="All-time average rating",
-    )
+    # Time-based ratings with proper constraints
+    last_30_days_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average rating in last 30 days",
+        ),
+    ]
+    last_90_days_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average rating in last 90 days",
+        ),
+    ]
+    all_time_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="All-time average rating",
+        ),
+    ]
     
     # Monthly breakdown
     monthly_ratings: List[MonthlyRating] = Field(
@@ -272,13 +321,16 @@ class SentimentAnalysis(BaseSchema):
         description="Overall sentiment classification",
     )
     
-    sentiment_score: Decimal = Field(
-        ...,
-        ge=Decimal("-1"),
-        le=Decimal("1"),
-        decimal_places=3,
-        description="Sentiment score (-1 to 1, where 1 is most positive)",
-    )
+    sentiment_score: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("-1"),
+            le=Decimal("1"),
+            max_digits=4,
+            decimal_places=3,
+            description="Sentiment score (-1 to 1, where 1 is most positive)",
+        ),
+    ]
     
     # Distribution
     positive_count: int = Field(..., ge=0, description="Positive reviews count")
@@ -316,13 +368,13 @@ class SentimentAnalysis(BaseSchema):
         """Normalize sentiment to lowercase."""
         return v.lower().strip()
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def total_analyzed(self) -> int:
         """Total reviews analyzed for sentiment."""
         return self.positive_count + self.neutral_count + self.negative_count
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def positive_percentage(self) -> Decimal:
         """Percentage of positive sentiment reviews."""
@@ -348,13 +400,16 @@ class AspectAnalysis(BaseSchema):
         examples=["cleanliness", "food_quality", "staff_behavior"],
     )
     
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Average rating for this aspect",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average rating for this aspect",
+        ),
+    ]
     total_ratings: int = Field(
         ...,
         ge=0,
@@ -416,7 +471,7 @@ class AspectAnalysis(BaseSchema):
             )
         return v
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def sentiment_ratio(self) -> Decimal:
         """
@@ -447,36 +502,48 @@ class CompetitorComparison(BaseSchema):
         description="Subject hostel name",
     )
     
-    # Ratings comparison
-    this_hostel_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="This hostel's average rating",
-    )
-    competitor_average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Average rating of competitors in area",
-    )
+    # Ratings comparison with proper constraints
+    this_hostel_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="This hostel's average rating",
+        ),
+    ]
+    competitor_average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average rating of competitors in area",
+        ),
+    ]
     
-    rating_difference: Decimal = Field(
-        ...,
-        ge=Decimal("-4.0"),
-        le=Decimal("4.0"),
-        decimal_places=2,
-        description="Rating difference from competitor average",
-    )
-    percentile_rank: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentile rank among competitors (0-100)",
-    )
+    rating_difference: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("-4.0"),
+            le=Decimal("4.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Rating difference from competitor average",
+        ),
+    ]
+    percentile_rank: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentile rank among competitors (0-100)",
+        ),
+    ]
     
     # Competitive advantages and weaknesses
     competitive_advantages: List[str] = Field(
@@ -492,7 +559,7 @@ class CompetitorComparison(BaseSchema):
         examples=[["food_quality", "wifi", "amenities"]],
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def competitive_position(self) -> str:
         """
@@ -511,7 +578,7 @@ class CompetitorComparison(BaseSchema):
         else:
             return "below_average"
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def is_outperforming(self) -> bool:
         """Check if hostel is outperforming competitors."""
@@ -549,13 +616,16 @@ class ReviewAnalytics(BaseSchema):
         ge=0,
         description="Total number of reviews",
     )
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=2,
-        description="Overall average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Overall average rating",
+        ),
+    ]
     
     # Detailed breakdowns
     rating_distribution: RatingDistribution = Field(
@@ -563,8 +633,16 @@ class ReviewAnalytics(BaseSchema):
         description="Rating distribution across 1-5 stars",
     )
     
-    # Aspect ratings
-    detailed_ratings_average: Dict[str, Decimal] = Field(
+    # Aspect ratings with proper Decimal constraints
+    detailed_ratings_average: Dict[str, Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+        ),
+    ]] = Field(
         default_factory=dict,
         description="Average ratings by aspect (cleanliness, food, etc.)",
         examples=[
@@ -594,28 +672,37 @@ class ReviewAnalytics(BaseSchema):
         ge=0,
         description="Number of verified reviews",
     )
-    verification_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of reviews that are verified",
-    )
+    verification_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviews that are verified",
+        ),
+    ]
     
     # Engagement metrics
-    average_helpful_votes: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        decimal_places=2,
-        description="Average helpful votes per review",
-    )
-    response_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        decimal_places=2,
-        description="Percentage of reviews with hostel responses",
-    )
+    average_helpful_votes: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            max_digits=8,
+            decimal_places=2,
+            description="Average helpful votes per review",
+        ),
+    ]
+    response_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviews with hostel responses",
+        ),
+    ]
     
     @field_validator("detailed_ratings_average")
     @classmethod
@@ -629,7 +716,7 @@ class ReviewAnalytics(BaseSchema):
                 )
         return v
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def quality_score(self) -> Decimal:
         """
@@ -651,7 +738,7 @@ class ReviewAnalytics(BaseSchema):
         total = rating_score + verification_score + engagement_score
         return Decimal(str(round(total, 2)))
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def health_indicator(self) -> str:
         """

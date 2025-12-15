@@ -7,12 +7,18 @@ Provides schemas for:
 - Faceted search responses
 - Search metadata and diagnostics
 - Search suggestions
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with max_digits/decimal_places constraints
+- Optional[Decimal] fields use Annotated to ensure constraints apply correctly
+- @computed_field with @property decorator for computed properties
+- All field validators use v2 syntax (none present in this schema)
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field
@@ -51,25 +57,40 @@ class SearchResultItem(BaseSchema):
     state: str = Field(..., description="State")
     address_line1: str = Field(..., description="Primary address")
 
-    # Pricing
-    min_price: Decimal = Field(
-        ...,
-        ge=0,
-        description="Minimum monthly price across all rooms",
-    )
-    max_price: Decimal = Field(
-        ...,
-        ge=0,
-        description="Maximum monthly price across all rooms",
-    )
+    # Pricing - Using Decimal with precision constraints for currency values
+    min_price: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Minimum monthly price across all rooms",
+        ),
+    ]
+    max_price: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Maximum monthly price across all rooms",
+        ),
+    ]
 
     # Ratings and reviews
-    average_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average rating (0-5)",
-    )
+    # Pydantic v2: For Optional[Decimal] with constraints, use Annotated pattern
+    average_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                le=5,
+                max_digits=3,
+                decimal_places=2,
+                description="Average rating (0-5)",
+            ),
+        ]
+    ] = None
     total_reviews: int = Field(
         default=0,
         ge=0,
@@ -116,16 +137,26 @@ class SearchResultItem(BaseSchema):
     )
 
     # Search-specific metadata
-    relevance_score: Decimal = Field(
-        ...,
-        ge=0,
-        description="Relevance score from search engine (higher = more relevant)",
-    )
-    distance_km: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Distance from search location (if proximity search)",
-    )
+    relevance_score: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=4,
+            description="Relevance score from search engine (higher = more relevant)",
+        ),
+    ]
+    distance_km: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Distance from search location (if proximity search)",
+            ),
+        ]
+    ] = None
 
     # Highlighting (search term matches)
     highlights: Dict[str, List[str]] = Field(
@@ -134,7 +165,7 @@ class SearchResultItem(BaseSchema):
         examples=[{"name": ["Best <em>Hostel</em> in Mumbai"]}],
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate as percentage."""
@@ -143,7 +174,7 @@ class SearchResultItem(BaseSchema):
         occupied = self.total_beds - self.available_beds
         return Decimal(occupied / self.total_beds * 100).quantize(Decimal("0.01"))
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def has_availability(self) -> bool:
         """Check if hostel has any available beds."""
@@ -209,16 +240,29 @@ class SearchMetadata(BaseSchema):
     )
 
     # Result quality indicators
-    max_score: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Highest relevance score in results",
-    )
-    min_score: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Lowest relevance score in results",
-    )
+    # Pydantic v2: Optional[Decimal] with constraints uses Annotated pattern
+    max_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=4,
+                description="Highest relevance score in results",
+            ),
+        ]
+    ] = None
+    min_score: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=4,
+                description="Lowest relevance score in results",
+            ),
+        ]
+    ] = None
 
     # Debug information (optional, for development)
     debug_info: Optional[Dict[str, Any]] = Field(
@@ -226,13 +270,13 @@ class SearchMetadata(BaseSchema):
         description="Debug information (available in development mode)",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def has_next_page(self) -> bool:
         """Check if there are more pages available."""
         return self.page < self.total_pages
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def has_previous_page(self) -> bool:
         """Check if there are previous pages."""
@@ -309,18 +353,18 @@ class FacetedSearchResponse(BaseSchema):
     )
 
     # Search suggestions (for query refinement)
-    suggestions: List["SearchSuggestion"] = Field(
+    suggestions: List[SearchSuggestion] = Field(
         default_factory=list,
         description="Suggested query refinements",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def is_empty(self) -> bool:
         """Check if search returned no results."""
         return len(self.results) == 0
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def facet_names(self) -> List[str]:
         """Get list of available facet names."""

@@ -1,13 +1,19 @@
 # --- File: app/schemas/review/review_filters.py ---
 """
 Review filter and search schemas with advanced filtering options.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- field_validator and model_validator already use v2 syntax
+- Rating fields use max_digits=2, decimal_places=1 for 1.0-5.0 range
+- All validators properly handle Optional types
 """
 
 from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, field_validator, model_validator
 from uuid import UUID
@@ -40,19 +46,31 @@ class ReviewFilterParams(BaseFilterSchema):
         description="Filter by multiple hostels (max 50)",
     )
     
-    # Rating filters
-    min_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Minimum overall rating",
-    )
-    max_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Maximum overall rating",
-    )
+    # Rating filters with proper Decimal constraints
+    min_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1.0"),
+                le=Decimal("5.0"),
+                max_digits=2,
+                decimal_places=1,
+                description="Minimum overall rating",
+            ),
+        ]
+    ] = None
+    max_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1.0"),
+                le=Decimal("5.0"),
+                max_digits=2,
+                decimal_places=1,
+                description="Maximum overall rating",
+            ),
+        ]
+    ] = None
     rating: Optional[int] = Field(
         default=None,
         ge=1,
@@ -69,11 +87,11 @@ class ReviewFilterParams(BaseFilterSchema):
     # Date filters
     posted_date_from: Optional[Date] = Field(
         default=None,
-        description="Reviews posted on or after this Date",
+        description="Reviews posted on or after this date",
     )
     posted_date_to: Optional[Date] = Field(
         default=None,
-        description="Reviews posted on or before this Date",
+        description="Reviews posted on or before this date",
     )
     
     # Status filters
@@ -115,7 +133,11 @@ class ReviewFilterParams(BaseFilterSchema):
     
     @model_validator(mode="after")
     def validate_rating_range(self) -> "ReviewFilterParams":
-        """Validate that max_rating >= min_rating."""
+        """
+        Validate that max_rating >= min_rating.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.max_rating is not None and self.min_rating is not None:
             if self.max_rating < self.min_rating:
                 raise ValueError("max_rating must be greater than or equal to min_rating")
@@ -123,7 +145,11 @@ class ReviewFilterParams(BaseFilterSchema):
     
     @model_validator(mode="after")
     def validate_date_range(self) -> "ReviewFilterParams":
-        """Validate that posted_date_to >= posted_date_from."""
+        """
+        Validate that posted_date_to >= posted_date_from.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.posted_date_to is not None and self.posted_date_from is not None:
             if self.posted_date_to < self.posted_date_from:
                 raise ValueError(
@@ -161,13 +187,19 @@ class ReviewSearchRequest(BaseFilterSchema):
         description="Include review text in search",
     )
     
-    # Additional filters
-    min_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Filter by minimum rating",
-    )
+    # Additional filters with proper Decimal constraints
+    min_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1.0"),
+                le=Decimal("5.0"),
+                max_digits=2,
+                decimal_places=1,
+                description="Filter by minimum rating",
+            ),
+        ]
+    ] = None
     verified_only: Optional[bool] = Field(
         default=None,
         description="Show only verified reviews",
@@ -197,7 +229,11 @@ class ReviewSearchRequest(BaseFilterSchema):
     
     @model_validator(mode="after")
     def validate_search_scope(self) -> "ReviewSearchRequest":
-        """Ensure at least one search scope is selected."""
+        """
+        Ensure at least one search scope is selected.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if not self.search_in_title and not self.search_in_content:
             raise ValueError(
                 "At least one search scope must be enabled "
@@ -284,11 +320,11 @@ class ReviewExportRequest(BaseFilterSchema):
     # Date range for export
     date_from: Optional[Date] = Field(
         default=None,
-        description="Export reviews from this Date onwards",
+        description="Export reviews from this date onwards",
     )
     date_to: Optional[Date] = Field(
         default=None,
-        description="Export reviews up to this Date",
+        description="Export reviews up to this date",
     )
     
     @field_validator("format")
@@ -299,7 +335,11 @@ class ReviewExportRequest(BaseFilterSchema):
     
     @model_validator(mode="after")
     def validate_date_range(self) -> "ReviewExportRequest":
-        """Validate export Date range."""
+        """
+        Validate export date range.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.date_to is not None and self.date_from is not None:
             if self.date_to < self.date_from:
                 raise ValueError("date_to must be on or after date_from")

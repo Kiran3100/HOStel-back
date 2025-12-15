@@ -3,12 +3,18 @@
 Base review schemas with comprehensive validation.
 
 Provides foundation schemas for review creation and updates.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- field_validator and model_validator already use v2 syntax
+- Overall rating uses max_digits=2, decimal_places=1 for 1.0-5.0 range
+- HttpUrl type works identically in v1 and v2
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 from uuid import UUID
@@ -105,15 +111,18 @@ class ReviewBase(BaseSchema):
         description="Related booking reference for verification",
     )
     
-    # Overall rating
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=1,
-        description="Overall rating (1.0 to 5.0, in 0.5 increments)",
-        examples=[Decimal("4.5"), Decimal("3.0")],
-    )
+    # Overall rating with proper Decimal constraints
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating (1.0 to 5.0, in 0.5 increments)",
+            examples=[Decimal("4.5"), Decimal("3.0")],
+        ),
+    ]
     
     # Review content
     title: str = Field(
@@ -247,6 +256,7 @@ class ReviewBase(BaseSchema):
         
         If detailed ratings are provided, checks that overall rating
         is reasonably aligned with the average of detailed ratings.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         detailed_ratings = [
             r for r in [
@@ -300,6 +310,7 @@ class ReviewCreate(ReviewBase, BaseCreateSchema):
         Validate recommendation aligns with rating.
         
         Warns if low-rated review has recommendation or vice versa.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         rating = float(self.overall_rating)
         
@@ -338,14 +349,19 @@ class ReviewUpdate(BaseUpdateSchema):
         description="Updated review text",
     )
     
-    # Rating updates
-    overall_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        decimal_places=1,
-        description="Updated overall rating",
-    )
+    # Rating updates with proper Decimal constraints
+    overall_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1.0"),
+                le=Decimal("5.0"),
+                max_digits=2,
+                decimal_places=1,
+                description="Updated overall rating",
+            ),
+        ]
+    ] = None
     
     # Detailed ratings updates
     cleanliness_rating: Optional[int] = Field(default=None, ge=1, le=5)

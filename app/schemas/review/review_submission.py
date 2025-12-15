@@ -4,13 +4,20 @@ Review submission and verification schemas.
 
 Handles the complete review submission workflow including
 verification and eligibility checks.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- field_validator and model_validator already use v2 syntax
+- Rating fields use max_digits=2, decimal_places=1 for 1.0-5.0 range
+- Confidence scores use max_digits=4, decimal_places=3 for 0.000-1.000 range
 """
 
 from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from pydantic import Field, HttpUrl, field_validator, model_validator, computed_field
 from uuid import UUID
@@ -89,7 +96,7 @@ class DetailedRatingsInput(BaseSchema):
         description="Maintenance responsiveness rating",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def average_rating(self) -> Decimal:
         """Calculate average of all provided ratings."""
@@ -132,14 +139,18 @@ class ReviewSubmissionRequest(BaseCreateSchema):
         description="Student profile ID for stay verification",
     )
     
-    # Basic review content
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating (1-5, in 0.5 increments)",
-        examples=[Decimal("4.5")],
-    )
+    # Basic review content with proper rating constraints
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating (1-5, in 0.5 increments)",
+            examples=[Decimal("4.5")],
+        ),
+    ]
     title: str = Field(
         ...,
         min_length=5,
@@ -182,11 +193,11 @@ class ReviewSubmissionRequest(BaseCreateSchema):
     )
     check_in_date: Optional[Date] = Field(
         default=None,
-        description="Approximate check-in Date",
+        description="Approximate check-in date",
     )
     check_out_date: Optional[Date] = Field(
         default=None,
-        description="Approximate check-out Date (if moved out)",
+        description="Approximate check-out date (if moved out)",
     )
     
     # Specific feedback (optional)
@@ -269,21 +280,29 @@ class ReviewSubmissionRequest(BaseCreateSchema):
     
     @model_validator(mode="after")
     def validate_dates(self) -> "ReviewSubmissionRequest":
-        """Validate check-in and check-out dates."""
+        """
+        Validate check-in and check-out dates.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.check_in_date and self.check_out_date:
             if self.check_out_date <= self.check_in_date:
                 raise ValueError(
-                    "Check-out Date must be after check-in Date"
+                    "Check-out date must be after check-in date"
                 )
         
         if self.check_in_date and self.check_in_date > Date.today():
-            raise ValueError("Check-in Date cannot be in the future")
+            raise ValueError("Check-in date cannot be in the future")
         
         return self
     
     @model_validator(mode="after")
     def validate_rating_consistency(self) -> "ReviewSubmissionRequest":
-        """Validate overall rating aligns with detailed ratings."""
+        """
+        Validate overall rating aligns with detailed ratings.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         overall = float(self.overall_rating)
         detailed_avg = float(self.detailed_ratings.average_rating)
         
@@ -332,13 +351,19 @@ class VerifiedReview(BaseSchema):
         ],
     )
     
-    # Confidence score for auto-verification
-    verification_confidence: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("1"),
-        description="Confidence score for auto-verification (0-1)",
-    )
+    # Confidence score for auto-verification with proper constraints
+    verification_confidence: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("0"),
+                le=Decimal("1"),
+                max_digits=4,
+                decimal_places=3,
+                description="Confidence score for auto-verification (0-1)",
+            ),
+        ]
+    ] = None
     
     @field_validator("verification_method")
     @classmethod
@@ -486,13 +511,19 @@ class ReviewDraft(BaseSchema):
     user_id: UUID = Field(..., description="User who created the draft")
     hostel_id: UUID = Field(..., description="Target hostel")
     
-    # Partial content
-    overall_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating (if set)",
-    )
+    # Partial content with proper rating constraints
+    overall_rating: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1.0"),
+                le=Decimal("5.0"),
+                max_digits=2,
+                decimal_places=1,
+                description="Overall rating (if set)",
+            ),
+        ]
+    ] = None
     title: Optional[str] = Field(
         default=None,
         max_length=255,
@@ -524,7 +555,7 @@ class ReviewDraft(BaseSchema):
         description="When draft expires and will be deleted",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def completion_percentage(self) -> int:
         """Estimate completion percentage."""
@@ -544,7 +575,7 @@ class ReviewDraft(BaseSchema):
         
         return int((completed / total_fields) * 100)
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def is_expired(self) -> bool:
         """Check if draft is expired."""

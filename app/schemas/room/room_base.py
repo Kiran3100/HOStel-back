@@ -4,13 +4,19 @@ Room base schemas with enhanced validation and type safety.
 
 Provides core room management schemas including creation, updates,
 bulk operations, and pricing/status management.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- field_validator and model_validator already use v2 syntax
+- All Decimal fields now have explicit max_digits/decimal_places constraints
+- Validators properly handle Optional types in update schemas
 """
 
 from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -76,35 +82,49 @@ class RoomBase(BaseSchema):
         description="Total bed capacity in the room",
     )
 
-    # Pricing (all in same currency as hostel)
-    price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Monthly rent amount",
-    )
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Quarterly rent (3 months, often discounted)",
-    )
-    price_half_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Half-yearly rent (6 months, often discounted)",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Yearly rent (12 months, often discounted)",
-    )
+    # Pricing with proper Decimal constraints
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent amount",
+        ),
+    ]
+    price_quarterly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Quarterly rent (3 months, often discounted)",
+            ),
+        ]
+    ] = None
+    price_half_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Half-yearly rent (6 months, often discounted)",
+            ),
+        ]
+    ] = None
+    price_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Yearly rent (12 months, often discounted)",
+            ),
+        ]
+    ] = None
 
     # Physical specifications
     room_size_sqft: Optional[int] = Field(
@@ -240,6 +260,7 @@ class RoomBase(BaseSchema):
         Validate pricing consistency and logical discounts.
         
         Ensures longer-term prices are not higher than monthly equivalent.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         monthly = self.price_monthly
         
@@ -278,6 +299,7 @@ class RoomBase(BaseSchema):
         Validate bed count matches room type expectations.
         
         Provides warnings for unusual configurations.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         expected_beds = {
             RoomType.SINGLE: (1, 1),
@@ -325,11 +347,15 @@ class RoomCreate(RoomBase, BaseCreateSchema):
         le=20,
         description="Total beds (required)",
     )
-    price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        description="Monthly rent (required)",
-    )
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent (required)",
+        ),
+    ]
 
 
 class RoomUpdate(BaseUpdateSchema):
@@ -367,27 +393,51 @@ class RoomUpdate(BaseUpdateSchema):
         description="Total beds",
     )
 
-    # Pricing updates
-    price_monthly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Monthly rent",
-    )
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Quarterly rent",
-    )
-    price_half_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Half-yearly rent",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Yearly rent",
-    )
+    # Pricing updates with proper Decimal constraints
+    price_monthly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Monthly rent",
+            ),
+        ]
+    ] = None
+    price_quarterly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Quarterly rent",
+            ),
+        ]
+    ] = None
+    price_half_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Half-yearly rent",
+            ),
+        ]
+    ] = None
+    price_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Yearly rent",
+            ),
+        ]
+    ] = None
 
     # Physical specifications
     room_size_sqft: Optional[int] = Field(
@@ -446,7 +496,6 @@ class RoomUpdate(BaseUpdateSchema):
         description="Room image URLs",
     )
 
-    # Pydantic v2: Reuse validators from base class properly
     @field_validator("room_number")
     @classmethod
     def validate_room_number(cls, v: Optional[str]) -> Optional[str]:
@@ -547,6 +596,7 @@ class BulkRoomCreate(BaseCreateSchema):
         Validate all rooms belong to the same hostel.
         
         Ensures consistency in bulk operations.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         hostel_id = self.hostel_id
         if hostel_id:
@@ -566,42 +616,60 @@ class RoomPricingUpdate(BaseUpdateSchema):
     Dedicated schema for price updates with validation.
     """
 
-    price_monthly: Decimal = Field(
-        ...,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Monthly rent (required)",
-    )
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Quarterly rent (optional discount)",
-    )
-    price_half_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Half-yearly rent (optional discount)",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-        description="Yearly rent (optional discount)",
-    )
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent (required)",
+        ),
+    ]
+    price_quarterly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Quarterly rent (optional discount)",
+            ),
+        ]
+    ] = None
+    price_half_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Half-yearly rent (optional discount)",
+            ),
+        ]
+    ] = None
+    price_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Yearly rent (optional discount)",
+            ),
+        ]
+    ] = None
     effective_from: Optional[Date] = Field(
         default=None,
-        description="Effective Date for new pricing (optional)",
+        description="Effective date for new pricing (optional)",
     )
 
     @model_validator(mode="after")
     def validate_pricing_logic(self) -> "RoomPricingUpdate":
-        """Validate pricing consistency."""
+        """
+        Validate pricing consistency.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         monthly = self.price_monthly
 
         if self.price_quarterly is not None:
@@ -627,10 +695,10 @@ class RoomPricingUpdate(BaseUpdateSchema):
     @field_validator("effective_from")
     @classmethod
     def validate_effective_date(cls, v: Optional[Date]) -> Optional[Date]:
-        """Validate effective Date is not in the past."""
+        """Validate effective date is not in the past."""
         if v is not None:
             if v < Date.today():
-                raise ValueError("Effective Date cannot be in the past")
+                raise ValueError("Effective date cannot be in the past")
         return v
 
 
@@ -660,11 +728,11 @@ class RoomStatusUpdate(BaseUpdateSchema):
     )
     maintenance_start_date: Optional[Date] = Field(
         default=None,
-        description="Maintenance start Date",
+        description="Maintenance start date",
     )
     maintenance_end_date: Optional[Date] = Field(
         default=None,
-        description="Expected maintenance completion Date",
+        description="Expected maintenance completion date",
     )
 
     @model_validator(mode="after")
@@ -673,6 +741,7 @@ class RoomStatusUpdate(BaseUpdateSchema):
         Validate maintenance-related fields.
         
         Ensures proper documentation when room is under maintenance.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         if self.is_under_maintenance or self.status == RoomStatus.MAINTENANCE:
             # Require maintenance notes when under maintenance
@@ -680,10 +749,10 @@ class RoomStatusUpdate(BaseUpdateSchema):
                 raise ValueError(
                     "Maintenance notes are required when room is under maintenance"
                 )
-            # Require maintenance start Date
+            # Require maintenance start date
             if not self.maintenance_start_date:
                 raise ValueError(
-                    "Maintenance start Date is required when room is under maintenance"
+                    "Maintenance start date is required when room is under maintenance"
                 )
             # Set room as unavailable for booking
             if self.is_available_for_booking:
@@ -695,11 +764,15 @@ class RoomStatusUpdate(BaseUpdateSchema):
 
     @model_validator(mode="after")
     def validate_maintenance_dates(self) -> "RoomStatusUpdate":
-        """Validate maintenance Date range."""
+        """
+        Validate maintenance date range.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.maintenance_start_date and self.maintenance_end_date:
             if self.maintenance_end_date < self.maintenance_start_date:
                 raise ValueError(
-                    "Maintenance end Date must be after or equal to start Date"
+                    "Maintenance end date must be after or equal to start date"
                 )
         return self
 
@@ -750,7 +823,11 @@ class RoomMediaUpdate(BaseUpdateSchema):
 
     @model_validator(mode="after")
     def validate_primary_image(self) -> "RoomMediaUpdate":
-        """Validate primary image is in room_images list."""
+        """
+        Validate primary image is in room_images list.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.primary_image:
             if self.primary_image not in self.room_images:
                 raise ValueError(

@@ -8,9 +8,9 @@ and preference settings.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import Field, HttpUrl, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import DietaryPreference, IDProofType
@@ -24,6 +24,7 @@ __all__ = [
     "DocumentVerificationRequest",
     "StudentPreferences",
     "StudentPrivacySettings",
+    "StudentBulkImport",
 ]
 
 
@@ -33,6 +34,11 @@ class StudentProfileCreate(BaseCreateSchema):
     
     Used during student onboarding to collect student-specific information.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Guardian information (required for students)
     guardian_name: str = Field(
@@ -201,6 +207,11 @@ class StudentProfileUpdate(BaseUpdateSchema):
     
     All fields optional for partial updates.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Guardian updates
     guardian_name: Optional[str] = Field(
@@ -435,6 +446,11 @@ class DocumentUploadRequest(BaseCreateSchema):
     Used after file upload to register document in system.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     student_id: str = Field(
         ...,
         description="Student ID",
@@ -559,6 +575,11 @@ class StudentPreferences(BaseUpdateSchema):
     
     Manages student-specific preferences for meal, notifications, etc.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Meal preferences
     mess_subscribed: Optional[bool] = Field(
@@ -719,6 +740,11 @@ class StudentBulkImport(BaseCreateSchema):
     
     Used for initial data migration or batch student registration.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     hostel_id: str = Field(
         ...,

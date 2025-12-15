@@ -193,7 +193,7 @@ class PerformanceMetrics(BaseSchema):
         description="Performance grade",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def efficiency_score(self) -> Decimal:
         """Calculate efficiency score based on time metrics."""
@@ -204,7 +204,7 @@ class PerformanceMetrics(BaseSchema):
         efficiency = (response_score * 0.4 + completion_score * 0.6)
         return Decimal(str(efficiency)).quantize(Decimal("0.1"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def quality_score(self) -> Decimal:
         """Calculate quality score based on accuracy and satisfaction."""
@@ -286,7 +286,7 @@ class ComplaintPerformance(BaseSchema):
         description="Number of satisfaction responses received",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def resolution_efficiency(self) -> str:
         """Categorize resolution efficiency."""
@@ -371,7 +371,7 @@ class AttendancePerformance(BaseSchema):
         description="Average time to process leave applications",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def attendance_consistency(self) -> str:
         """Assess attendance marking consistency."""
@@ -390,7 +390,7 @@ class AttendancePerformance(BaseSchema):
         else:
             return "Poor"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def leave_approval_rate(self) -> Decimal:
         """Calculate leave approval rate."""
@@ -489,7 +489,7 @@ class MaintenancePerformance(BaseSchema):
         description="Preventive maintenance compliance rate",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def completion_rate(self) -> Decimal:
         """Calculate maintenance completion rate."""
@@ -500,7 +500,7 @@ class MaintenancePerformance(BaseSchema):
         rate = (self.requests_completed / total_requests) * 100
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def budget_utilization(self) -> Decimal:
         """Calculate budget utilization percentage."""
@@ -509,7 +509,8 @@ class MaintenancePerformance(BaseSchema):
         
         utilization = (self.total_maintenance_cost / self.budget_allocated) * 100
         return Decimal(str(utilization)).quantize(Decimal("0.01"))
-    
+# Continuing supervisor_performance.py...
+
 class PerformanceTrendPoint(BaseSchema):
     """Performance trend data point for analysis."""
     
@@ -549,7 +550,7 @@ class PerformanceTrendPoint(BaseSchema):
         description="Student satisfaction score",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def trend_indicator(self) -> str:
         """Get trend indicator for the period."""
@@ -587,7 +588,7 @@ class MetricComparison(BaseSchema):
         description="Whether supervisor performs better than average",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def performance_vs_peers(self) -> str:
         """Describe performance relative to peers."""
@@ -646,7 +647,7 @@ class PeerComparison(BaseSchema):
         description="Gap to top performer",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def performance_tier(self) -> str:
         """Categorize performance tier among peers."""
@@ -700,7 +701,7 @@ class PeriodComparison(BaseSchema):
         description="Metrics that remained stable",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def overall_trend(self) -> str:
         """Determine overall performance trend."""
@@ -711,7 +712,7 @@ class PeriodComparison(BaseSchema):
         else:
             return "Stable"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def improvement_summary(self) -> str:
         """Generate improvement summary."""
@@ -786,7 +787,7 @@ class PerformanceReport(BaseSchema):
         description="Current performance goals progress",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def report_summary(self) -> str:
         """Generate executive summary of the report."""
@@ -910,7 +911,7 @@ class PerformanceReview(BaseCreateSchema):
         """Remove empty items from lists."""
         return [item.strip() for item in v if item.strip()]
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def average_rating(self) -> Decimal:
         """Calculate average of all individual ratings."""
@@ -972,7 +973,7 @@ class PerformanceReviewResponse(BaseSchema):
         description="Supervisor's response comments",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def performance_level(self) -> str:
         """Categorize performance level based on overall rating."""
@@ -1059,7 +1060,7 @@ class PerformanceGoal(BaseCreateSchema):
             raise ValueError("End Date must be after start Date")
         return v
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def duration_days(self) -> int:
         """Calculate goal duration in days."""
@@ -1108,13 +1109,13 @@ class PerformanceGoalProgress(BaseSchema):
         description="Historical measurements",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def days_elapsed(self) -> int:
         """Calculate days elapsed since goal start."""
         return (Date.today() - self.start_date).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def time_progress_percentage(self) -> Decimal:
         """Calculate time progress percentage."""
@@ -1126,7 +1127,7 @@ class PerformanceGoalProgress(BaseSchema):
         time_progress = min(100, (elapsed_days / total_days) * 100)
         return Decimal(str(time_progress)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_on_schedule(self) -> bool:
         """Check if goal progress is on schedule."""
@@ -1136,7 +1137,7 @@ class PerformanceGoalProgress(BaseSchema):
         # Allow 10% tolerance
         return actual_progress >= (time_progress - 10)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def projected_completion_date(self) -> Optional[Date]:
         """Project completion Date based on current progress rate."""
@@ -1219,7 +1220,7 @@ class PerformanceInsights(BaseSchema):
         description="Confidence level in insights (0-100)",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def overall_assessment(self) -> str:
         """Generate overall performance assessment."""

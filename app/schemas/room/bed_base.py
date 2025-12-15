@@ -4,11 +4,17 @@ Bed base schemas with enhanced validation and assignment management.
 
 Provides schemas for individual bed management, bulk operations,
 assignments, and releases.
+
+Pydantic v2 Migration Notes:
+- field_validator and model_validator already use v2 syntax
+- All validators properly typed with @classmethod decorator
+- mode="after" for model validators (v2 pattern)
+- Date type works identically in v1 and v2
 """
 
 from __future__ import annotations
 
-from datetime import date as Date
+from datetime import date as Date, timedelta
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -131,6 +137,7 @@ class BedUpdate(BaseUpdateSchema):
         Sync legacy is_occupied with status field.
         
         Maintains backward compatibility.
+        Pydantic v2: mode="after" validators receive the model instance.
         """
         if self.is_occupied is not None:
             if self.is_occupied:
@@ -227,7 +234,7 @@ class BedAssignmentRequest(BaseCreateSchema):
     """
     Schema for assigning a bed to a student.
     
-    Creates a bed assignment with proper Date tracking.
+    Creates a bed assignment with proper date tracking.
     """
 
     bed_id: str = Field(
@@ -240,11 +247,11 @@ class BedAssignmentRequest(BaseCreateSchema):
     )
     occupied_from: Date = Field(
         ...,
-        description="Occupancy start Date",
+        description="Occupancy start date",
     )
     expected_vacate_date: Optional[Date] = Field(
         default=None,
-        description="Expected vacate/checkout Date (optional)",
+        description="Expected vacate/checkout date (optional)",
     )
     booking_id: Optional[str] = Field(
         default=None,
@@ -260,22 +267,25 @@ class BedAssignmentRequest(BaseCreateSchema):
     @classmethod
     def validate_occupied_from(cls, v: Date) -> Date:
         """
-        Validate occupancy start Date.
+        Validate occupancy start date.
         
-        Allows past dates for historical assignments but warns for future dates.
+        Allows past dates for historical assignments.
         """
         # Allow past dates for historical data entry
         # Could add warning logic here if needed
-        
         return v
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "BedAssignmentRequest":
-        """Validate expected vacate Date is after occupied_from."""
+        """
+        Validate expected vacate date is after occupied_from.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.expected_vacate_date:
             if self.expected_vacate_date <= self.occupied_from:
                 raise ValueError(
-                    "Expected vacate Date must be after occupancy start Date"
+                    "Expected vacate date must be after occupancy start date"
                 )
         return self
 
@@ -297,7 +307,7 @@ class BedReleaseRequest(BaseCreateSchema):
     )
     release_date: Date = Field(
         ...,
-        description="Actual release/checkout Date",
+        description="Actual release/checkout date",
     )
     reason: Optional[str] = Field(
         default=None,
@@ -324,9 +334,10 @@ class BedReleaseRequest(BaseCreateSchema):
     @classmethod
     def validate_release_date(cls, v: Date) -> Date:
         """
-        Validate release Date.
+        Validate release date.
         
         Allows past dates for historical entries.
+        Future dates might be allowed for scheduled releases.
         """
         # Allow past dates for data entry
         # Future dates might be allowed for scheduled releases
@@ -379,10 +390,8 @@ class BedSwapRequest(BaseCreateSchema):
     @field_validator("swap_date")
     @classmethod
     def validate_swap_date(cls, v: Date) -> Date:
-        """Validate swap Date is not too far in the past."""
-        from datetime import timedelta
-        
-        # Warn if swap Date is more than 30 days in the past
+        """Validate swap date is not too far in the past."""
+        # Warn if swap date is more than 30 days in the past
         if v < Date.today() - timedelta(days=30):
             # Could log a warning here
             pass
@@ -391,7 +400,11 @@ class BedSwapRequest(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_different_students_and_beds(self) -> "BedSwapRequest":
-        """Ensure students and beds are different."""
+        """
+        Ensure students and beds are different.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         if self.student_1_id == self.student_2_id:
             raise ValueError("Cannot swap beds for the same student")
         
@@ -426,7 +439,7 @@ class BulkBedStatusUpdate(BaseCreateSchema):
     )
     effective_date: Optional[Date] = Field(
         default=None,
-        description="Effective Date for status change",
+        description="Effective date for status change",
     )
 
     @field_validator("bed_ids")
@@ -439,7 +452,11 @@ class BulkBedStatusUpdate(BaseCreateSchema):
 
     @model_validator(mode="after")
     def validate_status_change(self) -> "BulkBedStatusUpdate":
-        """Validate status change requirements."""
+        """
+        Validate status change requirements.
+        
+        Pydantic v2: mode="after" validators receive the model instance.
+        """
         # If setting to maintenance, require reason
         if self.status == BedStatus.MAINTENANCE and not self.reason:
             raise ValueError(

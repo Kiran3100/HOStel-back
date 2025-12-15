@@ -12,10 +12,10 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import (
@@ -51,17 +51,13 @@ class VisitorPreferences(BaseSchema):
         description="Preferred hostel type (boys, girls, co-ed)",
     )
 
-    # Budget Constraints
-    budget_min: Optional[Decimal] = Field(
+    # Budget Constraints - Updated for Pydantic v2
+    budget_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Minimum monthly budget in local currency",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Maximum monthly budget in local currency",
     )
 
@@ -76,10 +72,8 @@ class VisitorPreferences(BaseSchema):
         max_length=30,
         description="Preferred areas/localities within cities",
     )
-    max_distance_from_work_km: Optional[Decimal] = Field(
+    max_distance_from_work_km: Optional[Annotated[Decimal, Field(ge=0, le=50)]] = Field(
         default=None,
-        ge=0,
-        le=50,
         description="Maximum acceptable distance from workplace in km",
     )
 
@@ -264,17 +258,13 @@ class PreferenceUpdate(BaseUpdateSchema):
         description="Update preferred hostel type",
     )
 
-    # Budget
-    budget_min: Optional[Decimal] = Field(
+    # Budget - Updated for Pydantic v2
+    budget_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Update minimum budget",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Update maximum budget",
     )
 
@@ -379,14 +369,12 @@ class SearchPreferences(BaseSchema):
         max_length=5,
         description="Room types to include",
     )
-    min_price: Optional[Decimal] = Field(
+    min_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum price filter",
     )
-    max_price: Optional[Decimal] = Field(
+    max_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum price filter",
     )
     amenities: List[str] = Field(

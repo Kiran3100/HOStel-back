@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import date as Date
 from typing import Optional
 
-from pydantic import EmailStr, Field, HttpUrl, field_validator
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 
 from app.schemas.common.base import BaseUpdateSchema
 from app.schemas.common.enums import Gender
@@ -181,10 +181,10 @@ class ContactInfoUpdate(BaseUpdateSchema):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, v: Optional[EmailStr]) -> Optional[str]:
+    def normalize_email(cls, v: Optional[EmailStr]) -> Optional[EmailStr]:
         """Normalize email to lowercase and trim whitespace."""
         if v is not None:
-            return v.lower().strip()
+            return EmailStr(v.lower().strip())
         return v
 
     @field_validator("emergency_contact_name", "emergency_contact_relation")

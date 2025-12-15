@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_response.py ---
 """
 Subscription response schemas.
 
@@ -10,10 +9,10 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, HttpUrl, computed_field, model_validator
+from pydantic import Field, HttpUrl, computed_field, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import (
@@ -37,6 +36,7 @@ class SubscriptionResponse(BaseResponseSchema):
     Returns all subscription details including plan information,
     billing details, and current status.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     # Hostel info
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -53,12 +53,11 @@ class SubscriptionResponse(BaseResponseSchema):
         ..., description="Unique subscription reference"
     )
     billing_cycle: BillingCycle = Field(..., description="Billing cycle")
-    amount: Decimal = Field(
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Billing amount",
-    )
+    )]
     currency: str = Field(default="INR", description="Currency code")
 
     # Dates
@@ -82,12 +81,11 @@ class SubscriptionResponse(BaseResponseSchema):
     last_payment_date: Optional[Date] = Field(
         None, description="Last payment Date"
     )
-    last_payment_amount: Optional[Decimal] = Field(
+    last_payment_amount: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Last payment amount",
-    )
+    )]]
 
     # Cancellation info (if applicable)
     cancelled_at: Optional[datetime] = Field(
@@ -97,8 +95,7 @@ class SubscriptionResponse(BaseResponseSchema):
         None, description="When cancellation takes effect"
     )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def days_until_expiry(self) -> int:
         """Calculate days until subscription expires."""
         today = Date.today()
@@ -106,8 +103,7 @@ class SubscriptionResponse(BaseResponseSchema):
             return 0
         return (self.end_date - today).days
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def days_until_billing(self) -> Optional[int]:
         """Calculate days until next billing."""
         if self.next_billing_date is None:
@@ -117,20 +113,17 @@ class SubscriptionResponse(BaseResponseSchema):
             return 0
         return (self.next_billing_date - today).days
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_active(self) -> bool:
         """Check if subscription is currently active."""
         return self.status == SubscriptionStatus.ACTIVE
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_expiring_soon(self) -> bool:
         """Check if subscription expires within 7 days."""
         return 0 < self.days_until_expiry <= 7
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def amount_formatted(self) -> str:
         """Format amount with currency."""
         cycle_label = "mo" if self.billing_cycle == BillingCycle.MONTHLY else "yr"
@@ -144,6 +137,7 @@ class SubscriptionSummary(BaseSchema):
     Provides essential subscription information for dashboards
     and list views.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(..., description="Subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -154,7 +148,7 @@ class SubscriptionSummary(BaseSchema):
     status: SubscriptionStatus = Field(..., description="Status")
 
     billing_cycle: BillingCycle = Field(..., description="Billing cycle")
-    amount: Decimal = Field(..., description="Billing amount")
+    amount: Annotated[Decimal, Field(..., description="Billing amount")]
     currency: str = Field(default="INR")
 
     end_date: Date = Field(..., description="Expiry Date")
@@ -170,17 +164,17 @@ class BillingHistoryItem(BaseSchema):
 
     Represents one billing transaction with all relevant details.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     id: Optional[UUID] = Field(None, description="Transaction ID")
     billing_date: Date = Field(..., description="Billing Date")
 
     # Amounts
-    amount: Decimal = Field(
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Billed amount",
-    )
+    )]
     currency: str = Field(default="INR", description="Currency code")
 
     # Status and references
@@ -220,8 +214,7 @@ class BillingHistoryItem(BaseSchema):
         None, description="Billing period end"
     )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_paid(self) -> bool:
         """Check if billing item is paid."""
         return self.status.lower() == "paid"
@@ -233,6 +226,7 @@ class BillingHistory(BaseSchema):
 
     Aggregates all billing events with summary statistics.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(..., description="Subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -245,30 +239,26 @@ class BillingHistory(BaseSchema):
     )
 
     # Summary totals
-    total_billed: Decimal = Field(
+    total_billed: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total amount billed",
-    )
-    total_paid: Decimal = Field(
+    )]
+    total_paid: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total amount paid",
-    )
-    total_outstanding: Decimal = Field(
+    )]
+    total_outstanding: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Outstanding amount",
-    )
-    total_refunded: Decimal = Field(
+    )]
+    total_refunded: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total refunded amount",
-    )
+    )]
 
     currency: str = Field(default="INR", description="Currency code")
 
@@ -294,14 +284,12 @@ class BillingHistory(BaseSchema):
             )
         return self
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def has_outstanding(self) -> bool:
         """Check if there's outstanding balance."""
         return self.total_outstanding > Decimal("0")
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def payment_rate(self) -> Decimal:
         """Calculate payment collection rate percentage."""
         if self.total_billed == Decimal("0"):

@@ -3,6 +3,14 @@
 Review voting (helpful/not helpful) schemas.
 
 Handles review helpfulness voting and engagement metrics.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- Rating fields use max_digits=2, decimal_places=1 for 1.0-5.0 range
+- Percentage fields use max_digits=5, decimal_places=2 for 0.00-100.00 range
+- Score fields use max_digits=7, decimal_places=6 for Wilson score precision
+- Average fields use appropriate precision for statistical calculations
 """
 
 from __future__ import annotations
@@ -10,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from math import sqrt
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, computed_field
 from uuid import UUID
@@ -78,13 +86,13 @@ class VoteResponse(BaseSchema):
         examples=["Vote recorded successfully", "Vote updated"],
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def total_votes(self) -> int:
         """Total votes on the review."""
         return self.helpful_count + self.not_helpful_count
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def helpfulness_percentage(self) -> Decimal:
         """Percentage of helpful votes."""
@@ -107,21 +115,29 @@ class HelpfulnessScore(BaseSchema):
     not_helpful_count: int = Field(..., ge=0, description="Not helpful votes")
     total_votes: int = Field(..., ge=0, description="Total votes")
     
-    # Percentage
-    helpfulness_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of helpful votes",
-    )
+    # Percentage with proper constraints
+    helpfulness_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of helpful votes",
+        ),
+    ]
     
-    # Wilson score for ranking
-    helpfulness_score: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("1"),
-        description="Wilson score for ranking (0-1)",
-    )
+    # Wilson score for ranking with high precision
+    helpfulness_score: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("1"),
+            max_digits=7,
+            decimal_places=6,
+            description="Wilson score for ranking (0-1)",
+        ),
+    ]
     
     # Rank among hostel's reviews
     rank: Optional[int] = Field(
@@ -181,17 +197,21 @@ class VoteHistoryItem(BaseSchema):
     hostel_name: str = Field(..., description="Hostel name")
     
     review_title: str = Field(..., description="Review title")
-    review_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1"),
-        le=Decimal("5"),
-        description="Review's overall rating",
-    )
+    review_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1"),
+            le=Decimal("5"),
+            max_digits=2,
+            decimal_places=1,
+            description="Review's overall rating",
+        ),
+    ]
     
     vote_type: VoteType = Field(..., description="How user voted")
     voted_at: datetime = Field(..., description="When vote was cast")
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def days_ago(self) -> int:
         """Days since vote was cast."""
@@ -227,7 +247,7 @@ class VoteHistory(BaseSchema):
         description="Hostels where user votes most",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def helpful_vote_percentage(self) -> Decimal:
         """Percentage of helpful votes vs total."""
@@ -237,7 +257,7 @@ class VoteHistory(BaseSchema):
             str(round((self.helpful_votes / self.total_votes) * 100, 2))
         )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def voting_tendency(self) -> str:
         """
@@ -289,17 +309,26 @@ class VotingStats(BaseSchema):
     total_reviews: int = Field(..., ge=0, description="Total reviews")
     reviews_with_votes: int = Field(..., ge=0, description="Reviews that have votes")
     
-    average_votes_per_review: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average votes per review",
-    )
-    average_helpfulness: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Average helpfulness percentage across reviews",
-    )
+    # Statistical metrics with proper precision
+    average_votes_per_review: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            max_digits=8,
+            decimal_places=2,
+            description="Average votes per review",
+        ),
+    ]
+    average_helpfulness: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Average helpfulness percentage across reviews",
+        ),
+    ]
     
     # Top reviews
     most_helpful_review_id: Optional[UUID] = Field(
@@ -311,7 +340,7 @@ class VotingStats(BaseSchema):
         description="Review with most total votes",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def engagement_rate(self) -> Decimal:
         """Percentage of reviews that have votes."""
@@ -321,7 +350,7 @@ class VotingStats(BaseSchema):
             str(round((self.reviews_with_votes / self.total_reviews) * 100, 2))
         )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def overall_sentiment(self) -> str:
         """
