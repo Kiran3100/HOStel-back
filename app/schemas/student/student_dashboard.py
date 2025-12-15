@@ -10,9 +10,9 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseSchema
 
@@ -29,6 +29,10 @@ __all__ = [
     "UpcomingEvent",
 ]
 
+# Type aliases for Pydantic v2 decimal constraints
+PercentageDecimal = Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]
+MoneyAmount = Annotated[Decimal, Field(max_digits=10, decimal_places=2, ge=0)]
+
 
 class StudentFinancialSummary(BaseSchema):
     """
@@ -37,19 +41,24 @@ class StudentFinancialSummary(BaseSchema):
     Provides quick overview of payment status and dues.
     """
 
-    monthly_rent: Decimal = Field(..., description="Monthly rent amount")
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
+    monthly_rent: MoneyAmount = Field(..., description="Monthly rent amount")
     next_due_date: Date = Field(..., description="Next payment due date")
-    amount_due: Decimal = Field(..., description="Current amount due")
-    amount_overdue: Decimal = Field(..., description="Overdue amount")
-    advance_balance: Decimal = Field(..., description="Advance payment balance")
-    security_deposit: Decimal = Field(..., description="Security deposit amount")
+    amount_due: MoneyAmount = Field(..., description="Current amount due")
+    amount_overdue: MoneyAmount = Field(..., description="Overdue amount")
+    advance_balance: MoneyAmount = Field(..., description="Advance payment balance")
+    security_deposit: MoneyAmount = Field(..., description="Security deposit amount")
 
     # Mess charges
-    mess_charges: Decimal = Field(
+    mess_charges: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Monthly mess charges",
     )
-    mess_balance: Decimal = Field(
+    mess_balance: MoneyAmount = Field(
         default=Decimal("0.00"),
         description="Mess account balance",
     )
@@ -100,11 +109,14 @@ class AttendanceSummary(BaseSchema):
     Provides attendance statistics and status.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Current month
-    current_month_percentage: Decimal = Field(
+    current_month_percentage: PercentageDecimal = Field(
         ...,
-        ge=0,
-        le=100,
         description="Current month attendance percentage",
     )
     current_month_present: int = Field(
@@ -129,21 +141,17 @@ class AttendanceSummary(BaseSchema):
     )
 
     # Last 30 days
-    last_30_days_percentage: Decimal = Field(
+    last_30_days_percentage: PercentageDecimal = Field(
         ...,
-        ge=0,
-        le=100,
         description="Last 30 days attendance percentage",
     )
 
     # Overall
-    overall_percentage: Decimal = Field(
+    overall_percentage: PercentageDecimal = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall attendance percentage",
     )
-    minimum_required_percentage: Decimal = Field(
+    minimum_required_percentage: PercentageDecimal = Field(
         default=Decimal("75.00"),
         description="Minimum required attendance",
     )
@@ -187,6 +195,11 @@ class StudentStats(BaseSchema):
     Provides key metrics and counts.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     days_in_hostel: int = Field(
         ...,
         ge=0,
@@ -204,9 +217,8 @@ class StudentStats(BaseSchema):
         ge=0,
         description="Total number of payments",
     )
-    total_amount_paid: Decimal = Field(
+    total_amount_paid: MoneyAmount = Field(
         ...,
-        ge=0,
         description="Total amount paid",
     )
     last_payment_date: Optional[Date] = Field(
@@ -232,10 +244,8 @@ class StudentStats(BaseSchema):
     )
 
     # Attendance
-    current_attendance_percentage: Decimal = Field(
+    current_attendance_percentage: PercentageDecimal = Field(
         ...,
-        ge=0,
-        le=100,
         description="Current attendance percentage",
     )
 
@@ -265,7 +275,7 @@ class RecentPayment(BaseSchema):
     """
 
     payment_id: str = Field(..., description="Payment ID")
-    amount: Decimal = Field(..., ge=0, description="Payment amount")
+    amount: MoneyAmount = Field(..., description="Payment amount")
     payment_type: str = Field(..., description="Payment type")
     payment_date: Date = Field(..., description="Payment date")
     status: str = Field(..., description="Payment status")
@@ -423,6 +433,11 @@ class StudentDashboard(BaseSchema):
     
     Aggregates all dashboard components for student overview.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     student_id: str = Field(..., description="Student ID")
     student_name: str = Field(..., description="Student name")

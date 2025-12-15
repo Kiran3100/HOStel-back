@@ -8,9 +8,9 @@ schemas for student management.
 from __future__ import annotations
 
 from datetime import date as Date
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseFilterSchema, BaseCreateSchema
 from app.schemas.common.enums import StudentStatus
@@ -31,6 +31,11 @@ class StudentFilterParams(BaseFilterSchema):
     
     Comprehensive filtering options for student queries.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Text search
     search: Optional[str] = Field(
@@ -182,6 +187,11 @@ class StudentSearchRequest(BaseFilterSchema):
     Full-text search with field selection and filters.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     query: str = Field(
         ...,
         min_length=1,
@@ -279,6 +289,11 @@ class AdvancedStudentFilters(BaseFilterSchema):
     Additional complex filters for detailed queries.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Attendance filters
     min_attendance_percentage: Optional[float] = Field(
         default=None,
@@ -360,6 +375,11 @@ class StudentExportRequest(BaseFilterSchema):
     Configures student data export with format and field selection.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     hostel_id: Optional[str] = Field(
         default=None,
         description="Export students from specific hostel",
@@ -425,6 +445,11 @@ class StudentBulkActionRequest(BaseCreateSchema):
     
     Performs bulk operations on multiple students.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     student_ids: List[str] = Field(
         ...,

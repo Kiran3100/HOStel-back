@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -96,34 +96,25 @@ class FavoriteHostelItem(BaseSchema):
         description="Hostel type (boys/girls/co-ed)",
     )
 
-    # Pricing Information
-    starting_price_monthly: Decimal = Field(
+    # Pricing Information - Updated for Pydantic v2
+    starting_price_monthly: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Current starting price per month",
     )
-    price_when_saved: Decimal = Field(
+    price_when_saved: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Price when hostel was saved",
     )
-    current_price: Decimal = Field(
+    current_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Current price",
     )
     has_price_drop: bool = Field(
         ...,
         description="Whether price has dropped since saving",
     )
-    price_drop_percentage: Optional[Decimal] = Field(
+    price_drop_percentage: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Price drop percentage if applicable",
     )
 
@@ -139,11 +130,8 @@ class FavoriteHostelItem(BaseSchema):
     )
 
     # Rating Information
-    average_rating: Decimal = Field(
+    average_rating: Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average rating (0-5)",
     )
     total_reviews: int = Field(

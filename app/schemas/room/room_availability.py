@@ -4,6 +4,12 @@ Room availability schemas with enhanced date validation.
 
 Provides schemas for checking room availability, calendar views,
 and booking-related information.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- field_validator and model_validator already use v2 syntax
+- All Decimal fields now have explicit max_digits/decimal_places constraints
 """
 
 from __future__ import annotations
@@ -11,7 +17,7 @@ from __future__ import annotations
 from datetime import timedelta
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
+from typing import Annotated, Dict, List, Optional, Any
 
 from pydantic import Field, field_validator, model_validator, computed_field
 
@@ -70,11 +76,17 @@ class RoomAvailabilityRequest(BaseCreateSchema):
         default=None,
         description="Attached bathroom required",
     )
-    max_price_monthly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Maximum acceptable monthly rent",
-    )
+    max_price_monthly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Maximum acceptable monthly rent",
+            ),
+        ]
+    ] = None
 
     @field_validator("check_in_date")
     @classmethod
@@ -102,7 +114,7 @@ class RoomAvailabilityRequest(BaseCreateSchema):
         
         return v
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def check_out_date(self) -> Date:
         """Calculate checkout date based on duration."""
@@ -127,23 +139,49 @@ class AvailableRoom(BaseSchema):
     available_beds: int = Field(..., ge=0, description="Available beds")
     total_beds: int = Field(..., ge=1, description="Total beds")
     
-    # Pricing
-    price_monthly: Decimal = Field(..., ge=0, description="Monthly rent per bed")
-    price_quarterly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Quarterly rate",
-    )
-    price_half_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Half-yearly rate",
-    )
-    price_yearly: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        description="Yearly rate",
-    )
+    # Pricing with proper Decimal constraints
+    price_monthly: Annotated[
+        Decimal,
+        Field(
+            ge=0,
+            max_digits=10,
+            decimal_places=2,
+            description="Monthly rent per bed",
+        ),
+    ]
+    price_quarterly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Quarterly rate",
+            ),
+        ]
+    ] = None
+    price_half_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Half-yearly rate",
+            ),
+        ]
+    ] = None
+    price_yearly: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=0,
+                max_digits=10,
+                decimal_places=2,
+                description="Yearly rate",
+            ),
+        ]
+    ] = None
     
     # Features
     is_ac: bool = Field(..., description="Air conditioned")
@@ -175,7 +213,7 @@ class AvailableRoom(BaseSchema):
         description="Primary image URL",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_rate(self) -> Decimal:
         """Calculate current occupancy rate."""
@@ -220,13 +258,13 @@ class AvailabilityResponse(BaseSchema):
         description="Summary of applied filters",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def total_rooms_available(self) -> int:
         """Count of rooms with availability."""
         return len(self.available_rooms)
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def price_range(self) -> Optional[Dict[str, Decimal]]:
         """Calculate price range across available rooms."""
@@ -282,7 +320,7 @@ class DayAvailability(BaseSchema):
         description="Special notes (holidays, maintenance, etc.)",
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def occupancy_percentage(self) -> Decimal:
         """Calculate occupancy percentage for the day."""
@@ -330,7 +368,7 @@ class AvailabilityCalendar(BaseSchema):
             raise ValueError(f"Invalid month format: {e}")
         return v
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def average_occupancy(self) -> Decimal:
         """Calculate average occupancy for the month."""
@@ -344,7 +382,7 @@ class AvailabilityCalendar(BaseSchema):
             Decimal("0.01")
         )
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def fully_booked_days(self) -> int:
         """Count days with no availability."""

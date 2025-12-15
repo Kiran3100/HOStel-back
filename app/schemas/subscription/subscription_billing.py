@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_billing.py ---
 """
 Subscription billing schemas.
 
@@ -11,10 +10,10 @@ from __future__ import annotations
 from datetime import date as Date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, HttpUrl, model_validator, computed_field
+from pydantic import Field, HttpUrl, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -46,6 +45,7 @@ class BillingCycleInfo(BaseSchema):
     Provides a comprehensive view of the current billing period,
     including dates, amounts, and renewal information.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(..., description="Subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -62,12 +62,11 @@ class BillingCycleInfo(BaseSchema):
         description="Billing cycle type",
     )
 
-    amount: Decimal = Field(
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Billing amount for this cycle",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -106,6 +105,7 @@ class GenerateInvoiceRequest(BaseCreateSchema):
     Allows specifying the billing Date and optionally overriding
     the standard billing amount.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(
         ..., description="Subscription to invoice"
@@ -115,12 +115,11 @@ class GenerateInvoiceRequest(BaseCreateSchema):
     )
 
     # Optional overrides
-    amount_override: Optional[Decimal] = Field(
+    amount_override: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Override standard billing amount",
-    )
+    )]]
     due_date_override: Optional[Date] = Field(
         None, description="Override standard due Date"
     )
@@ -131,12 +130,11 @@ class GenerateInvoiceRequest(BaseCreateSchema):
     )
 
     # Line item adjustments
-    discount_amount: Optional[Decimal] = Field(
+    discount_amount: Optional[Annotated[Decimal, Field(
         None,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Discount amount to apply",
-    )
+    )]]
     discount_reason: Optional[str] = Field(
         None,
         max_length=200,
@@ -161,6 +159,7 @@ class InvoiceInfo(BaseSchema):
     Contains all details of a generated invoice including
     status, amounts, and access URLs.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     invoice_id: UUID = Field(..., description="Invoice unique ID")
     subscription_id: UUID = Field(..., description="Associated subscription")
@@ -177,42 +176,36 @@ class InvoiceInfo(BaseSchema):
     due_date: Date = Field(..., description="Payment due Date")
 
     # Amounts
-    subtotal: Decimal = Field(
+    subtotal: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Subtotal before adjustments",
-    )
-    discount_amount: Decimal = Field(
+    )]
+    discount_amount: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total discount applied",
-    )
-    tax_amount: Decimal = Field(
+    )]
+    tax_amount: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Tax amount",
-    )
-    amount: Decimal = Field(
+    )]
+    amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Total invoice amount",
-    )
-    amount_paid: Decimal = Field(
+    )]
+    amount_paid: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Amount already paid",
-    )
-    amount_due: Decimal = Field(
+    )]
+    amount_due: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Remaining amount due",
-    )
+    )]
     currency: str = Field(
         default="INR",
         min_length=3,
@@ -259,8 +252,7 @@ class InvoiceInfo(BaseSchema):
 
         return self
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_overdue(self) -> bool:
         """Check if invoice is overdue based on current Date."""
         return (
@@ -268,8 +260,7 @@ class InvoiceInfo(BaseSchema):
             and Date.today() > self.due_date
         )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_fully_paid(self) -> bool:
         """Check if invoice is fully paid."""
         return self.amount_due <= Decimal("0")

@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_upgrade.py ---
 """
 Subscription upgrade/downgrade schemas.
 
@@ -11,10 +10,10 @@ from __future__ import annotations
 from datetime import date as Date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, model_validator, computed_field
+from pydantic import Field, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 from app.schemas.common.enums import BillingCycle
@@ -42,6 +41,7 @@ class PlanChangeRequest(BaseCreateSchema):
     Supports upgrades, downgrades, and billing cycle changes
     with configurable timing and proration.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     current_plan_id: UUID = Field(
@@ -100,6 +100,7 @@ class PlanChangePreview(BaseSchema):
     Shows detailed financial impact including prorations,
     credits, and final amounts before confirming the change.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     # Plan info
     current_plan_id: UUID = Field(..., description="Current plan ID")
@@ -118,18 +119,16 @@ class PlanChangePreview(BaseSchema):
     )
 
     # Pricing
-    current_amount: Decimal = Field(
+    current_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Current plan amount",
-    )
-    new_amount: Decimal = Field(
+    )]
+    new_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="New plan amount",
-    )
+    )]
     currency: str = Field(default="INR", description="Currency code")
 
     # Current period info
@@ -146,31 +145,27 @@ class PlanChangePreview(BaseSchema):
     )
 
     # Proration calculations
-    prorated_credit: Decimal = Field(
+    prorated_credit: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Credit for unused portion of current plan",
-    )
-    prorated_charge: Decimal = Field(
+    )]
+    prorated_charge: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Charge for new plan (prorated if applicable)",
-    )
+    )]
 
     # Final amounts
-    amount_due_now: Decimal = Field(
+    amount_due_now: Annotated[Decimal, Field(
         ...,
-        decimal_places=2,
         description="Net amount due now (can be negative for credit)",
-    )
-    next_billing_amount: Decimal = Field(
+    )]
+    next_billing_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="Amount on next regular billing",
-    )
+    )]
 
     # Dates
     effective_from: Date = Field(
@@ -191,28 +186,24 @@ class PlanChangePreview(BaseSchema):
         description="Benefits of the new plan",
     )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_upgrade(self) -> bool:
         """Check if this is an upgrade."""
         return self.change_type == PlanChangeType.UPGRADE
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def is_downgrade(self) -> bool:
         """Check if this is a downgrade."""
         return self.change_type == PlanChangeType.DOWNGRADE
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def monthly_difference(self) -> Decimal:
         """Calculate monthly price difference."""
         return (self.new_amount - self.current_amount).quantize(
             Decimal("0.01")
         )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def savings_or_increase(self) -> str:
         """Format savings or increase message."""
         diff = self.monthly_difference
@@ -229,6 +220,7 @@ class PlanChangeConfirmation(BaseSchema):
 
     Returned after a plan change is successfully processed.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     subscription_id: UUID = Field(..., description="Updated subscription ID")
     hostel_id: UUID = Field(..., description="Hostel ID")
@@ -241,17 +233,15 @@ class PlanChangeConfirmation(BaseSchema):
     change_type: PlanChangeType = Field(..., description="Type of change")
 
     # Financial
-    amount_charged: Decimal = Field(
+    amount_charged: Annotated[Decimal, Field(
         default=Decimal("0.00"),
-        decimal_places=2,
         description="Amount charged for the change",
-    )
-    credit_applied: Decimal = Field(
+    )]
+    credit_applied: Annotated[Decimal, Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
         description="Credit applied from previous plan",
-    )
+    )]
     currency: str = Field(default="INR")
 
     # Dates
@@ -259,12 +249,11 @@ class PlanChangeConfirmation(BaseSchema):
         ..., description="When change took effect"
     )
     next_billing_date: Date = Field(..., description="Next billing Date")
-    new_billing_amount: Decimal = Field(
+    new_billing_amount: Annotated[Decimal, Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
         description="New regular billing amount",
-    )
+    )]
 
     # Confirmation
     processed_at: datetime = Field(

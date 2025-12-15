@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Annotated
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -34,6 +34,9 @@ __all__ = [
     "StudentStatusUpdate",
 ]
 
+# Type aliases for common decimal fields to handle v2 constraints properly
+MoneyAmount = Annotated[Decimal, Field(max_digits=10, decimal_places=2, ge=0)]
+
 
 class StudentBase(BaseSchema):
     """
@@ -43,6 +46,12 @@ class StudentBase(BaseSchema):
     identification, guardian info, institutional/employment details,
     and preferences.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        use_enum_values=True,
+    )
 
     user_id: str = Field(
         ...,
@@ -167,12 +176,9 @@ class StudentBase(BaseSchema):
         description="Actual checkout Date (when checked out)",
     )
 
-    # Financial information
-    security_deposit_amount: Decimal = Field(
+    # Financial information - Fixed for Pydantic v2 decimal constraints
+    security_deposit_amount: MoneyAmount = Field(
         default=Decimal("0.00"),
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Security deposit amount",
     )
     security_deposit_paid: bool = Field(
@@ -183,11 +189,8 @@ class StudentBase(BaseSchema):
         default=None,
         description="Date security deposit was paid",
     )
-    monthly_rent_amount: Optional[Decimal] = Field(
+    monthly_rent_amount: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
         description="Monthly rent amount for the student",
     )
 
@@ -499,10 +502,9 @@ class StudentUpdate(BaseUpdateSchema):
         description="Actual checkout Date",
     )
 
-    # Financial updates
-    security_deposit_amount: Optional[Decimal] = Field(
+    # Financial updates - Fixed for Pydantic v2
+    security_deposit_amount: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="Security deposit amount",
     )
     security_deposit_paid: Optional[bool] = Field(
@@ -513,9 +515,8 @@ class StudentUpdate(BaseUpdateSchema):
         default=None,
         description="Security deposit paid Date",
     )
-    monthly_rent_amount: Optional[Decimal] = Field(
+    monthly_rent_amount: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="Monthly rent amount",
     )
 
@@ -720,28 +721,25 @@ class StudentCheckOutRequest(BaseCreateSchema):
         ],
     )
 
-    # Financial clearance
+    # Financial clearance - Fixed for Pydantic v2
     final_dues_cleared: bool = Field(
         default=False,
         description="All outstanding dues cleared",
     )
-    outstanding_amount: Decimal = Field(
+    outstanding_amount: MoneyAmount = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Outstanding amount (if any)",
     )
     refund_security_deposit: bool = Field(
         default=True,
         description="Refund security deposit",
     )
-    security_deposit_refund_amount: Optional[Decimal] = Field(
+    security_deposit_refund_amount: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="Security deposit refund amount (after deductions)",
     )
-    deduction_amount: Decimal = Field(
+    deduction_amount: MoneyAmount = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Deductions from security deposit",
     )
     deduction_reason: Optional[str] = Field(
@@ -759,9 +757,8 @@ class StudentCheckOutRequest(BaseCreateSchema):
         default=False,
         description="Any damages reported",
     )
-    damage_charges: Decimal = Field(
+    damage_charges: MoneyAmount = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Charges for damages",
     )
 
@@ -879,7 +876,7 @@ class StudentRoomAssignment(BaseCreateSchema):
         description="Reason for assignment/reassignment",
     )
 
-    # Financial impact
+    # Financial impact - Fixed for Pydantic v2
     rent_adjustment: Optional[Decimal] = Field(
         default=None,
         description="Rent adjustment due to room change",

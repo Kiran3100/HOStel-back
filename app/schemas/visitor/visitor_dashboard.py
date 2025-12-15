@@ -11,10 +11,10 @@ from __future__ import annotations
 from datetime import datetime
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from app.schemas.common.base import BaseSchema
 
@@ -54,17 +54,13 @@ class SavedHostelItem(BaseSchema):
         ...,
         description="City where hostel is located",
     )
-    starting_price: Decimal = Field(
+    # Updated for Pydantic v2
+    starting_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Starting price per month",
     )
-    average_rating: Decimal = Field(
+    average_rating: Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average rating (0-5)",
     )
     available_beds: int = Field(
@@ -89,16 +85,12 @@ class SavedHostelItem(BaseSchema):
     )
 
     # Price Tracking
-    price_when_saved: Decimal = Field(
+    price_when_saved: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Price when hostel was first saved",
     )
-    current_price: Decimal = Field(
+    current_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Current price",
     )
     price_changed: bool = Field(
@@ -219,10 +211,8 @@ class BookingHistoryItem(BaseSchema):
         ...,
         description="Current booking status",
     )
-    total_amount: Decimal = Field(
+    total_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Total booking amount",
     )
 
@@ -365,17 +355,12 @@ class RecentlyViewedHostel(BaseSchema):
         ...,
         description="City",
     )
-    starting_price: Decimal = Field(
+    starting_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Starting price",
     )
-    average_rating: Decimal = Field(
+    average_rating: Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average rating",
     )
     cover_image_url: Optional[str] = Field(
@@ -417,17 +402,12 @@ class RecommendedHostel(BaseSchema):
         ...,
         description="City",
     )
-    starting_price: Decimal = Field(
+    starting_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Starting price",
     )
-    average_rating: Decimal = Field(
+    average_rating: Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average rating",
     )
     available_beds: int = Field(
@@ -440,11 +420,8 @@ class RecommendedHostel(BaseSchema):
         description="Cover image URL",
     )
 
-    match_score: Decimal = Field(
+    match_score: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="How well hostel matches visitor preferences (0-100)",
     )
     match_reasons: List[str] = Field(
@@ -486,23 +463,16 @@ class PriceDropAlert(BaseSchema):
         description="Hostel name",
     )
 
-    previous_price: Decimal = Field(
+    previous_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Previous price",
     )
-    new_price: Decimal = Field(
+    new_price: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="New reduced price",
     )
-    discount_percentage: Decimal = Field(
+    discount_percentage: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Discount percentage",
     )
 

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -30,6 +30,9 @@ __all__ = [
     "RoomSwapRequest",
 ]
 
+# Type aliases for Pydantic v2 decimal constraints
+MoneyAmount = Annotated[Decimal, Field(max_digits=10, decimal_places=2, ge=0)]
+
 
 class RoomHistoryItem(BaseResponseSchema):
     """
@@ -37,6 +40,11 @@ class RoomHistoryItem(BaseResponseSchema):
     
     Represents a single room assignment period in student's history.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     hostel_id: str = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
@@ -61,14 +69,12 @@ class RoomHistoryItem(BaseResponseSchema):
     )
 
     # Financial
-    rent_amount: Optional[Decimal] = Field(
+    rent_amount: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="Monthly rent for this assignment",
     )
-    total_rent_paid: Optional[Decimal] = Field(
+    total_rent_paid: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="Total rent paid during this period",
     )
 
@@ -165,6 +171,11 @@ class RoomTransferRequest(BaseCreateSchema):
     Student-initiated or admin-initiated room transfer request.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     student_id: str = Field(
         ...,
         description="Student ID requesting transfer",
@@ -259,6 +270,11 @@ class RoomTransferApproval(BaseCreateSchema):
     Admin action to process transfer requests.
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     transfer_request_id: str = Field(
         ...,
         description="Transfer request ID to process",
@@ -294,14 +310,13 @@ class RoomTransferApproval(BaseCreateSchema):
         ],
     )
 
-    # Financial implications
+    # Financial implications - Fixed for Pydantic v2
     rent_adjustment: Optional[Decimal] = Field(
         default=None,
         description="Monthly rent adjustment (positive=increase, negative=decrease)",
     )
-    additional_charges: Optional[Decimal] = Field(
+    additional_charges: Optional[MoneyAmount] = Field(
         default=None,
-        ge=0,
         description="One-time transfer charges",
     )
     prorated_rent_calculation: bool = Field(
@@ -415,12 +430,12 @@ class RoomTransferStatus(BaseSchema):
         description="Admin name",
     )
 
-    # Financial
+    # Financial - Fixed for Pydantic v2
     rent_adjustment: Optional[Decimal] = Field(
         default=None,
         description="Rent adjustment",
     )
-    additional_charges: Optional[Decimal] = Field(
+    additional_charges: Optional[MoneyAmount] = Field(
         default=None,
         description="Transfer charges",
     )
@@ -466,6 +481,11 @@ class BulkRoomTransfer(BaseCreateSchema):
     
     Transfer multiple students simultaneously (e.g., floor reorganization).
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     transfers: List[SingleTransfer] = Field(
         ...,
@@ -551,6 +571,11 @@ class RoomSwapRequest(BaseCreateSchema):
     
     Mutual room exchange between two students.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     student_1_id: str = Field(
         ...,

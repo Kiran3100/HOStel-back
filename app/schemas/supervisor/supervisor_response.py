@@ -61,19 +61,19 @@ class SupervisorResponse(BaseResponseSchema):
     assigned_by: str = Field(..., description="Admin who assigned")
     assigned_date: Date = Field(..., description="Assignment Date")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_days(self) -> int:
         """Calculate tenure in days since joining."""
         return (Date.today() - self.join_date).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_months(self) -> int:
         """Calculate approximate tenure in months."""
         return self.tenure_days // 30
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_probation(self) -> bool:
         """Check if supervisor is in probation period (first 3 months)."""
@@ -208,7 +208,7 @@ class SupervisorDetail(BaseResponseSchema):
         description="Administrative notes",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def age(self) -> Optional[int]:
         """Calculate age from Date of birth."""
@@ -223,31 +223,31 @@ class SupervisorDetail(BaseResponseSchema):
         )
         return age
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_months(self) -> int:
         """Calculate tenure in complete months."""
         return (Date.today() - self.join_date).days // 30
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_years(self) -> int:
         """Calculate tenure in complete years."""
         return self.tenure_months // 12
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_probation(self) -> bool:
         """Check if supervisor is in probation period."""
         return self.tenure_months < 3
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def can_work(self) -> bool:
         """Check if supervisor is currently allowed to work."""
         return self.is_active and self.status == SupervisorStatus.ACTIVE
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def suspension_days_remaining(self) -> Optional[int]:
         """Calculate remaining suspension days if currently suspended."""
@@ -256,7 +256,7 @@ class SupervisorDetail(BaseResponseSchema):
         
         remaining = (self.suspension_end_date - Date.today()).days
         return max(0, remaining)
-
+# Continuing supervisor_response.py...
 
 class SupervisorListItem(BaseSchema):
     """
@@ -307,13 +307,13 @@ class SupervisorListItem(BaseSchema):
         description="Last login",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_months(self) -> int:
         """Calculate tenure in months."""
         return (Date.today() - self.join_date).days // 30
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def display_status(self) -> str:
         """Get human-readable status."""
@@ -377,7 +377,7 @@ class SupervisorSummary(BaseSchema):
         description="Currently online",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def complaint_resolution_rate(self) -> Decimal:
         """Calculate complaint resolution rate percentage."""
@@ -391,7 +391,7 @@ class SupervisorSummary(BaseSchema):
         )
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def activity_status(self) -> str:
         """Get human-readable activity status."""
@@ -476,14 +476,14 @@ class SupervisorEmploymentInfo(BaseSchema):
         description="Rehire eligibility",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_days(self) -> int:
         """Calculate total tenure in days."""
         end_date = self.termination_date or Date.today()
         return (end_date - self.join_date).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def tenure_display(self) -> str:
         """Get human-readable tenure."""
@@ -504,7 +504,7 @@ class SupervisorEmploymentInfo(BaseSchema):
         
         return f"{years}y {remaining_months}m"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_contract_expiring_soon(self) -> bool:
         """Check if contract expires within 30 days."""
@@ -514,7 +514,7 @@ class SupervisorEmploymentInfo(BaseSchema):
         days_until_expiry = (self.contract_end_date - Date.today()).days
         return 0 < days_until_expiry <= 30
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def contract_status(self) -> str:
         """Get contract status description."""
@@ -652,7 +652,7 @@ class SupervisorStatistics(BaseSchema):
         description="Calculated performance score",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def complaint_resolution_rate(self) -> Decimal:
         """Calculate complaint resolution rate percentage."""
@@ -662,7 +662,7 @@ class SupervisorStatistics(BaseSchema):
         rate = (self.complaints_resolved / self.total_complaints_assigned * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def maintenance_completion_rate(self) -> Decimal:
         """Calculate maintenance completion rate percentage."""
@@ -672,7 +672,7 @@ class SupervisorStatistics(BaseSchema):
         rate = (self.maintenance_completed / self.maintenance_requests_created * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def attendance_punctuality_rate(self) -> Decimal:
         """Calculate attendance marking punctuality rate."""
@@ -682,7 +682,7 @@ class SupervisorStatistics(BaseSchema):
         rate = (self.attendance_marked_on_time / self.attendance_records_created * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def activity_rate(self) -> Decimal:
         """Calculate activity rate (active days / total days in period)."""
@@ -696,7 +696,7 @@ class SupervisorStatistics(BaseSchema):
         rate = (self.active_days / total_days * 100)
         return Decimal(str(rate)).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def performance_grade(self) -> str:
         """Get performance grade based on overall score."""

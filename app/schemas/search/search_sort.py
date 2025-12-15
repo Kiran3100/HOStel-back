@@ -3,6 +3,11 @@
 Search sorting schemas with type-safe sort options.
 
 Provides strongly-typed sorting criteria for search results.
+
+Pydantic v2 Migration Notes:
+- field_validator syntax already compatible with v2
+- @computed_field with @property for computed properties
+- Enum-based fields work identically in v2
 """
 
 from __future__ import annotations
@@ -85,9 +90,10 @@ class SortCriteria(BaseSchema):
 
         # These fields encode direction in the field name
         # The sort_order parameter will be ignored for them
+        # No validation needed - just documenting the behavior
         return v
 
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def effective_sort_order(self) -> SearchSortOrder:
         """

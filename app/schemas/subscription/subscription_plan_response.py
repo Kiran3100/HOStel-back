@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/subscription_plan_response.py ---
 """
 Subscription plan response and comparison schemas.
 
@@ -9,9 +8,9 @@ and plan comparison functionality.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Annotated
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import SubscriptionPlan
@@ -31,6 +30,7 @@ class PlanResponse(BaseResponseSchema):
     Returns all plan details including pricing, features,
     limits, and computed properties.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     plan_name: str = Field(..., description="Plan internal identifier")
     display_name: str = Field(..., description="Plan display name")
@@ -42,8 +42,8 @@ class PlanResponse(BaseResponseSchema):
     )
 
     # Pricing
-    price_monthly: Decimal = Field(..., description="Monthly price")
-    price_yearly: Decimal = Field(..., description="Yearly price")
+    price_monthly: Annotated[Decimal, Field(..., description="Monthly price")]
+    price_yearly: Annotated[Decimal, Field(..., description="Yearly price")]
     currency: str = Field(..., description="Currency code")
 
     # Features
@@ -70,28 +70,24 @@ class PlanResponse(BaseResponseSchema):
     # Trial
     trial_days: int = Field(default=0, description="Trial period days")
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def price_monthly_formatted(self) -> str:
         """Format monthly price with currency."""
         return f"{self.currency} {self.price_monthly:,.2f}"
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def price_yearly_formatted(self) -> str:
         """Format yearly price with currency."""
         return f"{self.currency} {self.price_yearly:,.2f}"
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def yearly_savings(self) -> Decimal:
         """Calculate yearly savings vs monthly billing."""
         return (self.price_monthly * 12 - self.price_yearly).quantize(
             Decimal("0.01")
         )
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def yearly_discount_percent(self) -> Decimal:
         """Calculate yearly discount percentage."""
         if self.price_monthly == Decimal("0"):
@@ -103,14 +99,12 @@ class PlanResponse(BaseResponseSchema):
             (monthly_yearly - self.price_yearly) / monthly_yearly * 100
         ).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def has_trial(self) -> bool:
         """Check if plan offers trial."""
         return self.trial_days > 0
 
-    @computed_field  # type: ignore[misc]
-    @property
+    @computed_field
     def limits_display(self) -> Dict[str, str]:
         """Format limits for display."""
         return {
@@ -131,14 +125,15 @@ class PlanSummary(BaseSchema):
 
     Provides essential plan information for cards and lists.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(..., description="Plan ID")
     plan_name: str = Field(..., description="Plan identifier")
     display_name: str = Field(..., description="Display name")
     plan_type: SubscriptionPlan = Field(..., description="Plan tier")
 
-    price_monthly: Decimal = Field(..., description="Monthly price")
-    price_yearly: Decimal = Field(..., description="Yearly price")
+    price_monthly: Annotated[Decimal, Field(..., description="Monthly price")]
+    price_yearly: Annotated[Decimal, Field(..., description="Yearly price")]
     currency: str = Field(..., description="Currency")
 
     short_description: Optional[str] = Field(None)
@@ -153,6 +148,7 @@ class PlanFeatures(BaseSchema):
     Formats features for display in comparison tables
     and feature lists.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     plan_name: str = Field(..., description="Plan identifier")
     display_name: str = Field(..., description="Plan display name")
@@ -215,6 +211,7 @@ class PlanComparison(BaseSchema):
     Provides a structured comparison matrix for displaying
     multiple plans with their features.
     """
+    model_config = ConfigDict(populate_by_name=True)
 
     plans: List[PlanResponse] = Field(
         ...,

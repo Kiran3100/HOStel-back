@@ -444,7 +444,7 @@ class SupervisorPermissions(BaseSchema):
             summary["security_permissions"] += 1
         
         return summary
-
+# Continuing supervisor_permissions.py...
 
 class PermissionUpdate(BaseUpdateSchema):
     """
@@ -679,7 +679,8 @@ class BulkPermissionUpdate(BaseUpdateSchema):
     @classmethod
     def validate_permissions(cls, v: Dict[str, bool | int | Decimal]) -> Dict[str, bool | int | Decimal]:
         """Validate permissions using PermissionUpdate validator."""
-        return PermissionUpdate.validate_permissions(v)
+        # Reuse the validation logic from PermissionUpdate
+        return PermissionUpdate.model_fields["permissions"].validators[0](v)
 
 
 class PermissionTemplate(BaseSchema):
@@ -1016,13 +1017,13 @@ class PermissionAuditLog(BaseSchema):
         description="Approval timestamp",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def changes_count(self) -> int:
         """Count of permission changes made."""
         return len(self.permission_changes)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def change_summary(self) -> str:
         """Human-readable summary of changes."""

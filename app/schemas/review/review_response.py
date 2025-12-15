@@ -3,13 +3,20 @@
 Review response schemas for API responses.
 
 Provides comprehensive response formats for reviews.
+
+Pydantic v2 Migration Notes:
+- Uses Annotated pattern for Decimal fields with precision constraints
+- @computed_field with @property decorator for computed properties
+- Rating fields use max_digits=2, decimal_places=1 for 1.0-5.0 range
+- Percentage fields use max_digits=5, decimal_places=2 for 0.00-100.00 range
+- Average rating fields use max_digits=3, decimal_places=2 for more precision
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, computed_field
 from uuid import UUID
@@ -73,13 +80,17 @@ class ReviewResponse(BaseResponseSchema):
     reviewer_id: UUID = Field(..., description="Reviewer user ID")
     reviewer_name: str = Field(..., description="Reviewer display name")
     
-    # Review content
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating",
-    )
+    # Review content with proper rating constraints
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating",
+        ),
+    ]
     title: str = Field(..., description="Review title")
     review_text: str = Field(..., description="Review text")
     
@@ -103,7 +114,7 @@ class ReviewResponse(BaseResponseSchema):
     # Timestamps
     created_at: datetime = Field(..., description="Creation timestamp")
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def helpfulness_ratio(self) -> Decimal:
         """Calculate helpfulness ratio."""
@@ -136,13 +147,17 @@ class ReviewDetail(BaseResponseSchema):
     student_id: Optional[UUID] = Field(default=None, description="Student profile ID")
     booking_id: Optional[UUID] = Field(default=None, description="Related booking ID")
     
-    # Ratings
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating",
-    )
+    # Ratings with proper constraints
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating",
+        ),
+    ]
     cleanliness_rating: Optional[int] = Field(default=None, ge=1, le=5)
     food_quality_rating: Optional[int] = Field(default=None, ge=1, le=5)
     staff_behavior_rating: Optional[int] = Field(default=None, ge=1, le=5)
@@ -210,13 +225,13 @@ class ReviewDetail(BaseResponseSchema):
         description="Duration of stay",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def total_votes(self) -> int:
         """Total votes on this review."""
         return self.helpful_count + self.not_helpful_count
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def average_detailed_rating(self) -> Optional[Decimal]:
         """Calculate average of detailed ratings."""
@@ -251,12 +266,16 @@ class ReviewListItem(BaseSchema):
     reviewer_name: str = Field(..., description="Reviewer name")
     reviewer_image: Optional[str] = Field(default=None, description="Profile image URL")
     
-    overall_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Overall rating",
-    )
+    overall_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=2,
+            decimal_places=1,
+            description="Overall rating",
+        ),
+    ]
     title: str = Field(..., description="Review title")
     review_excerpt: str = Field(
         ...,
@@ -277,7 +296,7 @@ class ReviewListItem(BaseSchema):
         description="Whether hostel has responded",
     )
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def days_ago(self) -> int:
         """Days since review was posted."""
@@ -295,14 +314,18 @@ class ReviewSummary(BaseSchema):
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
     
-    # Aggregate metrics
+    # Aggregate metrics with proper rating constraints
     total_reviews: int = Field(..., ge=0, description="Total reviews count")
-    average_rating: Decimal = Field(
-        ...,
-        ge=Decimal("1.0"),
-        le=Decimal("5.0"),
-        description="Average overall rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("1.0"),
+            le=Decimal("5.0"),
+            max_digits=3,
+            decimal_places=2,
+            description="Average overall rating",
+        ),
+    ]
     
     # Rating distribution
     rating_5_count: int = Field(..., ge=0)
@@ -313,20 +336,84 @@ class ReviewSummary(BaseSchema):
     
     # Verified reviews
     verified_reviews_count: int = Field(..., ge=0)
-    verified_reviews_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of verified reviews",
-    )
+    verified_reviews_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of verified reviews",
+        ),
+    ]
     
-    # Average detailed ratings
-    average_cleanliness: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
-    average_food_quality: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
-    average_staff_behavior: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
-    average_security: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
-    average_value_for_money: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
-    average_amenities: Optional[Decimal] = Field(default=None, ge=Decimal("1"), le=Decimal("5"))
+    # Average detailed ratings with proper constraints
+    average_cleanliness: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
+    average_food_quality: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
+    average_staff_behavior: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
+    average_security: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
+    average_value_for_money: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
+    average_amenities: Optional[
+        Annotated[
+            Decimal,
+            Field(
+                ge=Decimal("1"),
+                le=Decimal("5"),
+                max_digits=3,
+                decimal_places=2,
+            ),
+        ]
+    ] = None
     
     # Recent reviews
     recent_reviews: List[ReviewListItem] = Field(
@@ -335,15 +422,19 @@ class ReviewSummary(BaseSchema):
         description="5 most recent reviews",
     )
     
-    # Recommendation metric
-    would_recommend_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Percentage of reviewers who would recommend",
-    )
+    # Recommendation metric with percentage constraints
+    would_recommend_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            max_digits=5,
+            decimal_places=2,
+            description="Percentage of reviewers who would recommend",
+        ),
+    ]
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def positive_review_percentage(self) -> Decimal:
         """Percentage of 4-5 star reviews."""
@@ -353,7 +444,7 @@ class ReviewSummary(BaseSchema):
         positive = self.rating_5_count + self.rating_4_count
         return Decimal(str(round((positive / self.total_reviews) * 100, 2)))
     
-    @computed_field  # Pydantic v2: Use @computed_field for computed properties
+    @computed_field  # type: ignore[misc]
     @property
     def rating_quality_score(self) -> str:
         """

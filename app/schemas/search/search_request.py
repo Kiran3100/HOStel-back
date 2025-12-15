@@ -14,10 +14,10 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Annotated
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import (
     BaseCreateSchema,
@@ -44,6 +44,11 @@ class BasicSearchRequest(BaseFilterSchema):
 
     Optimized for quick searches with minimal parameters.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     query: str = Field(
         ...,
@@ -92,6 +97,11 @@ class AdvancedSearchRequest(BaseFilterSchema):
     - Sorting and pagination
     """
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     # Search query
     query: Optional[str] = Field(
         default=None,
@@ -123,24 +133,18 @@ class AdvancedSearchRequest(BaseFilterSchema):
     )
 
     # Geographic coordinates for proximity search
-    latitude: Optional[Decimal] = Field(
+    latitude: Optional[Annotated[Decimal, Field(ge=-90, le=90)]] = Field(
         default=None,
-        ge=-90,
-        le=90,
         description="Latitude for proximity search",
         examples=[19.0760],
     )
-    longitude: Optional[Decimal] = Field(
+    longitude: Optional[Annotated[Decimal, Field(ge=-180, le=180)]] = Field(
         default=None,
-        ge=-180,
-        le=180,
         description="Longitude for proximity search",
         examples=[72.8777],
     )
-    radius_km: Optional[Decimal] = Field(
+    radius_km: Optional[Annotated[Decimal, Field(ge=0.1, le=100)]] = Field(
         default=None,
-        ge=0.1,
-        le=100,
         description="Search radius in kilometers",
         examples=[5, 10, 25],
     )
@@ -163,15 +167,13 @@ class AdvancedSearchRequest(BaseFilterSchema):
     )
 
     # Price range filter
-    min_price: Optional[Decimal] = Field(
+    min_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum monthly price in INR",
         examples=[5000, 10000],
     )
-    max_price: Optional[Decimal] = Field(
+    max_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum monthly price in INR",
         examples=[20000, 30000],
     )
@@ -189,10 +191,8 @@ class AdvancedSearchRequest(BaseFilterSchema):
     )
 
     # Rating filter
-    min_rating: Optional[Decimal] = Field(
+    min_rating: Optional[Annotated[Decimal, Field(ge=0, le=5)]] = Field(
         default=None,
-        ge=0,
-        le=5,
         description="Minimum average rating (0-5)",
         examples=[3.5, 4.0],
     )
@@ -320,7 +320,7 @@ class AdvancedSearchRequest(BaseFilterSchema):
 
         return self
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def has_location_filter(self) -> bool:
         """Check if any location filter is applied."""
@@ -333,13 +333,13 @@ class AdvancedSearchRequest(BaseFilterSchema):
             ]
         )
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def has_price_filter(self) -> bool:
         """Check if price filter is applied."""
         return self.min_price is not None or self.max_price is not None
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def offset(self) -> int:
         """Calculate offset for database queries."""
@@ -353,22 +353,21 @@ class NearbySearchRequest(BaseFilterSchema):
     Optimized for "near me" searches and location-based discovery.
     """
 
-    latitude: Decimal = Field(
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
+    latitude: Annotated[Decimal, Field(ge=-90, le=90)] = Field(
         ...,
-        ge=-90,
-        le=90,
         description="Current latitude",
     )
-    longitude: Decimal = Field(
+    longitude: Annotated[Decimal, Field(ge=-180, le=180)] = Field(
         ...,
-        ge=-180,
-        le=180,
         description="Current longitude",
     )
-    radius_km: Decimal = Field(
+    radius_km: Annotated[Decimal, Field(ge=0.1, le=50)] = Field(
         default=5.0,
-        ge=0.1,
-        le=50,
         description="Search radius in kilometers",
     )
 
@@ -377,14 +376,12 @@ class NearbySearchRequest(BaseFilterSchema):
         default=None,
         description="Filter by hostel type",
     )
-    min_price: Optional[Decimal] = Field(
+    min_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum price filter",
     )
-    max_price: Optional[Decimal] = Field(
+    max_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum price filter",
     )
     available_only: bool = Field(
@@ -417,6 +414,11 @@ class SavedSearchCreate(BaseCreateSchema):
 
     Allows users to save frequently used search criteria.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     name: str = Field(
         ...,
@@ -463,6 +465,11 @@ class SavedSearchCreate(BaseCreateSchema):
 class SavedSearchUpdate(BaseUpdateSchema):
     """Update saved search configuration."""
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     name: Optional[str] = Field(
         default=None,
         min_length=1,
@@ -496,6 +503,11 @@ class SavedSearchUpdate(BaseUpdateSchema):
 class SavedSearchResponse(BaseResponseSchema):
     """Saved search response schema."""
 
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
     user_id: UUID = Field(..., description="User ID who owns this search")
     name: str = Field(..., description="Search name")
     search_criteria: Dict[str, Any] = Field(..., description="Search parameters")
@@ -514,6 +526,11 @@ class SavedSearchResponse(BaseResponseSchema):
 
 class SearchHistoryResponse(BaseResponseSchema):
     """Search history entry response."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     user_id: Optional[UUID] = Field(
         default=None,

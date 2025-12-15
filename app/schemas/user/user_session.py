@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, IPvAnyAddress, field_validator
+from pydantic import BaseModel, Field, IPvAnyAddress, field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field, ConfigDict
 
 from app.schemas.common.base import BaseFilterSchema
 from app.schemas.common.enums import HostelType, RoomType
@@ -33,15 +33,18 @@ class PriceFilter(BaseFilterSchema):
     Ensures min_price <= max_price and both are non-negative.
     """
 
-    min_price: Optional[Decimal] = Field(
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
+    min_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Minimum price in INR",
         examples=[5000, 10000],
     )
-    max_price: Optional[Decimal] = Field(
+    max_price: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
         default=None,
-        ge=0,
         description="Maximum price in INR",
         examples=[20000, 30000],
     )
@@ -60,7 +63,7 @@ class PriceFilter(BaseFilterSchema):
             )
         return self
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if price filter is active."""
@@ -74,17 +77,18 @@ class RatingFilter(BaseFilterSchema):
     Ensures ratings are within valid range (0-5).
     """
 
-    min_rating: Optional[Decimal] = Field(
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
+
+    min_rating: Optional[Annotated[Decimal, Field(ge=0, le=5)]] = Field(
         default=None,
-        ge=0,
-        le=5,
         description="Minimum average rating (0-5 scale)",
         examples=[3.5, 4.0, 4.5],
     )
-    max_rating: Optional[Decimal] = Field(
+    max_rating: Optional[Annotated[Decimal, Field(ge=0, le=5)]] = Field(
         default=None,
-        ge=0,
-        le=5,
         description="Maximum average rating (0-5 scale)",
         examples=[5.0],
     )
@@ -103,7 +107,7 @@ class RatingFilter(BaseFilterSchema):
             )
         return self
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if rating filter is active."""
@@ -117,6 +121,11 @@ class AmenityFilter(BaseFilterSchema):
     - `required_amenities`: ALL must be present (AND logic)
     - `optional_amenities`: ANY can be present (OR logic)
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     required_amenities: Optional[List[str]] = Field(
         default=None,
@@ -156,7 +165,7 @@ class AmenityFilter(BaseFilterSchema):
             return normalized if normalized else None
         return v
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if amenity filter is active."""
@@ -175,6 +184,11 @@ class LocationFilter(BaseFilterSchema):
     - Text-based location (city, state, pincode)
     - Proximity-based (lat/lon + radius)
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Text-based location
     city: Optional[str] = Field(
@@ -199,22 +213,16 @@ class LocationFilter(BaseFilterSchema):
     )
 
     # Proximity-based location
-    latitude: Optional[Decimal] = Field(
+    latitude: Optional[Annotated[Decimal, Field(ge=-90, le=90)]] = Field(
         default=None,
-        ge=-90,
-        le=90,
         description="Latitude for proximity search",
     )
-    longitude: Optional[Decimal] = Field(
+    longitude: Optional[Annotated[Decimal, Field(ge=-180, le=180)]] = Field(
         default=None,
-        ge=-180,
-        le=180,
         description="Longitude for proximity search",
     )
-    radius_km: Optional[Decimal] = Field(
+    radius_km: Optional[Annotated[Decimal, Field(ge=0.1, le=100)]] = Field(
         default=None,
-        ge=0.1,
-        le=100,
         description="Search radius in kilometers",
         examples=[5, 10, 25],
     )
@@ -237,19 +245,19 @@ class LocationFilter(BaseFilterSchema):
                 )
         return self
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_text_location(self) -> bool:
         """Check if text-based location filter is active."""
         return any([self.city, self.state, self.pincode])
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_proximity_location(self) -> bool:
         """Check if proximity-based location filter is active."""
         return self.latitude is not None and self.longitude is not None
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if any location filter is active."""
@@ -262,6 +270,11 @@ class AvailabilityFilter(BaseFilterSchema):
 
     Filters based on bed availability and booking requirements.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     available_only: bool = Field(
         default=False,
@@ -310,7 +323,7 @@ class AvailabilityFilter(BaseFilterSchema):
 
         return self
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def is_active(self) -> bool:
         """Check if any availability filter is active."""
@@ -329,6 +342,11 @@ class SearchFilterSet(BaseFilterSchema):
 
     Provides a convenient way to apply multiple filters together.
     """
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+    )
 
     # Core filters
     price: Optional[PriceFilter] = Field(
@@ -364,7 +382,7 @@ class SearchFilterSet(BaseFilterSchema):
         examples=[["single", "double"]],
     )
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def active_filters(self) -> List[str]:
         """Get list of active filter names."""
@@ -385,13 +403,13 @@ class SearchFilterSet(BaseFilterSchema):
             active.append("room_types")
         return active
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def filter_count(self) -> int:
         """Get count of active filters."""
         return len(self.active_filters)
 
-    @computed_field  # Pydantic v2: Use @computed_field instead of @property for serialization
+    @computed_field
     @property
     def has_filters(self) -> bool:
         """Check if any filter is active."""

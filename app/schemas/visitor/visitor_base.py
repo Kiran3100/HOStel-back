@@ -9,10 +9,10 @@ preferences, and notification settings.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import RoomType
@@ -44,17 +44,13 @@ class VisitorBase(BaseSchema):
         description="Preferred room type (single, double, triple, etc.)",
     )
 
-    # Budget Constraints
-    budget_min: Optional[Decimal] = Field(
+    # Budget Constraints - Updated for Pydantic v2
+    budget_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Minimum budget per month in local currency",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Maximum budget per month in local currency",
     )
 
@@ -237,17 +233,13 @@ class VisitorUpdate(BaseUpdateSchema):
         description="Update preferred room type",
     )
 
-    # Budget
-    budget_min: Optional[Decimal] = Field(
+    # Budget - Updated for Pydantic v2
+    budget_min: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Update minimum budget",
     )
-    budget_max: Optional[Decimal] = Field(
+    budget_max: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         default=None,
-        ge=0,
-        decimal_places=2,
         description="Update maximum budget",
     )
 

@@ -1,4 +1,3 @@
-# --- File: app/schemas/subscription/__init__.py ---
 """
 Subscription schemas package.
 
