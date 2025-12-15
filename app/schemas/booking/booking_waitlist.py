@@ -8,7 +8,7 @@ are fully booked, including notifications and conversions.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -33,7 +33,7 @@ class WaitlistRequest(BaseCreateSchema):
     """
     Request to add visitor to waitlist.
     
-    Used when desired room type/date is not available
+    Used when desired room type/Date is not available
     and visitor wants to be notified when it becomes available.
     """
 
@@ -51,9 +51,9 @@ class WaitlistRequest(BaseCreateSchema):
         ...,
         description="Desired room type",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Desired check-in date",
+        description="Desired check-in Date",
     )
 
     # Contact Information
@@ -76,11 +76,11 @@ class WaitlistRequest(BaseCreateSchema):
 
     @field_validator("preferred_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date is in the future."""
-        if v < date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date is in the future."""
+        if v < Date.today():
             raise ValueError(
-                f"Preferred check-in date ({v.strftime('%Y-%m-%d')}) "
+                f"Preferred check-in Date ({v.strftime('%Y-%m-%d')}) "
                 "cannot be in the past"
             )
         return v
@@ -127,9 +127,9 @@ class WaitlistResponse(BaseResponseSchema):
         ...,
         description="Room type on waitlist",
     )
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
 
     # Contact
@@ -154,9 +154,9 @@ class WaitlistResponse(BaseResponseSchema):
     )
 
     # Estimated Timeline
-    estimated_availability_date: Optional[date] = Field(
+    estimated_availability_date: Optional[Date] = Field(
         None,
-        description="Estimated date when room might become available",
+        description="Estimated Date when room might become available",
     )
 
     created_at: datetime = Field(
@@ -388,9 +388,9 @@ class WaitlistEntry(BaseSchema):
     )
 
     # Preferences
-    preferred_check_in_date: date = Field(
+    preferred_check_in_date: Date = Field(
         ...,
-        description="Preferred check-in date",
+        description="Preferred check-in Date",
     )
     priority: int = Field(
         ...,

@@ -9,7 +9,7 @@ Provides detailed financial analytics including:
 - Budget vs. actual comparisons
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional, Any, Annotated
 from enum import Enum
@@ -718,10 +718,10 @@ class CashflowPoint(BaseSchema):
     """
     Single data point in cashflow time series.
     
-    Represents cash movements for a specific date.
+    Represents cash movements for a specific Date.
     """
     
-    cashflow_date: date = Field(
+    cashflow_date: Date = Field(
         ...,
         description="Date of cashflow point"
     )

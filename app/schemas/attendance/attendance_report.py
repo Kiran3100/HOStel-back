@@ -8,7 +8,7 @@ trends, comparisons, and multi-level aggregations.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -156,9 +156,9 @@ class DailyAttendanceRecord(BaseSchema):
     for timeline views and detailed reports.
     """
 
-    date: date = Field(
+    Date: Date = Field(
         ...,
-        description="Attendance date",
+        description="Attendance Date",
     )
     day_of_week: str = Field(
         ...,
@@ -223,11 +223,11 @@ class WeeklyAttendance(BaseSchema):
         ge=2000,
         description="Year for the week",
     )
-    week_start_date: date = Field(
+    week_start_date: Date = Field(
         ...,
         description="Monday of the week",
     )
-    week_end_date: date = Field(
+    week_end_date: Date = Field(
         ...,
         description="Sunday of the week",
     )
@@ -261,8 +261,8 @@ class WeeklyAttendance(BaseSchema):
 
     @field_validator("week_end_date")
     @classmethod
-    def validate_week_dates(cls, v: date, info) -> date:
-        """Validate week end date is after start date."""
+    def validate_week_dates(cls, v: Date, info) -> Date:
+        """Validate week end Date is after start Date."""
         if info.data.get("week_start_date"):
             if v < info.data["week_start_date"]:
                 raise ValueError("week_end_date must be after week_start_date")
@@ -334,13 +334,13 @@ class TrendAnalysis(BaseSchema):
     and concerning trends.
     """
 
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Analysis period start date",
+        description="Analysis period start Date",
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Analysis period end date",
+        description="Analysis period end Date",
     )
     
     # Weekly breakdown
@@ -395,7 +395,7 @@ class TrendAnalysis(BaseSchema):
 
     @field_validator("period_end")
     @classmethod
-    def validate_period(cls, v: date, info) -> date:
+    def validate_period(cls, v: Date, info) -> Date:
         """Validate period dates are logical."""
         if info.data.get("period_start"):
             if v < info.data["period_start"]:
@@ -429,7 +429,7 @@ class AttendanceReport(BaseSchema):
     )
     report_period: DateRangeFilter = Field(
         ...,
-        description="Report date range",
+        description="Report Date range",
     )
     generated_at: datetime = Field(
         ...,

@@ -246,7 +246,7 @@ class ComplaintTrendPoint(BaseSchema):
     """
     Single data point in complaint trend analysis.
     
-    Represents complaint metrics for a specific date,
+    Represents complaint metrics for a specific Date,
     enabling time-series visualization.
     """
     
@@ -257,27 +257,27 @@ class ComplaintTrendPoint(BaseSchema):
     total_complaints: int = Field(
         ...,
         ge=0,
-        description="Total complaints on this date"
+        description="Total complaints on this Date"
     )
     open_complaints: int = Field(
         ...,
         ge=0,
-        description="Open complaints on this date"
+        description="Open complaints on this Date"
     )
     resolved_complaints: int = Field(
         ...,
         ge=0,
-        description="Resolved complaints on this date"
+        description="Resolved complaints on this Date"
     )
     escalated: int = Field(
         ...,
         ge=0,
-        description="Escalated complaints on this date"
+        description="Escalated complaints on this Date"
     )
     sla_breached: int = Field(
         ...,
         ge=0,
-        description="SLA breaches on this date"
+        description="SLA breaches on this Date"
     )
     
     @field_validator("escalated", "sla_breached")
@@ -293,7 +293,7 @@ class ComplaintTrendPoint(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> Decimal:
-        """Calculate resolution rate for this date."""
+        """Calculate resolution rate for this Date."""
         if self.total_complaints == 0:
             return Decimal("0.00")
         return round(
@@ -361,7 +361,7 @@ class ComplaintTrend(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def peak_complaint_date(self) -> Optional[Date]:
-        """Identify date with highest complaint volume."""
+        """Identify Date with highest complaint volume."""
         if not self.points:
             return None
         return max(self.points, key=lambda x: x.total_complaints).trend_date

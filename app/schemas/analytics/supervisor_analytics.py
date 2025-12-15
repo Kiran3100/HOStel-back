@@ -10,7 +10,7 @@ Provides comprehensive supervisor metrics including:
 - Student feedback integration
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -433,13 +433,13 @@ class SupervisorTrendPoint(BaseSchema):
         max_length=100,
         description="Period identifier (e.g., 'Week 1', '2024-01')"
     )
-    period_start: date = Field(
+    period_start: Date = Field(
         ...,
-        description="Period start date"
+        description="Period start Date"
     )
-    period_end: date = Field(
+    period_end: Date = Field(
         ...,
-        description="Period end date"
+        description="Period end Date"
     )
     
     complaints_resolved: int = Field(

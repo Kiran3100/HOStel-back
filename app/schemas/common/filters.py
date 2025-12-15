@@ -5,7 +5,7 @@ Common filter schemas used for query/filter parameters across the API.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date as Date, datetime, time
 from typing import Dict, List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -31,13 +31,13 @@ __all__ = [
 class DateRangeFilter(BaseFilterSchema):
     """Date range filter."""
 
-    start_date: Optional[date] = Field(
+    start_date: Optional[Date] = Field(
         default=None,
-        description="Start date (inclusive)",
+        description="Start Date (inclusive)",
     )
-    end_date: Optional[date] = Field(
+    end_date: Optional[Date] = Field(
         default=None,
-        description="End date (inclusive)",
+        description="End Date (inclusive)",
     )
 
     @model_validator(mode="after")

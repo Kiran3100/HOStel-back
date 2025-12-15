@@ -8,7 +8,7 @@ into active student profiles after check-in.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -41,9 +41,9 @@ class ConvertToStudentRequest(BaseCreateSchema):
     )
 
     # Check-in Confirmation
-    actual_check_in_date: date = Field(
+    actual_check_in_date: Date = Field(
         ...,
-        description="Actual check-in date (may differ from preferred)",
+        description="Actual check-in Date (may differ from preferred)",
     )
 
     # Financial Confirmation
@@ -87,16 +87,16 @@ class ConvertToStudentRequest(BaseCreateSchema):
 
     @field_validator("actual_check_in_date")
     @classmethod
-    def validate_check_in_date(cls, v: date) -> date:
-        """Validate check-in date is not in the future."""
-        if v > date.today():
+    def validate_check_in_date(cls, v: Date) -> Date:
+        """Validate check-in Date is not in the future."""
+        if v > Date.today():
             raise ValueError(
-                f"Actual check-in date ({v.strftime('%Y-%m-%d')}) "
+                f"Actual check-in Date ({v.strftime('%Y-%m-%d')}) "
                 "cannot be in the future"
             )
         
         # Warn if check-in is too far in the past (> 30 days)
-        days_ago = (date.today() - v).days
+        days_ago = (Date.today() - v).days
         if days_ago > 30:
             # Log warning - might be data entry error
             pass
@@ -149,7 +149,7 @@ class ConversionResponse(BaseSchema):
         ...,
         description="Whether conversion was successful",
     )
-    conversion_date: date = Field(
+    conversion_date: Date = Field(
         ...,
         description="Date of conversion",
     )
@@ -177,9 +177,9 @@ class ConversionResponse(BaseSchema):
         decimal_places=2,
         description="Security deposit amount",
     )
-    next_payment_due_date: date = Field(
+    next_payment_due_date: Date = Field(
         ...,
-        description="Next rent payment due date",
+        description="Next rent payment due Date",
     )
 
     message: str = Field(
@@ -289,9 +289,9 @@ class BulkConversion(BaseCreateSchema):
         max_length=50,
         description="List of booking IDs to convert (max 50)",
     )
-    conversion_date: date = Field(
+    conversion_date: Date = Field(
         ...,
-        description="Common check-in/conversion date for all",
+        description="Common check-in/conversion Date for all",
     )
 
     # Common Financial Confirmation
@@ -321,13 +321,13 @@ class BulkConversion(BaseCreateSchema):
 
     @field_validator("conversion_date")
     @classmethod
-    def validate_conversion_date(cls, v: date) -> date:
-        """Validate conversion date."""
-        if v > date.today():
-            raise ValueError("Conversion date cannot be in the future")
+    def validate_conversion_date(cls, v: Date) -> Date:
+        """Validate conversion Date."""
+        if v > Date.today():
+            raise ValueError("Conversion Date cannot be in the future")
         
         # Warn if too old
-        days_ago = (date.today() - v).days
+        days_ago = (Date.today() - v).days
         if days_ago > 7:
             # Log warning
             pass

@@ -9,7 +9,7 @@ Migrated to Pydantic v2.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, date as Date
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID

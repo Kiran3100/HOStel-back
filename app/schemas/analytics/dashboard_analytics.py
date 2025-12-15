@@ -373,7 +373,7 @@ class TimeseriesPoint(BaseSchema):
         ...,
         description="Date of the data point",
         # In Pydantic v2, we use 'serialization_alias' for output field name
-        serialization_alias="date"
+        serialization_alias="Date"
     )
     value: Union[Decimal, int, float] = Field(
         ...,
@@ -392,7 +392,7 @@ class TimeseriesPoint(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def formatted_date(self) -> str:
-        """Get formatted date string."""
+        """Get formatted Date string."""
         return self.date_.strftime("%Y-%m-%d")
 
 

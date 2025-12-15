@@ -10,7 +10,7 @@ Provides comprehensive platform metrics including:
 - Revenue aggregation across tenants
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional, Union
 from enum import Enum
@@ -73,9 +73,9 @@ class TenantMetrics(BaseSchema):
         ...,
         description="Subscription status"
     )
-    subscription_start_date: date = Field(
+    subscription_start_date: Date = Field(
         ...,
-        description="Subscription start date"
+        description="Subscription start Date"
     )
     subscription_mrr: Decimal = Field(
         ...,

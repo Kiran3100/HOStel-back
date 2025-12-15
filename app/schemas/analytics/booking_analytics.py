@@ -97,7 +97,7 @@ class BookingKPI(BaseSchema):
         ...,
         ge=0,
         decimal_places=2,
-        description="Average days between booking creation and check-in date"
+        description="Average days between booking creation and check-in Date"
     )
     
     @field_validator("confirmed_bookings", "cancelled_bookings", "rejected_bookings", "pending_bookings")
@@ -150,7 +150,7 @@ class BookingTrendPoint(BaseSchema):
     """
     Single data point in booking trend analysis.
     
-    Represents booking metrics for a specific date, enabling
+    Represents booking metrics for a specific Date, enabling
     time-series visualization and trend analysis.
     """
     
@@ -161,33 +161,33 @@ class BookingTrendPoint(BaseSchema):
     total_bookings: int = Field(
         ...,
         ge=0,
-        description="Total bookings on this date"
+        description="Total bookings on this Date"
     )
     confirmed: int = Field(
         ...,
         ge=0,
-        description="Confirmed bookings on this date"
+        description="Confirmed bookings on this Date"
     )
     cancelled: int = Field(
         ...,
         ge=0,
-        description="Cancelled bookings on this date"
+        description="Cancelled bookings on this Date"
     )
     rejected: int = Field(
         ...,
         ge=0,
-        description="Rejected bookings on this date"
+        description="Rejected bookings on this Date"
     )
     pending: int = Field(
         0,
         ge=0,
-        description="Pending bookings on this date"
+        description="Pending bookings on this Date"
     )
     revenue_for_day: Decimal = Field(
         ...,
         ge=0,
         decimal_places=2,
-        description="Total revenue generated on this date"
+        description="Total revenue generated on this Date"
     )
     
     @field_validator("confirmed", "cancelled", "rejected", "pending")
@@ -205,7 +205,7 @@ class BookingTrendPoint(BaseSchema):
     @computed_field  # type: ignore[misc]
     @property
     def conversion_rate(self) -> Decimal:
-        """Calculate conversion rate for this date."""
+        """Calculate conversion rate for this Date."""
         if self.total_bookings == 0:
             return Decimal("0.00")
         return round(
@@ -582,7 +582,7 @@ class BookingAnalyticsSummary(BaseSchema):
         
         Returns:
             Dictionary containing trend insights like growth rate,
-            peak booking date, etc.
+            peak booking Date, etc.
         """
         if not self.trend:
             return {}
