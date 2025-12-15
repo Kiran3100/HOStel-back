@@ -1,7 +1,8 @@
 # api/v1/fee_structures/config.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -52,12 +53,12 @@ async def get_effective_fee_configuration(
     hostel_id: UUID = Query(..., description="Hostel ID"),
     room_type: RoomType = Query(..., description="Room type"),
     fee_type: FeeType = Query(..., description="Fee type (e.g. RENT, DEPOSIT)"),
-    as_of: date = Query(..., description="Date for which to compute effective fee"),
+    as_of: Date = Query(..., description="Date for which to compute effective fee"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> FeeConfiguration:
     """
     Compute the effective fee configuration for a hostel, room type, and fee type
-    on a given date.
+    on a given Date.
 
     Returns a FeeConfiguration that includes breakdown (rent, mess, utilities,
     deposit) and totals.

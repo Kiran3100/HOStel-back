@@ -1,7 +1,8 @@
 # api/v1/maintenance/requests.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
+
 from typing import Optional
 from uuid import UUID
 
@@ -59,7 +60,7 @@ async def list_maintenance_requests(
 ) -> PaginatedResponse[RequestListItem]:
     """
     List maintenance requests using filters (hostel, status, category, priority,
-    date range, etc.) with pagination and sorting.
+    Date range, etc.) with pagination and sorting.
     """
     service = MaintenanceService(uow)
     try:

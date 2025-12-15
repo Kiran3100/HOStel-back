@@ -1,7 +1,8 @@
 # api/v1/maintenance/analytics.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -32,8 +33,8 @@ def _map_service_error(exc: ServiceError) -> HTTPException:
 )
 async def get_maintenance_analytics(
     hostel_id: UUID = Query(..., description="Hostel ID"),
-    period_start: date = Query(..., description="Start date (inclusive)"),
-    period_end: date = Query(..., description="End date (inclusive)"),
+    period_start: Date = Query(..., description="Start Date (inclusive)"),
+    period_end: Date = Query(..., description="End Date (inclusive)"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> MaintenanceAnalytics:
     """
