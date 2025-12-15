@@ -12,9 +12,9 @@ Provides comprehensive supervisor metrics including:
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Annotated
 
-from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator, AfterValidator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -29,6 +29,20 @@ __all__ = [
     "SupervisorPerformanceRating",
     "TeamAnalytics",
 ]
+
+
+# Custom validator
+def round_to_2_places(v: Decimal) -> Decimal:
+    """Round decimal to 2 places."""
+    if isinstance(v, (int, float)):
+        v = Decimal(str(v))
+    return round(v, 2)
+
+
+# Type aliases
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100), AfterValidator(round_to_2_places)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0), AfterValidator(round_to_2_places)]
+DecimalRating = Annotated[Decimal, Field(ge=0, le=5), AfterValidator(round_to_2_places)]
 
 
 class SupervisorWorkload(BaseSchema):
@@ -62,11 +76,8 @@ class SupervisorWorkload(BaseSchema):
         ge=1,
         description="Maximum concurrent task capacity"
     )
-    current_utilization: Decimal = Field(
+    current_utilization: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Current capacity utilization percentage"
     )
     
@@ -110,48 +121,30 @@ class SupervisorPerformanceRating(BaseSchema):
     """
     
     # Individual ratings
-    efficiency_score: Decimal = Field(
+    efficiency_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Task completion efficiency (0-100)"
     )
-    quality_score: Decimal = Field(
+    quality_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Work quality score (0-100)"
     )
-    responsiveness_score: Decimal = Field(
+    responsiveness_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Response time score (0-100)"
     )
-    student_satisfaction_score: Decimal = Field(
+    student_satisfaction_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Student feedback score (0-100)"
     )
-    reliability_score: Decimal = Field(
+    reliability_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Reliability and consistency score (0-100)"
     )
     
     # Overall rating
-    overall_rating: Decimal = Field(
+    overall_rating: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Weighted overall performance rating"
     )
     
@@ -273,38 +266,26 @@ class SupervisorKPI(BaseSchema):
     )
     
     # Performance metrics
-    avg_complaint_resolution_time_hours: Decimal = Field(
+    avg_complaint_resolution_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average time to resolve complaints (hours)"
     )
-    avg_first_response_time_hours: Decimal = Field(
+    avg_first_response_time_hours: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Average time to first response (hours)"
     )
-    avg_maintenance_completion_time_hours: Decimal = Field(
+    avg_maintenance_completion_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average maintenance completion time (hours)"
     )
     
     # SLA compliance
-    complaint_sla_compliance_rate: Decimal = Field(
+    complaint_sla_compliance_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Complaint SLA compliance percentage"
     )
-    maintenance_sla_compliance_rate: Decimal = Field(
+    maintenance_sla_compliance_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Maintenance SLA compliance percentage"
     )
     
@@ -321,11 +302,8 @@ class SupervisorKPI(BaseSchema):
     )
     
     # Feedback
-    student_feedback_score: Optional[Decimal] = Field(
+    student_feedback_score: Optional[DecimalRating] = Field(
         None,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Average student rating (1-5 scale)"
     )
     feedback_count: int = Field(
@@ -335,11 +313,8 @@ class SupervisorKPI(BaseSchema):
     )
     
     # Overall performance
-    overall_performance_score: Decimal = Field(
+    overall_performance_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Composite performance score (0-100)"
     )
     
@@ -359,7 +334,7 @@ class SupervisorKPI(BaseSchema):
     @classmethod
     def validate_resolved_complaints(cls, v: int, info) -> int:
         """Validate resolved count doesn't exceed assigned."""
-        if info.data.get("complaints_assigned") is not None and v > info.data["complaints_assigned"]:
+        if "complaints_assigned" in info.data and v > info.data["complaints_assigned"]:
             # Allow slight excess for complaints from previous periods
             if v > info.data["complaints_assigned"] * 1.2:
                 raise ValueError(
@@ -435,11 +410,11 @@ class SupervisorTrendPoint(BaseSchema):
     )
     period_start: Date = Field(
         ...,
-        description="Period start Date"
+        description="Period start date"
     )
     period_end: Date = Field(
         ...,
-        description="Period end Date"
+        description="Period end date"
     )
     
     complaints_resolved: int = Field(
@@ -452,18 +427,12 @@ class SupervisorTrendPoint(BaseSchema):
         ge=0,
         description="Maintenance completed in period"
     )
-    performance_score: Decimal = Field(
+    performance_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Performance score for period"
     )
-    student_feedback_score: Optional[Decimal] = Field(
+    student_feedback_score: Optional[DecimalRating] = Field(
         None,
-        ge=0,
-        le=5,
-        decimal_places=2,
         description="Student feedback score"
     )
     
@@ -540,10 +509,8 @@ class SupervisorDashboardAnalytics(BaseSchema):
         ge=0,
         description="Monthly task completion target"
     )
-    target_achievement_rate: Optional[Decimal] = Field(
+    target_achievement_rate: Optional[DecimalPercentage] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Percentage of target achieved"
     )
     
@@ -647,24 +614,16 @@ class SupervisorComparison(BaseSchema):
     )
     
     # Statistics
-    avg_performance_score: Decimal = Field(
+    avg_performance_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average performance score across all supervisors"
     )
-    avg_resolution_time_hours: Decimal = Field(
+    avg_resolution_time_hours: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average resolution time across all supervisors"
     )
-    avg_sla_compliance: Decimal = Field(
+    avg_sla_compliance: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average SLA compliance rate"
     )
     
@@ -677,7 +636,7 @@ class SupervisorComparison(BaseSchema):
     @classmethod
     def validate_ranking_completeness(cls, v: List[UUID], info) -> List[UUID]:
         """Validate rankings include all supervisors."""
-        if info.data.get("supervisors") is not None:
+        if "supervisors" in info.data:
             supervisor_ids = {s.supervisor_id for s in info.data["supervisors"]}
             ranking_ids = set(v)
             
@@ -790,36 +749,24 @@ class TeamAnalytics(BaseSchema):
         ge=0,
         description="Total tasks completed by team"
     )
-    team_completion_rate: Decimal = Field(
+    team_completion_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Team completion rate percentage"
     )
     
     # Performance
-    avg_team_performance_score: Decimal = Field(
+    avg_team_performance_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average team performance score"
     )
-    avg_team_sla_compliance: Decimal = Field(
+    avg_team_sla_compliance: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Average team SLA compliance"
     )
     
     # Workload distribution
-    workload_balance_score: Decimal = Field(
+    workload_balance_score: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Workload distribution balance score (100 = perfectly balanced)"
     )
     

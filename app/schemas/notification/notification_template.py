@@ -64,7 +64,7 @@ class TemplateCreate(BaseCreateSchema):
 
     # Content with variable support
     subject: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=255,
         description="Subject template (required for email/push, supports {{variables}})",
@@ -88,7 +88,7 @@ class TemplateCreate(BaseCreateSchema):
 
     # Metadata
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Template category for organization",
     )
@@ -104,7 +104,7 @@ class TemplateCreate(BaseCreateSchema):
         description="Whether template is active and available for use",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Template description and usage notes",
     )
@@ -197,46 +197,46 @@ class TemplateUpdate(BaseUpdateSchema):
     """
 
     template_name: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=255,
         description="Updated template name",
     )
     subject: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=255,
         description="Updated subject template",
     )
     body_template: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=10000,
         description="Updated body template",
     )
     variables: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Updated required variables list",
     )
     optional_variables: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Updated optional variables list",
     )
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Updated category",
     )
     tags: Optional[List[str]] = Field(
-        None,
+        default=None,
         description="Updated tags",
     )
     is_active: Optional[bool] = Field(
-        None,
+        default=None,
         description="Updated active status",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Updated description",
     )
@@ -264,7 +264,7 @@ class TemplateResponse(BaseResponseSchema):
 
     # Content
     subject: Optional[str] = Field(
-        None,
+        default=None,
         description="Subject template",
     )
     body_template: str = Field(
@@ -284,7 +284,7 @@ class TemplateResponse(BaseResponseSchema):
 
     # Metadata
     category: Optional[str] = Field(
-        None,
+        default=None,
         description="Template category",
     )
     tags: List[str] = Field(
@@ -302,7 +302,7 @@ class TemplateResponse(BaseResponseSchema):
         description="Active status",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         description="Template description",
     )
 
@@ -313,7 +313,7 @@ class TemplateResponse(BaseResponseSchema):
         description="Number of times template has been used",
     )
     last_used_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When template was last used",
     )
 
@@ -327,7 +327,7 @@ class TemplateResponse(BaseResponseSchema):
         description="Last update timestamp",
     )
     created_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="User who created the template",
     )
 
@@ -395,7 +395,7 @@ class TemplatePreviewResponse(BaseSchema):
         description="Template code",
     )
     subject: Optional[str] = Field(
-        None,
+        default=None,
         description="Rendered subject",
     )
     rendered_body: str = Field(
@@ -419,7 +419,7 @@ class TemplatePreviewResponse(BaseSchema):
 
     # Character counts (useful for SMS)
     subject_length: Optional[int] = Field(
-        None,
+        default=None,
         description="Length of rendered subject",
     )
     body_length: int = Field(
@@ -427,7 +427,7 @@ class TemplatePreviewResponse(BaseSchema):
         description="Length of rendered body",
     )
     estimated_sms_segments: Optional[int] = Field(
-        None,
+        default=None,
         description="Estimated SMS segments (if applicable)",
     )
 
@@ -469,7 +469,7 @@ class TemplateCategory(BaseSchema):
         description="Category name",
     )
     category_description: Optional[str] = Field(
-        None,
+        default=None,
         description="Category description",
     )
     template_count: int = Field(

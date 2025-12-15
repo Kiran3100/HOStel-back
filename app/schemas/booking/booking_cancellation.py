@@ -101,31 +101,28 @@ class RefundCalculation(BaseSchema):
     based on cancellation policy.
     """
 
+    # Note: decimal_places removed - precision maintained via Decimal quantization
     advance_paid: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Total advance amount paid",
+        description="Total advance amount paid (precision: 2 decimal places)",
     )
     cancellation_charge: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Cancellation charge amount",
+        description="Cancellation charge amount (precision: 2 decimal places)",
     )
     cancellation_charge_percentage: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Cancellation charge as percentage of advance",
+        description="Cancellation charge as percentage of advance (precision: 2 decimal places)",
     )
 
     refundable_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Final amount to be refunded",
+        description="Final amount to be refunded (precision: 2 decimal places)",
     )
     refund_processing_time_days: int = Field(
         ...,
@@ -144,6 +141,12 @@ class RefundCalculation(BaseSchema):
         ...,
         description="Detailed refund calculation breakdown",
     )
+
+    @field_validator("advance_paid", "cancellation_charge", "cancellation_charge_percentage", "refundable_amount")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @field_validator("refundable_amount")
     @classmethod
@@ -225,14 +228,19 @@ class CancellationCharge(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Percentage of advance to charge as cancellation fee",
+        description="Percentage of advance to charge as cancellation fee (precision: 2 decimal places)",
     )
 
     description: str = Field(
         ...,
         description="Human-readable description of this tier",
     )
+
+    @field_validator("charge_percentage")
+    @classmethod
+    def quantize_decimal_field(cls, v: Decimal) -> Decimal:
+        """Quantize decimal field to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class CancellationPolicy(BaseSchema):
@@ -258,8 +266,7 @@ class CancellationPolicy(BaseSchema):
         Decimal("100.00"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Charge if guest doesn't show up (typically 100%)",
+        description="Charge if guest doesn't show up (typically 100%, precision: 2 decimal places)",
     )
 
     # Processing
@@ -275,6 +282,12 @@ class CancellationPolicy(BaseSchema):
         ...,
         description="Full cancellation policy text for display to users",
     )
+
+    @field_validator("no_show_charge_percentage")
+    @classmethod
+    def quantize_decimal_field(cls, v: Decimal) -> Decimal:
+        """Quantize decimal field to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @field_validator("cancellation_before_days")
     @classmethod

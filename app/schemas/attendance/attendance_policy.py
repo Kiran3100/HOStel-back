@@ -45,8 +45,8 @@ class AttendancePolicy(BaseResponseSchema):
     # Minimum requirements
     minimum_attendance_percentage: Decimal = Field(
         ...,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Minimum required attendance percentage",
     )
 
@@ -98,8 +98,8 @@ class AttendancePolicy(BaseResponseSchema):
     )
     low_attendance_threshold: Decimal = Field(
         Decimal("75.00"),
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Threshold for low attendance notifications",
     )
 
@@ -240,8 +240,8 @@ class PolicyConfig(BaseSchema):
     # Half-day handling
     half_day_weight: Decimal = Field(
         Decimal("0.5"),
-        ge=0,
-        le=1,
+        ge=Decimal("0"),
+        le=Decimal("1"),
         description="Weight for half-day attendance (0.5 = half, 1.0 = full)",
     )
 
@@ -262,8 +262,8 @@ class PolicyConfig(BaseSchema):
     )
     late_penalty_deduction_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Percentage to deduct for late penalty",
     )
 
@@ -333,8 +333,8 @@ class PolicyUpdate(BaseUpdateSchema):
 
     minimum_attendance_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Updated minimum attendance percentage",
     )
     late_entry_threshold_minutes: Optional[int] = Field(
@@ -366,8 +366,8 @@ class PolicyUpdate(BaseUpdateSchema):
     notify_student_on_low_attendance: Optional[bool] = None
     low_attendance_threshold: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Updated low attendance threshold",
     )
     auto_mark_absent_enabled: Optional[bool] = None
@@ -454,14 +454,14 @@ class PolicyViolation(BaseSchema):
     # Metrics
     current_attendance_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Current attendance percentage",
     )
     required_attendance_percentage: Optional[Decimal] = Field(
         None,
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Required attendance percentage",
     )
     consecutive_absences: Optional[int] = Field(

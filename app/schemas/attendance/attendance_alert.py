@@ -258,8 +258,8 @@ class AlertConfig(BaseSchema):
     )
     low_attendance_threshold: Decimal = Field(
         Decimal("75.00"),
-        ge=0,
-        le=100,
+        ge=Decimal("0"),
+        le=Decimal("100"),
         description="Attendance percentage threshold for alerts",
     )
     low_attendance_check_period: str = Field(
@@ -707,12 +707,12 @@ class AlertSummary(BaseSchema):
     # Performance metrics
     average_resolution_time_hours: Optional[Decimal] = Field(
         None,
-        ge=0,
+        ge=Decimal("0"),
         description="Average time to resolve alerts (hours)",
     )
     average_acknowledgment_time_hours: Optional[Decimal] = Field(
         None,
-        ge=0,
+        ge=Decimal("0"),
         description="Average time to acknowledge alerts (hours)",
     )
 
@@ -739,7 +739,7 @@ class AlertSummary(BaseSchema):
     @classmethod
     def validate_period(cls, v: Date, info) -> Date:
         """Validate period dates."""
-        # In Pydantic v2, we need to access data through info.data
+        # In Pydantic v2, we access data through info.data
         if info.data.get("period_start"):
             if v < info.data["period_start"]:
                 raise ValueError("period_end must be after period_start")

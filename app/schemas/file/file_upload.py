@@ -77,7 +77,6 @@ class FileUploadInitRequest(BaseCreateSchema):
         default=None,
         max_length=50,
         description="File category for organization",
-        examples=["hostel_photo", "document", "avatar", "invoice"],
     )
     tags: List[str] = Field(
         default_factory=list,
@@ -379,12 +378,10 @@ class FileUploadCompleteResponse(BaseSchema):
     processing_status: str = Field(
         default="completed",
         description="Post-upload processing status",
-        examples=["completed", "processing", "scanning", "optimizing"],
     )
     virus_scan_status: str = Field(
         default="pending",
         description="Virus scan status",
-        examples=["pending", "clean", "infected", "error"],
     )
 
     uploaded_at: datetime = Field(..., description="Upload completion timestamp")

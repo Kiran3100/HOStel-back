@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
 from uuid import UUID
@@ -174,14 +174,12 @@ class PreventiveSchedule(BaseResponseSchema):
         None,
         description="Default assignee name",
     )
-    estimated_cost: Optional[Decimal] = Field(
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Estimated cost per execution",
     )
-    estimated_duration_hours: Optional[Decimal] = Field(
+    estimated_duration_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Estimated duration in hours",
     )
     is_active: bool = Field(
@@ -277,17 +275,12 @@ class ScheduleCreate(BaseCreateSchema):
         None,
         description="Default assignee",
     )
-    estimated_cost: Optional[Decimal] = Field(
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Estimated cost per execution",
     )
-    estimated_duration_hours: Optional[Decimal] = Field(
+    estimated_duration_hours: Optional[Annotated[Decimal, Field(ge=0, le=1000, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=1000,
-        decimal_places=2,
         description="Estimated duration in hours",
     )
     checklist: List[ScheduleChecklistItem] = Field(
@@ -586,17 +579,12 @@ class ScheduleExecution(BaseCreateSchema):
         max_length=2000,
         description="Detailed completion notes",
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Actual cost incurred",
     )
-    actual_duration_hours: Optional[Decimal] = Field(
+    actual_duration_hours: Optional[Annotated[Decimal, Field(ge=0, le=1000, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=1000,
-        decimal_places=2,
         description="Actual time taken in hours",
     )
     checklist_results: List[ChecklistResult] = Field(
@@ -737,17 +725,12 @@ class ScheduleUpdate(BaseUpdateSchema):
         None,
         description="Updated default assignee",
     )
-    estimated_cost: Optional[Decimal] = Field(
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Updated estimated cost",
     )
-    estimated_duration_hours: Optional[Decimal] = Field(
+    estimated_duration_hours: Optional[Annotated[Decimal, Field(ge=0, le=1000, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=1000,
-        decimal_places=2,
         description="Updated estimated duration",
     )
     is_active: Optional[bool] = Field(
@@ -847,14 +830,12 @@ class ExecutionHistoryItem(BaseSchema):
         None,
         description="Completion timestamp",
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Actual cost",
     )
-    actual_duration_hours: Optional[Decimal] = Field(
+    actual_duration_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Actual duration",
     )
     completion_notes: Optional[str] = Field(
@@ -953,25 +934,20 @@ class ScheduleHistory(BaseSchema):
         ...,
         description="Chronological execution history",
     )
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Total cost across all executions",
     )
-    average_cost: Decimal = Field(
+    average_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Average cost per execution",
     )
-    average_duration_hours: Optional[Decimal] = Field(
+    average_duration_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average execution duration",
     )
-    average_quality_rating: Optional[Decimal] = Field(
+    average_quality_rating: Optional[Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=5,
         description="Average quality rating",
     )
 

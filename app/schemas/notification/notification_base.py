@@ -37,15 +37,15 @@ class NotificationBase(BaseSchema):
 
     # Recipient information (at least one must be provided)
     recipient_user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Recipient user ID for user-based routing",
     )
     recipient_email: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient email address for email notifications",
     )
     recipient_phone: Optional[str] = Field(
-        None,
+        default=None,
         description="Recipient phone number for SMS notifications",
     )
 
@@ -57,7 +57,7 @@ class NotificationBase(BaseSchema):
 
     # Template support
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=100,
         description="Template code for pre-defined notification templates",
@@ -65,7 +65,7 @@ class NotificationBase(BaseSchema):
 
     # Content
     subject: Optional[str] = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=255,
         description="Notification subject/title (required for email and push)",
@@ -83,7 +83,7 @@ class NotificationBase(BaseSchema):
         description="Notification delivery priority",
     )
     scheduled_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Scheduled delivery time (null for immediate delivery)",
     )
 
@@ -95,7 +95,7 @@ class NotificationBase(BaseSchema):
 
     # Related entity
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Associated hostel ID for hostel-specific notifications",
     )
 
@@ -194,15 +194,15 @@ class NotificationUpdate(BaseUpdateSchema):
     """
 
     scheduled_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Update scheduled delivery time",
     )
     priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Update notification priority",
     )
     status: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(queued|processing|sent|delivered|failed|cancelled)$",
         description="Update notification status",
     )
@@ -287,7 +287,7 @@ class NotificationDelete(BaseCreateSchema):
         description="If True, permanently delete; if False, soft delete",
     )
     deletion_reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Reason for deletion (optional, for audit purposes)",
     )

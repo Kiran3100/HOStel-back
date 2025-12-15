@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, HttpUrl, computed_field
+from pydantic import Field, HttpUrl, computed_field, field_validator
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 
@@ -157,7 +157,6 @@ class FileInfo(BaseResponseSchema):
     virus_scan_status: str = Field(
         default="pending",
         description="Antivirus scan status",
-        examples=["pending", "clean", "infected", "error", "skipped"],
     )
     virus_scan_timestamp: Optional[datetime] = Field(
         default=None,
@@ -210,7 +209,6 @@ class FileURL(BaseSchema):
     url_type: str = Field(
         default="signed",
         description="URL type",
-        examples=["public", "signed", "cdn"],
     )
 
     expires_at: Optional[datetime] = Field(
@@ -308,7 +306,6 @@ class FileStats(BaseSchema):
     entity_type: str = Field(
         default="system",
         description="Entity type",
-        examples=["user", "hostel", "system"],
     )
 
     # Counts
@@ -380,12 +377,10 @@ class FileAccessLog(BaseSchema):
     access_type: str = Field(
         ...,
         description="Type of access",
-        examples=["download", "view", "preview", "api"],
     )
     access_method: str = Field(
         ...,
         description="Access method",
-        examples=["direct_url", "signed_url", "api", "cdn"],
     )
 
     # Request metadata

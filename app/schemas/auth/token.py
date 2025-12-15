@@ -96,7 +96,7 @@ class TokenPayload(BaseSchema):
         description="JWT ID (unique token identifier for revocation)",
     )
 
-    @field_validator("exp", "iat")
+    @field_validator("exp", "iat", mode="after")
     @classmethod
     def validate_timestamp(cls, v: int) -> int:
         """Validate timestamp is reasonable (not negative, not too far in future)."""
@@ -122,7 +122,7 @@ class RefreshTokenRequest(BaseCreateSchema):
         description="Refresh token",
     )
 
-    @field_validator("refresh_token")
+    @field_validator("refresh_token", mode="after")
     @classmethod
     def validate_token_not_empty(cls, v: str) -> str:
         """Ensure refresh token is not empty or whitespace."""
@@ -172,7 +172,7 @@ class TokenValidationRequest(BaseCreateSchema):
         description="Token to validate (access or refresh)",
     )
 
-    @field_validator("token")
+    @field_validator("token", mode="after")
     @classmethod
     def validate_token_not_empty(cls, v: str) -> str:
         """Ensure token is not empty or whitespace."""
@@ -229,7 +229,7 @@ class RevokeTokenRequest(BaseCreateSchema):
         description="Revoke all tokens for this user",
     )
 
-    @field_validator("token")
+    @field_validator("token", mode="after")
     @classmethod
     def validate_token_not_empty(cls, v: str) -> str:
         """Ensure token is not empty or whitespace."""

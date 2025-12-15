@@ -93,19 +93,19 @@ class PaymentSchedule(BaseResponseSchema):
         description="Whether schedule is currently active",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_indefinite(self) -> bool:
         """Check if schedule has no end Date."""
         return self.end_date is None
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def days_until_next_payment(self) -> int:
         """Calculate days until next payment."""
         return (self.next_due_date - Date.today()).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_overdue(self) -> bool:
         """Check if next payment is overdue."""
@@ -189,6 +189,7 @@ class ScheduleCreate(BaseCreateSchema):
         days_ago = (Date.today() - v).days
         if days_ago > 365:
             # Log warning - might be data migration
+            # In production, use proper logging
             pass
         
         return v
@@ -357,13 +358,13 @@ class ScheduledPaymentGenerated(BaseSchema):
         description="When next generation should occur",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_processed(self) -> int:
         """Calculate total payments processed."""
         return self.payments_generated + self.payments_skipped
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def generation_success_rate(self) -> float:
         """Calculate percentage of successful generations."""
@@ -507,7 +508,7 @@ class ScheduleSuspension(BaseCreateSchema):
         
         # Warn if suspension starts in the past
         if self.suspend_from_date < Date.today():
-            # Log warning
+            # Log warning - in production, use proper logging
             pass
         
         return self

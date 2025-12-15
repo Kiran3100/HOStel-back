@@ -58,30 +58,26 @@ class BookingBase(BaseSchema):
         description="Duration of stay in months (1-24)",
     )
 
-    # Pricing Information
+    # Pricing Information - decimal_places removed, precision handled via quantization
     quoted_rent_monthly: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Monthly rent amount quoted at time of booking",
+        description="Monthly rent amount quoted at time of booking (precision: 2 decimal places)",
     )
     total_amount: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Total amount for entire stay (monthly rent × duration)",
+        description="Total amount for entire stay (monthly rent × duration, precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         Decimal("0.00"),
         ge=0,
-        decimal_places=2,
-        description="Refundable security deposit amount",
+        description="Refundable security deposit amount (precision: 2 decimal places)",
     )
     advance_amount: Decimal = Field(
         Decimal("0.00"),
         ge=0,
-        decimal_places=2,
-        description="Advance payment amount required",
+        description="Advance payment amount required (precision: 2 decimal places)",
     )
 
     # Special Requirements
@@ -138,7 +134,10 @@ class BookingBase(BaseSchema):
     @field_validator("quoted_rent_monthly")
     @classmethod
     def validate_rent_amount(cls, v: Decimal) -> Decimal:
-        """Validate rent amount is reasonable."""
+        """Validate rent amount is reasonable and quantize to 2 decimal places."""
+        # Quantize to 2 decimal places
+        v = v.quantize(Decimal("0.01"))
+        
         if v <= 0:
             raise ValueError("Monthly rent must be greater than zero")
         
@@ -156,6 +155,12 @@ class BookingBase(BaseSchema):
             )
         
         return v
+
+    @field_validator("total_amount", "security_deposit", "advance_amount")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @model_validator(mode="after")
     def validate_total_amount(self) -> "BookingBase":

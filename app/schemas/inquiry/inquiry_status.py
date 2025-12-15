@@ -33,8 +33,8 @@ class InquiryStatusUpdate(BaseCreateSchema):
     
     Used to track status changes throughout the inquiry lifecycle.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -54,14 +54,14 @@ class InquiryStatusUpdate(BaseCreateSchema):
         description="New status to set",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Notes about status change",
     )
 
     # Metadata
     updated_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin updating the status",
     )
 
@@ -116,8 +116,8 @@ class InquiryAssignment(BaseCreateSchema):
     Used for distributing inquiries among team members
     for follow-up.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -143,14 +143,14 @@ class InquiryAssignment(BaseCreateSchema):
     )
 
     assignment_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Notes about the assignment",
     )
 
     # Due Date for Follow-up
     follow_up_due: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When follow-up should be completed by",
     )
 
@@ -180,8 +180,8 @@ class InquiryFollowUp(BaseCreateSchema):
     
     Used to track all interactions with the visitor.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -225,7 +225,7 @@ class InquiryFollowUp(BaseCreateSchema):
 
     # Next Steps
     next_follow_up_date: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When next follow-up should occur",
     )
 
@@ -254,8 +254,8 @@ class InquiryTimelineEntry(BaseSchema):
     
     Represents a single event in the inquiry's history.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "event_type": "status_change",
@@ -274,7 +274,7 @@ class InquiryTimelineEntry(BaseSchema):
         description="Type of timeline event",
     )
     status: Optional[InquiryStatus] = Field(
-        None,
+        default=None,
         description="Status at this point (for status_change events)",
     )
     timestamp: datetime = Field(
@@ -282,15 +282,15 @@ class InquiryTimelineEntry(BaseSchema):
         description="When this event occurred",
     )
     changed_by: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Admin who triggered this event",
     )
     changed_by_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Name of admin who triggered event",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Notes about this event",
     )
@@ -308,8 +308,8 @@ class InquiryConversion(BaseCreateSchema):
     
     Links inquiry to the resulting booking.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "inquiry_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -334,7 +334,7 @@ class InquiryConversion(BaseCreateSchema):
     )
 
     conversion_notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Notes about the conversion",
     )
@@ -356,8 +356,8 @@ class BulkInquiryStatusUpdate(BaseCreateSchema):
     
     Used for batch operations on inquiries.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "inquiry_ids": [
@@ -382,7 +382,7 @@ class BulkInquiryStatusUpdate(BaseCreateSchema):
         description="New status for all inquiries",
     )
     notes: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Common notes for all updates",
     )

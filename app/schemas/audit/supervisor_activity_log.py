@@ -8,7 +8,7 @@ performance metrics for accountability and analytics.
 """
 
 from datetime import datetime, date as Date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 from enum import Enum
 
@@ -199,20 +199,18 @@ class SupervisorActivityBase(BaseSchema):
         description="Timestamp when the action was logged"
     )
     
-    # Quality indicators
+    # Quality indicators (Note: Decimal fields with 2 decimal places expected)
     quality_score: Optional[Decimal] = Field(
         default=None,
         ge=0,
         le=5,
-        decimal_places=2,
-        description="Quality score for the action (0-5)"
+        description="Quality score for the action (0-5, 2 decimal places)"
     )
     student_feedback_score: Optional[Decimal] = Field(
         default=None,
         ge=0,
         le=5,
-        decimal_places=2,
-        description="Student feedback score (if applicable)"
+        description="Student feedback score (if applicable, 2 decimal places)"
     )
     
     # Follow-up
@@ -233,11 +231,19 @@ class SupervisorActivityBase(BaseSchema):
             raise ValueError("time_taken_minutes cannot exceed 1440 (24 hours)")
         return v
     
+    @field_validator('quality_score', 'student_feedback_score')
+    @classmethod
+    def validate_score_precision(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure score fields have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
     @computed_field
     @property
     def efficiency_score(self) -> Optional[Decimal]:
         """
-        Calculate efficiency score based on time taken and priority.
+        Calculate efficiency score based on time taken and priority (2 decimal places).
         
         Returns:
             Score from 0-100, or None if insufficient data
@@ -261,8 +267,9 @@ class SupervisorActivityBase(BaseSchema):
             return Decimal("100.00")
         
         efficiency = (expected / self.time_taken_minutes) * 100
-        return round(Decimal(str(min(100, efficiency))), 2)
-
+        result = Decimal(str(min(100, efficiency)))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
 
 class SupervisorActivityCreate(SupervisorActivityBase, BaseCreateSchema):
     """
@@ -378,7 +385,7 @@ class SupervisorActivityLogResponse(BaseResponseSchema):
     status: str
     outcome: Optional[str]
     
-    # Metrics
+    # Metrics (Note: Decimal fields with 2 decimal places expected)
     time_taken_minutes: Optional[int]
     priority_level: Optional[str]
     quality_score: Optional[Decimal]
@@ -389,6 +396,14 @@ class SupervisorActivityLogResponse(BaseResponseSchema):
     # Network
     ip_address: Optional[str]
     device_type: Optional[str]
+    
+    @field_validator('quality_score')
+    @classmethod
+    def validate_quality_score(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure quality_score has max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -472,12 +487,12 @@ class SupervisorActivityDetail(BaseResponseSchema):
     # Metadata
     metadata: Dict[str, Any]
     
-    # Performance
+    # Performance (Note: Decimal fields with 2 decimal places expected)
     time_taken_minutes: Optional[int]
     priority_level: Optional[str]
     efficiency_score: Optional[Decimal]
     
-    # Quality
+    # Quality (Note: Decimal fields with 2 decimal places expected)
     quality_score: Optional[Decimal]
     student_feedback_score: Optional[Decimal]
     
@@ -502,6 +517,14 @@ class SupervisorActivityDetail(BaseResponseSchema):
     # Timestamps
     created_at: datetime
     updated_at: Optional[datetime] = None
+    
+    @field_validator('efficiency_score', 'quality_score', 'student_feedback_score')
+    @classmethod
+    def validate_decimal_fields(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal fields have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -679,7 +702,7 @@ class SupervisorActivityFilter(BaseSchema):
         description="Filter by shift type"
     )
     
-    # Performance filters
+    # Performance filters (Note: Decimal with 2 decimal places expected)
     min_quality_score: Optional[Decimal] = Field(
         default=None,
         ge=0,
@@ -726,6 +749,14 @@ class SupervisorActivityFilter(BaseSchema):
     # Pagination
     page: int = Field(default=1, ge=1, description="Page number")
     page_size: int = Field(default=50, ge=1, le=200, description="Items per page")
+    
+    @field_validator('min_quality_score', 'min_efficiency_score')
+    @classmethod
+    def validate_min_scores(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure score filters have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @model_validator(mode='after')
     def validate_time_filters(self) -> 'SupervisorActivityFilter':
@@ -788,19 +819,17 @@ class SupervisorActivityTimelinePoint(BaseSchema):
         description="Action count by category"
     )
     
-    # Performance metrics
+    # Performance metrics (Note: Decimal fields with 2 decimal places expected)
     avg_time_taken_minutes: Optional[Decimal] = Field(
         default=None,
         ge=0,
-        decimal_places=2,
-        description="Average time taken for actions"
+        description="Average time taken for actions (2 decimal places)"
     )
     avg_quality_score: Optional[Decimal] = Field(
         default=None,
         ge=0,
         le=5,
-        decimal_places=2,
-        description="Average quality score"
+        description="Average quality score (2 decimal places)"
     )
     
     # Top actions
@@ -810,16 +839,22 @@ class SupervisorActivityTimelinePoint(BaseSchema):
         description="Top 5 action types in this bucket"
     )
     
+    @field_validator('avg_time_taken_minutes', 'avg_quality_score')
+    @classmethod
+    def validate_averages(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure average fields have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
     @computed_field
     @property
     def completion_rate(self) -> Decimal:
-        """Calculate completion rate for this bucket."""
+        """Calculate completion rate for this bucket (2 decimal places)."""
         if self.action_count == 0:
             return Decimal("100.00")
-        return round(
-            (Decimal(self.completed_count) / Decimal(self.action_count)) * 100,
-            2
-        )
+        result = (Decimal(self.completed_count) / Decimal(self.action_count)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -853,74 +888,67 @@ class SupervisorPerformanceMetrics(BaseSchema):
     period_start: datetime
     period_end: datetime
     
-    # Volume metrics
+    # Volume metrics (Note: Decimal fields with 2 decimal places expected)
     total_activities: int = Field(..., ge=0)
     total_shifts_worked: int = Field(default=0, ge=0)
     total_hours_worked: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
-        decimal_places=2,
-        description="Total hours worked in period"
+        description="Total hours worked in period (2 decimal places)"
     )
     
     # Activity distribution
     activities_by_category: Dict[str, int] = Field(default_factory=dict)
     activities_by_priority: Dict[str, int] = Field(default_factory=dict)
     
-    # Quality metrics
+    # Quality metrics (Note: Decimal fields with 2 decimal places expected)
     avg_quality_score: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=5,
-        decimal_places=2,
-        description="Average quality score"
+        description="Average quality score (2 decimal places)"
     )
     avg_student_feedback: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=5,
-        decimal_places=2,
-        description="Average student feedback score"
+        description="Average student feedback score (2 decimal places)"
     )
     
-    # Efficiency metrics
+    # Efficiency metrics (Note: Decimal fields with 2 decimal places expected)
     avg_time_per_task_minutes: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
-        decimal_places=2,
-        description="Average time per task"
+        description="Average time per task (2 decimal places)"
     )
     avg_efficiency_score: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Average efficiency score"
+        description="Average efficiency score (2 decimal places)"
     )
     
-    # Completion metrics
+    # Completion metrics (Note: Decimal fields with 2 decimal places expected)
     completion_rate: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Task completion rate"
+        description="Task completion rate (2 decimal places)"
     )
     on_time_completion_rate: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="On-time completion rate"
+        description="On-time completion rate (2 decimal places)"
     )
     
-    # Issue resolution
+    # Issue resolution (Note: Decimal fields with 2 decimal places expected)
     complaints_handled: int = Field(default=0, ge=0)
     complaints_resolved: int = Field(default=0, ge=0)
     avg_complaint_resolution_time_hours: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
-        decimal_places=2
+        description="Average complaint resolution time in hours (2 decimal places)"
     )
     
     # Follow-up tracking
@@ -928,21 +956,29 @@ class SupervisorPerformanceMetrics(BaseSchema):
     follow_ups_completed: int = Field(default=0, ge=0)
     overdue_follow_ups: int = Field(default=0, ge=0)
     
-    # Attendance tracking
+    # Attendance tracking (Note: Decimal fields with 2 decimal places expected)
     attendance_records_marked: int = Field(default=0, ge=0)
     attendance_accuracy_rate: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Attendance marking accuracy"
+        description="Attendance marking accuracy (2 decimal places)"
     )
+    
+    @field_validator('total_hours_worked', 'avg_quality_score', 'avg_student_feedback',
+                     'avg_time_per_task_minutes', 'avg_efficiency_score', 'completion_rate',
+                     'on_time_completion_rate', 'avg_complaint_resolution_time_hours',
+                     'attendance_accuracy_rate')
+    @classmethod
+    def validate_decimal_precision(cls, v: Decimal) -> Decimal:
+        """Ensure decimal fields have max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def overall_performance_score(self) -> Decimal:
         """
-        Calculate overall performance score (0-100).
+        Calculate overall performance score (0-100, 2 decimal places).
         
         Weighted combination of multiple metrics.
         """
@@ -965,7 +1001,8 @@ class SupervisorPerformanceMetrics(BaseSchema):
             feedback_score * weights["feedback"]
         )
         
-        return round(Decimal(str(score)), 2)
+        result = Decimal(str(score))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -987,12 +1024,13 @@ class SupervisorPerformanceMetrics(BaseSchema):
     @computed_field
     @property
     def productivity_rate(self) -> Decimal:
-        """Calculate tasks per hour worked."""
+        """Calculate tasks per hour worked (2 decimal places)."""
         if float(self.total_hours_worked) == 0:
             return Decimal("0.00")
         
         rate = self.total_activities / float(self.total_hours_worked)
-        return round(Decimal(str(rate)), 2)
+        result = Decimal(str(rate))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 class SupervisorActivitySummary(BaseSchema):
@@ -1078,12 +1116,13 @@ class SupervisorActivitySummary(BaseSchema):
     @computed_field
     @property
     def avg_daily_actions(self) -> Decimal:
-        """Calculate average actions per day."""
+        """Calculate average actions per day (2 decimal places)."""
         days = (self.period_end - self.period_start).days + 1
         if days == 0:
             return Decimal("0.00")
         
-        return round(Decimal(self.total_actions) / Decimal(days), 2)
+        result = Decimal(self.total_actions) / Decimal(days)
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -1108,14 +1147,18 @@ class SupervisorShiftReport(BaseSchema):
     hostel_id: UUID
     hostel_name: str
     
-    # Shift details
+    # Shift details (Note: Decimal with 2 decimal places expected)
     shift_type: str = Field(
         ...,
         pattern="^(morning|afternoon|evening|night)$"
     )
     shift_start: datetime
     shift_end: datetime
-    shift_duration_hours: Decimal = Field(..., ge=0, decimal_places=2)
+    shift_duration_hours: Decimal = Field(
+        ...,
+        ge=0,
+        description="Shift duration in hours (2 decimal places)"
+    )
     
     # Activities
     total_activities: int = Field(..., ge=0)
@@ -1146,35 +1189,41 @@ class SupervisorShiftReport(BaseSchema):
         description="Tasks to be completed by next shift"
     )
     
-    # Performance
+    # Performance (Note: Decimal with 2 decimal places expected)
     shift_performance_score: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2
+        description="Shift performance score (2 decimal places)"
     )
     
     # Generated metadata
     generated_at: datetime = Field(default_factory=datetime.utcnow)
     
+    @field_validator('shift_duration_hours', 'shift_performance_score')
+    @classmethod
+    def validate_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Ensure decimal fields have max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
     @computed_field
     @property
     def productivity_rate(self) -> Decimal:
-        """Calculate activities per hour."""
+        """Calculate activities per hour (2 decimal places)."""
         if float(self.shift_duration_hours) == 0:
             return Decimal("0.00")
         
         rate = self.total_activities / float(self.shift_duration_hours)
-        return round(Decimal(str(rate)), 2)
+        result = Decimal(str(rate))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def completion_rate(self) -> Decimal:
-        """Calculate completion rate."""
+        """Calculate completion rate (2 decimal places)."""
         if self.total_activities == 0:
             return Decimal("100.00")
         
-        return round(
-            (Decimal(self.completed_activities) / Decimal(self.total_activities)) * 100,
-            2
-        )
+        result = (Decimal(self.completed_activities) / Decimal(self.total_activities)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+

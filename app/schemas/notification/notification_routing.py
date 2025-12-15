@@ -37,44 +37,44 @@ class RoutingCondition(BaseSchema):
 
     # Event matching
     event_type: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Event type to match (e.g., 'complaint', 'payment')",
     )
     event_category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Event category",
     )
 
     # Priority matching
     priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Priority level to match",
     )
     min_priority: Optional[Priority] = Field(
-        None,
+        default=None,
         description="Minimum priority level",
     )
 
     # Entity matching
     hostel_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Specific hostel ID",
     )
     room_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Specific room ID",
     )
 
     # Time-based
     time_of_day_start: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="Start time for time-based routing (HH:MM)",
     )
     time_of_day_end: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
         description="End time for time-based routing (HH:MM)",
     )
@@ -94,7 +94,7 @@ class RoutingRule(BaseSchema):
     """
 
     rule_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Rule ID (auto-generated if not provided)",
     )
     rule_name: str = Field(
@@ -104,7 +104,7 @@ class RoutingRule(BaseSchema):
         description="Human-readable rule name",
     )
     description: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Rule description",
     )
@@ -146,7 +146,7 @@ class RoutingRule(BaseSchema):
 
     # Template
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template to use for this rule",
     )
 
@@ -284,7 +284,7 @@ class EscalationLevel(BaseSchema):
 
     # Template
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template for escalation notification",
     )
 
@@ -392,7 +392,7 @@ class EscalationRouting(BaseCreateSchema):
         description="Current escalation level (0 = not escalated)",
     )
     last_escalated_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When last escalation occurred",
     )
 
@@ -453,11 +453,11 @@ class NotificationRoute(BaseSchema):
 
     # Matched rule
     matched_rule_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="ID of routing rule that matched",
     )
     matched_rule_name: Optional[str] = Field(
-        None,
+        default=None,
         description="Name of matched routing rule",
     )
 
@@ -480,7 +480,7 @@ class NotificationRoute(BaseSchema):
 
     # Template
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template to use",
     )
 
@@ -490,7 +490,7 @@ class NotificationRoute(BaseSchema):
         description="Whether escalation is enabled",
     )
     escalation_path: Optional[List[EscalationLevel]] = Field(
-        None,
+        default=None,
         description="Escalation levels if enabled",
     )
 

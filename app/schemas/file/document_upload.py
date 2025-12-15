@@ -240,7 +240,6 @@ class DocumentValidationResult(BaseSchema):
     confidence_level: Optional[str] = Field(
         default=None,
         description="Detection confidence",
-        examples=["high", "medium", "low"],
     )
 
     validated_at: datetime = Field(
@@ -314,7 +313,6 @@ class DocumentInfo(BaseResponseSchema):
     status: str = Field(
         default="pending",
         description="Document status",
-        examples=["pending", "verified", "rejected", "expired"],
     )
     rejection_reason: Optional[str] = Field(
         default=None,
@@ -481,7 +479,6 @@ class DocumentVerificationResponse(BaseSchema):
     message: str = Field(
         ...,
         description="Confirmation message",
-        examples=["Document verified successfully", "Document rejected"],
     )
 
 
@@ -499,7 +496,6 @@ class DocumentOCRResult(BaseSchema):
     ocr_status: str = Field(
         ...,
         description="OCR processing status",
-        examples=["completed", "failed", "partial"],
     )
     confidence_score: Optional[float] = Field(
         default=None,
@@ -535,7 +531,6 @@ class DocumentOCRResult(BaseSchema):
     ocr_engine: str = Field(
         default="tesseract",
         description="OCR engine used",
-        examples=["tesseract", "google_vision", "aws_textract"],
     )
     processing_time_seconds: Optional[float] = Field(
         default=None,
@@ -577,12 +572,10 @@ class DocumentExpiryAlert(BaseSchema):
     alert_type: str = Field(
         ...,
         description="Alert type",
-        examples=["expiring_soon", "expired", "renewal_required"],
     )
     severity: str = Field(
         ...,
         description="Alert severity",
-        examples=["info", "warning", "critical"],
     )
 
     # Notification

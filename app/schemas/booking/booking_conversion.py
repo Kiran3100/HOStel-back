@@ -164,18 +164,16 @@ class ConversionResponse(BaseSchema):
         description="Assigned bed number",
     )
 
-    # Financial Setup
+    # Financial Setup - decimal_places removed
     monthly_rent: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Monthly rent amount",
+        description="Monthly rent amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Security deposit amount",
+        description="Security deposit amount (precision: 2 decimal places)",
     )
     next_payment_due_date: Date = Field(
         ...,
@@ -190,6 +188,12 @@ class ConversionResponse(BaseSchema):
         ...,
         description="List of next steps for student/admin",
     )
+
+    @field_validator("monthly_rent", "security_deposit")
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
 
 class ChecklistItem(BaseSchema):

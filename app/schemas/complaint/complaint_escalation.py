@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 
@@ -30,6 +30,7 @@ class EscalationRequest(BaseCreateSchema):
     Requires detailed reason and supports priority increase
     and urgency flags.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -81,6 +82,7 @@ class EscalationResponse(BaseSchema):
     
     Provides confirmation and updated complaint details.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Escalated complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -110,6 +112,7 @@ class EscalationEntry(BaseResponseSchema):
     
     Tracks single escalation event with complete metadata.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     escalated_to: str = Field(..., description="Escalated to user ID")
     escalated_to_name: str = Field(..., description="Escalated to name")
@@ -142,6 +145,7 @@ class EscalationHistory(BaseSchema):
     
     Provides audit trail of all escalations.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -164,6 +168,7 @@ class AutoEscalationRule(BaseSchema):
     Defines automatic escalation triggers based on time
     and SLA conditions.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: str = Field(
         ...,

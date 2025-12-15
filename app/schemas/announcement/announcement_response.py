@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field, ConfigDict
@@ -39,6 +39,8 @@ class AnnouncementResponse(BaseResponseSchema):
     Used for basic announcement information after creation
     or simple fetch operations.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     # Hostel reference
     hostel_id: UUID = Field(
@@ -137,6 +139,8 @@ class AnnouncementDetail(BaseResponseSchema):
     Used for individual announcement detail pages with full
     metadata, delivery, and engagement information.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     # Hostel reference
     hostel_id: UUID = Field(
@@ -305,11 +309,9 @@ class AnnouncementDetail(BaseResponseSchema):
         description="Acknowledgment count",
     )
     
-    # Engagement rate
-    engagement_rate: Decimal = Field(
+    # Engagement rate - Using Annotated for Decimal constraints
+    engagement_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Engagement rate percentage",
     )
     
@@ -362,6 +364,8 @@ class AnnouncementListItem(BaseSchema):
     Optimized for displaying announcements in tables and
     lists with minimal data transfer.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID = Field(
         ...,
@@ -505,6 +509,8 @@ class AnnouncementList(BaseSchema):
     metadata for the current filter context.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     hostel_id: Optional[UUID] = Field(
         None,
         description="Hostel UUID if filtered by hostel",
@@ -568,6 +574,8 @@ class StudentAnnouncementView(BaseSchema):
     Simplified view for student-facing interfaces with
     read status and acknowledgment information.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID = Field(
         ...,
@@ -677,6 +685,8 @@ class AnnouncementSummary(BaseSchema):
     
     Contains just enough information for notification display.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID = Field(
         ...,

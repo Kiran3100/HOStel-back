@@ -7,7 +7,7 @@ for accountability, performance review, and governance.
 """
 
 from datetime import datetime, date 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 
 from pydantic import Field, field_validator, computed_field, model_validator
@@ -192,6 +192,7 @@ class AdminOverrideBase(BaseSchema):
         Calculate impact score (0-100) based on severity and urgency.
         
         Higher score indicates greater impact.
+        Note: Returns Decimal rounded to 2 decimal places.
         """
         severity_scores = {
             "low": 25,
@@ -211,7 +212,8 @@ class AdminOverrideBase(BaseSchema):
         multiplier = urgency_multipliers.get(self.urgency, 1.0)
         
         score = min(100, base_score * multiplier)
-        return round(Decimal(str(score)), 2)
+        result = Decimal(str(score)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return result
 
 
 class AdminOverrideCreate(AdminOverrideBase, BaseCreateSchema):
@@ -298,7 +300,7 @@ class AdminOverrideLogResponse(BaseResponseSchema):
     reason: str
     justification_category: Optional[str]
     
-    # Impact
+    # Impact (Note: Decimal with 2 decimal places expected)
     severity: str
     urgency: str
     impact_score: Decimal
@@ -308,6 +310,14 @@ class AdminOverrideLogResponse(BaseResponseSchema):
     
     # Timestamp
     created_at: datetime
+    
+    @field_validator('impact_score')
+    @classmethod
+    def validate_impact_score(cls, v: Decimal) -> Decimal:
+        """Ensure impact_score has max 2 decimal places and is in range."""
+        if v < 0 or v > 100:
+            raise ValueError("impact_score must be between 0 and 100")
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -382,7 +392,7 @@ class AdminOverrideDetail(BaseResponseSchema):
     original_action: Optional[Dict[str, Any]]
     override_action: Dict[str, Any]
     
-    # Impact
+    # Impact (Note: Decimal with 2 decimal places expected)
     severity: str
     urgency: str
     impact_score: Decimal
@@ -408,6 +418,12 @@ class AdminOverrideDetail(BaseResponseSchema):
     # Timestamps
     created_at: datetime
     updated_at: Optional[datetime] = None
+    
+    @field_validator('impact_score')
+    @classmethod
+    def validate_impact_score(cls, v: Decimal) -> Decimal:
+        """Ensure impact_score has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -468,14 +484,19 @@ class AdminOverrideTimelinePoint(BaseSchema):
         description="Top 5 supervisors with overrides"
     )
     
-    # Average impact
+    # Average impact (Note: Decimal with 2 decimal places expected)
     avg_impact_score: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Average impact score"
+        description="Average impact score (2 decimal places)"
     )
+    
+    @field_validator('avg_impact_score')
+    @classmethod
+    def validate_avg_impact(cls, v: Decimal) -> Decimal:
+        """Ensure avg_impact_score has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -524,8 +545,7 @@ class SupervisorImpactAnalysis(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Percentage of decisions overridden"
+        description="Percentage of decisions overridden (2 decimal places)"
     )
     
     # Reasons for overrides
@@ -542,12 +562,17 @@ class SupervisorImpactAnalysis(BaseSchema):
         description="Trend in override frequency"
     )
     
-    # Impact on performance score
+    # Impact on performance score (Note: Decimal with 2 decimal places)
     performance_impact_score: Decimal = Field(
         ...,
-        decimal_places=2,
-        description="Negative impact on performance (-100 to 0)"
+        description="Negative impact on performance (-100 to 0, 2 decimal places)"
     )
+    
+    @field_validator('override_rate', 'performance_impact_score')
+    @classmethod
+    def validate_decimal_precision(cls, v: Decimal) -> Decimal:
+        """Ensure decimal fields have max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -619,13 +644,12 @@ class AdminOverrideSummary(BaseSchema):
         description="severity -> count"
     )
     
-    # Performance impact
+    # Performance impact (Note: Decimal with 2 decimal places)
     override_rate_for_supervisor: Optional[Decimal] = Field(
         default=None,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="For a given supervisor: overridden_actions / total_actions"
+        description="For a given supervisor: overridden_actions / total_actions (2 decimal places)"
     )
     
     # Impact analysis
@@ -634,7 +658,7 @@ class AdminOverrideSummary(BaseSchema):
         description="Impact analysis per supervisor"
     )
     
-    # Trends
+    # Trends (Note: Decimal with 2 decimal places)
     trend_direction: str = Field(
         ...,
         pattern="^(increasing|decreasing|stable)$",
@@ -642,8 +666,7 @@ class AdminOverrideSummary(BaseSchema):
     )
     percentage_change: Decimal = Field(
         ...,
-        decimal_places=2,
-        description="Percentage change vs previous period"
+        description="Percentage change vs previous period (2 decimal places)"
     )
     
     # Timeline
@@ -651,6 +674,14 @@ class AdminOverrideSummary(BaseSchema):
         default_factory=list,
         description="Override activity over time"
     )
+    
+    @field_validator('override_rate_for_supervisor', 'percentage_change')
+    @classmethod
+    def validate_decimal_precision(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal fields have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -718,6 +749,7 @@ class AdminOverrideAnalytics(BaseSchema):
         Calculate overall health score (0-100).
         
         Lower override rates and severity indicate better health.
+        Note: Returns Decimal with 2 decimal places.
         """
         if self.summary.total_overrides == 0:
             return Decimal("100.00")
@@ -732,4 +764,5 @@ class AdminOverrideAnalytics(BaseSchema):
         total_penalty = min(100, volume_penalty + severity_penalty)
         score = 100 - total_penalty
         
-        return round(Decimal(str(max(0, score))), 2)
+        result = Decimal(str(max(0, score))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return result

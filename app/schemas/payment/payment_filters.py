@@ -3,19 +3,20 @@
 Payment filter and search schemas.
 
 This module defines schemas for filtering, searching, sorting,
-and exporting payment data with comprehensive analytics support.
+and exporting payment data.
 """
 
 from __future__ import annotations
 
-from datetime import date as Date
+from datetime import date as Date, datetime
 from decimal import Decimal
+from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
-from app.schemas.common.base import BaseFilterSchema
+from app.schemas.common.base import BaseSchema
 from app.schemas.common.enums import PaymentMethod, PaymentStatus, PaymentType
 
 __all__ = [
@@ -28,474 +29,500 @@ __all__ = [
 ]
 
 
-class PaymentFilterParams(BaseFilterSchema):
-    """
-    Comprehensive payment filter parameters.
+class PaymentSortField(str, Enum):
+    """Payment sort field options."""
     
-    Supports filtering by various criteria including status, dates,
-    amounts, payment methods, and entity relationships.
-    """
+    CREATED_AT = "created_at"
+    PAID_AT = "paid_at"
+    AMOUNT = "amount"
+    DUE_DATE = "due_date"
+    PAYMENT_REFERENCE = "payment_reference"
+    PAYER_NAME = "payer_name"
+    HOSTEL_NAME = "hostel_name"
 
-    # Text Search
-    search: Optional[str] = Field(
-        None,
-        max_length=255,
-        description="Search in reference, payer name, transaction ID",
-    )
+
+class SortOrder(str, Enum):
+    """Sort order options."""
+    
+    ASC = "asc"
+    DESC = "desc"
+
+
+class ExportFormat(str, Enum):
+    """Export format options."""
+    
+    CSV = "csv"
+    EXCEL = "excel"
+    PDF = "pdf"
+    JSON = "json"
+
+
+class PaymentFilterParams(BaseSchema):
+    """
+    Payment filter parameters.
+    
+    Used to filter payment lists based on various criteria.
+    """
 
     # Entity Filters
     hostel_id: Optional[UUID] = Field(
         None,
-        description="Filter by specific hostel",
-    )
-    hostel_ids: Optional[List[UUID]] = Field(
-        None,
-        max_length=20,
-        description="Filter by multiple hostels (max 20)",
+        description="Filter by hostel",
     )
     student_id: Optional[UUID] = Field(
         None,
-        description="Filter by specific student",
+        description="Filter by student",
     )
     payer_id: Optional[UUID] = Field(
         None,
-        description="Filter by specific payer",
+        description="Filter by payer",
+    )
+    booking_id: Optional[UUID] = Field(
+        None,
+        description="Filter by booking",
     )
 
-    # Payment Type Filters
+    # Payment Attributes
     payment_type: Optional[PaymentType] = Field(
         None,
-        description="Filter by specific payment type",
+        description="Filter by payment type",
     )
-    payment_types: Optional[List[PaymentType]] = Field(
+    payment_status: Optional[List[PaymentStatus]] = Field(
         None,
-        max_length=10,
-        description="Filter by multiple payment types",
+        description="Filter by payment status (multiple allowed)",
     )
-
-    # Payment Method Filters
     payment_method: Optional[PaymentMethod] = Field(
         None,
-        description="Filter by specific payment method",
-    )
-    payment_methods: Optional[List[PaymentMethod]] = Field(
-        None,
-        max_length=10,
-        description="Filter by multiple payment methods",
+        description="Filter by payment method",
     )
 
-    # Status Filters
-    payment_status: Optional[PaymentStatus] = Field(
-        None,
-        description="Filter by specific status",
-    )
-    payment_statuses: Optional[List[PaymentStatus]] = Field(
-        None,
-        max_length=10,
-        description="Filter by multiple statuses",
-    )
-
-    # Amount Range Filters
-    amount_min: Optional[Decimal] = Field(
+    # Amount Range
+    min_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        description="Minimum payment amount",
+        description="Minimum amount",
     )
-    amount_max: Optional[Decimal] = Field(
+    max_amount: Optional[Decimal] = Field(
         None,
         ge=0,
-        description="Maximum payment amount",
+        description="Maximum amount",
     )
 
-    # Date Filters
-    paid_date_from: Optional[Date] = Field(
+    # Date Ranges
+    created_after: Optional[datetime] = Field(
         None,
-        description="Filter payments paid from this Date",
+        description="Created after this timestamp",
     )
-    paid_date_to: Optional[Date] = Field(
+    created_before: Optional[datetime] = Field(
         None,
-        description="Filter payments paid until this Date",
+        description="Created before this timestamp",
+    )
+    paid_after: Optional[datetime] = Field(
+        None,
+        description="Paid after this timestamp",
+    )
+    paid_before: Optional[datetime] = Field(
+        None,
+        description="Paid before this timestamp",
     )
     due_date_from: Optional[Date] = Field(
         None,
-        description="Filter by due Date from",
+        description="Due date from",
     )
     due_date_to: Optional[Date] = Field(
         None,
-        description="Filter by due Date to",
+        description="Due date to",
     )
-    created_date_from: Optional[Date] = Field(
+
+    # Boolean Filters
+    is_overdue: Optional[bool] = Field(
         None,
-        description="Filter by creation Date from",
+        description="Filter overdue payments",
     )
-    created_date_to: Optional[Date] = Field(
+    has_receipt: Optional[bool] = Field(
         None,
-        description="Filter by creation Date to",
+        description="Filter payments with receipts",
     )
-
-    # Special Filters
-    overdue_only: Optional[bool] = Field(
+    is_refunded: Optional[bool] = Field(
         None,
-        description="Show only overdue payments",
-    )
-    pending_only: Optional[bool] = Field(
-        None,
-        description="Show only pending payments",
-    )
-    refunded_only: Optional[bool] = Field(
-        None,
-        description="Show only refunded payments",
-    )
-
-    # Gateway Filter
-    payment_gateway: Optional[str] = Field(
-        None,
-        max_length=50,
-        description="Filter by payment gateway",
-    )
-
-    @model_validator(mode="after")
-    def validate_amount_range(self) -> "PaymentFilterParams":
-        """Validate amount range."""
-        if self.amount_min is not None and self.amount_max is not None:
-            if self.amount_max < self.amount_min:
-                raise ValueError(
-                    f"Maximum amount (₹{self.amount_max}) must be greater than "
-                    f"or equal to minimum amount (₹{self.amount_min})"
-                )
-        return self
-
-    @model_validator(mode="after")
-    def validate_paid_date_range(self) -> "PaymentFilterParams":
-        """Validate paid Date range."""
-        if self.paid_date_from is not None and self.paid_date_to is not None:
-            if self.paid_date_to < self.paid_date_from:
-                raise ValueError(
-                    "paid_date_to must be after or equal to paid_date_from"
-                )
-        return self
-
-    @model_validator(mode="after")
-    def validate_due_date_range(self) -> "PaymentFilterParams":
-        """Validate due Date range."""
-        if self.due_date_from is not None and self.due_date_to is not None:
-            if self.due_date_to < self.due_date_from:
-                raise ValueError(
-                    "due_date_to must be after or equal to due_date_from"
-                )
-        return self
-
-    @model_validator(mode="after")
-    def validate_created_date_range(self) -> "PaymentFilterParams":
-        """Validate created Date range."""
-        if self.created_date_from is not None and self.created_date_to is not None:
-            if self.created_date_to < self.created_date_from:
-                raise ValueError(
-                    "created_date_to must be after or equal to created_date_from"
-                )
-        return self
-
-
-class PaymentSearchRequest(BaseFilterSchema):
-    """
-    Payment search request with pagination.
-    
-    Supports full-text search across payment fields.
-    """
-
-    query: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Search query string",
-    )
-    hostel_id: Optional[UUID] = Field(
-        None,
-        description="Limit search to specific hostel",
-    )
-
-    # Search Fields
-    search_in_reference: bool = Field(
-        True,
-        description="Search in payment reference",
-    )
-    search_in_payer_name: bool = Field(
-        True,
-        description="Search in payer name",
-    )
-    search_in_transaction_id: bool = Field(
-        True,
-        description="Search in transaction ID",
-    )
-
-    # Status Filter
-    payment_status: Optional[PaymentStatus] = Field(
-        None,
-        description="Limit search to specific status",
+        description="Filter refunded payments",
     )
 
     # Pagination
     page: int = Field(
         1,
         ge=1,
-        description="Page number (1-indexed)",
+        description="Page number",
     )
     page_size: int = Field(
         20,
         ge=1,
         le=100,
-        description="Items per page (max 100)",
+        description="Items per page",
+    )
+
+    @model_validator(mode="after")
+    def validate_amount_range(self) -> "PaymentFilterParams":
+        """Validate amount range."""
+        if self.min_amount is not None and self.max_amount is not None:
+            if self.min_amount > self.max_amount:
+                raise ValueError(
+                    f"min_amount ({self.min_amount}) cannot be greater than "
+                    f"max_amount ({self.max_amount})"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_date_ranges(self) -> "PaymentFilterParams":
+        """Validate date ranges."""
+        # Created date range
+        if self.created_after and self.created_before:
+            if self.created_after > self.created_before:
+                raise ValueError("created_after cannot be after created_before")
+        
+        # Paid date range
+        if self.paid_after and self.paid_before:
+            if self.paid_after > self.paid_before:
+                raise ValueError("paid_after cannot be after paid_before")
+        
+        # Due date range
+        if self.due_date_from and self.due_date_to:
+            if self.due_date_from > self.due_date_to:
+                raise ValueError("due_date_from cannot be after due_date_to")
+        
+        return self
+
+
+class PaymentSearchRequest(BaseSchema):
+    """
+    Payment search request.
+    
+    Used for text-based search across payment records.
+    """
+
+    query: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Search query",
+    )
+    search_fields: List[str] = Field(
+        default_factory=lambda: [
+            "payment_reference",
+            "transaction_id",
+            "payer_name",
+            "student_name",
+            "notes",
+        ],
+        description="Fields to search in",
+    )
+    filters: Optional[PaymentFilterParams] = Field(
+        None,
+        description="Additional filters to apply",
     )
 
     @field_validator("query")
     @classmethod
     def validate_query(cls, v: str) -> str:
-        """Validate and clean search query."""
+        """Validate search query."""
         v = v.strip()
-        if len(v) == 0:
-            raise ValueError("Search query cannot be empty")
+        if len(v) < 2:
+            raise ValueError("Search query must be at least 2 characters")
+        return v
+
+    @field_validator("search_fields")
+    @classmethod
+    def validate_search_fields(cls, v: List[str]) -> List[str]:
+        """Validate search fields."""
+        if not v:
+            raise ValueError("At least one search field is required")
+        
+        allowed_fields = {
+            "payment_reference",
+            "transaction_id",
+            "payer_name",
+            "student_name",
+            "hostel_name",
+            "notes",
+            "receipt_number",
+        }
+        
+        invalid_fields = set(v) - allowed_fields
+        if invalid_fields:
+            raise ValueError(
+                f"Invalid search fields: {', '.join(invalid_fields)}. "
+                f"Allowed: {', '.join(allowed_fields)}"
+            )
+        
         return v
 
 
-class PaymentSortOptions(BaseFilterSchema):
+class PaymentSortOptions(BaseSchema):
     """
     Payment sorting options.
     
     Defines how to sort payment results.
     """
 
-    sort_by: str = Field(
-        "created_at",
-        pattern=r"^(created_at|paid_at|due_date|amount|payment_reference|payer_name|status)$",
+    sort_by: PaymentSortField = Field(
+        PaymentSortField.CREATED_AT,
         description="Field to sort by",
     )
-    sort_order: str = Field(
-        "desc",
-        pattern=r"^(asc|desc)$",
-        description="Sort order: ascending or descending",
+    sort_order: SortOrder = Field(
+        SortOrder.DESC,
+        description="Sort order (ascending or descending)",
     )
 
-    @field_validator("sort_by", "sort_order")
-    @classmethod
-    def normalize_sort_fields(cls, v: str) -> str:
-        """Normalize sort field values."""
-        return v.lower()
+    # Secondary sort (optional)
+    secondary_sort_by: Optional[PaymentSortField] = Field(
+        None,
+        description="Secondary sort field",
+    )
+    secondary_sort_order: Optional[SortOrder] = Field(
+        None,
+        description="Secondary sort order",
+    )
+
+    @model_validator(mode="after")
+    def validate_secondary_sort(self) -> "PaymentSortOptions":
+        """Validate secondary sort configuration."""
+        # If secondary_sort_by is provided, secondary_sort_order must also be provided
+        if self.secondary_sort_by and not self.secondary_sort_order:
+            self.secondary_sort_order = self.sort_order
+        
+        # Prevent sorting by same field twice
+        if self.secondary_sort_by and self.secondary_sort_by == self.sort_by:
+            raise ValueError(
+                "Secondary sort field must be different from primary sort field"
+            )
+        
+        return self
 
 
-class PaymentReportRequest(BaseFilterSchema):
+class PaymentReportRequest(BaseSchema):
     """
     Payment report generation request.
     
-    Generates comprehensive payment reports with analytics.
+    Used to generate payment reports for specific periods or criteria.
     """
 
-    hostel_id: Optional[UUID] = Field(
-        None,
-        description="Generate report for specific hostel (or all)",
-    )
-
-    # Date Range (Required)
-    date_from: Date = Field(
+    # Report Period
+    period_start: Date = Field(
         ...,
-        description="Report start Date",
+        description="Report period start date",
     )
-    date_to: Date = Field(
+    period_end: Date = Field(
         ...,
-        description="Report end Date",
+        description="Report period end date",
     )
 
     # Filters
-    payment_types: Optional[List[PaymentType]] = Field(
+    hostel_id: Optional[UUID] = Field(
         None,
-        max_length=10,
-        description="Include specific payment types",
+        description="Generate report for specific hostel",
     )
-    payment_methods: Optional[List[PaymentMethod]] = Field(
+    payment_type: Optional[PaymentType] = Field(
         None,
-        max_length=10,
-        description="Include specific payment methods",
+        description="Filter by payment type",
+    )
+    payment_status: Optional[List[PaymentStatus]] = Field(
+        None,
+        description="Filter by payment status",
     )
 
-    # Grouping
-    group_by: str = Field(
-        "day",
-        pattern=r"^(day|week|month|payment_type|payment_method)$",
-        description="How to group report data",
-    )
-
-    # Format
-    format: str = Field(
-        "pdf",
-        pattern=r"^(pdf|excel|csv)$",
-        description="Report format",
-    )
-
-    # Include Details
-    include_transaction_details: bool = Field(
+    # Report Options
+    include_summary: bool = Field(
         True,
-        description="Include detailed transaction list",
+        description="Include summary statistics",
     )
-    include_student_details: bool = Field(
+    include_analytics: bool = Field(
         True,
-        description="Include student information",
+        description="Include analytics and insights",
     )
     include_charts: bool = Field(
-        True,
-        description="Include charts and visualizations",
+        False,
+        description="Include chart data",
+    )
+    group_by: Optional[str] = Field(
+        None,
+        pattern=r"^(day|week|month|payment_type|payment_method|hostel)$",
+        description="Group results by this field",
     )
 
-    @field_validator("date_to")
-    @classmethod
-    def validate_date_range(cls, v: Date, info) -> Date:
-        """Validate Date range."""
-        # In Pydantic v2, info.data contains the other validated fields
-        date_from = info.data.get("date_from")
-        if date_from is not None:
-            if v < date_from:
-                raise ValueError("date_to must be after or equal to date_from")
-            
-            # Limit report period to reasonable range
-            days_diff = (v - date_from).days
-            if days_diff > 365:
-                raise ValueError(
-                    f"Report period cannot exceed 365 days (got {days_diff} days)"
-                )
+    @model_validator(mode="after")
+    def validate_period(self) -> "PaymentReportRequest":
+        """Validate report period."""
+        if self.period_end < self.period_start:
+            raise ValueError(
+                f"period_end ({self.period_end}) must be after "
+                f"period_start ({self.period_start})"
+            )
         
-        return v
+        # Limit report period to prevent performance issues
+        days_diff = (self.period_end - self.period_start).days
+        if days_diff > 365:
+            raise ValueError(
+                f"Report period cannot exceed 365 days (got {days_diff} days)"
+            )
+        
+        return self
 
-    @field_validator("format", "group_by")
-    @classmethod
-    def normalize_enum_fields(cls, v: str) -> str:
-        """Normalize enum fields."""
-        return v.lower()
 
-
-class PaymentExportRequest(BaseFilterSchema):
+class PaymentExportRequest(BaseSchema):
     """
-    Export payments data request.
+    Payment export request.
     
-    Supports multiple export formats with customizable fields.
+    Used to export payment data in various formats.
     """
 
-    filters: PaymentFilterParams = Field(
-        ...,
-        description="Filter criteria for export",
-    )
-
-    # Format
-    format: str = Field(
-        "csv",
-        pattern=r"^(csv|excel|pdf)$",
+    # Export Format
+    format: ExportFormat = Field(
+        ExportFormat.CSV,
         description="Export format",
     )
 
-    # Fields to Include
-    include_payer_details: bool = Field(
-        True,
-        description="Include payer personal details",
+    # Filters
+    filters: PaymentFilterParams = Field(
+        default_factory=PaymentFilterParams,
+        description="Filters to apply before export",
     )
-    include_gateway_details: bool = Field(
-        False,
-        description="Include payment gateway response data",
-    )
-    include_refund_details: bool = Field(
-        True,
-        description="Include refund information",
-    )
-    include_receipt_urls: bool = Field(
-        True,
-        description="Include receipt download URLs",
+
+    # Sorting
+    sort_options: Optional[PaymentSortOptions] = Field(
+        None,
+        description="Sorting options",
     )
 
     # Export Options
-    split_by_status: bool = Field(
-        False,
-        description="Create separate sheets/files for each status",
-    )
-    include_summary_sheet: bool = Field(
+    include_headers: bool = Field(
         True,
-        description="Include summary/analytics sheet (for Excel)",
+        description="Include column headers (CSV/Excel)",
+    )
+    include_summary: bool = Field(
+        False,
+        description="Include summary sheet (Excel) or section (PDF)",
+    )
+    fields: Optional[List[str]] = Field(
+        None,
+        description="Specific fields to include (null = all fields)",
     )
 
-    @field_validator("format")
+    # Limit
+    max_records: int = Field(
+        10000,
+        ge=1,
+        le=50000,
+        description="Maximum records to export",
+    )
+
+    @field_validator("fields")
     @classmethod
-    def normalize_format(cls, v: str) -> str:
-        """Normalize format."""
-        return v.lower()
+    def validate_fields(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate export fields."""
+        if v is None:
+            return v
+        
+        if not v:
+            raise ValueError("If fields are specified, at least one is required")
+        
+        # Define allowed fields
+        allowed_fields = {
+            "payment_reference",
+            "transaction_id",
+            "payer_name",
+            "student_name",
+            "hostel_name",
+            "payment_type",
+            "amount",
+            "currency",
+            "payment_method",
+            "payment_status",
+            "paid_at",
+            "due_date",
+            "created_at",
+            "receipt_number",
+            "notes",
+        }
+        
+        invalid_fields = set(v) - allowed_fields
+        if invalid_fields:
+            raise ValueError(
+                f"Invalid export fields: {', '.join(invalid_fields)}"
+            )
+        
+        return v
 
 
-class PaymentAnalyticsRequest(BaseFilterSchema):
+class PaymentAnalyticsRequest(BaseSchema):
     """
     Payment analytics request.
     
-    Generates analytics and insights for payments within
-    a specified Date range.
+    Used to request detailed analytics and insights on payment data.
     """
 
+    # Analysis Period
+    period_start: Date = Field(
+        ...,
+        description="Analysis period start",
+    )
+    period_end: Date = Field(
+        ...,
+        description="Analysis period end",
+    )
+
+    # Filters
     hostel_id: Optional[UUID] = Field(
         None,
-        description="Generate analytics for specific hostel (or all)",
+        description="Analyze specific hostel",
+    )
+    payment_types: Optional[List[PaymentType]] = Field(
+        None,
+        description="Filter by payment types",
     )
 
-    # Date Range (Required)
-    date_from: Date = Field(
-        ...,
-        description="Analytics start Date",
-    )
-    date_to: Date = Field(
-        ...,
-        description="Analytics end Date",
-    )
-
-    # Grouping/Aggregation
-    group_by: str = Field(
-        "day",
-        pattern=r"^(day|week|month)$",
-        description="Aggregate analytics by: day, week, or month",
-    )
-
-    # Metrics to Include
-    include_revenue_metrics: bool = Field(
-        True,
-        description="Include revenue and collection metrics",
-    )
-    include_method_breakdown: bool = Field(
-        True,
-        description="Breakdown by payment method",
-    )
-    include_type_breakdown: bool = Field(
-        True,
-        description="Breakdown by payment type",
-    )
+    # Analytics Options
     include_trends: bool = Field(
         True,
         description="Include trend analysis",
     )
     include_comparisons: bool = Field(
+        True,
+        description="Include period-over-period comparisons",
+    )
+    include_forecasts: bool = Field(
         False,
-        description="Compare with previous period",
+        description="Include forecast projections",
+    )
+    include_breakdowns: bool = Field(
+        True,
+        description="Include detailed breakdowns by method/type",
     )
 
-    @field_validator("date_to")
-    @classmethod
-    def validate_date_range(cls, v: Date, info) -> Date:
-        """Validate analytics Date range."""
-        date_from = info.data.get("date_from")
-        if date_from is not None:
-            if v < date_from:
-                raise ValueError("date_to must be after or equal to date_from")
-            
-            # Limit to reasonable range (e.g., max 2 years)
-            days_diff = (v - date_from).days
-            if days_diff > 730:
-                raise ValueError(
-                    f"Analytics period cannot exceed 730 days (got {days_diff} days)"
-                )
-        
-        return v
+    # Grouping
+    granularity: str = Field(
+        "day",
+        pattern=r"^(day|week|month)$",
+        description="Time granularity for trends",
+    )
 
-    @field_validator("group_by")
-    @classmethod
-    def normalize_group_by(cls, v: str) -> str:
-        """Normalize group_by value."""
-        return v.lower()
+    @model_validator(mode="after")
+    def validate_period(self) -> "PaymentAnalyticsRequest":
+        """Validate analysis period."""
+        if self.period_end < self.period_start:
+            raise ValueError(
+                f"period_end ({self.period_end}) must be after "
+                f"period_start ({self.period_start})"
+            )
+        
+        # Analytics work best with reasonable time periods
+        days_diff = (self.period_end - self.period_start).days
+        
+        if days_diff > 730:  # 2 years
+            raise ValueError(
+                f"Analysis period cannot exceed 730 days (got {days_diff} days)"
+            )
+        
+        if days_diff < 1:
+            raise ValueError("Analysis period must be at least 1 day")
+        
+        return self

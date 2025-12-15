@@ -1,9 +1,9 @@
 # --- File: app/schemas/payment/payment_ledger.py ---
 """
-Payment ledger and account statement schemas.
+Payment ledger schemas.
 
-This module defines schemas for financial ledger management including
-ledger entries, summaries, statements, and adjustments.
+This module defines schemas for payment ledger entries, account statements,
+transaction history, and balance adjustments.
 """
 
 from __future__ import annotations
@@ -13,9 +13,10 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, computed_field
+from pydantic import Field, field_validator, model_validator, computed_field
 
-from app.schemas.common.base import BaseResponseSchema, BaseSchema
+from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+from app.schemas.common.enums import PaymentType
 
 __all__ = [
     "LedgerEntry",
@@ -30,11 +31,12 @@ __all__ = [
 
 class LedgerEntry(BaseResponseSchema):
     """
-    Individual ledger entry.
+    Ledger entry schema.
     
-    Represents a single financial transaction in the student's ledger.
+    Represents a single entry in the payment ledger.
     """
 
+    # Entity Reference
     student_id: UUID = Field(
         ...,
         description="Student ID",
@@ -45,37 +47,39 @@ class LedgerEntry(BaseResponseSchema):
     )
 
     # Entry Details
-    entry_date: Date = Field(
-        ...,
-        description="Date of entry",
-    )
     entry_type: str = Field(
         ...,
-        pattern=r"^(debit|credit)$",
-        description="Entry type (debit increases balance, credit decreases)",
+        pattern=r"^(debit|credit|adjustment|writeoff)$",
+        description="Type of ledger entry",
     )
-
-    # Transaction Details
     transaction_type: str = Field(
         ...,
-        description="Type of transaction (payment, charge, adjustment, etc.)",
-    )
-    amount: Decimal = Field(
-        ...,
-        description="Transaction amount",
+        description="Specific transaction type",
     )
 
-    # Running Balance
+    # Amount
+    amount: Decimal = Field(
+        ...,
+        description="Transaction amount (positive for credit, negative for debit)",
+    )
+    currency: str = Field(
+        ...,
+        min_length=3,
+        max_length=3,
+        description="Currency code",
+    )
+
+    # Balance
     balance_before: Decimal = Field(
         ...,
-        description="Balance before this entry",
+        description="Balance before this transaction",
     )
     balance_after: Decimal = Field(
         ...,
-        description="Balance after this entry",
+        description="Balance after this transaction",
     )
 
-    # Reference
+    # References
     payment_id: Optional[UUID] = Field(
         None,
         description="Associated payment ID",
@@ -84,139 +88,120 @@ class LedgerEntry(BaseResponseSchema):
         None,
         description="Payment reference number",
     )
+    reference_number: str = Field(
+        ...,
+        description="Unique ledger entry reference",
+    )
 
     # Description
     description: str = Field(
         ...,
-        min_length=1,
         max_length=500,
         description="Entry description",
     )
-
-    # Metadata
-    created_by: Optional[UUID] = Field(
-        None,
-        description="User who created this entry",
-    )
     notes: Optional[str] = Field(
         None,
-        max_length=500,
+        max_length=1000,
         description="Additional notes",
     )
 
-    @computed_field  # type: ignore[misc]
+    # Timestamps
+    transaction_date: Date = Field(
+        ...,
+        description="Transaction date",
+    )
+    posted_at: datetime = Field(
+        ...,
+        description="When entry was posted to ledger",
+    )
+
+    # Audit
+    posted_by: UUID = Field(
+        ...,
+        description="User who posted this entry",
+    )
+
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_debit(self) -> bool:
-        """Check if entry is a debit."""
-        return self.entry_type == "debit"
+        """Check if this is a debit entry."""
+        return self.entry_type == "debit" or self.amount < 0
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_credit(self) -> bool:
-        """Check if entry is a credit."""
-        return self.entry_type == "credit"
+        """Check if this is a credit entry."""
+        return self.entry_type == "credit" or self.amount > 0
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def absolute_amount(self) -> Decimal:
+        """Get absolute value of amount."""
+        return abs(self.amount)
 
 
-class LedgerSummary(BaseSchema):
+class TransactionItem(BaseSchema):
     """
-    Ledger summary for a student.
+    Transaction item for account statement.
     
-    Provides aggregate financial information.
+    Simplified transaction view for statements.
     """
 
-    student_id: UUID = Field(
+    transaction_date: Date = Field(
         ...,
-        description="Student ID",
+        description="Transaction date",
     )
-    student_name: str = Field(
+    reference_number: str = Field(
         ...,
-        description="Student name",
+        description="Transaction reference",
     )
-    hostel_id: UUID = Field(
+    description: str = Field(
         ...,
-        description="Hostel ID",
-    )
-
-    # Current Balance
-    current_balance: Decimal = Field(
-        ...,
-        description="Current outstanding balance",
+        description="Transaction description",
     )
 
-    # Breakdown
-    total_charges: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total charges (debits)",
-    )
-    total_payments: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total payments (credits)",
-    )
-    total_refunds: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total refunds received",
-    )
-
-    # Outstanding
-    total_due: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total amount currently due",
-    )
-    overdue_amount: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount that is overdue",
-    )
-
-    # Last Transaction
-    last_transaction_date: Optional[Date] = Field(
+    # Amount columns
+    debit: Optional[Decimal] = Field(
         None,
-        description="Date of last transaction",
+        ge=0,
+        description="Debit amount",
     )
-    last_payment_date: Optional[Date] = Field(
+    credit: Optional[Decimal] = Field(
         None,
-        description="Date of last payment",
+        ge=0,
+        description="Credit amount",
+    )
+    balance: Decimal = Field(
+        ...,
+        description="Running balance",
     )
 
-    @computed_field  # type: ignore[misc]
-    @property
-    def net_amount(self) -> Decimal:
-        """Calculate net amount (charges - payments)."""
-        return (self.total_charges - self.total_payments).quantize(Decimal("0.01"))
+    # Related Payment
+    payment_reference: Optional[str] = Field(
+        None,
+        description="Payment reference if applicable",
+    )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
-    def has_overdue_balance(self) -> bool:
-        """Check if there's any overdue amount."""
-        return self.overdue_amount > Decimal("0")
-
-    @computed_field  # type: ignore[misc]
-    @property
-    def account_status(self) -> str:
-        """
-        Determine account status.
-        
-        Returns: "current", "due", or "overdue"
-        """
-        if self.overdue_amount > 0:
-            return "overdue"
-        elif self.total_due > 0:
-            return "due"
+    def transaction_type(self) -> str:
+        """Determine transaction type."""
+        if self.debit:
+            return "debit"
+        elif self.credit:
+            return "credit"
         else:
-            return "current"
+            return "adjustment"
 
 
 class AccountStatement(BaseSchema):
     """
-    Account statement for a period.
+    Account statement schema.
     
-    Detailed statement of all transactions for a student.
+    Complete account statement for a student.
     """
 
+    # Student Information
     student_id: UUID = Field(
         ...,
         description="Student ID",
@@ -225,6 +210,12 @@ class AccountStatement(BaseSchema):
         ...,
         description="Student name",
     )
+    student_email: str = Field(
+        ...,
+        description="Student email",
+    )
+
+    # Hostel Information
     hostel_id: UUID = Field(
         ...,
         description="Hostel ID",
@@ -235,132 +226,217 @@ class AccountStatement(BaseSchema):
     )
 
     # Statement Period
-    statement_period_start: Date = Field(
+    period_start: Date = Field(
         ...,
-        description="Statement period start Date",
+        description="Statement period start",
     )
-    statement_period_end: Date = Field(
+    period_end: Date = Field(
         ...,
-        description="Statement period end Date",
-    )
-    generated_at: datetime = Field(
-        ...,
-        description="When statement was generated",
+        description="Statement period end",
     )
 
-    # Opening Balance
+    # Opening/Closing Balance
     opening_balance: Decimal = Field(
         ...,
-        description="Balance at start of period",
+        description="Opening balance",
+    )
+    closing_balance: Decimal = Field(
+        ...,
+        description="Closing balance",
     )
 
     # Transactions
-    entries: List[LedgerEntry] = Field(
-        default_factory=list,
-        description="List of ledger entries for the period",
+    transactions: List[TransactionItem] = Field(
+        ...,
+        description="List of transactions",
     )
 
     # Summary
     total_debits: Decimal = Field(
         ...,
         ge=0,
-        description="Total debits in period",
+        description="Total debit amount",
     )
     total_credits: Decimal = Field(
         ...,
         ge=0,
-        description="Total credits in period",
+        description="Total credit amount",
     )
-
-    # Closing Balance
-    closing_balance: Decimal = Field(
+    total_payments: Decimal = Field(
         ...,
-        description="Balance at end of period",
+        ge=0,
+        description="Total payments received",
+    )
+    total_charges: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total charges",
     )
 
-    # Download Link
-    pdf_url: Optional[str] = Field(
-        None,
-        description="URL to download PDF statement",
+    # Generated Metadata
+    generated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="When statement was generated",
+    )
+    statement_number: str = Field(
+        ...,
+        description="Unique statement number",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
-    def net_change(self) -> Decimal:
-        """Calculate net change in balance."""
+    def net_movement(self) -> Decimal:
+        """Calculate net movement during period."""
         return (self.closing_balance - self.opening_balance).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def transaction_count(self) -> int:
         """Get total number of transactions."""
-        return len(self.entries)
+        return len(self.transactions)
 
 
-class TransactionItem(BaseSchema):
+class LedgerSummary(BaseSchema):
     """
-    Individual transaction in history.
+    Ledger summary schema.
     
-    Simplified transaction for history views.
+    Provides summary of ledger for a student or hostel.
     """
 
-    transaction_id: UUID = Field(
+    # Entity Information
+    entity_id: UUID = Field(
         ...,
-        description="Transaction ID",
+        description="Entity ID (student or hostel)",
     )
-    transaction_date: datetime = Field(
+    entity_type: str = Field(
         ...,
-        description="Transaction timestamp",
-    )
-    transaction_type: str = Field(
-        ...,
-        description="Type of transaction",
+        pattern=r"^(student|hostel)$",
+        description="Entity type",
     )
 
-    amount: Decimal = Field(
+    # Current Balance
+    current_balance: Decimal = Field(
         ...,
-        description="Transaction amount",
+        description="Current balance",
     )
-    balance_after: Decimal = Field(
+    currency: str = Field(
         ...,
-        description="Balance after transaction",
+        description="Currency code",
     )
 
-    description: str = Field(
+    # Balance Status
+    is_in_credit: bool = Field(
         ...,
-        description="Transaction description",
+        description="Whether account is in credit",
     )
-    payment_reference: Optional[str] = Field(
+    is_in_debit: bool = Field(
+        ...,
+        description="Whether account is in debit",
+    )
+
+    # Totals (All Time)
+    total_charges: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total charges (all time)",
+    )
+    total_payments: Decimal = Field(
+        ...,
+        ge=0,
+        description="Total payments (all time)",
+    )
+    total_adjustments: Decimal = Field(
+        Decimal("0.00"),
+        description="Total adjustments (all time)",
+    )
+    total_writeoffs: Decimal = Field(
+        Decimal("0.00"),
+        ge=0,
+        description="Total write-offs (all time)",
+    )
+
+    # Outstanding
+    outstanding_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Current outstanding amount",
+    )
+    overdue_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Overdue amount",
+    )
+
+    # Last Activity
+    last_payment_date: Optional[Date] = Field(
         None,
-        description="Payment reference if applicable",
+        description="Date of last payment",
+    )
+    last_charge_date: Optional[Date] = Field(
+        None,
+        description="Date of last charge",
+    )
+    last_transaction_date: Optional[Date] = Field(
+        None,
+        description="Date of last transaction",
     )
 
-    status: str = Field(
-        ...,
-        description="Transaction status",
-    )
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def balance_status(self) -> str:
+        """Get balance status description."""
+        if self.current_balance > 0:
+            return "credit"
+        elif self.current_balance < 0:
+            return "debit"
+        else:
+            return "zero"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def payment_ratio(self) -> float:
+        """Calculate payment to charges ratio."""
+        if self.total_charges == 0:
+            return 0.0
+        return round((self.total_payments / self.total_charges) * 100, 2)
 
 
 class TransactionHistory(BaseSchema):
     """
-    Transaction history for a student.
+    Transaction history request/response.
     
-    Paginated list of transactions with metadata.
+    Paginated transaction history for an entity.
     """
 
-    student_id: UUID = Field(
+    # Entity
+    entity_id: UUID = Field(
         ...,
-        description="Student ID",
+        description="Entity ID",
+    )
+    entity_type: str = Field(
+        ...,
+        pattern=r"^(student|hostel)$",
+        description="Entity type",
+    )
+
+    # Filter Period
+    period_start: Optional[Date] = Field(
+        None,
+        description="Filter from this date",
+    )
+    period_end: Optional[Date] = Field(
+        None,
+        description="Filter to this date",
     )
 
     # Transactions
-    transactions: List[TransactionItem] = Field(
-        default_factory=list,
-        description="List of transactions",
+    transactions: List[LedgerEntry] = Field(
+        ...,
+        description="List of ledger entries",
     )
 
     # Pagination
-    total_transactions: int = Field(
+    total: int = Field(
         ...,
         ge=0,
         description="Total number of transactions",
@@ -368,7 +444,7 @@ class TransactionHistory(BaseSchema):
     page: int = Field(
         ...,
         ge=1,
-        description="Current page number",
+        description="Current page",
     )
     page_size: int = Field(
         ...,
@@ -376,20 +452,96 @@ class TransactionHistory(BaseSchema):
         description="Items per page",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
-    def total_pages(self) -> int:
+    def pages(self) -> int:
         """Calculate total pages."""
         if self.page_size == 0:
             return 0
-        return (self.total_transactions + self.page_size - 1) // self.page_size
+        return (self.total + self.page_size - 1) // self.page_size
 
 
-class BalanceAdjustment(BaseSchema):
+class BalanceAdjustment(BaseCreateSchema):
     """
-    Manual balance adjustment (admin only).
+    Balance adjustment schema.
     
-    Used for corrections, waivers, or special adjustments.
+    Used to manually adjust account balance.
+    """
+
+    student_id: UUID = Field(
+        ...,
+        description="Student ID to adjust",
+    )
+    hostel_id: UUID = Field(
+        ...,
+        description="Hostel ID",
+    )
+
+    # Adjustment Details
+    adjustment_amount: Decimal = Field(
+        ...,
+        description="Adjustment amount (positive for credit, negative for debit)",
+    )
+    adjustment_type: str = Field(
+        ...,
+        pattern=r"^(correction|refund|discount|penalty|other)$",
+        description="Type of adjustment",
+    )
+
+    # Reason
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Reason for adjustment",
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Additional notes",
+    )
+
+    # Approval
+    approved_by: UUID = Field(
+        ...,
+        description="User approving this adjustment",
+    )
+    requires_verification: bool = Field(
+        True,
+        description="Whether this requires additional verification",
+    )
+
+    @field_validator("adjustment_amount")
+    @classmethod
+    def validate_adjustment_amount(cls, v: Decimal) -> Decimal:
+        """Validate adjustment amount."""
+        if v == 0:
+            raise ValueError("Adjustment amount cannot be zero")
+        
+        # Reasonable limit check
+        max_adjustment = Decimal("100000.00")
+        if abs(v) > max_adjustment:
+            raise ValueError(
+                f"Adjustment amount ({abs(v)}) exceeds maximum ({max_adjustment})"
+            )
+        
+        return v.quantize(Decimal("0.01"))
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Validate reason."""
+        v = v.strip()
+        if len(v) < 10:
+            raise ValueError("Reason must be at least 10 characters")
+        return v
+
+
+class WriteOff(BaseCreateSchema):
+    """
+    Write-off schema.
+    
+    Used to write off uncollectible amounts.
     """
 
     student_id: UUID = Field(
@@ -401,115 +553,71 @@ class BalanceAdjustment(BaseSchema):
         description="Hostel ID",
     )
 
-    # Adjustment Details
-    adjustment_type: str = Field(
-        ...,
-        pattern=r"^(debit|credit)$",
-        description="Type of adjustment",
-    )
-    amount: Decimal = Field(
-        ...,
-        ge=0,
-        description="Adjustment amount",
-    )
-
-    # Justification
-    reason: str = Field(
-        ...,
-        min_length=20,
-        max_length=500,
-        description="Detailed reason for adjustment",
-    )
-
-    # Authorization
-    adjusted_by: UUID = Field(
-        ...,
-        description="Admin who made the adjustment",
-    )
-    adjustment_date: Date = Field(
-        ...,
-        description="Date of adjustment",
-    )
-
-    # Documentation
-    notes: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Additional notes",
-    )
-
-    @field_validator("amount")
-    @classmethod
-    def validate_amount(cls, v: Decimal) -> Decimal:
-        """Validate amount is positive."""
-        if v <= 0:
-            raise ValueError("Adjustment amount must be greater than zero")
-        return v.quantize(Decimal("0.01"))
-
-    @field_validator("reason")
-    @classmethod
-    def validate_reason(cls, v: str) -> str:
-        """Validate reason is detailed."""
-        v = v.strip()
-        if len(v) < 20:
-            raise ValueError("Adjustment reason must be at least 20 characters")
-        return v
-
-
-class WriteOff(BaseSchema):
-    """
-    Write off outstanding amount.
-    
-    Used to formally write off uncollectable debts.
-    """
-
-    student_id: UUID = Field(
-        ...,
-        description="Student ID",
-    )
-    amount: Decimal = Field(
+    # Write-off Amount
+    writeoff_amount: Decimal = Field(
         ...,
         ge=0,
         description="Amount to write off",
     )
+    outstanding_amount: Decimal = Field(
+        ...,
+        ge=0,
+        description="Current outstanding amount",
+    )
 
-    # Justification
-    reason: str = Field(
+    # Reason
+    writeoff_reason: str = Field(
+        ...,
+        pattern=r"^(bad_debt|student_dropout|uncollectible|dispute_settled|other)$",
+        description="Reason for write-off",
+    )
+    detailed_reason: str = Field(
         ...,
         min_length=20,
-        max_length=500,
-        description="Detailed reason for write-off",
+        max_length=1000,
+        description="Detailed explanation",
     )
 
-    # Authorization
+    # Approval
     approved_by: UUID = Field(
         ...,
-        description="Admin who approved write-off",
+        description="User approving write-off",
     )
-    approval_date: Date = Field(
+    approval_level: str = Field(
         ...,
-        description="Date of approval",
+        pattern=r"^(manager|director|cfo)$",
+        description="Approval level required",
     )
 
     # Documentation
-    supporting_documents: List[str] = Field(
-        default_factory=list,
-        description="URLs to supporting documents",
+    supporting_documents: Optional[List[str]] = Field(
+        None,
+        description="URLs/IDs of supporting documents",
     )
 
-    @field_validator("amount")
+    @field_validator("writeoff_amount")
     @classmethod
-    def validate_amount(cls, v: Decimal) -> Decimal:
-        """Validate amount."""
+    def validate_writeoff_amount(cls, v: Decimal) -> Decimal:
+        """Validate write-off amount."""
         if v <= 0:
             raise ValueError("Write-off amount must be greater than zero")
         return v.quantize(Decimal("0.01"))
 
-    @field_validator("reason")
+    @model_validator(mode="after")
+    def validate_writeoff_limits(self) -> "WriteOff":
+        """Validate write-off doesn't exceed outstanding amount."""
+        if self.writeoff_amount > self.outstanding_amount:
+            raise ValueError(
+                f"Write-off amount ({self.writeoff_amount}) cannot exceed "
+                f"outstanding amount ({self.outstanding_amount})"
+            )
+        return self
+
+    @field_validator("detailed_reason")
     @classmethod
-    def validate_reason(cls, v: str) -> str:
-        """Validate reason is detailed."""
+    def validate_detailed_reason(cls, v: str) -> str:
+        """Validate detailed reason."""
         v = v.strip()
         if len(v) < 20:
-            raise ValueError("Write-off reason must be at least 20 characters")
+            raise ValueError("Detailed reason must be at least 20 characters")
         return v

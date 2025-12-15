@@ -4,7 +4,7 @@ Admin override schemas for supervisor decision management.
 Provides structured requests and logs for admin overrides of supervisor actions,
 with comprehensive analytics and audit trail support.
 
-Migrated to Pydantic v2.
+Fully migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
 
@@ -63,6 +63,8 @@ class AdminOverrideRequest(BaseCreateSchema):
     Ensures all override requests are properly documented and justified
     with appropriate context and reasoning.
     """
+    
+    model_config = ConfigDict(validate_assignment=True)
 
     supervisor_id: Optional[UUID] = Field(
         None, description="Supervisor whose action is being overridden"
@@ -175,6 +177,8 @@ class OverrideLog(BaseResponseSchema):
     Maintains complete audit trail of all override actions
     for accountability and analysis.
     """
+    
+    model_config = ConfigDict()
 
     admin_id: UUID = Field(..., description="Admin who performed override")
     admin_name: str = Field(..., min_length=1, description="Admin full name")
@@ -235,6 +239,8 @@ class OverrideReason(BaseSchema):
     Provides common override reasons to ensure consistency
     and facilitate analytics.
     """
+    
+    model_config = ConfigDict()
 
     reason_code: str = Field(..., min_length=1, description="Unique reason code")
     reason_text: str = Field(..., min_length=10, description="Reason description")
@@ -265,6 +271,8 @@ class OverrideSummary(BaseSchema):
     Provides aggregated view of override patterns and trends
     for management oversight and decision-making.
     """
+    
+    model_config = ConfigDict()
 
     admin_id: UUID = Field(..., description="Admin user ID")
     period_start: Date = Field(..., description="Summary period start Date")
@@ -277,13 +285,13 @@ class OverrideSummary(BaseSchema):
         default_factory=dict, description="Breakdown by override type"
     )
 
-    # By supervisor
-    overrides_by_supervisor: Dict[str, int] = Field(  # Changed from Dict[UUID, int] to Dict[str, int] for JSON serialization
+    # By supervisor - Pydantic v2: Dict keys must be JSON-serializable (strings)
+    overrides_by_supervisor: Dict[str, int] = Field(
         default_factory=dict, description="Breakdown by supervisor"
     )
 
-    # By hostel
-    overrides_by_hostel: Dict[str, int] = Field(  # Changed from Dict[UUID, int] to Dict[str, int] for JSON serialization
+    # By hostel - Pydantic v2: Dict keys must be JSON-serializable (strings)
+    overrides_by_hostel: Dict[str, int] = Field(
         default_factory=dict, description="Breakdown by hostel"
     )
 
@@ -306,7 +314,7 @@ class OverrideSummary(BaseSchema):
         """Identify supervisor with most overrides."""
         if not self.overrides_by_supervisor:
             return None
-        return max(self.overrides_by_supervisor, key=self.overrides_by_supervisor.get)
+        return max(self.overrides_by_supervisor, key=self.overrides_by_supervisor.get)  # type: ignore
 
     @computed_field
     @property
@@ -314,7 +322,7 @@ class OverrideSummary(BaseSchema):
         """Identify most common override type."""
         if not self.overrides_by_type:
             return None
-        return max(self.overrides_by_type, key=self.overrides_by_type.get)
+        return max(self.overrides_by_type, key=self.overrides_by_type.get)  # type: ignore
 
     @computed_field
     @property
@@ -364,14 +372,18 @@ class SupervisorOverrideStats(BaseSchema):
     Provides detailed override metrics to identify patterns
     and areas for supervisor development or support.
     """
+    
+    model_config = ConfigDict()
 
     supervisor_id: UUID = Field(..., description="Supervisor user ID")
     supervisor_name: str = Field(..., min_length=1, description="Supervisor full name")
 
     total_actions: int = Field(..., ge=0, description="Total actions taken by supervisor")
     total_overrides: int = Field(..., ge=0, description="Total actions overridden")
+    
+    # Pydantic v2: Decimal with ge/le constraints
     override_rate: Decimal = Field(
-        ..., ge=0, le=100, description="Percentage of actions overridden"
+        ..., ge=Decimal("0"), le=Decimal("100"), description="Percentage of actions overridden"
     )
 
     # By type
@@ -416,7 +428,7 @@ class SupervisorOverrideStats(BaseSchema):
         """Identify category with most overrides."""
         if not self.overrides_by_type:
             return None
-        return max(self.overrides_by_type, key=self.overrides_by_type.get)
+        return max(self.overrides_by_type, key=self.overrides_by_type.get)  # type: ignore
 
     @field_validator("override_rate")
     @classmethod

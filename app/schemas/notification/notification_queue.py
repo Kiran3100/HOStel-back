@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
 from pydantic import Field, computed_field
@@ -93,14 +93,12 @@ class QueueStatus(BaseSchema):
     )
 
     # Processing performance
-    avg_processing_time_seconds: Decimal = Field(
+    avg_processing_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average processing time per notification",
     )
-    throughput_per_minute: Decimal = Field(
+    throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Notifications processed per minute",
     )
 
@@ -110,7 +108,7 @@ class QueueStatus(BaseSchema):
         description="Whether queue is operating normally",
     )
     oldest_queued_age_minutes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Age of oldest queued notification in minutes",
     )
@@ -121,13 +119,13 @@ class QueueStatus(BaseSchema):
         description="When status was checked",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_in_system(self) -> int:
         """Calculate total notifications in the system."""
         return self.total_queued + self.total_processing + self.total_failed
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def queue_utilization_percent(self) -> float:
         """Calculate queue utilization as a percentage."""
@@ -173,7 +171,7 @@ class QueuedNotification(BaseSchema):
 
     # Timing
     scheduled_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Scheduled delivery time",
     )
     queued_at: datetime = Field(
@@ -181,7 +179,7 @@ class QueuedNotification(BaseSchema):
         description="When notification was queued",
     )
     processing_started_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When processing started",
     )
 
@@ -197,35 +195,35 @@ class QueuedNotification(BaseSchema):
         description="Maximum allowed retries",
     )
     next_retry_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When next retry will be attempted",
     )
 
     # Estimates
     estimated_send_time: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Estimated send time based on queue position",
     )
     queue_position: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         description="Position in queue (by priority)",
     )
 
     # Error tracking
     last_error: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Last error message if failed",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def age_minutes(self) -> int:
         """Calculate how long notification has been in queue."""
         return int((datetime.utcnow() - self.queued_at).total_seconds() / 60)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def can_retry(self) -> bool:
         """Check if notification can be retried."""
@@ -249,7 +247,7 @@ class BatchProcessing(BaseSchema):
 
     # Batch details
     batch_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Batch/campaign name",
     )
@@ -298,45 +296,43 @@ class BatchProcessing(BaseSchema):
         description="When batch was created",
     )
     started_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When processing started",
     )
     completed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When processing completed",
     )
 
     # Estimates
     estimated_completion: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Estimated completion time",
     )
     estimated_duration_seconds: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Estimated total duration",
     )
 
     # Performance
-    current_throughput_per_minute: Decimal = Field(
+    current_throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         default=Decimal("0"),
-        ge=0,
         description="Current processing rate",
     )
-    average_processing_time_seconds: Decimal = Field(
+    average_processing_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         default=Decimal("0"),
-        ge=0,
         description="Average time per notification",
     )
 
     # Error summary
     error_summary: Optional[str] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Summary of errors encountered",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def progress_percentage(self) -> float:
         """Calculate batch progress percentage."""
@@ -344,7 +340,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.processed / self.total_notifications) * 100, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def success_rate(self) -> float:
         """Calculate success rate percentage."""
@@ -352,7 +348,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.successful / self.processed) * 100, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def failure_rate(self) -> float:
         """Calculate failure rate percentage."""
@@ -360,7 +356,7 @@ class BatchProcessing(BaseSchema):
             return 0.0
         return round((self.failed / self.processed) * 100, 2)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_complete(self) -> bool:
         """Check if batch processing is complete."""
@@ -382,7 +378,7 @@ class QueueStats(BaseSchema):
         description="Current number of queued notifications",
     )
     oldest_queued_age_minutes: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         description="Age of oldest notification in queue",
     )
@@ -405,50 +401,40 @@ class QueueStats(BaseSchema):
     )
 
     # Success/failure rates
-    success_rate: Decimal = Field(
+    success_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall success rate percentage",
     )
-    failure_rate: Decimal = Field(
+    failure_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Overall failure rate percentage",
     )
 
     # Performance metrics
-    average_queue_time_minutes: Decimal = Field(
+    average_queue_time_minutes: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average time notifications spend in queue",
     )
-    average_processing_time_seconds: Decimal = Field(
+    average_processing_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average processing time per notification",
     )
-    average_total_time_seconds: Decimal = Field(
+    average_total_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average total time from queue to delivery",
     )
 
     # Throughput
-    current_throughput_per_minute: Decimal = Field(
+    current_throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Current processing throughput",
     )
-    peak_throughput_per_minute: Decimal = Field(
+    peak_throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Peak throughput achieved today",
     )
-    average_throughput_per_minute: Decimal = Field(
+    average_throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average throughput",
     )
 
@@ -469,10 +455,8 @@ class QueueStats(BaseSchema):
         ge=0,
         description="Total retry attempts today",
     )
-    retry_success_rate: Decimal = Field(
+    retry_success_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         default=Decimal("0"),
-        ge=0,
-        le=100,
         description="Percentage of retries that succeeded",
     )
 
@@ -494,13 +478,13 @@ class QueueStats(BaseSchema):
         description="When statistics were generated",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_workers(self) -> int:
         """Calculate total number of workers."""
         return self.active_workers + self.idle_workers
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def worker_utilization_percent(self) -> float:
         """Calculate worker utilization percentage."""
@@ -521,10 +505,8 @@ class QueueHealth(BaseSchema):
         ...,
         description="Overall queue health status",
     )
-    health_score: Decimal = Field(
+    health_score: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Health score (0-100)",
     )
 
@@ -572,16 +554,12 @@ class QueueHealth(BaseSchema):
     )
 
     # Resource usage
-    memory_usage_percent: Optional[Decimal] = Field(
-        None,
-        ge=0,
-        le=100,
+    memory_usage_percent: Optional[Annotated[Decimal, Field(ge=0, le=100)]] = Field(
+        default=None,
         description="Memory usage percentage",
     )
-    cpu_usage_percent: Optional[Decimal] = Field(
-        None,
-        ge=0,
-        le=100,
+    cpu_usage_percent: Optional[Annotated[Decimal, Field(ge=0, le=100)]] = Field(
+        default=None,
         description="CPU usage percentage",
     )
 
@@ -597,13 +575,13 @@ class QueueHealth(BaseSchema):
         description="When health check was performed",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_critical_issues(self) -> bool:
         """Check if there are any critical issues."""
         return len(self.active_issues) > 0
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def needs_attention(self) -> bool:
         """Check if queue needs administrator attention."""
@@ -648,14 +626,12 @@ class QueuePriority(BaseSchema):
     )
 
     # Performance
-    average_wait_time_seconds: Decimal = Field(
+    average_wait_time_seconds: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average wait time for this priority",
     )
-    throughput_per_minute: Decimal = Field(
+    throughput_per_minute: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Processing throughput for this priority",
     )
 
@@ -665,15 +641,13 @@ class QueuePriority(BaseSchema):
         ge=1,
         description="Target processing time SLA",
     )
-    sla_compliance_rate: Decimal = Field(
+    sla_compliance_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Percentage meeting SLA",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_meeting_sla(self) -> bool:
         """Check if priority level is meeting SLA targets."""
-        return self.sla_compliance_rate >= 95.0  # 95% threshold
+        return self.sla_compliance_rate >= Decimal("95.0")  # 95% threshold

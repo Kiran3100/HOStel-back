@@ -48,6 +48,8 @@ class AnnouncementBase(BaseSchema):
     with comprehensive validation rules.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     hostel_id: UUID = Field(
         ...,
         description="UUID of the hostel this announcement belongs to",
@@ -193,6 +195,8 @@ class AnnouncementCreate(AnnouncementBase, BaseCreateSchema):
     Includes creator information and delivery settings.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     created_by: UUID = Field(
         ...,
         description="UUID of the user creating the announcement (admin/supervisor)",
@@ -267,6 +271,8 @@ class AnnouncementUpdate(BaseUpdateSchema):
     All fields are optional for partial updates.
     Published announcements have restricted update capabilities.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     title: Optional[str] = Field(
         None,
@@ -353,6 +359,8 @@ class AnnouncementPublish(BaseCreateSchema):
     Allows immediate or scheduled publication.
     """
     
+    model_config = ConfigDict(from_attributes=True)
+    
     announcement_id: UUID = Field(
         ...,
         description="UUID of the announcement to publish",
@@ -388,6 +396,8 @@ class AnnouncementUnpublish(BaseCreateSchema):
     
     Makes the announcement invisible but preserves it.
     """
+    
+    model_config = ConfigDict(from_attributes=True)
     
     announcement_id: UUID = Field(
         ...,

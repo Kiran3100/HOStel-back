@@ -11,9 +11,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
-from pydantic import Field, computed_field
+from pydantic import ConfigDict, Field, computed_field
 
 from app.schemas.common.base import BaseResponseSchema, BaseSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
@@ -33,6 +33,7 @@ class ComplaintResponse(BaseResponseSchema):
     
     Used for list views and general complaint information.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_number: str = Field(
         ...,
@@ -110,7 +111,7 @@ class ComplaintResponse(BaseResponseSchema):
         description="Age of complaint in hours",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_overdue(self) -> bool:
         """Determine if complaint is overdue based on priority and age."""
@@ -137,6 +138,7 @@ class ComplaintDetail(BaseResponseSchema):
     Used for single complaint view with complete audit trail
     and relationship information.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_number: str = Field(
         ...,
@@ -273,7 +275,7 @@ class ComplaintDetail(BaseResponseSchema):
         description="Time taken to resolve (hours)",
     )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def is_active(self) -> bool:
         """Check if complaint is in an active state."""
@@ -285,7 +287,7 @@ class ComplaintDetail(BaseResponseSchema):
         }
         return self.status in active_statuses
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_efficiency(self) -> Optional[str]:
         """
@@ -315,7 +317,7 @@ class ComplaintDetail(BaseResponseSchema):
             return "good"
         elif hours <= threshold["average"]:
             return "average"
-                else:
+        else:
             return "poor"
 
 
@@ -326,6 +328,7 @@ class ComplaintListItem(BaseSchema):
     Optimized for performance with minimal fields
     for table/grid displays.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     id: str = Field(..., description="Complaint ID")
     complaint_number: str = Field(..., description="Reference number")
@@ -345,7 +348,7 @@ class ComplaintListItem(BaseSchema):
 
     sla_breach: bool = Field(..., description="SLA breach status")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def status_color(self) -> str:
         """
@@ -365,7 +368,7 @@ class ComplaintListItem(BaseSchema):
         }
         return color_map.get(self.status, "gray")
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def priority_weight(self) -> int:
         """
@@ -390,6 +393,7 @@ class ComplaintSummary(BaseSchema):
     
     Provides aggregate metrics for a hostel or supervisor.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: str = Field(..., description="Hostel identifier")
 
@@ -403,13 +407,12 @@ class ComplaintSummary(BaseSchema):
 
     sla_breached_count: int = Field(..., ge=0, description="SLA breached count")
 
-    average_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average resolution time in hours",
-    )
+    average_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Average resolution time in hours")
+    ]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def resolution_rate(self) -> float:
         """
@@ -425,7 +428,7 @@ class ComplaintSummary(BaseSchema):
             2
         )
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def sla_compliance_rate(self) -> float:
         """
@@ -447,6 +450,7 @@ class ComplaintStats(BaseSchema):
     
     Provides comprehensive analytics for reporting.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total: int = Field(..., ge=0, description="Total complaints")
     
@@ -469,28 +473,29 @@ class ComplaintStats(BaseSchema):
     )
     
     # Time-based metrics
-    avg_resolution_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Average resolution time",
-    )
-    median_resolution_hours: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        description="Median resolution time",
-    )
+    avg_resolution_hours: Optional[Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Average resolution time")
+    ]] = None
+    median_resolution_hours: Optional[Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Median resolution time")
+    ]] = None
     
     # Performance indicators
-    sla_compliance_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="SLA compliance percentage",
-    )
-    resolution_percentage: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Resolution percentage",
-    )
-        
+    sla_compliance_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="SLA compliance percentage"
+        )
+    ]
+    resolution_percentage: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="Resolution percentage"
+        )
+    ]

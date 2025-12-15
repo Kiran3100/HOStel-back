@@ -54,13 +54,13 @@ class PaginationParams(BaseSchema):
             raise ValueError("Page size must be between 1 and 100")
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def offset(self) -> int:
         """Calculate offset for database queries."""
         return (self.page - 1) * self.page_size
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def limit(self) -> int:
         """Get limit for database queries."""

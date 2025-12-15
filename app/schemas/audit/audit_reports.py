@@ -7,8 +7,8 @@ summaries, trends, user activity analysis, and entity change history.
 """
 
 from datetime import datetime, date as Date
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, ForwardRef
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Any, Dict, List, Optional
 from enum import Enum
 
 from pydantic import Field, field_validator, computed_field, model_validator
@@ -81,12 +81,11 @@ class CategoryAnalytics(BaseSchema):
     failed_events: int = Field(..., ge=0)
     pending_events: int = Field(default=0, ge=0)
     
-    # Timing
+    # Timing (Note: Decimal with 2 decimal places expected)
     avg_events_per_day: Decimal = Field(
         ...,
         ge=0,
-        decimal_places=2,
-        description="Average events per day"
+        description="Average events per day (2 decimal places)"
     )
     peak_hour: Optional[int] = Field(
         default=None,
@@ -102,7 +101,7 @@ class CategoryAnalytics(BaseSchema):
         description="Top 10 action types by frequency"
     )
     
-    # Trend
+    # Trend (Note: Decimal with 2 decimal places expected)
     trend_direction: Optional[str] = Field(
         default=None,
         pattern="^(increasing|decreasing|stable)$",
@@ -110,229 +109,34 @@ class CategoryAnalytics(BaseSchema):
     )
     trend_percentage: Optional[Decimal] = Field(
         default=None,
-        decimal_places=2,
-        description="Percentage change vs previous period"
+        description="Percentage change vs previous period (2 decimal places)"
     )
+    
+    @field_validator('avg_events_per_day', 'trend_percentage')
+    @classmethod
+    def validate_decimal_precision(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Ensure decimal fields have max 2 decimal places."""
+        if v is None:
+            return v
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def success_rate(self) -> Decimal:
-        """Calculate success rate percentage."""
+        """Calculate success rate percentage (2 decimal places)."""
         if self.total_events == 0:
             return Decimal("100.00")
-        return round(
-            (Decimal(self.successful_events) / Decimal(self.total_events)) * 100,
-            2
-        )
+        result = (Decimal(self.successful_events) / Decimal(self.total_events)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def failure_rate(self) -> Decimal:
-        """Calculate failure rate percentage."""
+        """Calculate failure rate percentage (2 decimal places)."""
         if self.total_events == 0:
             return Decimal("0.00")
-        return round(
-            (Decimal(self.failed_events) / Decimal(self.total_events)) * 100,
-            2
-        )
-
-
-# Forward reference for UserActivitySummary
-UserActivitySummaryRef = ForwardRef('UserActivitySummary')
-
-
-class AuditSummary(BaseSchema):
-    """
-    High-level summary for audit log report.
-    
-    Provides aggregated statistics and distributions across
-    multiple dimensions for executive overview.
-    """
-    
-    period: DateRangeFilter = Field(
-        ...,
-        description="Reporting period"
-    )
-    generated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="Report generation timestamp"
-    )
-    
-    # Scope
-    hostel_id: Optional[UUID] = Field(
-        default=None,
-        description="Hostel scope (None = platform-wide)"
-    )
-    hostel_name: Optional[str] = Field(
-        default=None,
-        description="Hostel name"
-    )
-    
-    # Overall metrics
-    total_events: int = Field(
-        ...,
-        ge=0,
-        description="Total audit events in period"
-    )
-    unique_users: int = Field(
-        ...,
-        ge=0,
-        description="Number of unique users"
-    )
-    unique_ip_addresses: int = Field(
-        default=0,
-        ge=0,
-        description="Number of unique IP addresses"
-    )
-    unique_sessions: int = Field(
-        default=0,
-        ge=0,
-        description="Number of unique sessions"
-    )
-    
-    # Status distribution
-    successful_actions: int = Field(..., ge=0)
-    failed_actions: int = Field(..., ge=0)
-    pending_actions: int = Field(default=0, ge=0)
-    partial_actions: int = Field(default=0, ge=0)
-    
-    # Distribution by category
-    events_by_category: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Event count by AuditActionCategory"
-    )
-    category_analytics: List[CategoryAnalytics] = Field(
-        default_factory=list,
-        description="Detailed analytics per category"
-    )
-    
-    # Distribution by user role
-    events_by_user_role: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Event count by UserRole"
-    )
-    
-    # Distribution by entity type
-    events_by_entity_type: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Event count by entity type"
-    )
-    
-    # Top actors
-    top_users_by_events: List[UserActivitySummaryRef] = Field(
-        default_factory=list,
-        max_length=10,
-        description="Top 10 most active users"
-    )
-    
-    # Security metrics
-    critical_events: int = Field(default=0, ge=0, description="Critical severity events")
-    high_severity_events: int = Field(default=0, ge=0, description="High severity events")
-    sensitive_data_events: int = Field(
-        default=0,
-        ge=0,
-        description="Events involving sensitive data"
-    )
-    events_requiring_review: int = Field(
-        default=0,
-        ge=0,
-        description="Events flagged for review"
-    )
-    
-    # Authentication metrics
-    login_attempts: int = Field(default=0, ge=0)
-    successful_logins: int = Field(default=0, ge=0)
-    failed_logins: int = Field(default=0, ge=0)
-    
-    # Authorization metrics
-    access_granted: int = Field(default=0, ge=0)
-    access_denied: int = Field(default=0, ge=0)
-    
-    # Geographic distribution
-    events_by_country: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Event count by country code"
-    )
-    
-    # Device distribution
-    events_by_device_type: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Event count by device type"
-    )
-    
-    @computed_field
-    @property
-    def overall_success_rate(self) -> Decimal:
-        """Calculate overall success rate."""
-        if self.total_events == 0:
-            return Decimal("100.00")
-        return round(
-            (Decimal(self.successful_actions) / Decimal(self.total_events)) * 100,
-            2
-        )
-    
-    @computed_field
-    @property
-    def login_success_rate(self) -> Decimal:
-        """Calculate login success rate."""
-        if self.login_attempts == 0:
-            return Decimal("100.00")
-        return round(
-            (Decimal(self.successful_logins) / Decimal(self.login_attempts)) * 100,
-            2
-        )
-    
-    @computed_field
-    @property
-    def authorization_success_rate(self) -> Decimal:
-        """Calculate authorization success rate."""
-        total_auth = self.access_granted + self.access_denied
-        if total_auth == 0:
-            return Decimal("100.00")
-        return round(
-            (Decimal(self.access_granted) / Decimal(total_auth)) * 100,
-            2
-        )
-    
-    @computed_field
-    @property
-    def security_health_score(self) -> Decimal:
-        """
-        Calculate security health score (0-100).
-        
-        Higher score indicates better security posture.
-        """
-        if self.total_events == 0:
-            return Decimal("100.00")
-        
-        # Factors that reduce score
-        failure_penalty = (self.failed_actions / self.total_events) * 30
-        critical_penalty = (self.critical_events / self.total_events) * 50
-        access_denied_penalty = (self.access_denied / max(1, self.total_events)) * 20
-        
-        total_penalty = min(100, failure_penalty + critical_penalty + access_denied_penalty)
-        score = 100 - total_penalty
-        
-        return round(Decimal(str(max(0, score))), 2)
-    
-    @computed_field
-    @property
-    def most_active_category(self) -> Optional[str]:
-        """Identify the most active audit category."""
-        if not self.events_by_category:
-            return None
-        return max(self.events_by_category, key=self.events_by_category.get)
-    
-    @computed_field
-    @property
-    def requires_attention(self) -> bool:
-        """Determine if summary indicates issues requiring attention."""
-        return (
-            self.security_health_score < 70 or
-            self.critical_events > 0 or
-            self.events_requiring_review > 10 or
-            self.failed_logins > 20
-        )
+        result = (Decimal(self.failed_events) / Decimal(self.total_events)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 class UserActivitySummary(BaseSchema):
@@ -415,7 +219,7 @@ class UserActivitySummary(BaseSchema):
         description="Authorization failures"
     )
     
-    # Activity patterns
+    # Activity patterns (Note: Decimal with 2 decimal places expected)
     most_active_hour: Optional[int] = Field(
         default=None,
         ge=0,
@@ -427,10 +231,9 @@ class UserActivitySummary(BaseSchema):
         description="Day of week with most activity"
     )
     avg_daily_events: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
-        decimal_places=2,
-        description="Average events per day"
+        description="Average events per day (2 decimal places)"
     )
     
     # Geographic
@@ -445,23 +248,27 @@ class UserActivitySummary(BaseSchema):
         description="Device types used"
     )
     
+    @field_validator('avg_daily_events')
+    @classmethod
+    def validate_avg_daily_events(cls, v: Decimal) -> Decimal:
+        """Ensure avg_daily_events has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
     @computed_field
     @property
     def success_rate(self) -> Decimal:
-        """Calculate user's success rate."""
+        """Calculate user's success rate (2 decimal places)."""
         total = self.successful_actions + self.failed_actions
         if total == 0:
             return Decimal("100.00")
-        return round(
-            (Decimal(self.successful_actions) / Decimal(total)) * 100,
-            2
-        )
+        result = (Decimal(self.successful_actions) / Decimal(total)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def activity_score(self) -> Decimal:
         """
-        Calculate activity score (0-100).
+        Calculate activity score (0-100, 2 decimal places).
         
         Based on volume and diversity of activities.
         """
@@ -472,7 +279,8 @@ class UserActivitySummary(BaseSchema):
         category_diversity = min(10, len(self.events_by_category)) * 5
         
         score = volume_score + category_diversity
-        return round(Decimal(str(min(100, score))), 2)
+        result = Decimal(str(min(100, score)))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -515,8 +323,193 @@ class UserActivitySummary(BaseSchema):
             return "low"
 
 
-# Resolve forward reference
-AuditSummary.model_rebuild()
+class AuditSummary(BaseSchema):
+    """
+    High-level summary for audit log report.
+    
+    Provides aggregated statistics and distributions across
+    multiple dimensions for executive overview.
+    """
+    
+    period: DateRangeFilter = Field(
+        ...,
+        description="Reporting period"
+    )
+    generated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Report generation timestamp"
+    )
+    
+    # Scope
+    hostel_id: Optional[UUID] = Field(
+        default=None,
+        description="Hostel scope (None = platform-wide)"
+    )
+    hostel_name: Optional[str] = Field(
+        default=None,
+        description="Hostel name"
+    )
+    
+    # Overall metrics
+    total_events: int = Field(
+        ...,
+        ge=0,
+        description="Total audit events in period"
+    )
+    unique_users: int = Field(
+        ...,
+        ge=0,
+        description="Number of unique users"
+    )
+    unique_ip_addresses: int = Field(
+        default=0,
+        ge=0,
+        description="Number of unique IP addresses"
+    )
+    unique_sessions: int = Field(
+        default=0,
+        ge=0,
+        description="Number of unique sessions"
+    )
+    
+    # Status distribution
+    successful_actions: int = Field(..., ge=0)
+    failed_actions: int = Field(..., ge=0)
+    pending_actions: int = Field(default=0, ge=0)
+    partial_actions: int = Field(default=0, ge=0)
+    
+    # Distribution by category
+    events_by_category: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Event count by AuditActionCategory"
+    )
+    category_analytics: List[CategoryAnalytics] = Field(
+        default_factory=list,
+        description="Detailed analytics per category"
+    )
+    
+    # Distribution by user role
+    events_by_user_role: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Event count by UserRole"
+    )
+    
+    # Distribution by entity type
+    events_by_entity_type: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Event count by entity type"
+    )
+    
+    # Top actors
+    top_users_by_events: List[UserActivitySummary] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Top 10 most active users"
+    )
+    
+    # Security metrics
+    critical_events: int = Field(default=0, ge=0, description="Critical severity events")
+    high_severity_events: int = Field(default=0, ge=0, description="High severity events")
+    sensitive_data_events: int = Field(
+        default=0,
+        ge=0,
+        description="Events involving sensitive data"
+    )
+    events_requiring_review: int = Field(
+        default=0,
+        ge=0,
+        description="Events flagged for review"
+    )
+    
+    # Authentication metrics
+    login_attempts: int = Field(default=0, ge=0)
+    successful_logins: int = Field(default=0, ge=0)
+    failed_logins: int = Field(default=0, ge=0)
+    
+    # Authorization metrics
+    access_granted: int = Field(default=0, ge=0)
+    access_denied: int = Field(default=0, ge=0)
+    
+    # Geographic distribution
+    events_by_country: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Event count by country code"
+    )
+    
+    # Device distribution
+    events_by_device_type: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Event count by device type"
+    )
+    
+    @computed_field
+    @property
+    def overall_success_rate(self) -> Decimal:
+        """Calculate overall success rate (2 decimal places)."""
+        if self.total_events == 0:
+            return Decimal("100.00")
+        result = (Decimal(self.successful_actions) / Decimal(self.total_events)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    @computed_field
+    @property
+    def login_success_rate(self) -> Decimal:
+        """Calculate login success rate (2 decimal places)."""
+        if self.login_attempts == 0:
+            return Decimal("100.00")
+        result = (Decimal(self.successful_logins) / Decimal(self.login_attempts)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    @computed_field
+    @property
+    def authorization_success_rate(self) -> Decimal:
+        """Calculate authorization success rate (2 decimal places)."""
+        total_auth = self.access_granted + self.access_denied
+        if total_auth == 0:
+            return Decimal("100.00")
+        result = (Decimal(self.access_granted) / Decimal(total_auth)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    @computed_field
+    @property
+    def security_health_score(self) -> Decimal:
+        """
+        Calculate security health score (0-100, 2 decimal places).
+        
+        Higher score indicates better security posture.
+        """
+        if self.total_events == 0:
+            return Decimal("100.00")
+        
+        # Factors that reduce score
+        failure_penalty = (self.failed_actions / self.total_events) * 30
+        critical_penalty = (self.critical_events / self.total_events) * 50
+        access_denied_penalty = (self.access_denied / max(1, self.total_events)) * 20
+        
+        total_penalty = min(100, failure_penalty + critical_penalty + access_denied_penalty)
+        score = 100 - total_penalty
+        
+        result = Decimal(str(max(0, score)))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    @computed_field
+    @property
+    def most_active_category(self) -> Optional[str]:
+        """Identify the most active audit category."""
+        if not self.events_by_category:
+            return None
+        return max(self.events_by_category, key=self.events_by_category.get)
+    
+    @computed_field
+    @property
+    def requires_attention(self) -> bool:
+        """Determine if summary indicates issues requiring attention."""
+        return (
+            self.security_health_score < 70 or
+            self.critical_events > 0 or
+            self.events_requiring_review > 10 or
+            self.failed_logins > 20
+        )
 
 
 class EntityChangeSummary(BaseSchema):
@@ -556,7 +549,7 @@ class EntityChangeSummary(BaseSchema):
     deletes: int = Field(default=0, ge=0, description="Delete operations")
     restores: int = Field(default=0, ge=0, description="Restore operations")
     
-    # Timing
+    # Timing (Note: Decimal with 2 decimal places expected)
     last_change_at: Optional[datetime] = Field(
         default=None,
         description="Timestamp of most recent change"
@@ -566,10 +559,9 @@ class EntityChangeSummary(BaseSchema):
         description="Timestamp of first change in period"
     )
     avg_changes_per_day: Decimal = Field(
-        default=0,
+        default=Decimal("0"),
         ge=0,
-        decimal_places=2,
-        description="Average changes per day"
+        description="Average changes per day (2 decimal places)"
     )
     
     # Most changed entities
@@ -586,22 +578,26 @@ class EntityChangeSummary(BaseSchema):
         description="Top 5 users modifying this entity type"
     )
     
+    @field_validator('avg_changes_per_day')
+    @classmethod
+    def validate_avg_changes(cls, v: Decimal) -> Decimal:
+        """Ensure avg_changes_per_day has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
     @computed_field
     @property
     def change_rate(self) -> Decimal:
-        """Calculate average changes per entity."""
+        """Calculate average changes per entity (2 decimal places)."""
         if self.unique_entities_changed == 0:
             return Decimal("0.00")
-        return round(
-            Decimal(self.total_changes) / Decimal(self.unique_entities_changed),
-            2
-        )
+        result = Decimal(self.total_changes) / Decimal(self.unique_entities_changed)
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def volatility_score(self) -> Decimal:
         """
-        Calculate volatility score (0-100).
+        Calculate volatility score (0-100, 2 decimal places).
         
         Higher score indicates more frequent changes.
         """
@@ -613,7 +609,8 @@ class EntityChangeSummary(BaseSchema):
         
         # Normalize to 0-100
         score = min(100, changes_per_entity * 10)
-        return round(Decimal(str(score)), 2)
+        result = Decimal(str(score))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 class EntityChangeRecord(BaseSchema):
@@ -737,12 +734,13 @@ class EntityChangeHistory(BaseSchema):
     @computed_field
     @property
     def change_frequency(self) -> Optional[Decimal]:
-        """Calculate average changes per day."""
+        """Calculate average changes per day (2 decimal places)."""
         if not self.created_at or self.total_changes == 0:
             return None
         
         age_days = self.entity_age_days or 1
-        return round(Decimal(self.total_changes) / Decimal(max(1, age_days)), 2)
+        result = Decimal(self.total_changes) / Decimal(max(1, age_days))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     def get_field_history(self, field_name: str) -> List[Dict[str, Any]]:
         """
@@ -824,15 +822,14 @@ class ComplianceReport(BaseSchema):
     admin_users_active: int = Field(default=0, ge=0)
     external_access_count: int = Field(default=0, ge=0)
     
-    # Compliance status
+    # Compliance status (Note: Decimal with 2 decimal places expected)
     compliant_events: int = Field(default=0, ge=0)
     non_compliant_events: int = Field(default=0, ge=0)
     compliance_rate: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Percentage of compliant events"
+        description="Percentage of compliant events (2 decimal places)"
     )
     
     # Recommendations
@@ -844,6 +841,12 @@ class ComplianceReport(BaseSchema):
         default_factory=list,
         description="Recommended actions"
     )
+    
+    @field_validator('compliance_rate')
+    @classmethod
+    def validate_compliance_rate(cls, v: Decimal) -> Decimal:
+        """Ensure compliance_rate has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -925,13 +928,12 @@ class SecurityAuditReport(BaseSchema):
     security_policy_violations: int = Field(default=0, ge=0)
     configuration_changes: int = Field(default=0, ge=0)
     
-    # Risk metrics
+    # Risk metrics (Note: Decimal with 2 decimal places expected)
     overall_risk_score: Decimal = Field(
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Overall security risk score (0=best, 100=worst)"
+        description="Overall security risk score (0=best, 100=worst, 2 decimal places)"
     )
     
     # Recommendations
@@ -943,6 +945,12 @@ class SecurityAuditReport(BaseSchema):
         default_factory=list,
         description="Security recommendations"
     )
+    
+    @field_validator('overall_risk_score')
+    @classmethod
+    def validate_risk_score(cls, v: Decimal) -> Decimal:
+        """Ensure overall_risk_score has max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -964,13 +972,11 @@ class SecurityAuditReport(BaseSchema):
     @computed_field
     @property
     def login_success_rate(self) -> Decimal:
-        """Calculate login success rate."""
+        """Calculate login success rate (2 decimal places)."""
         if self.total_login_attempts == 0:
             return Decimal("100.00")
-        return round(
-            (Decimal(self.successful_logins) / Decimal(self.total_login_attempts)) * 100,
-            2
-        )
+        result = (Decimal(self.successful_logins) / Decimal(self.total_login_attempts)) * 100
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 class AuditTrendAnalysis(BaseSchema):
@@ -994,7 +1000,7 @@ class AuditTrendAnalysis(BaseSchema):
         description="Time-series data points"
     )
     
-    # Trend metrics
+    # Trend metrics (Note: Decimals with 2 decimal places expected)
     trend_direction: str = Field(
         ...,
         pattern="^(increasing|decreasing|stable)$",
@@ -1004,19 +1010,17 @@ class AuditTrendAnalysis(BaseSchema):
         ...,
         ge=0,
         le=100,
-        decimal_places=2,
-        description="Trend strength (0-100)"
+        description="Trend strength (0-100, 2 decimal places)"
     )
     percentage_change: Decimal = Field(
         ...,
-        decimal_places=2,
-        description="Percentage change over period"
+        description="Percentage change over period (2 decimal places)"
     )
     
-    # Statistical metrics
-    average_value: Decimal = Field(..., decimal_places=2)
-    median_value: Decimal = Field(..., decimal_places=2)
-    std_deviation: Decimal = Field(..., ge=0, decimal_places=2)
+    # Statistical metrics (Note: Decimals with 2 decimal places expected)
+    average_value: Decimal = Field(..., description="Average value (2 decimal places)")
+    median_value: Decimal = Field(..., description="Median value (2 decimal places)")
+    std_deviation: Decimal = Field(..., ge=0, description="Standard deviation (2 decimal places)")
     
     # Anomalies
     anomaly_count: int = Field(default=0, ge=0, description="Number of detected anomalies")
@@ -1025,21 +1029,29 @@ class AuditTrendAnalysis(BaseSchema):
         description="Dates with anomalous activity"
     )
     
-    # Peak/low points
-    peak_value: Decimal = Field(..., description="Highest value in period")
+    # Peak/low points (Note: Decimals with 2 decimal places expected)
+    peak_value: Decimal = Field(..., description="Highest value in period (2 decimal places)")
     peak_date: Optional[Date] = Field(default=None, description="Date of peak value")
-    low_value: Decimal = Field(..., description="Lowest value in period")
+    low_value: Decimal = Field(..., description="Lowest value in period (2 decimal places)")
     low_date: Optional[Date] = Field(default=None, description="Date of lowest value")
+    
+    @field_validator('trend_strength', 'percentage_change', 'average_value', 
+                     'median_value', 'std_deviation', 'peak_value', 'low_value')
+    @classmethod
+    def validate_decimal_precision(cls, v: Decimal) -> Decimal:
+        """Ensure decimal fields have max 2 decimal places."""
+        return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
     def volatility_score(self) -> Decimal:
-        """Calculate volatility score based on standard deviation."""
+        """Calculate volatility score based on standard deviation (2 decimal places)."""
         if float(self.average_value) == 0:
             return Decimal("0.00")
         
         cv = (float(self.std_deviation) / float(self.average_value)) * 100
-        return round(Decimal(str(min(100, cv))), 2)
+        result = Decimal(str(min(100, cv)))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     @computed_field
     @property
@@ -1144,7 +1156,7 @@ class AuditReport(BaseSchema):
     @computed_field
     @property
     def overall_health_score(self) -> Decimal:
-        """Calculate overall audit health score."""
+        """Calculate overall audit health score (2 decimal places)."""
         scores = [float(self.summary.security_health_score)]
         
         if self.compliance_report:
@@ -1154,4 +1166,5 @@ class AuditReport(BaseSchema):
             scores.append(100 - float(self.security_report.overall_risk_score))
         
         avg_score = sum(scores) / len(scores)
-        return round(Decimal(str(avg_score)), 2)
+        result = Decimal(str(avg_score))
+        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

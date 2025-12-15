@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 from uuid import UUID
@@ -94,11 +94,8 @@ class TaskAssignment(BaseSchema):
         max_length=1000,
         description="Specific instructions for assigned staff",
     )
-    estimated_hours: Optional[Decimal] = Field(
+    estimated_hours: Optional[Annotated[Decimal, Field(ge=0, le=1000, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=1000,
-        decimal_places=2,
         description="Estimated hours to complete",
     )
     required_skills: Optional[List[str]] = Field(
@@ -196,11 +193,9 @@ class VendorAssignment(BaseCreateSchema):
         description="Vendor business address",
     )
 
-    # Quote and contract
-    quoted_amount: Decimal = Field(
+    # Quote and contract - Using Annotated for Decimal fields
+    quoted_amount: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Vendor quoted amount",
     )
     quote_reference: Optional[str] = Field(
@@ -217,17 +212,12 @@ class VendorAssignment(BaseCreateSchema):
         max_length=500,
         description="Payment terms and conditions",
     )
-    advance_payment_percentage: Optional[Decimal] = Field(
+    advance_payment_percentage: Optional[Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Advance payment percentage",
     )
-    advance_payment_amount: Optional[Decimal] = Field(
+    advance_payment_amount: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Advance payment amount",
     )
 
@@ -692,9 +682,8 @@ class AssignmentEntry(BaseSchema):
     )
 
     # Performance metrics
-    time_to_complete_hours: Optional[Decimal] = Field(
+    time_to_complete_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Hours taken to complete (if completed)",
     )
     met_deadline: Optional[bool] = Field(
@@ -776,9 +765,8 @@ class AssignmentHistory(BaseSchema):
     )
     
     # Summary metrics
-    average_assignment_duration_hours: Optional[Decimal] = Field(
+    average_assignment_duration_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average time per assignment",
     )
     total_reassignments: int = Field(

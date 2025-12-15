@@ -34,87 +34,85 @@ class ChargesBreakdown(BaseSchema):
     the total fee for a student.
     """
 
-    # Base Components
+    # Base Components - decimal_places removed
     base_rent: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Base rent per period",
+        description="Base rent per period (precision: 2 decimal places)",
     )
     mess_charges: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Mess/food charges",
+        description="Mess/food charges (precision: 2 decimal places)",
     )
     electricity_charges: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Electricity charges",
+        description="Electricity charges (precision: 2 decimal places)",
     )
     water_charges: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Water charges",
+        description="Water charges (precision: 2 decimal places)",
     )
     other_charges: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Other miscellaneous charges",
+        description="Other miscellaneous charges (precision: 2 decimal places)",
     )
 
     # Totals
     total_monthly: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total monthly recurring charges",
+        description="Total monthly recurring charges (precision: 2 decimal places)",
     )
     total_first_month: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total for first month (may include one-time charges)",
+        description="Total for first month (may include one-time charges, precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="One-time refundable security deposit",
+        description="One-time refundable security deposit (precision: 2 decimal places)",
     )
 
     # Optional Discount
     discount_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Total discount applied",
+        description="Total discount applied (precision: 2 decimal places)",
     )
     discount_percentage: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
-        description="Discount as percentage",
+        description="Discount as percentage (precision: 2 decimal places)",
     )
 
     # Tax (if applicable)
     tax_amount: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Tax amount (GST, etc.)",
+        description="Tax amount (GST, etc., precision: 2 decimal places)",
     )
     tax_percentage: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
-        description="Tax rate as percentage",
+        description="Tax rate as percentage (precision: 2 decimal places)",
     )
+
+    @field_validator(
+        "base_rent", "mess_charges", "electricity_charges", "water_charges",
+        "other_charges", "total_monthly", "total_first_month", "security_deposit",
+        "discount_amount", "discount_percentage", "tax_amount", "tax_percentage"
+    )
+    @classmethod
+    def quantize_decimal_fields(cls, v: Decimal) -> Decimal:
+        """Quantize all decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
 
     @computed_field
     @property
@@ -174,18 +172,16 @@ class FeeConfiguration(BaseSchema):
         description="Billing frequency",
     )
 
-    # Base Components
+    # Base Components - decimal_places removed
     base_amount: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Base rent amount",
+        description="Base rent amount (precision: 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Security deposit",
+        description="Security deposit (precision: 2 decimal places)",
     )
 
     # Mess Configuration
@@ -196,8 +192,7 @@ class FeeConfiguration(BaseSchema):
     mess_charges_monthly: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Monthly mess charges",
+        description="Monthly mess charges (precision: 2 decimal places)",
     )
 
     # Utility Configurations
@@ -208,8 +203,7 @@ class FeeConfiguration(BaseSchema):
     electricity_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Fixed electricity amount",
+        description="Fixed electricity amount (precision: 2 decimal places)",
     )
 
     water_charges: ChargeType = Field(
@@ -219,8 +213,7 @@ class FeeConfiguration(BaseSchema):
     water_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Fixed water amount",
+        description="Fixed water amount (precision: 2 decimal places)",
     )
 
     # Calculated Breakdown
@@ -235,6 +228,20 @@ class FeeConfiguration(BaseSchema):
         max_length=500,
         description="Configuration description or notes",
     )
+
+    @field_validator("base_amount", "security_deposit", "mess_charges_monthly")
+    @classmethod
+    def quantize_required_decimals(cls, v: Decimal) -> Decimal:
+        """Quantize required decimal fields to 2 decimal places."""
+        return v.quantize(Decimal("0.01"))
+
+    @field_validator("electricity_fixed_amount", "water_fixed_amount")
+    @classmethod
+    def quantize_optional_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize optional decimal fields to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
+        return v
 
     @computed_field
     @property
@@ -276,19 +283,17 @@ class DiscountConfiguration(BaseSchema):
         description="Type of discount",
     )
 
-    # Discount Value
+    # Discount Value - decimal_places removed
     discount_percentage: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
         le=Decimal("100"),
-        decimal_places=2,
-        description="Discount percentage (if type is percentage)",
+        description="Discount percentage (if type is percentage, precision: 2 decimal places)",
     )
     discount_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        decimal_places=2,
-        description="Fixed discount amount (if type is fixed_amount)",
+        description="Fixed discount amount (if type is fixed_amount, precision: 2 decimal places)",
     )
 
     # Applicability
@@ -324,10 +329,10 @@ class DiscountConfiguration(BaseSchema):
         description="Whether discount is currently active",
     )
 
-    @field_validator("discount_type")
+    @field_validator("discount_type", "applies_to")
     @classmethod
-    def validate_discount_type(cls, v: str) -> str:
-        """Normalize discount type."""
+    def normalize_string_fields(cls, v: str) -> str:
+        """Normalize string fields to lowercase."""
         return v.lower()
 
     @field_validator("discount_name")
@@ -337,6 +342,14 @@ class DiscountConfiguration(BaseSchema):
         v = v.strip()
         if len(v) < 3:
             raise ValueError("Discount name must be at least 3 characters")
+        return v
+
+    @field_validator("discount_percentage", "discount_amount")
+    @classmethod
+    def quantize_optional_decimals(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Quantize optional decimal fields to 2 decimal places."""
+        if v is not None:
+            return v.quantize(Decimal("0.01"))
         return v
 
     @computed_field

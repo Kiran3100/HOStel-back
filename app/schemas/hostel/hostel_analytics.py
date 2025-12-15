@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema
 from app.schemas.common.filters import DateRangeFilter
@@ -40,14 +40,13 @@ class OccupancyDataPoint(BaseSchema):
     
     Represents occupancy at a specific point in time.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     data_date: Date = Field(..., description="Date of the data point")
-    occupancy_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Occupancy rate percentage",
-    )
+    occupancy_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Occupancy rate percentage")
+    ]
     occupied_beds: int = Field(
         ...,
         ge=0,
@@ -66,31 +65,24 @@ class OccupancyAnalytics(BaseSchema):
     
     Provides detailed occupancy metrics and trends.
     """
+    model_config = ConfigDict(from_attributes=True)
 
-    current_occupancy_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Current occupancy percentage",
-    )
-    average_occupancy_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Average occupancy for the period",
-    )
-    peak_occupancy_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Peak occupancy during period",
-    )
-    lowest_occupancy_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Lowest occupancy during period",
-    )
+    current_occupancy_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Current occupancy percentage")
+    ]
+    average_occupancy_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Average occupancy for the period")
+    ]
+    peak_occupancy_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Peak occupancy during period")
+    ]
+    lowest_occupancy_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Lowest occupancy during period")
+    ]
 
     total_beds: int = Field(
         ...,
@@ -115,12 +107,10 @@ class OccupancyAnalytics(BaseSchema):
     )
 
     # Predictions
-    predicted_occupancy_next_month: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Predicted occupancy for next month",
-    )
+    predicted_occupancy_next_month: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Predicted occupancy for next month")
+    ]] = None
     trend_direction: str = Field(
         ...,
         pattern=r"^(increasing|decreasing|stable)$",
@@ -134,23 +124,12 @@ class RevenueDataPoint(BaseSchema):
     
     Represents revenue metrics at a specific point in time.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     data_date: Date = Field(..., description="Date of the data point")
-    revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total revenue",
-    )
-    collected: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount collected",
-    )
-    pending: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount pending",
-    )
+    revenue: Annotated[Decimal, Field(ge=0, description="Total revenue")]
+    collected: Annotated[Decimal, Field(ge=0, description="Amount collected")]
+    pending: Annotated[Decimal, Field(ge=0, description="Amount pending")]
 
 
 class RevenueAnalytics(BaseSchema):
@@ -159,50 +138,42 @@ class RevenueAnalytics(BaseSchema):
     
     Provides detailed financial metrics and trends.
     """
+    model_config = ConfigDict(from_attributes=True)
 
-    total_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total revenue for period",
-    )
-    rent_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Revenue from rent",
-    )
-    mess_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Revenue from mess charges",
-    )
-    other_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Revenue from other sources",
-    )
+    total_revenue: Annotated[
+        Decimal,
+        Field(ge=0, description="Total revenue for period")
+    ]
+    rent_revenue: Annotated[
+        Decimal,
+        Field(ge=0, description="Revenue from rent")
+    ]
+    mess_revenue: Annotated[
+        Decimal,
+        Field(ge=0, description="Revenue from mess charges")
+    ]
+    other_revenue: Annotated[
+        Decimal,
+        Field(ge=0, description="Revenue from other sources")
+    ]
 
-    total_collected: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total amount collected",
-    )
-    total_pending: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total amount pending",
-    )
-    total_overdue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total overdue amount",
-    )
+    total_collected: Annotated[
+        Decimal,
+        Field(ge=0, description="Total amount collected")
+    ]
+    total_pending: Annotated[
+        Decimal,
+        Field(ge=0, description="Total amount pending")
+    ]
+    total_overdue: Annotated[
+        Decimal,
+        Field(ge=0, description="Total overdue amount")
+    ]
 
-    collection_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Payment collection rate percentage",
-    )
+    collection_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Payment collection rate percentage")
+    ]
 
     # Trends
     revenue_trend: List[RevenueDataPoint] = Field(
@@ -221,11 +192,10 @@ class RevenueAnalytics(BaseSchema):
     )
 
     # Additional metrics
-    average_revenue_per_bed: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average revenue per occupied bed",
-    )
+    average_revenue_per_bed: Annotated[
+        Decimal,
+        Field(ge=0, description="Average revenue per occupied bed")
+    ]
 
 
 class BookingDataPoint(BaseSchema):
@@ -234,6 +204,7 @@ class BookingDataPoint(BaseSchema):
     
     Represents booking metrics at a specific point in time.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     data_date: Date = Field(..., description="Date of the data point")
     total_bookings: int = Field(
@@ -259,6 +230,7 @@ class BookingAnalytics(BaseSchema):
     
     Provides detailed booking metrics and conversion rates.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total_bookings: int = Field(
         ...,
@@ -286,18 +258,14 @@ class BookingAnalytics(BaseSchema):
         description="Cancelled bookings",
     )
 
-    conversion_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Booking approval rate percentage",
-    )
-    cancellation_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Cancellation rate percentage",
-    )
+    conversion_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Booking approval rate percentage")
+    ]
+    cancellation_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Cancellation rate percentage")
+    ]
 
     # Sources
     booking_sources: Dict[str, int] = Field(
@@ -312,11 +280,10 @@ class BookingAnalytics(BaseSchema):
     )
 
     # Average metrics
-    average_booking_value: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average booking value",
-    )
+    average_booking_value: Annotated[
+        Decimal,
+        Field(ge=0, description="Average booking value")
+    ]
 
 
 class ComplaintAnalytics(BaseSchema):
@@ -325,6 +292,7 @@ class ComplaintAnalytics(BaseSchema):
     
     Provides detailed complaint metrics and resolution statistics.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total_complaints: int = Field(
         ...,
@@ -347,17 +315,14 @@ class ComplaintAnalytics(BaseSchema):
         description="Closed complaints",
     )
 
-    average_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average time to resolve (hours)",
-    )
-    resolution_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Percentage of resolved complaints",
-    )
+    average_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=0, description="Average time to resolve (hours)")
+    ]
+    resolution_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Percentage of resolved complaints")
+    ]
 
     # By category
     complaints_by_category: Dict[str, int] = Field(
@@ -372,12 +337,10 @@ class ComplaintAnalytics(BaseSchema):
     )
 
     # SLA compliance
-    sla_compliance_rate: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Percentage meeting SLA",
-    )
+    sla_compliance_rate: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Percentage meeting SLA")
+    ]
     sla_breaches: int = Field(
         ...,
         ge=0,
@@ -391,18 +354,17 @@ class RatingDataPoint(BaseSchema):
     
     Represents rating metrics for a period.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     month: str = Field(
         ...,
         pattern=r"^\d{4}-\d{2}$",
         description="Month in YYYY-MM format",
     )
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average rating")
+    ]
     review_count: int = Field(
         ...,
         ge=0,
@@ -416,18 +378,17 @@ class ReviewAnalytics(BaseSchema):
     
     Provides detailed review and rating statistics.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total_reviews: int = Field(
         ...,
         ge=0,
         description="Total number of reviews",
     )
-    average_rating: Decimal = Field(
-        ...,
-        ge=0,
-        le=5,
-        description="Overall average rating",
-    )
+    average_rating: Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Overall average rating")
+    ]
 
     # Rating distribution
     rating_distribution: Dict[str, int] = Field(
@@ -436,36 +397,26 @@ class ReviewAnalytics(BaseSchema):
     )
 
     # Detailed aspect ratings
-    average_cleanliness_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average cleanliness rating",
-    )
-    average_food_quality_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average food quality rating",
-    )
-    average_staff_behavior_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average staff behavior rating",
-    )
-    average_security_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average security rating",
-    )
-    average_value_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=5,
-        description="Average value for money rating",
-    )
+    average_cleanliness_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average cleanliness rating")
+    ]] = None
+    average_food_quality_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average food quality rating")
+    ]] = None
+    average_staff_behavior_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average staff behavior rating")
+    ]] = None
+    average_security_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average security rating")
+    ]] = None
+    average_value_rating: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=5, description="Average value for money rating")
+    ]] = None
 
     # Trends
     rating_trend: List[RatingDataPoint] = Field(
@@ -484,12 +435,10 @@ class ReviewAnalytics(BaseSchema):
         ge=0,
         description="Number of negative reviews (1-2 stars)",
     )
-    sentiment_score: Decimal = Field(
-        ...,
-        ge=-1,
-        le=1,
-        description="Overall sentiment score (-1 to 1)",
-    )
+    sentiment_score: Annotated[
+        Decimal,
+        Field(ge=-1, le=1, description="Overall sentiment score (-1 to 1)")
+    ]
 
 
 class HostelAnalytics(BaseSchema):
@@ -498,6 +447,7 @@ class HostelAnalytics(BaseSchema):
     
     Aggregates all analytics for a hostel over a period.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
@@ -537,6 +487,7 @@ class RoomTypeOccupancy(BaseSchema):
     
     Provides occupancy breakdown for different room types.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     room_type: str = Field(
         ...,
@@ -557,12 +508,10 @@ class RoomTypeOccupancy(BaseSchema):
         ge=0,
         description="Available beds of this type",
     )
-    occupancy_percentage: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Occupancy percentage for this type",
-    )
+    occupancy_percentage: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Occupancy percentage for this type")
+    ]
 
 
 class HostelOccupancyStats(BaseSchema):
@@ -571,6 +520,7 @@ class HostelOccupancyStats(BaseSchema):
     
     Provides comprehensive occupancy analysis.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
 
@@ -595,12 +545,10 @@ class HostelOccupancyStats(BaseSchema):
         ge=0,
         description="Currently available beds",
     )
-    occupancy_percentage: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Current occupancy percentage",
-    )
+    occupancy_percentage: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Current occupancy percentage")
+    ]
 
     # By room type
     occupancy_by_room_type: List[RoomTypeOccupancy] = Field(
@@ -615,18 +563,14 @@ class HostelOccupancyStats(BaseSchema):
     )
 
     # Projections
-    projected_occupancy_30_days: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Projected occupancy in 30 days",
-    )
-    projected_occupancy_90_days: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Projected occupancy in 90 days",
-    )
+    projected_occupancy_30_days: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Projected occupancy in 30 days")
+    ]] = None
+    projected_occupancy_90_days: Optional[Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Projected occupancy in 90 days")
+    ]] = None
 
 
 class MonthlyRevenue(BaseSchema):
@@ -635,37 +579,25 @@ class MonthlyRevenue(BaseSchema):
     
     Represents revenue for a single month.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     month: str = Field(
         ...,
         pattern=r"^\d{4}-\d{2}$",
         description="Month in YYYY-MM format",
     )
-    revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total revenue",
-    )
-    collected: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount collected",
-    )
-    pending: Decimal = Field(
-        ...,
-        ge=0,
-        description="Amount pending",
-    )
+    revenue: Annotated[Decimal, Field(ge=0, description="Total revenue")]
+    collected: Annotated[Decimal, Field(ge=0, description="Amount collected")]
+    pending: Annotated[Decimal, Field(ge=0, description="Amount pending")]
     student_count: int = Field(
         ...,
         ge=0,
         description="Number of students",
     )
-    average_revenue_per_student: Decimal = Field(
-        ...,
-        ge=0,
-        description="Average revenue per student",
-    )
+    average_revenue_per_student: Annotated[
+        Decimal,
+        Field(ge=0, description="Average revenue per student")
+    ]
 
 
 class HostelRevenueStats(BaseSchema):
@@ -674,6 +606,7 @@ class HostelRevenueStats(BaseSchema):
     
     Provides comprehensive financial analysis.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     period: DateRangeFilter = Field(
@@ -682,26 +615,22 @@ class HostelRevenueStats(BaseSchema):
     )
 
     # Totals
-    total_revenue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total revenue for period",
-    )
-    total_expenses: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total expenses for period",
-    )
+    total_revenue: Annotated[
+        Decimal,
+        Field(ge=0, description="Total revenue for period")
+    ]
+    total_expenses: Annotated[
+        Decimal,
+        Field(ge=0, description="Total expenses for period")
+    ]
     net_profit: Decimal = Field(
         ...,
         description="Net profit (can be negative)",
     )
-    profit_margin: Decimal = Field(
-        ...,
-        ge=-100,
-        le=100,
-        description="Profit margin percentage",
-    )
+    profit_margin: Annotated[
+        Decimal,
+        Field(ge=-100, le=100, description="Profit margin percentage")
+    ]
 
     # Revenue breakdown
     revenue_by_type: Dict[str, Decimal] = Field(
@@ -710,27 +639,22 @@ class HostelRevenueStats(BaseSchema):
     )
 
     # Collection
-    total_collected: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total amount collected",
-    )
-    total_pending: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total amount pending",
-    )
-    total_overdue: Decimal = Field(
-        ...,
-        ge=0,
-        description="Total overdue amount",
-    )
-    collection_efficiency: Decimal = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Collection efficiency percentage",
-    )
+    total_collected: Annotated[
+        Decimal,
+        Field(ge=0, description="Total amount collected")
+    ]
+    total_pending: Annotated[
+        Decimal,
+        Field(ge=0, description="Total amount pending")
+    ]
+    total_overdue: Annotated[
+        Decimal,
+        Field(ge=0, description="Total overdue amount")
+    ]
+    collection_efficiency: Annotated[
+        Decimal,
+        Field(ge=0, le=100, description="Collection efficiency percentage")
+    ]
 
     # Monthly breakdown
     monthly_revenue: List[MonthlyRevenue] = Field(
@@ -755,6 +679,7 @@ class AnalyticsRequest(BaseSchema):
     
     Specifies parameters for analytics generation.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: UUID = Field(..., description="Hostel ID")
     start_date: Date = Field(..., description="Analytics start Date")

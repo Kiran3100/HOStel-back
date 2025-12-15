@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date as Date, datetime
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -30,6 +30,7 @@ class ResolutionRequest(BaseCreateSchema):
     Requires detailed resolution notes and supports
     optional proof attachments and follow-up scheduling.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -127,6 +128,7 @@ class ResolutionResponse(BaseSchema):
     
     Provides confirmation and resolution metrics.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(..., description="Resolved complaint ID")
     complaint_number: str = Field(..., description="Complaint reference number")
@@ -162,6 +164,7 @@ class ResolutionUpdate(BaseCreateSchema):
     
     Allows modification of resolution notes and attachments.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -237,6 +240,7 @@ class ReopenRequest(BaseCreateSchema):
     
     Requires detailed reason and supports additional information.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,
@@ -305,6 +309,7 @@ class CloseRequest(BaseCreateSchema):
     
     Optional closure notes and student confirmation.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str = Field(
         ...,

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import ComplaintCategory, ComplaintStatus, Priority
@@ -29,6 +29,7 @@ class ComplaintBase(BaseSchema):
     This schema defines the fundamental structure of a complaint including
     identification, categorization, priority, and location details.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: str = Field(
         ...,
@@ -178,6 +179,7 @@ class ComplaintCreate(ComplaintBase, BaseCreateSchema):
     Inherits all validation from ComplaintBase and adds any
     create-specific validation if needed.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")
     def validate_create_specific_rules(self) -> "ComplaintCreate":
@@ -204,6 +206,7 @@ class ComplaintUpdate(BaseUpdateSchema):
     All fields are optional to support partial updates.
     Includes validation to ensure meaningful updates.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     title: Optional[str] = Field(
         default=None,
@@ -306,6 +309,7 @@ class ComplaintStatusUpdate(BaseUpdateSchema):
     Provides focused status change functionality with
     mandatory change notes for audit trail.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     status: ComplaintStatus = Field(
         ...,

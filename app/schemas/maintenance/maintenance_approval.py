@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 from uuid import UUID
@@ -56,11 +56,9 @@ class ApprovalRequest(BaseCreateSchema):
         description="Maintenance request number",
     )
     
-    # Cost details
-    estimated_cost: Decimal = Field(
+    # Cost details - Using Annotated for Decimal constraints
+    estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Estimated total cost",
     )
     cost_breakdown: Optional[Dict[str, Decimal]] = Field(
@@ -266,10 +264,8 @@ class ApprovalResponse(BaseSchema):
     )
     
     # Approved details (if approved)
-    approved_amount: Optional[Decimal] = Field(
+    approved_amount: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Approved amount (may differ from requested)",
     )
     approval_conditions: Optional[str] = Field(
@@ -388,26 +384,20 @@ class ThresholdConfig(BaseSchema):
     )
     
     # Supervisor approval threshold
-    supervisor_approval_limit: Decimal = Field(
+    supervisor_approval_limit: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         Decimal("5000.00"),
-        ge=0,
-        decimal_places=2,
         description="Maximum amount supervisor can approve independently",
     )
     
     # Admin approval required above
-    admin_approval_required_above: Decimal = Field(
+    admin_approval_required_above: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         Decimal("5000.00"),
-        ge=0,
-        decimal_places=2,
         description="Amount above which admin approval is required",
     )
     
     # Auto-approve threshold
-    auto_approve_below: Decimal = Field(
+    auto_approve_below: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         Decimal("1000.00"),
-        ge=0,
-        decimal_places=2,
         description="Amount below which requests are auto-approved",
     )
     auto_approve_enabled: bool = Field(
@@ -416,10 +406,8 @@ class ThresholdConfig(BaseSchema):
     )
     
     # Senior management threshold
-    senior_management_required_above: Optional[Decimal] = Field(
+    senior_management_required_above: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Amount requiring senior management approval",
     )
     
@@ -428,10 +416,8 @@ class ThresholdConfig(BaseSchema):
         True,
         description="Allow emergency requests to bypass normal thresholds",
     )
-    emergency_approval_limit: Optional[Decimal] = Field(
+    emergency_approval_limit: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Special limit for emergency approvals",
     )
     
@@ -442,9 +428,8 @@ class ThresholdConfig(BaseSchema):
     )
     
     # Approval workflow
-    require_multiple_quotes_above: Optional[Decimal] = Field(
+    require_multiple_quotes_above: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Amount above which multiple quotes required",
     )
     minimum_quotes_required: int = Field(
@@ -537,9 +522,8 @@ class ApprovalWorkflow(BaseSchema):
     )
     
     # Cost information
-    estimated_cost: Decimal = Field(
+    estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Estimated cost",
     )
     threshold_exceeded: bool = Field(
@@ -665,10 +649,8 @@ class RejectionRequest(BaseCreateSchema):
         max_length=500,
         description="Suggested alternative approach",
     )
-    suggested_cost_reduction: Optional[Decimal] = Field(
+    suggested_cost_reduction: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Suggested reduced cost amount",
     )
     suggested_vendor: Optional[str] = Field(

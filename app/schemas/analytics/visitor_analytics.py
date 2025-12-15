@@ -12,10 +12,10 @@ Provides comprehensive visitor behavior analysis including:
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Annotated
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, computed_field, model_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, model_validator, AfterValidator
 from uuid import UUID
 
 from app.schemas.common.base import BaseSchema
@@ -32,6 +32,19 @@ __all__ = [
     "VisitorBehaviorAnalytics",
     "ConversionPathAnalysis",
 ]
+
+
+# Custom validator
+def round_to_2_places(v: Decimal) -> Decimal:
+    """Round decimal to 2 places."""
+    if isinstance(v, (int, float)):
+        v = Decimal(str(v))
+    return round(v, 2)
+
+
+# Type aliases
+DecimalPercentage = Annotated[Decimal, Field(ge=0, le=100), AfterValidator(round_to_2_places)]
+DecimalNonNegative = Annotated[Decimal, Field(ge=0), AfterValidator(round_to_2_places)]
 
 
 class FunnelStage(str, Enum):
@@ -82,23 +95,16 @@ class TrafficSourceMetrics(BaseSchema):
     )
     
     # Engagement metrics
-    avg_session_duration_seconds: Decimal = Field(
+    avg_session_duration_seconds: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average session duration"
     )
-    avg_pages_per_session: Decimal = Field(
+    avg_pages_per_session: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average pages viewed per session"
     )
-    bounce_rate: Decimal = Field(
+    bounce_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Bounce rate percentage"
     )
     
@@ -120,58 +126,40 @@ class TrafficSourceMetrics(BaseSchema):
     )
     
     # Conversion rates
-    visit_to_registration_rate: Decimal = Field(
+    visit_to_registration_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Visit to registration conversion rate"
     )
-    visit_to_booking_rate: Decimal = Field(
+    visit_to_booking_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Visit to booking conversion rate"
     )
-    registration_to_booking_rate: Decimal = Field(
+    registration_to_booking_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Registration to booking conversion rate"
     )
     
     # Revenue metrics
-    total_revenue: Decimal = Field(
+    total_revenue: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Total revenue from this source"
     )
-    revenue_per_visit: Decimal = Field(
+    revenue_per_visit: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Average revenue per visit"
     )
     
     # Cost metrics (if available)
-    marketing_cost: Optional[Decimal] = Field(
+    marketing_cost: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Marketing cost for this source"
     )
-    cost_per_acquisition: Optional[Decimal] = Field(
+    cost_per_acquisition: Optional[DecimalNonNegative] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Cost per booking acquisition"
     )
-    roi: Optional[Decimal] = Field(
+    roi: Optional[Annotated[Decimal, AfterValidator(round_to_2_places)]] = Field(
         None,
-        decimal_places=2,
         description="Return on investment percentage"
     )
     
@@ -179,7 +167,7 @@ class TrafficSourceMetrics(BaseSchema):
     @classmethod
     def validate_unique_visitors(cls, v: int, info) -> int:
         """Validate unique visitors don't exceed total visits."""
-        if info.data.get("visits") is not None and v > info.data["visits"]:
+        if "visits" in info.data and v > info.data["visits"]:
             raise ValueError("unique_visitors cannot exceed visits")
         return v
     
@@ -187,7 +175,7 @@ class TrafficSourceMetrics(BaseSchema):
     @classmethod
     def validate_conversion_counts(cls, v: int, info) -> int:
         """Validate conversion counts are reasonable."""
-        if info.data.get("visits") is not None and v > info.data["visits"]:
+        if "visits" in info.data and v > info.data["visits"]:
             # Allow slight excess for cross-session conversions
             if v > info.data["visits"] * 1.1:
                 raise ValueError(f"{info.field_name} significantly exceeds visits")
@@ -290,46 +278,28 @@ class VisitorFunnel(BaseSchema):
     )
     
     # Conversion rates
-    visit_to_search_rate: Decimal = Field(
+    visit_to_search_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Visit to search conversion rate"
     )
-    search_to_view_rate: Decimal = Field(
+    search_to_view_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Search to hostel view conversion rate"
     )
-    view_to_registration_rate: Decimal = Field(
+    view_to_registration_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Hostel view to registration rate"
     )
-    registration_to_booking_rate: Decimal = Field(
+    registration_to_booking_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Registration to booking rate"
     )
-    booking_to_confirm_rate: Decimal = Field(
+    booking_to_confirm_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Booking to confirmation rate"
     )
-    visit_to_booking_rate: Decimal = Field(
+    visit_to_booking_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall visit to booking conversion rate"
     )
     
@@ -518,10 +488,8 @@ class SearchBehavior(BaseSchema):
         ge=0,
         description="Unique users who searched"
     )
-    avg_searches_per_session: Decimal = Field(
+    avg_searches_per_session: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average searches per session"
     )
     
@@ -538,10 +506,8 @@ class SearchBehavior(BaseSchema):
     )
     
     # Filter usage
-    avg_filters_used: Decimal = Field(
+    avg_filters_used: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average number of filters applied"
     )
     most_filtered_amenities: List[str] = Field(
@@ -556,10 +522,8 @@ class SearchBehavior(BaseSchema):
     )
     
     # Search quality
-    avg_results_per_search: Decimal = Field(
+    avg_results_per_search: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average results returned per search"
     )
     zero_result_searches: int = Field(
@@ -567,11 +531,8 @@ class SearchBehavior(BaseSchema):
         ge=0,
         description="Number of searches with zero results"
     )
-    zero_result_rate: Decimal = Field(
+    zero_result_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of searches with no results"
     )
     
@@ -602,59 +563,40 @@ class EngagementMetrics(BaseSchema):
     """
     
     # Page engagement
-    avg_hostels_viewed_per_session: Decimal = Field(
+    avg_hostels_viewed_per_session: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average hostel pages viewed per session"
     )
-    avg_time_on_hostel_page_seconds: Decimal = Field(
+    avg_time_on_hostel_page_seconds: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average time spent on hostel detail page"
     )
-    avg_pages_per_session: Decimal = Field(
+    avg_pages_per_session: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average pages viewed per session"
     )
     
     # Feature usage
-    comparison_tool_usage_rate: Decimal = Field(
+    comparison_tool_usage_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of sessions using comparison tool"
     )
-    review_read_rate: Decimal = Field(
+    review_read_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of visitors who read reviews"
     )
-    photo_gallery_usage_rate: Decimal = Field(
+    photo_gallery_usage_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage using photo gallery"
     )
     
     # Interaction depth
-    avg_review_pages_viewed: Decimal = Field(
+    avg_review_pages_viewed: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Average review pages viewed"
     )
-    avg_photos_viewed: Decimal = Field(
+    avg_photos_viewed: DecimalNonNegative = Field(
         0,
-        ge=0,
-        decimal_places=2,
         description="Average photos viewed per hostel"
     )
     
@@ -669,11 +611,8 @@ class EngagementMetrics(BaseSchema):
         ge=0,
         description="Number of inquiry submissions"
     )
-    inquiry_conversion_rate: Decimal = Field(
+    inquiry_conversion_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Inquiry form conversion rate"
     )
     
@@ -736,26 +675,18 @@ class VisitorBehaviorAnalytics(BaseSchema):
         max_length=10,
         description="Common reasons for exit (from surveys/feedback)"
     )
-    bounce_rate: Decimal = Field(
+    bounce_rate: DecimalPercentage = Field(
         ...,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Overall bounce rate"
     )
     
     # Session metrics
-    avg_session_duration_seconds: Decimal = Field(
+    avg_session_duration_seconds: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average session duration"
     )
-    return_visitor_rate: Decimal = Field(
+    return_visitor_rate: DecimalPercentage = Field(
         0,
-        ge=0,
-        le=100,
-        decimal_places=2,
         description="Percentage of return visitors"
     )
     
@@ -848,16 +779,12 @@ class ConversionPathAnalysis(BaseSchema):
     )
     
     # Path metrics
-    avg_touches_before_conversion: Decimal = Field(
+    avg_touches_before_conversion: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average touchpoints before booking"
     )
-    avg_days_to_conversion: Decimal = Field(
+    avg_days_to_conversion: DecimalNonNegative = Field(
         ...,
-        ge=0,
-        decimal_places=2,
         description="Average days from first visit to booking"
     )
     

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from pydantic import ConfigDict, Field, computed_field
 from uuid import UUID
@@ -98,11 +98,12 @@ class MaintenanceResponse(BaseResponseSchema):
         None,
         description="Assignee name",
     )
-    estimated_cost: Optional[Decimal] = Field(
+    # Using Annotated for optional Decimal fields in v2
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Estimated cost",
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Actual cost",
     )
@@ -371,12 +372,12 @@ class MaintenanceDetail(BaseResponseSchema):
         description="Completion timestamp",
     )
     
-    # Cost tracking
-    estimated_cost: Optional[Decimal] = Field(
+    # Cost tracking - Using Annotated for Decimal in v2
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Estimated cost",
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Actual cost incurred",
     )
@@ -412,7 +413,7 @@ class MaintenanceDetail(BaseResponseSchema):
         default_factory=list,
         description="Materials used in work",
     )
-    labor_hours: Optional[Decimal] = Field(
+    labor_hours: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Labor hours spent",
     )
@@ -570,7 +571,7 @@ class RequestListItem(BaseSchema):
         None,
         description="Room number",
     )
-    estimated_cost: Optional[Decimal] = Field(
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
         description="Estimated cost",
     )
@@ -710,52 +711,41 @@ class MaintenanceSummary(BaseSchema):
         description="Critical priority requests",
     )
     
-    # Cost summary
-    total_estimated_cost: Decimal = Field(
+    # Cost summary - Using Annotated for Decimal fields
+    total_estimated_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Total estimated costs",
     )
-    total_actual_cost: Decimal = Field(
+    total_actual_cost: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Total actual costs",
     )
-    average_cost_per_request: Decimal = Field(
+    average_cost_per_request: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
         description="Average cost per request",
     )
     
     # Performance metrics
-    average_completion_time_hours: Decimal = Field(
+    average_completion_time_hours: Annotated[Decimal, Field(ge=0, decimal_places=2)] = Field(
         ...,
-        ge=0,
         description="Average completion time in hours",
     )
-    average_completion_time_days: Optional[Decimal] = Field(
+    average_completion_time_days: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
         description="Average completion time in days",
     )
-    on_time_completion_rate: Decimal = Field(
+    on_time_completion_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
         description="Percentage completed on time",
     )
     
     # Quality metrics
-    quality_check_pass_rate: Decimal = Field(
+    quality_check_pass_rate: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] = Field(
         default=Decimal("0.00"),
-        ge=0,
-        le=100,
         description="Quality check pass rate",
     )
-    average_quality_rating: Optional[Decimal] = Field(
+    average_quality_rating: Optional[Annotated[Decimal, Field(ge=0, le=5, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        le=5,
         description="Average quality rating",
     )
     

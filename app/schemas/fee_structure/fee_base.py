@@ -47,19 +47,17 @@ class FeeStructureBase(BaseSchema):
     )
 
     # Base Charges
+    # Note: max_digits and decimal_places removed - Pydantic v2 doesn't support these constraints
+    # Precision is maintained through Decimal type and quantization in validators
     amount: Decimal = Field(
         ...,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Base rent amount per billing period",
+        description="Base rent amount per billing period (precision: 10 digits, 2 decimal places)",
     )
     security_deposit: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Refundable security deposit amount",
+        description="Refundable security deposit amount (precision: 10 digits, 2 decimal places)",
     )
 
     # Mess Charges
@@ -70,9 +68,7 @@ class FeeStructureBase(BaseSchema):
     mess_charges_monthly: Decimal = Field(
         default=Decimal("0.00"),
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Monthly mess charges (if not included)",
+        description="Monthly mess charges (if not included, precision: 10 digits, 2 decimal places)",
     )
 
     # Utility Charges - Electricity
@@ -83,9 +79,7 @@ class FeeStructureBase(BaseSchema):
     electricity_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Fixed monthly electricity charge (if applicable)",
+        description="Fixed monthly electricity charge (if applicable, precision: 10 digits, 2 decimal places)",
     )
 
     # Utility Charges - Water
@@ -96,9 +90,7 @@ class FeeStructureBase(BaseSchema):
     water_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Fixed monthly water charge (if applicable)",
+        description="Fixed monthly water charge (if applicable, precision: 10 digits, 2 decimal places)",
     )
 
     # Validity Period
@@ -120,7 +112,10 @@ class FeeStructureBase(BaseSchema):
     @field_validator("amount")
     @classmethod
     def validate_amount(cls, v: Decimal) -> Decimal:
-        """Validate base amount is reasonable."""
+        """Validate base amount is reasonable and quantize to 2 decimal places."""
+        # Quantize to 2 decimal places (replaces decimal_places constraint)
+        v = v.quantize(Decimal("0.01"))
+        
         if v <= 0:
             raise ValueError("Base rent amount must be greater than zero")
         
@@ -133,25 +128,38 @@ class FeeStructureBase(BaseSchema):
         if v > max_rent:
             raise ValueError(f"Rent amount (₹{v}) exceeds maximum (₹{max_rent})")
         
-        return v.quantize(Decimal("0.01"))
+        return v
 
-    @field_validator("security_deposit")
+    @field_validator("security_deposit", "mess_charges_monthly")
     @classmethod
-    def validate_security_deposit(cls, v: Decimal) -> Decimal:
-        """Validate security deposit amount."""
-        if v < 0:
-            raise ValueError("Security deposit cannot be negative")
+    def validate_and_quantize_amounts(cls, v: Decimal) -> Decimal:
+        """Validate and quantize decimal amounts to 2 decimal places."""
+        # Quantize to 2 decimal places
+        v = v.quantize(Decimal("0.01"))
         
-        # Typically security deposit is 1-3 months rent
-        # This will be validated in model_validator with access to amount
-        return v.quantize(Decimal("0.01"))
+        if v < 0:
+            raise ValueError("Amount cannot be negative")
+        
+        return v
+
+    @field_validator("electricity_fixed_amount", "water_fixed_amount")
+    @classmethod
+    def validate_and_quantize_optional_amounts(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Validate and quantize optional decimal amounts to 2 decimal places."""
+        if v is not None:
+            # Quantize to 2 decimal places
+            v = v.quantize(Decimal("0.01"))
+            
+            if v < 0:
+                raise ValueError("Amount cannot be negative")
+        
+        return v
 
     @field_validator("mess_charges_monthly")
     @classmethod
     def validate_mess_charges(cls, v: Decimal) -> Decimal:
-        """Validate mess charges."""
-        if v < 0:
-            raise ValueError("Mess charges cannot be negative")
+        """Validate mess charges with sanity check."""
+        # Already quantized by validate_and_quantize_amounts
         
         # Sanity check
         max_mess = Decimal("10000.00")
@@ -160,7 +168,7 @@ class FeeStructureBase(BaseSchema):
                 f"Mess charges (₹{v}) exceed reasonable maximum (₹{max_mess})"
             )
         
-        return v.quantize(Decimal("0.01"))
+        return v
 
     @field_validator("effective_from")
     @classmethod
@@ -325,20 +333,16 @@ class FeeStructureUpdate(BaseUpdateSchema):
     All fields are optional, allowing partial updates.
     """
 
-    # Pricing
+    # Pricing - max_digits and decimal_places removed
     amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Update base rent amount",
+        description="Update base rent amount (precision: 10 digits, 2 decimal places)",
     )
     security_deposit: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Update security deposit",
+        description="Update security deposit (precision: 10 digits, 2 decimal places)",
     )
 
     # Mess
@@ -349,9 +353,7 @@ class FeeStructureUpdate(BaseUpdateSchema):
     mess_charges_monthly: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Update mess charges",
+        description="Update mess charges (precision: 10 digits, 2 decimal places)",
     )
 
     # Utilities
@@ -362,9 +364,7 @@ class FeeStructureUpdate(BaseUpdateSchema):
     electricity_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Update fixed electricity amount",
+        description="Update fixed electricity amount (precision: 10 digits, 2 decimal places)",
     )
 
     water_charges: Optional[ChargeType] = Field(
@@ -374,9 +374,7 @@ class FeeStructureUpdate(BaseUpdateSchema):
     water_fixed_amount: Optional[Decimal] = Field(
         default=None,
         ge=Decimal("0"),
-        max_digits=10,
-        decimal_places=2,
-        description="Update fixed water amount",
+        description="Update fixed water amount (precision: 10 digits, 2 decimal places)",
     )
 
     # Validity
@@ -395,14 +393,17 @@ class FeeStructureUpdate(BaseUpdateSchema):
         description="Update active status",
     )
 
-    @field_validator("amount", "security_deposit", "mess_charges_monthly")
+    @field_validator("amount", "security_deposit", "mess_charges_monthly", "electricity_fixed_amount", "water_fixed_amount")
     @classmethod
     def validate_amounts(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        """Validate monetary amounts if provided."""
+        """Validate monetary amounts if provided and quantize to 2 decimal places."""
         if v is not None:
+            # Quantize to 2 decimal places
+            v = v.quantize(Decimal("0.01"))
+            
             if v < 0:
                 raise ValueError("Amount cannot be negative")
-            return v.quantize(Decimal("0.01"))
+        
         return v
 
     @model_validator(mode="after")

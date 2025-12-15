@@ -8,11 +8,11 @@ inquiries about hostel availability and bookings.
 
 from __future__ import annotations
 
-from datetime import  date as Date, datetime
+from datetime import date as Date
 from typing import Optional
 from uuid import UUID
 
-from pydantic import ConfigDict, EmailStr, Field, computed_field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, computed_field, field_validator
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
 from app.schemas.common.enums import InquirySource, InquiryStatus, RoomType
@@ -31,8 +31,8 @@ class InquiryBase(BaseSchema):
     Contains all core inquiry information including hostel selection,
     visitor contact details, preferences, and inquiry metadata.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -73,35 +73,35 @@ class InquiryBase(BaseSchema):
 
     # Inquiry Preferences
     preferred_check_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Preferred or approximate check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=36,
         description="Intended stay duration in months (1-36)",
     )
     room_type_preference: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Preferred room type if any",
     )
 
     # Inquiry Details
     message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=2000,
         description="Additional message or questions from visitor",
     )
 
     # Metadata
     inquiry_source: InquirySource = Field(
-        InquirySource.WEBSITE,
+        default=InquirySource.WEBSITE,
         description="Source channel of the inquiry",
     )
 
     status: InquiryStatus = Field(
-        InquiryStatus.NEW,
+        default=InquiryStatus.NEW,
         description="Current status of the inquiry",
     )
 
@@ -208,8 +208,8 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
     
     All base fields are inherited. Status is automatically set to NEW.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "hostel_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -227,7 +227,7 @@ class InquiryCreate(InquiryBase, BaseCreateSchema):
 
     # Override status to always start as NEW
     status: InquiryStatus = Field(
-        InquiryStatus.NEW,
+        default=InquiryStatus.NEW,
         description="Status is automatically set to NEW for new inquiries",
     )
 
@@ -248,8 +248,8 @@ class InquiryUpdate(BaseUpdateSchema):
     All fields are optional, allowing partial updates.
     Typically used by admins to add notes or update contact info.
     """
-    
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "visitor_phone": "+919876543211",
@@ -262,47 +262,47 @@ class InquiryUpdate(BaseUpdateSchema):
 
     # Visitor Contact (rarely updated, but allowed)
     visitor_name: Optional[str] = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=255,
         description="Update visitor name",
     )
     visitor_email: Optional[EmailStr] = Field(
-        None,
+        default=None,
         description="Update visitor email",
     )
     visitor_phone: Optional[str] = Field(
-        None,
+        default=None,
         pattern=r"^\+?[1-9]\d{9,14}$",
         description="Update visitor phone",
     )
 
     # Preferences (can be updated as inquiry is refined)
     preferred_check_in_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Update preferred check-in Date",
     )
     stay_duration_months: Optional[int] = Field(
-        None,
+        default=None,
         ge=1,
         le=36,
         description="Update stay duration",
     )
     room_type_preference: Optional[RoomType] = Field(
-        None,
+        default=None,
         description="Update room type preference",
     )
 
     # Message (can be appended or updated)
     message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=2000,
         description="Update inquiry message",
     )
 
     # Status (usually updated via separate status update endpoint)
     status: Optional[InquiryStatus] = Field(
-        None,
+        default=None,
         description="Update inquiry status",
     )
 

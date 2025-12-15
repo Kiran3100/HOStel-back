@@ -118,7 +118,7 @@ class LeaveBalance(BaseSchema):
         
         return v
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def usage_percentage(self) -> Decimal:
         """Calculate usage percentage."""
@@ -131,13 +131,13 @@ class LeaveBalance(BaseSchema):
             2,
         )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def is_exhausted(self) -> bool:
         """Check if leave balance is exhausted."""
         return self.remaining_days <= 0
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def utilization_status(self) -> str:
         """Get utilization status indicator."""
@@ -257,7 +257,7 @@ class LeaveBalanceSummary(BaseSchema):
                 )
         return v
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def overall_usage_percentage(self) -> Decimal:
         """Calculate overall usage percentage."""
@@ -269,7 +269,7 @@ class LeaveBalanceSummary(BaseSchema):
             2,
         )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def days_until_year_end(self) -> int:
         """Calculate days remaining in academic year."""
@@ -278,7 +278,7 @@ class LeaveBalanceSummary(BaseSchema):
             return 0
         return (self.academic_year_end - today).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def has_pending_applications(self) -> bool:
         """Check if there are pending applications."""
@@ -452,7 +452,7 @@ class LeaveUsageDetail(BaseSchema):
         description="Whether supporting document was provided",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def approval_turnaround_days(self) -> Optional[int]:
         """Calculate days taken for approval."""

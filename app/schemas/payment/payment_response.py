@@ -113,13 +113,13 @@ class PaymentResponse(BaseResponseSchema):
         description="URL to download receipt",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def amount_display(self) -> str:
         """Get formatted amount for display."""
         return f"{self.currency} {self.amount:,.2f}"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_badge_color(self) -> str:
         """Get color code for status badge."""
@@ -234,25 +234,25 @@ class PaymentDetail(BaseResponseSchema):
     # Notes
     notes: Optional[str] = Field(None, description="Additional notes")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def net_amount(self) -> Decimal:
         """Calculate net amount after refunds."""
         return (self.amount - self.refund_amount).quantize(Decimal("0.01"))
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_fully_refunded(self) -> bool:
         """Check if payment is fully refunded."""
         return self.refund_amount >= self.amount
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_partially_refunded(self) -> bool:
         """Check if payment is partially refunded."""
         return Decimal("0") < self.refund_amount < self.amount
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def days_overdue(self) -> int:
         """Calculate days overdue."""
@@ -260,7 +260,7 @@ class PaymentDetail(BaseResponseSchema):
             return 0
         return (Date.today() - self.due_date).days
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def payment_period_display(self) -> Optional[str]:
         """Get formatted payment period."""
@@ -332,7 +332,7 @@ class PaymentReceipt(BaseSchema):
     # Additional Information
     remarks: Optional[str] = Field(None, description="Additional remarks")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def receipt_display_id(self) -> str:
         """Get formatted receipt ID for display."""
@@ -363,7 +363,7 @@ class PaymentListItem(BaseSchema):
 
     created_at: datetime = Field(..., description="Creation time")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status_display(self) -> str:
         """Get user-friendly status display."""
@@ -451,7 +451,7 @@ class PaymentSummary(BaseSchema):
         description="Number of pending payments",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def payment_health_score(self) -> str:
         """
@@ -468,7 +468,7 @@ class PaymentSummary(BaseSchema):
         else:
             return "good"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def completion_rate(self) -> float:
         """Calculate payment completion rate as percentage."""
@@ -535,13 +535,13 @@ class PaymentAnalytics(BaseSchema):
         description="Percentage of dues collected on time",
     )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_revenue(self) -> Decimal:
         """Calculate total revenue (completed payments only)."""
         return self.completed_amount
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def failure_rate(self) -> float:
         """Calculate transaction failure rate."""

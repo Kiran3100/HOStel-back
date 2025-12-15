@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -53,19 +53,19 @@ class SMSRequest(BaseCreateSchema):
 
     # Template support
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=100,
         description="Template code (overrides direct message)",
     )
     template_variables: Optional[Dict[str, str]] = Field(
-        None,
+        default=None,
         description="Variables for template rendering",
     )
 
     # Sender configuration
     sender_id: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=11,
         pattern="^[a-zA-Z0-9]+$",
@@ -81,19 +81,19 @@ class SMSRequest(BaseCreateSchema):
 
     # DLT compliance (India-specific)
     dlt_template_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="DLT template ID for regulatory compliance (India)",
     )
     dlt_entity_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="DLT entity ID (India)",
     )
 
     # Scheduling
     send_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Schedule SMS for future delivery",
     )
 
@@ -181,17 +181,17 @@ class SMSConfig(BaseSchema):
 
     # API credentials
     account_sid: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Account SID/ID",
     )
     auth_token: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Authentication token/API key",
     )
     api_key: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="API key (alternative to auth_token)",
     )
@@ -241,21 +241,21 @@ class SMSConfig(BaseSchema):
         description="Enable DLT compliance checking",
     )
     dlt_entity_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Default DLT entity ID",
     )
 
     # Delivery reports
     delivery_report_webhook_url: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Webhook URL for delivery reports",
     )
 
     # Cost settings
-    cost_per_sms: Optional[Decimal] = Field(
-        None,
-        ge=0,
+    # Note: Pydantic v2 - Using Annotated for Decimal constraints
+    cost_per_sms: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
+        default=None,
         description="Cost per SMS unit",
     )
     currency: str = Field(
@@ -295,38 +295,38 @@ class DeliveryStatus(BaseSchema):
         description="When SMS was queued",
     )
     sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When SMS was sent to provider",
     )
     delivered_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When SMS was delivered to recipient",
     )
     failed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When delivery failed",
     )
 
     # Error information
     error_code: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Error code from provider",
     )
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Human-readable error message",
     )
 
     # Provider details
     provider_message_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Provider's unique message ID",
     )
     provider_status: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Raw status from provider",
     )
@@ -350,13 +350,12 @@ class DeliveryStatus(BaseSchema):
     )
 
     # Cost
-    cost: Optional[Decimal] = Field(
-        None,
-        ge=0,
+    cost: Optional[Annotated[Decimal, Field(ge=0)]] = Field(
+        default=None,
         description="Cost for this SMS",
     )
     currency: Optional[str] = Field(
-        None,
+        default=None,
         min_length=3,
         max_length=3,
         description="Currency code",
@@ -418,7 +417,7 @@ class SMSTemplate(BaseSchema):
 
     # DLT compliance (India)
     dlt_template_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="DLT approved template ID",
     )
@@ -427,13 +426,13 @@ class SMSTemplate(BaseSchema):
         description="Whether template is DLT approved",
     )
     dlt_approval_date: Optional[Date] = Field(
-        None,
+        default=None,
         description="Date of DLT approval",
     )
 
     # Category
     category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         pattern="^(transactional|promotional|otp|alert)$",
         description="SMS category",
@@ -464,19 +463,19 @@ class BulkSMSRequest(BaseCreateSchema):
 
     # Template support
     template_code: Optional[str] = Field(
-        None,
+        default=None,
         description="Template code for all SMS",
     )
 
     # Per-recipient customization
     recipient_variables: Optional[Dict[str, Dict[str, str]]] = Field(
-        None,
+        default=None,
         description="Per-recipient variable mapping (phone -> variables)",
     )
 
     # Sender
     sender_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=11,
         description="Sender ID for all SMS",
     )
@@ -497,19 +496,19 @@ class BulkSMSRequest(BaseCreateSchema):
 
     # Scheduling
     send_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Schedule bulk send for future",
     )
 
     # DLT (India)
     dlt_template_id: Optional[str] = Field(
-        None,
+        default=None,
         description="DLT template ID for all SMS",
     )
 
     # Metadata
     campaign_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Campaign name for tracking",
     )
@@ -568,28 +567,22 @@ class SMSStats(BaseSchema):
     )
 
     # Delivery rates
-    delivery_rate: Decimal = Field(
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Delivery rate percentage",
     )
-    failure_rate: Decimal = Field(
+    failure_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Failure rate percentage",
     )
 
     # Cost analysis
-    total_cost: Decimal = Field(
+    total_cost: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Total cost for period",
     )
-    average_cost_per_sms: Decimal = Field(
+    average_cost_per_sms: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average cost per SMS",
     )
     currency: str = Field(
@@ -605,9 +598,8 @@ class SMSStats(BaseSchema):
         ge=0,
         description="Total SMS segments used",
     )
-    average_segments_per_sms: Decimal = Field(
+    average_segments_per_sms: Annotated[Decimal, Field(ge=0)] = Field(
         ...,
-        ge=0,
         description="Average segments per SMS",
     )
 

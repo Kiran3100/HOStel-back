@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import date as Date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -52,12 +52,12 @@ class PushAction(BaseSchema):
         description="Action button text",
     )
     action_url: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="URL to open when action is tapped",
     )
     icon: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Action icon identifier",
     )
@@ -73,22 +73,22 @@ class PushRequest(BaseCreateSchema):
 
     # Recipients (at least one required)
     user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="Send to all active devices of this user",
     )
     device_token: Optional[str] = Field(
-        None,
+        default=None,
         min_length=10,
         max_length=500,
         description="Send to specific device token",
     )
     device_tokens: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=1000,
         description="Send to multiple specific devices (max 1000)",
     )
     segment: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Send to user segment",
     )
@@ -109,12 +109,12 @@ class PushRequest(BaseCreateSchema):
 
     # Rich content
     image_url: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Large image URL for rich notification",
     )
     icon: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Small icon identifier",
     )
@@ -127,7 +127,7 @@ class PushRequest(BaseCreateSchema):
 
     # Actions
     action_url: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Deep link or URL to open on tap",
     )
@@ -139,13 +139,13 @@ class PushRequest(BaseCreateSchema):
 
     # Badge (iOS)
     badge_count: Optional[int] = Field(
-        None,
+        default=None,
         ge=0,
         le=99999,
         description="Badge count for app icon",
     )
     badge_strategy: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(set|increment|decrement)$",
         description="How to update badge count",
     )
@@ -157,7 +157,7 @@ class PushRequest(BaseCreateSchema):
         description="Notification sound (default or custom)",
     )
     sound_volume: Optional[float] = Field(
-        None,
+        default=None,
         ge=0.0,
         le=1.0,
         description="Sound volume (0.0 to 1.0)",
@@ -178,31 +178,31 @@ class PushRequest(BaseCreateSchema):
 
     # Collapse/grouping
     collapse_key: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Collapse key for grouping notifications",
     )
     thread_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Thread ID for notification grouping",
     )
 
     # Platform-specific
     android_channel_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Android notification channel ID",
     )
     ios_category: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="iOS notification category",
     )
 
     # Scheduling
     send_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="Schedule for future delivery",
     )
 
@@ -279,7 +279,7 @@ class PushConfig(BaseSchema):
         description="Firebase server key / FCM API key",
     )
     firebase_service_account_json: Optional[str] = Field(
-        None,
+        default=None,
         description="Firebase service account JSON (for v1 API)",
     )
 
@@ -289,22 +289,22 @@ class PushConfig(BaseSchema):
         description="Enable APNs for iOS",
     )
     apns_key_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="APNs key ID",
     )
     apns_team_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Apple team ID",
     )
     apns_bundle_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="iOS app bundle ID",
     )
     apns_key_path: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Path to APNs .p8 key file",
     )
@@ -331,7 +331,7 @@ class PushConfig(BaseSchema):
 
     # Collapse key
     collapse_key: Optional[str] = Field(
-        None,
+        default=None,
         description="Default collapse key for grouping",
     )
 
@@ -387,34 +387,34 @@ class DeviceToken(BaseResponseSchema):
 
     # Device details
     device_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="User-set device name",
     )
     device_model: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Device model",
     )
     os_version: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="OS version",
     )
     app_version: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="App version",
     )
 
     # Location and timezone
     timezone: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Device timezone",
     )
     locale: Optional[str] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Device locale (e.g., en_US)",
     )
@@ -465,34 +465,34 @@ class DeviceRegistration(BaseCreateSchema):
 
     # Optional device details
     device_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Device name",
     )
     device_model: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Device model",
     )
     os_version: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Operating system version",
     )
     app_version: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Application version",
     )
 
     # Timezone
     timezone: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Device timezone",
     )
     locale: Optional[str] = Field(
-        None,
+        default=None,
         max_length=10,
         description="Device locale",
     )
@@ -510,11 +510,11 @@ class DeviceUnregistration(BaseCreateSchema):
         description="Device token to unregister",
     )
     user_id: Optional[UUID] = Field(
-        None,
+        default=None,
         description="User ID (for verification)",
     )
     reason: Optional[str] = Field(
-        None,
+        default=None,
         max_length=200,
         description="Reason for unregistration",
     )
@@ -550,7 +550,7 @@ class PushTemplate(BaseSchema):
 
     # Default settings
     default_icon: Optional[str] = Field(
-        None,
+        default=None,
         description="Default notification icon",
     )
     default_sound: str = Field(
@@ -558,7 +558,7 @@ class PushTemplate(BaseSchema):
         description="Default notification sound",
     )
     default_image_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Default image URL",
     )
 
@@ -574,7 +574,7 @@ class PushTemplate(BaseSchema):
 
     # Actions
     default_action_url: Optional[str] = Field(
-        None,
+        default=None,
         description="Default deep link/URL",
     )
     default_actions: List[PushAction] = Field(
@@ -584,11 +584,11 @@ class PushTemplate(BaseSchema):
 
     # Platform-specific
     android_channel_id: Optional[str] = Field(
-        None,
+        default=None,
         description="Default Android channel ID",
     )
     ios_category: Optional[str] = Field(
-        None,
+        default=None,
         description="Default iOS category",
     )
 
@@ -618,42 +618,42 @@ class PushDeliveryStatus(BaseSchema):
 
     # Timeline
     sent_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When notification was sent",
     )
     delivered_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When notification was delivered to device",
     )
     clicked_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When notification was clicked",
     )
     failed_at: Optional[datetime] = Field(
-        None,
+        default=None,
         description="When delivery failed",
     )
 
     # Error information
     error_code: Optional[str] = Field(
-        None,
+        default=None,
         max_length=50,
         description="Error code from provider",
     )
     error_message: Optional[str] = Field(
-        None,
+        default=None,
         max_length=500,
         description="Error message",
     )
 
     # Provider details
     provider_message_id: Optional[str] = Field(
-        None,
+        default=None,
         max_length=255,
         description="Provider's message ID",
     )
     provider_response: Optional[Dict[str, Any]] = Field(
-        None,
+        default=None,
         description="Raw provider response",
     )
 
@@ -663,7 +663,7 @@ class PushDeliveryStatus(BaseSchema):
         description="Whether notification was clicked",
     )
     action_taken: Optional[str] = Field(
-        None,
+        default=None,
         description="Which action button was clicked (if any)",
     )
 
@@ -693,10 +693,8 @@ class PushStats(BaseSchema):
     )
 
     # Delivery rate
-    delivery_rate: Decimal = Field(
+    delivery_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Delivery rate percentage",
     )
 
@@ -715,10 +713,8 @@ class PushStats(BaseSchema):
         ge=0,
         description="Total notifications clicked/opened",
     )
-    open_rate: Decimal = Field(
+    open_rate: Annotated[Decimal, Field(ge=0, le=100)] = Field(
         ...,
-        ge=0,
-        le=100,
         description="Click/open rate percentage",
     )
 
@@ -762,17 +758,17 @@ class BulkPushRequest(BaseCreateSchema):
 
     # Recipients
     user_ids: Optional[List[UUID]] = Field(
-        None,
+        default=None,
         max_length=100000,
         description="List of user IDs (max 100,000)",
     )
     device_tokens: Optional[List[str]] = Field(
-        None,
+        default=None,
         max_length=100000,
         description="List of device tokens (max 100,000)",
     )
     segment: Optional[str] = Field(
-        None,
+        default=None,
         description="User segment to target",
     )
 
@@ -781,11 +777,11 @@ class BulkPushRequest(BaseCreateSchema):
     body: str = Field(..., min_length=1, max_length=500)
 
     # Template support
-    template_code: Optional[str] = Field(None, description="Template to use")
+    template_code: Optional[str] = Field(default=None, description="Template to use")
 
     # Per-user customization
     user_variables: Optional[Dict[UUID, Dict[str, str]]] = Field(
-        None,
+        default=None,
         description="Per-user variable mapping",
     )
 
@@ -811,7 +807,7 @@ class BulkPushRequest(BaseCreateSchema):
 
     # Metadata
     campaign_name: Optional[str] = Field(
-        None,
+        default=None,
         max_length=100,
         description="Campaign name",
     )

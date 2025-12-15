@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common.base import BaseSchema
 
@@ -33,60 +33,66 @@ class ResolutionMetrics(BaseSchema):
     
     Tracks resolution efficiency and quality indicators.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     total_resolved: int = Field(..., ge=0, description="Total resolved count")
 
     # Time metrics (in hours)
-    average_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average resolution time (hours)",
-    )
-    median_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Median resolution time (hours)",
-    )
-    fastest_resolution_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Fastest resolution time (hours)",
-    )
-    slowest_resolution_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Slowest resolution time (hours)",
-    )
+    # Note: Pydantic v2 requires Decimal constraints in Annotated for optional fields
+    average_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Average resolution time (hours)")
+    ]
+    median_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Median resolution time (hours)")
+    ]
+    fastest_resolution_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Fastest resolution time (hours)")
+    ]
+    slowest_resolution_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Slowest resolution time (hours)")
+    ]
 
     # Performance rates
-    resolution_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% of complaints resolved",
-    )
-    same_day_resolution_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% resolved within 24 hours",
-    )
+    resolution_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% of complaints resolved"
+        )
+    ]
+    same_day_resolution_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% resolved within 24 hours"
+        )
+    ]
 
     # Escalation metrics
-    escalation_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% of complaints escalated",
-    )
+    escalation_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% of complaints escalated"
+        )
+    ]
 
     # Quality metrics
-    reopen_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% of resolved complaints reopened",
-    )
+    reopen_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% of resolved complaints reopened"
+        )
+    ]
 
 
 class CategoryMetrics(BaseSchema):
@@ -95,30 +101,34 @@ class CategoryMetrics(BaseSchema):
     
     Provides detailed performance data per category.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     category: str = Field(..., description="Category name")
     total_complaints: int = Field(..., ge=0, description="Total complaints")
     open_complaints: int = Field(..., ge=0, description="Open complaints")
     resolved_complaints: int = Field(..., ge=0, description="Resolved complaints")
 
-    average_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average resolution time (hours)",
-    )
-    resolution_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Resolution rate percentage",
-    )
+    average_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Average resolution time (hours)")
+    ]
+    resolution_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="Resolution rate percentage"
+        )
+    ]
 
-    percentage_of_total: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="% of total complaints",
-    )
+    percentage_of_total: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="% of total complaints"
+        )
+    ]
 
 
 class CategoryAnalysis(BaseSchema):
@@ -127,6 +137,7 @@ class CategoryAnalysis(BaseSchema):
     
     Identifies problem areas and trends by category.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     categories: List[CategoryMetrics] = Field(
         default_factory=list,
@@ -149,6 +160,7 @@ class ComplaintTrendPoint(BaseSchema):
     
     Represents complaint metrics for a specific period.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     period: str = Field(
         ...,
@@ -172,6 +184,7 @@ class StaffPerformance(BaseSchema):
     
     Tracks productivity and quality metrics per staff member.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     staff_id: str = Field(..., description="Staff member user ID")
     staff_name: str = Field(..., description="Staff member name")
@@ -188,24 +201,27 @@ class StaffPerformance(BaseSchema):
         description="Total complaints resolved",
     )
 
-    average_resolution_time_hours: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        description="Average resolution time (hours)",
-    )
-    resolution_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="Resolution rate percentage",
-    )
+    average_resolution_time_hours: Annotated[
+        Decimal,
+        Field(ge=Decimal("0"), description="Average resolution time (hours)")
+    ]
+    resolution_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="Resolution rate percentage"
+        )
+    ]
 
-    average_rating: Optional[Decimal] = Field(
-        default=None,
-        ge=Decimal("0"),
-        le=Decimal("5"),
-        description="Average feedback rating (1-5)",
-    )
+    average_rating: Optional[Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("5"),
+            description="Average feedback rating (1-5)"
+        )
+    ]] = None
 
 
 class RoomComplaintCount(BaseSchema):
@@ -214,6 +230,7 @@ class RoomComplaintCount(BaseSchema):
     
     Helps identify problematic rooms.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     room_id: str = Field(..., description="Room identifier")
     room_number: str = Field(..., description="Room number")
@@ -231,6 +248,7 @@ class ComplaintHeatmap(BaseSchema):
     
     Identifies temporal and spatial complaint patterns.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: str = Field(..., description="Hostel identifier")
 
@@ -270,6 +288,7 @@ class ComplaintAnalytics(BaseSchema):
     
     Provides holistic view of complaint management performance.
     """
+    model_config = ConfigDict(from_attributes=True)
 
     hostel_id: Optional[str] = Field(
         default=None,
@@ -306,12 +325,14 @@ class ComplaintAnalytics(BaseSchema):
     )
 
     # SLA metrics
-    sla_compliance_rate: Decimal = Field(
-        ...,
-        ge=Decimal("0"),
-        le=Decimal("100"),
-        description="SLA compliance percentage",
-    )
+    sla_compliance_rate: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("100"),
+            description="SLA compliance percentage"
+        )
+    ]
     sla_breached_count: int = Field(
         ...,
         ge=0,

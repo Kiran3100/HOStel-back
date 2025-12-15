@@ -4,7 +4,7 @@ Enhanced hostel selector UI schemas with comprehensive filtering and organizatio
 Provides optimized schemas for hostel selection dropdown/sidebar with quick stats,
 favorites management, and recent access tracking for improved user experience.
 
-Migrated to Pydantic v2.
+Fully migrated to Pydantic v2.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import Field, computed_field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator, ConfigDict
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema
 
@@ -37,6 +37,8 @@ class HostelSelectorItem(BaseSchema):
     quick statistics, and status information for efficient selection.
     """
     
+    model_config = ConfigDict()
+    
     # Hostel identification
     hostel_id: UUID = Field(..., description="Hostel unique identifier")
     hostel_name: str = Field(..., description="Hostel display name")
@@ -50,9 +52,9 @@ class HostelSelectorItem(BaseSchema):
     is_favorite: bool = Field(False, description="Marked as favorite by admin")
     is_recently_accessed: bool = Field(False, description="Accessed in last 24 hours")
     
-    # Quick statistics for decision making
+    # Quick statistics for decision making - Pydantic v2: Decimal with constraints
     occupancy_percentage: Decimal = Field(
-        Decimal("0.00"), ge=0, le=100, description="Current occupancy rate"
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100"), description="Current occupancy rate"
     )
     total_students: int = Field(0, ge=0, description="Total student count")
     available_beds: int = Field(0, ge=0, description="Available beds count")
@@ -126,6 +128,8 @@ class HostelSelectorResponse(BaseSchema):
     favorites, and intelligent sorting for optimal user experience.
     """
     
+    model_config = ConfigDict()
+    
     admin_id: UUID = Field(..., description="Admin user ID")
     total_hostels: int = Field(..., ge=0, description="Total hostels managed")
     active_hostels: int = Field(..., ge=0, description="Active hostel assignments")
@@ -158,11 +162,11 @@ class HostelSelectorResponse(BaseSchema):
         description="Hostels requiring immediate attention"
     )
     
-    # Summary statistics
+    # Summary statistics - Pydantic v2: Decimal with constraints
     total_pending_tasks: int = Field(0, ge=0, description="Total pending tasks across all hostels")
     total_urgent_alerts: int = Field(0, ge=0, description="Total urgent alerts")
     avg_occupancy_percentage: Decimal = Field(
-        Decimal("0.00"), ge=0, le=100, description="Average occupancy across hostels"
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100"), description="Average occupancy across hostels"
     )
 
     @computed_field
@@ -204,6 +208,8 @@ class RecentHostelItem(BaseSchema):
     for intelligent sorting and quick access recommendations.
     """
     
+    model_config = ConfigDict()
+    
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
     hostel_city: str = Field(..., description="Hostel city")
@@ -215,14 +221,16 @@ class RecentHostelItem(BaseSchema):
     access_count_last_7_days: int = Field(0, ge=0, description="Access count in last 7 days")
     access_count_last_30_days: int = Field(0, ge=0, description="Access count in last 30 days")
     
-    # Session metrics
+    # Session metrics - Pydantic v2: Decimal with ge constraint
     avg_session_duration_minutes: Decimal = Field(
-        Decimal("0.00"), ge=0, description="Average session duration"
+        Decimal("0.00"), ge=Decimal("0"), description="Average session duration"
     )
     total_session_time_minutes: int = Field(0, ge=0, description="Total session time")
     
     # Quick stats for recent access
-    last_occupancy: Decimal = Field(Decimal("0.00"), ge=0, le=100)
+    last_occupancy: Decimal = Field(
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100")
+    )
     pending_tasks_on_last_visit: int = Field(0, ge=0)
 
     @computed_field
@@ -262,6 +270,8 @@ class RecentHostels(BaseSchema):
     with analytics for usage optimization recommendations.
     """
     
+    model_config = ConfigDict()
+    
     admin_id: UUID = Field(..., description="Admin user ID")
     
     hostels: List[RecentHostelItem] = Field(
@@ -300,6 +310,8 @@ class FavoriteHostelItem(BaseSchema):
     and priority ordering for personalized quick access.
     """
     
+    model_config = ConfigDict()
+    
     hostel_id: UUID = Field(..., description="Hostel ID")
     hostel_name: str = Field(..., description="Hostel name")
     hostel_city: str = Field(..., description="Hostel city")
@@ -315,8 +327,10 @@ class FavoriteHostelItem(BaseSchema):
     )
     display_order: int = Field(0, description="Custom display order priority")
     
-    # Quick stats
-    current_occupancy: Decimal = Field(Decimal("0.00"), ge=0, le=100)
+    # Quick stats - Pydantic v2: Decimal with constraints
+    current_occupancy: Decimal = Field(
+        Decimal("0.00"), ge=Decimal("0"), le=Decimal("100")
+    )
     pending_items: int = Field(0, ge=0, description="Total pending items count")
     
     # Access tracking for favorites
@@ -354,6 +368,8 @@ class FavoriteHostels(BaseSchema):
     labels, and quick access to frequently used hostels.
     """
     
+    model_config = ConfigDict()
+    
     admin_id: UUID = Field(..., description="Admin user ID")
     
     hostels: List[FavoriteHostelItem] = Field(
@@ -390,6 +406,8 @@ class UpdateFavoriteRequest(BaseCreateSchema):
     Supports adding/removing favorites with custom labels,
     notes, and display order preferences.
     """
+    
+    model_config = ConfigDict(validate_assignment=True)
     
     hostel_id: UUID = Field(..., description="Hostel ID to add/remove from favorites")
     is_favorite: bool = Field(..., description="True to add, False to remove")

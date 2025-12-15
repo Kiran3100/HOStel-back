@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import Field, field_validator, model_validator
 from uuid import UUID
@@ -223,14 +223,11 @@ class MealItems(BaseSchema):
         max_length=50,
         description="List of menu items for this meal",
     )
-    # Note: Pydantic v2 doesn't support time type in Field directly without proper import
-    # Assuming time is imported from datetime at the top
-    from datetime import time
-    serving_start_time: Optional[time] = Field(
+    serving_start_time: Optional[datetime.time] = Field(
         None,
         description="Meal serving start time",
     )
-    serving_end_time: Optional[time] = Field(
+    serving_end_time: Optional[datetime.time] = Field(
         None,
         description="Meal serving end time",
     )
@@ -367,6 +364,14 @@ class AllergenInfo(BaseSchema):
     )
 
 
+# Pydantic v2: For Decimal fields with max_digits and decimal_places, use Annotated
+# This resolves the "Unknown constraint decimal_places" error
+DecimalWithPrecision = Annotated[
+    Decimal,
+    Field(ge=0, le=1000)
+]
+
+
 class NutritionalInfo(BaseSchema):
     """
     Nutritional information for menu item.
@@ -409,7 +414,7 @@ class NutritionalInfo(BaseSchema):
     )
 
     # Macronutrients (grams)
-    # Note: Pydantic v2 removed decimal_places, using Decimal with quantize in validator instead
+    # Pydantic v2: Using Decimal with validation in field_validator instead of max_digits/decimal_places
     protein_g: Optional[Decimal] = Field(
         None,
         ge=0,
@@ -513,7 +518,9 @@ class NutritionalInfo(BaseSchema):
     # Pydantic v2: Apply decimal precision using a validator
     @field_validator(
         "protein_g", "carbohydrates_g", "fat_g", "saturated_fat_g",
-        "trans_fat_g", "fiber_g", "sugar_g",
+        "trans_fat_g", "fiber_g", "sugar_g", "sodium_mg", "cholesterol_mg",
+        "potassium_mg", "vitamin_a_percent", "vitamin_c_percent",
+        "calcium_percent", "iron_percent",
         mode="after"
     )
     @classmethod

@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from datetime import date as Date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import ConfigDict, Field, HttpUrl, field_validator, model_validator
+
 from uuid import UUID
 
 from app.schemas.common.base import BaseCreateSchema, BaseSchema, BaseUpdateSchema
@@ -334,17 +335,13 @@ class MaintenanceUpdate(BaseUpdateSchema):
         description="Updated status (restricted to certain roles)",
     )
 
-    # Cost information
-    estimated_cost: Optional[Decimal] = Field(
+    # Cost information - Using Annotated for Decimal constraints in Pydantic v2
+    estimated_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Estimated repair cost",
     )
-    actual_cost: Optional[Decimal] = Field(
+    actual_cost: Optional[Annotated[Decimal, Field(ge=0, decimal_places=2)]] = Field(
         None,
-        ge=0,
-        decimal_places=2,
         description="Actual cost incurred",
     )
 
